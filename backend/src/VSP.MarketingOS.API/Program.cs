@@ -4,6 +4,7 @@ using System.Text;
 using MediatR;
 using VSP.MarketingOS.Application.Interfaces;
 using VSP.MarketingOS.Infrastructure.Mock;
+using VSP.MarketingOS.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,7 @@ builder.Services.AddCors(opt =>
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "https://marketing-campaign-six.vercel.app",
+                "https://marketing-campaign-waqy.onrender.com",
                 "https://*.vercel.app",
                 builder.Configuration["AllowedOrigins"] ?? "https://marketing-campaign-six.vercel.app"
             )
@@ -103,14 +105,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "VSP AI Marketing OS v1"));
 }
 
-app.UseHttpsRedirection();
+// Note: Render handles TLS at the load balancer level — no HTTPS redirect needed here
 app.UseCors("VspFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 // SignalR hubs
-app.MapHub<Hubs.NotificationHub>("/hubs/notifications");
-app.MapHub<Hubs.AIJobHub>("/hubs/ai-jobs");
+app.MapHub<NotificationHub>("/hubs/notifications");
+app.MapHub<AIJobHub>("/hubs/ai-jobs");
 
 app.Run();

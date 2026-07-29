@@ -1,14 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using MediatR;
 using VSP.MarketingOS.Application.Interfaces;
 using VSP.MarketingOS.Infrastructure.Mock;
+using VSP.MarketingOS.Infrastructure.Persistence;
 using VSP.MarketingOS.API.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// ─── Services ───────────────────────────────────────────────────────────────
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -32,7 +31,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS — allow Vercel frontend + local dev
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("VspFrontend", policy =>
@@ -53,8 +51,7 @@ builder.Services.AddCors(opt =>
     });
 });
 
-// JWT Authentication
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "VSP-AI-Marketing-OS-Secret-Key-2024-Enterprise";
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "VSP-AI-Marketing-OS-Secret-Key-2024-Enterprise-Grade-Platform";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opt =>
     {
@@ -70,35 +67,44 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// MediatR — scans Application assembly
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(VSP.MarketingOS.Application.Commands.GenerateCampaignCommand).Assembly));
 
-// ─── AI & External Service Abstractions ─────────────────────────────────────
-// 
-// MOCK implementations — all return realistic data without calling external APIs.
-// To connect real services, replace MockXxxService with your real implementation:
-//
-//   builder.Services.AddScoped<ILLMService, OpenAILLMService>();
-//   builder.Services.AddScoped<IEmailService, SendGridEmailService>();
-//   builder.Services.AddScoped<IWhatsAppService, TwilioWhatsAppService>();
-//   builder.Services.AddScoped<IVoiceService, BlandAIVoiceService>();
-//   builder.Services.AddScoped<ISocialMediaService, BufferSocialMediaService>();
-//   builder.Services.AddScoped<IImageGenerationService, DallEImageGenerationService>();
-//
-// NO UI or API changes required — only change DI registrations below.
+// ─── Database (Neon / Render / Azure Postgres) ──────────────────────────────
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL")
+    ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Missing Postgres connection string. Set ConnectionStrings__DefaultConnection (or DATABASE_URL) on Render. Recommended: Neon https://neon.tech");
+}
+
+// Neon / some hosts provide postgres:// URLs — Npgsql wants key=value format
+if (connectionString.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) ||
+    connectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+{
+    connectionString = ConvertPostgresUrl(connectionString);
+}
+
+builder.Services.AddDbContext<AppDbContext>(opt =>
+    opt.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<ILLMService, MockLLMService>();
 builder.Services.AddScoped<IEmailService, MockEmailService>();
 builder.Services.AddScoped<IWhatsAppService, MockWhatsAppService>();
 builder.Services.AddScoped<IVoiceService, MockVoiceService>();
 
-// SignalR for real-time updates (AI job progress, notifications)
 builder.Services.AddSignalR();
 
-// ─── App Pipeline ────────────────────────────────────────────────────────────
-
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbSeed.EnsureSeededAsync(db);
+}
 
 if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
 {
@@ -106,14 +112,23 @@ if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Enviro
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "VSP AI Marketing OS v1"));
 }
 
-// Note: Render handles TLS at the load balancer level — no HTTPS redirect needed here
 app.UseCors("VspFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-// SignalR hubs
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<AIJobHub>("/hubs/ai-jobs");
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", mode = "saas" }));
 
 app.Run();
+
+static string ConvertPostgresUrl(string url)
+{
+    var uri = new Uri(url);
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var user = Uri.UnescapeDataString(userInfo[0]);
+    var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    var db = uri.AbsolutePath.TrimStart('/');
+    var ssl = url.Contains("sslmode=", StringComparison.OrdinalIgnoreCase) ? "" : ";SSL Mode=Require;Trust Server Certificate=true";
+    return $"Host={uri.Host};Port={(uri.Port > 0 ? uri.Port : 5432)};Database={db};Username={user};Password={pass}{ssl}";
+}

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,46 +11,62 @@ namespace VSP.MarketingOS.API.Controllers;
 [Authorize]
 public class TemplatesController : ControllerBase
 {
+    private readonly AppDbContext _db;
+
+    public TemplatesController(AppDbContext db) => _db = db;
+
     [HttpGet]
-    public IActionResult List([FromQuery] string? search, [FromQuery] string? category)
+    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? category)
     {
-        IEnumerable<Dictionary<string, object?>> list = AppStore.Templates;
+        var orgId = User.GetOrganizationId();
+        var q = _db.Templates.AsNoTracking().Where(t => t.OrganizationId == orgId && !t.IsDeleted);
         if (!string.IsNullOrWhiteSpace(category) && category != "All")
-            list = list.Where(t => $"{t.GetValueOrDefault("category")}" == category);
+            q = q.Where(t => t.Category == category);
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var q = search.ToLowerInvariant();
-            list = list.Where(t => $"{t.GetValueOrDefault("name")}".ToLowerInvariant().Contains(q));
+            var s = search.ToLower();
+            q = q.Where(t => t.Name.ToLower().Contains(s));
         }
-        return Ok(list.ToList());
+        var list = await q.OrderByDescending(t => t.CreatedAt).ToListAsync();
+        return Ok(list.Select(Map));
     }
 
     [HttpPost]
-    public IActionResult Create([FromBody] CreateTemplateDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateTemplateDto dto)
     {
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        var item = new MarketingTemplate
         {
-            ["id"] = AppStore.NewId(),
-            ["name"] = dto.Name,
-            ["category"] = dto.Category ?? "Campaign",
-            ["uses"] = 0,
+            Name = dto.Name,
+            Category = dto.Category ?? "Campaign",
+            Uses = 0,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.Templates.Insert(0, item));
-        return Ok(item);
+        _db.Templates.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(Map(item));
     }
 
     [HttpPost("{id}/use")]
-    public IActionResult Use(string id)
+    public async Task<IActionResult> Use(Guid id)
     {
-        Dictionary<string, object?>? found = null;
-        AppStore.Lock(() =>
-        {
-            found = AppStore.Templates.FirstOrDefault(t => $"{t.GetValueOrDefault("id")}" == id);
-            if (found != null) found["uses"] = Convert.ToInt32(found["uses"]) + 1;
-        });
+        var orgId = User.GetOrganizationId();
+        var found = await _db.Templates.FirstOrDefaultAsync(t => t.Id == id && t.OrganizationId == orgId && !t.IsDeleted);
         if (found == null) return NotFound();
-        return Ok(found);
+        found.Uses += 1;
+        found.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(Map(found));
     }
+
+    private static object Map(MarketingTemplate t) => new
+    {
+        id = t.Id.ToString(),
+        name = t.Name,
+        category = t.Category,
+        uses = t.Uses,
+    };
 }
 
 public record CreateTemplateDto(string Name, string? Category);

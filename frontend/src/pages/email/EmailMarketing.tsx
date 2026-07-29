@@ -1,18 +1,22 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Send, Eye, MousePointer, UserMinus, Plus, Play, Pause, MoreHorizontal } from 'lucide-react'
+import { Mail, Send, Eye, MousePointer, UserMinus, Plus, Play, Pause, MoreHorizontal, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { emailApi } from '@/services/api'
 
 export function EmailMarketing() {
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [sequences, setSequences] = useState<any[]>([])
   const [stats, setStats] = useState<Record<string, number>>({})
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ name: '', subject: '' })
 
   const load = async () => {
     try {
@@ -46,14 +50,23 @@ export function EmailMarketing() {
     }
   }
 
-  const handleCreate = async () => {
-    if (creating) return
+  const openDialog = () => {
+    setForm({ name: '', subject: '' })
+    setDialogOpen(true)
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (creating || !form.name.trim()) return
     setCreating(true)
     try {
-      await emailApi.create('New Email Campaign', 'Your subject here')
+      await emailApi.create(form.name.trim(), form.subject.trim() || undefined)
+      setDialogOpen(false)
+      setForm({ name: '', subject: '' })
       await load()
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to create campaign')
     } finally {
       setCreating(false)
     }
@@ -89,7 +102,7 @@ export function EmailMarketing() {
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white/70">Email Campaigns</h3>
-        <Button size="sm" variant="gradient" className="gap-1.5" onClick={handleCreate} disabled={creating}>
+        <Button size="sm" variant="gradient" className="gap-1.5" onClick={openDialog}>
           <Plus className="w-3.5 h-3.5" />
           New Campaign
         </Button>
@@ -190,6 +203,39 @@ export function EmailMarketing() {
           </div>
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !creating && setDialogOpen(false)}
+        title="New Email Campaign"
+        description="Create a campaign with a name and subject line."
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <Field label="Name">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Spring nurture series"
+              required
+            />
+          </Field>
+          <Field label="Subject">
+            <Input
+              value={form.subject}
+              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+              placeholder="Your subject line"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDialogOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="gradient" size="sm" disabled={creating || !form.name.trim()}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Campaign'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   )
 }

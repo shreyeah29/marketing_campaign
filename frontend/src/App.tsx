@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Login } from '@/pages/auth/Login'
+import { Signup } from '@/pages/auth/Signup'
 import { ForgotPassword } from '@/pages/auth/ForgotPassword'
 import { Dashboard } from '@/pages/dashboard/Dashboard'
 import { AICommandCenter } from '@/pages/ai-command/AICommandCenter'
@@ -34,6 +35,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route
             path="/"

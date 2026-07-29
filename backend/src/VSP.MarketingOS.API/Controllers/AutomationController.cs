@@ -1,6 +1,9 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,39 +12,82 @@ namespace VSP.MarketingOS.API.Controllers;
 [Authorize]
 public class AutomationController : ControllerBase
 {
+    private readonly AppDbContext _db;
+
+    public AutomationController(AppDbContext db) => _db = db;
+
     [HttpGet("workflows")]
-    public IActionResult GetWorkflows() => Ok(AppStore.Workflows);
+    public async Task<IActionResult> GetWorkflows()
+    {
+        var orgId = User.GetOrganizationId();
+        var list = await _db.Workflows.AsNoTracking()
+            .Where(w => w.OrganizationId == orgId && !w.IsDeleted)
+            .OrderByDescending(w => w.CreatedAt)
+            .ToListAsync();
+        return Ok(list.Select(Map));
+    }
 
     [HttpGet("executions")]
-    public IActionResult GetExecutions() => Ok(AppStore.WorkflowExecutions);
+    public IActionResult GetExecutions() => Ok(new[]
+    {
+        new { id = "e1", workflow = "Lead → Email → WhatsApp → Call", status = "success", at = "2m ago", detail = "Priya Sharma — Email sent, WhatsApp queued" },
+        new { id = "e2", workflow = "Missed Call Follow-up", status = "running", at = "8m ago", detail = "Rajesh Kumar — Waiting 15m" },
+        new { id = "e3", workflow = "Lead → Email → WhatsApp → Call", status = "failed", at = "1h ago", detail = "Invalid WhatsApp template approval" },
+    });
 
     [HttpPost("workflows")]
-    public IActionResult CreateWorkflow([FromBody] CreateWorkflowDto dto)
+    public async Task<IActionResult> CreateWorkflow([FromBody] CreateWorkflowDto dto)
     {
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        var steps = dto.Steps ?? Array.Empty<string>();
+        var item = new Workflow
         {
-            ["id"] = AppStore.NewId(),
-            ["name"] = dto.Name,
-            ["status"] = "paused",
-            ["runs"] = 0,
-            ["successRate"] = 100,
-            ["steps"] = dto.Steps ?? Array.Empty<string>(),
+            Name = dto.Name,
+            Status = "paused",
+            Runs = 0,
+            SuccessRate = 100,
+            StepsJson = JsonSerializer.Serialize(steps),
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.Workflows.Insert(0, item));
-        return Ok(item);
+        _db.Workflows.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(Map(item));
     }
 
     [HttpPut("workflows/{id}/status")]
-    public IActionResult UpdateStatus(string id, [FromBody] UpdateCampaignStatusDto dto)
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateCampaignStatusDto dto)
     {
-        Dictionary<string, object?>? found = null;
-        AppStore.Lock(() =>
-        {
-            found = AppStore.Workflows.FirstOrDefault(w => $"{w.GetValueOrDefault("id")}" == id);
-            if (found != null) found["status"] = dto.Status;
-        });
+        var orgId = User.GetOrganizationId();
+        var found = await _db.Workflows.FirstOrDefaultAsync(w => w.Id == id && w.OrganizationId == orgId && !w.IsDeleted);
         if (found == null) return NotFound();
-        return Ok(found);
+        found.Status = dto.Status;
+        found.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(Map(found));
+    }
+
+    private static object Map(Workflow w)
+    {
+        string[] steps;
+        try
+        {
+            steps = JsonSerializer.Deserialize<string[]>(w.StepsJson) ?? Array.Empty<string>();
+        }
+        catch
+        {
+            steps = Array.Empty<string>();
+        }
+
+        return new
+        {
+            id = w.Id.ToString(),
+            name = w.Name,
+            status = w.Status,
+            runs = w.Runs,
+            successRate = w.SuccessRate,
+            steps,
+        };
     }
 }
 

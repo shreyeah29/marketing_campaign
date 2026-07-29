@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
 using VSP.MarketingOS.Application.Interfaces;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -11,12 +13,30 @@ namespace VSP.MarketingOS.API.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly ILLMService _llm;
+    private readonly AppDbContext _db;
 
-    public AnalyticsController(ILLMService llm) => _llm = llm;
+    public AnalyticsController(ILLMService llm, AppDbContext db)
+    {
+        _llm = llm;
+        _db = db;
+    }
 
     [HttpGet("dashboard")]
-    public IActionResult GetDashboard()
+    public async Task<IActionResult> GetDashboard()
     {
+        var orgId = User.GetOrganizationId();
+        var activeCampaigns = await _db.Campaigns.AsNoTracking()
+            .CountAsync(c => c.OrganizationId == orgId && !c.IsDeleted && c.Status == "active");
+        var activity = await _db.Activities.AsNoTracking()
+            .Where(a => a.OrganizationId == orgId && !a.IsDeleted)
+            .OrderByDescending(a => a.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+        var tasks = await _db.Tasks.AsNoTracking()
+            .Where(t => t.OrganizationId == orgId && !t.IsDeleted)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+
         return Ok(new
         {
             kpis = new
@@ -27,7 +47,7 @@ public class AnalyticsController : ControllerBase
                 appointments = 34,
                 roi = 340,
                 conversionRate = 3.4,
-                activeCampaigns = AppStore.Campaigns.Count(c => $"{c["status"]}" == "active"),
+                activeCampaigns,
             },
             revenueByMonth = new[]
             {
@@ -47,8 +67,8 @@ public class AnalyticsController : ControllerBase
                 new { name = "Proposals", value = 480 },
                 new { name = "Closed", value = 128 },
             },
-            activity = AppStore.Activity.Take(10).ToList(),
-            tasks = AppStore.Tasks.ToList(),
+            activity = activity.Select(MapActivity),
+            tasks = tasks.Select(MapTask),
         });
     }
 
@@ -78,24 +98,70 @@ public class AnalyticsController : ControllerBase
     }
 
     [HttpGet("activity")]
-    public IActionResult GetActivity() => Ok(AppStore.Activity);
+    public async Task<IActionResult> GetActivity()
+    {
+        var orgId = User.GetOrganizationId();
+        var list = await _db.Activities.AsNoTracking()
+            .Where(a => a.OrganizationId == orgId && !a.IsDeleted)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+        return Ok(list.Select(MapActivity));
+    }
 
     [HttpGet("tasks")]
-    public IActionResult GetTasks() => Ok(AppStore.Tasks);
+    public async Task<IActionResult> GetTasks()
+    {
+        var orgId = User.GetOrganizationId();
+        var list = await _db.Tasks.AsNoTracking()
+            .Where(t => t.OrganizationId == orgId && !t.IsDeleted)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+        return Ok(list.Select(MapTask));
+    }
 
     [HttpPost("tasks")]
-    public IActionResult CreateTask([FromBody] CreateTaskDto dto)
+    public async Task<IActionResult> CreateTask([FromBody] CreateTaskDto dto)
     {
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        var item = new OrgTask
         {
-            ["id"] = AppStore.NewId(),
-            ["task"] = dto.Task,
-            ["due"] = dto.Due ?? "Soon",
-            ["priority"] = dto.Priority ?? "medium",
-            ["done"] = false,
+            Title = dto.Task,
+            Due = dto.Due ?? "Soon",
+            Priority = dto.Priority ?? "medium",
+            Done = false,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.Tasks.Insert(0, item));
-        return Ok(item);
+        _db.Tasks.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(MapTask(item));
+    }
+
+    private static object MapActivity(ActivityEvent a) => new
+    {
+        id = a.Id.ToString(),
+        text = a.Text,
+        time = RelTime(a.CreatedAt),
+        status = a.Status,
+        color = a.Color,
+    };
+
+    private static object MapTask(OrgTask t) => new
+    {
+        id = t.Id.ToString(),
+        task = t.Title,
+        due = t.Due,
+        priority = t.Priority,
+        done = t.Done,
+    };
+
+    private static string RelTime(DateTime utc)
+    {
+        var span = DateTime.UtcNow - utc;
+        if (span.TotalMinutes < 1) return "just now";
+        if (span.TotalMinutes < 60) return $"{(int)span.TotalMinutes}m ago";
+        if (span.TotalHours < 24) return $"{(int)span.TotalHours}h ago";
+        return utc.ToString("MMM d");
     }
 }
 

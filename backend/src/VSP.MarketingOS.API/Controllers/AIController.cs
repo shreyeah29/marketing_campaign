@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
 using VSP.MarketingOS.Application.Interfaces;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -11,8 +13,13 @@ namespace VSP.MarketingOS.API.Controllers;
 public class AIController : ControllerBase
 {
     private readonly ILLMService _llm;
+    private readonly AppDbContext _db;
 
-    public AIController(ILLMService llm) => _llm = llm;
+    public AIController(ILLMService llm, AppDbContext db)
+    {
+        _llm = llm;
+        _db = db;
+    }
 
     [HttpPost("campaign")]
     public async Task<IActionResult> GenerateCampaign([FromBody] GenerateCampaignRequest request, CancellationToken ct)
@@ -20,19 +27,17 @@ public class AIController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Prompt))
             return BadRequest(new { message = "Prompt is required" });
 
+        var orgId = User.GetOrganizationId();
         var result = await _llm.GenerateCampaignAsync(request.Prompt, ct);
 
-        AppStore.Lock(() =>
+        _db.Activities.Add(new ActivityEvent
         {
-            AppStore.Activity.Insert(0, new Dictionary<string, object?>
-            {
-                ["id"] = AppStore.NewId(),
-                ["text"] = $"AI generated campaign for: {request.Prompt[..Math.Min(60, request.Prompt.Length)]}",
-                ["time"] = "just now",
-                ["status"] = "complete",
-                ["color"] = "bg-indigo-500",
-            });
+            Text = $"AI generated campaign for: {request.Prompt[..Math.Min(60, request.Prompt.Length)]}",
+            Status = "complete",
+            Color = "bg-indigo-500",
+            OrganizationId = orgId,
         });
+        await _db.SaveChangesAsync(ct);
 
         return Ok(new
         {
@@ -63,29 +68,30 @@ public class AIController : ControllerBase
     }
 
     [HttpPost("campaign/save")]
-    public IActionResult SaveCampaignSections([FromBody] SaveCampaignRequest request)
+    public async Task<IActionResult> SaveCampaignSections([FromBody] SaveCampaignRequest request)
     {
-        var id = AppStore.NewId();
-        AppStore.Lock(() =>
+        var orgId = User.GetOrganizationId();
+        var item = new Campaign
         {
-            AppStore.Campaigns.Insert(0, new Dictionary<string, object?>
-            {
-                ["id"] = id,
-                ["name"] = request.Name ?? "AI Generated Campaign",
-                ["channel"] = "Multi-channel",
-                ["status"] = "draft",
-                ["budget"] = 0m,
-                ["spent"] = 0m,
-                ["leads"] = 0,
-                ["conversions"] = 0,
-                ["roi"] = 0,
-                ["start"] = DateTime.UtcNow.ToString("MMM d"),
-                ["end"] = "TBD",
-                ["summary"] = request.Summary,
-                ["sections"] = request.Sections,
-            });
+            Name = request.Name ?? "AI Generated Campaign",
+            Channel = "Multi-channel",
+            Status = "draft",
+            Budget = 0,
+            Description = request.Summary,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
+            StartDate = DateTime.UtcNow,
+        };
+        _db.Campaigns.Add(item);
+        _db.Activities.Add(new ActivityEvent
+        {
+            Text = $"Campaign saved: {item.Name}",
+            Status = "complete",
+            Color = "bg-indigo-500",
+            OrganizationId = orgId,
         });
-        return Ok(new { id, message = "Campaign saved" });
+        await _db.SaveChangesAsync();
+        return Ok(new { id = item.Id.ToString(), message = "Campaign saved" });
     }
 }
 

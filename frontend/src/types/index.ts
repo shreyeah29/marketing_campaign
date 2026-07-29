@@ -5,6 +5,7 @@ export interface User {
   role: string
   avatar?: string
   organization: string
+  organizationId?: string
 }
 
 export interface KPIMetric {

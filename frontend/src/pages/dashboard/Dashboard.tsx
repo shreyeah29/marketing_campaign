@@ -6,11 +6,13 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, Users, DollarSign, Target,
-  Zap, Activity, Calendar, Sparkles, Clock, ArrowUpRight
+  Zap, Activity, Calendar, Sparkles, Clock, ArrowUpRight, Loader2
 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { analyticsApi, aiApi } from '@/services/api'
@@ -64,55 +66,67 @@ export function Dashboard() {
   const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [aiInsights, setAiInsights] = useState<any[]>([])
   const [upcomingTasks, setUpcomingTasks] = useState<any[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [addingTask, setAddingTask] = useState(false)
+  const [form, setForm] = useState({ task: '', due: '', priority: 'medium' })
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [dash, channels, insights] = await Promise.all([
-          analyticsApi.dashboard(),
-          analyticsApi.channels(),
-          aiApi.insights(),
-        ])
-        setKpis((dash?.kpis as Record<string, number>) || {})
-        setRevenueData(dash?.revenueByMonth || [])
-        setFunnelData(
-          (dash?.funnel || []).map((f: any, i: number) => ({
-            ...f,
-            fill: FUNNEL_FILLS[i % FUNNEL_FILLS.length],
-          }))
-        )
-        setRecentActivity((dash?.activity as any[]) || [])
-        setUpcomingTasks((dash?.tasks as any[]) || [])
-        setChannelData(
-          (channels || []).map((c: any) => ({
-            name: c.name || c.channel,
-            value: c.value ?? c.leads ?? 0,
-            color: CHANNEL_COLORS[c.name || c.channel] || '#6366f1',
-          }))
-        )
-        setAiInsights(insights || [])
-      } catch (err) {
-        console.error(err)
-        setRevenueData([])
-        setChannelData([])
-        setFunnelData([])
-        setRecentActivity([])
-        setAiInsights([])
-        setUpcomingTasks([])
-      }
-    }
-    load()
-  }, [])
-
-  const handleAddTask = async () => {
-    if (addingTask) return
-    setAddingTask(true)
+  const loadDashboard = async () => {
     try {
-      const task = await analyticsApi.createTask('New task', 'Soon', 'medium') as any
-      setUpcomingTasks((prev) => [task, ...prev])
+      const [dash, channels, insights] = await Promise.all([
+        analyticsApi.dashboard(),
+        analyticsApi.channels(),
+        aiApi.insights(),
+      ])
+      setKpis((dash?.kpis as Record<string, number>) || {})
+      setRevenueData(dash?.revenueByMonth || [])
+      setFunnelData(
+        (dash?.funnel || []).map((f: any, i: number) => ({
+          ...f,
+          fill: FUNNEL_FILLS[i % FUNNEL_FILLS.length],
+        }))
+      )
+      setRecentActivity((dash?.activity as any[]) || [])
+      setUpcomingTasks((dash?.tasks as any[]) || [])
+      setChannelData(
+        (channels || []).map((c: any) => ({
+          name: c.name || c.channel,
+          value: c.value ?? c.leads ?? 0,
+          color: CHANNEL_COLORS[c.name || c.channel] || '#6366f1',
+        }))
+      )
+      setAiInsights(insights || [])
     } catch (err) {
       console.error(err)
+      setRevenueData([])
+      setChannelData([])
+      setFunnelData([])
+      setRecentActivity([])
+      setAiInsights([])
+      setUpcomingTasks([])
+    }
+  }
+
+  useEffect(() => {
+    loadDashboard()
+  }, [])
+
+  const openDialog = () => {
+    setForm({ task: '', due: '', priority: 'medium' })
+    setDialogOpen(true)
+  }
+
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (addingTask || !form.task.trim()) return
+    setAddingTask(true)
+    try {
+      await analyticsApi.createTask(form.task.trim(), form.due.trim() || undefined, form.priority || 'medium')
+      setDialogOpen(false)
+      setForm({ task: '', due: '', priority: 'medium' })
+      await loadDashboard()
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to create task')
     } finally {
       setAddingTask(false)
     }
@@ -420,7 +434,7 @@ export function Dashboard() {
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-white">Upcoming Tasks</p>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleAddTask} disabled={addingTask}>
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={openDialog}>
             + Add task
           </Button>
         </div>
@@ -458,6 +472,50 @@ export function Dashboard() {
           ))}
         </div>
       </Card>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !addingTask && setDialogOpen(false)}
+        title="Add Task"
+        description="Create a task with due date and priority."
+      >
+        <form onSubmit={handleAddTask} className="space-y-4">
+          <Field label="Task">
+            <Input
+              value={form.task}
+              onChange={(e) => setForm((f) => ({ ...f, task: e.target.value }))}
+              placeholder="Follow up with lead"
+              required
+            />
+          </Field>
+          <Field label="Due">
+            <Input
+              value={form.due}
+              onChange={(e) => setForm((f) => ({ ...f, due: e.target.value }))}
+              placeholder="Tomorrow, Apr 12…"
+            />
+          </Field>
+          <Field label="Priority">
+            <select
+              value={form.priority}
+              onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
+              className="flex h-10 w-full rounded-xl border border-white/[0.09] bg-white/[0.04] px-3.5 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/60"
+            >
+              <option value="low" className="bg-[#0f0f16]">Low</option>
+              <option value="medium" className="bg-[#0f0f16]">Medium</option>
+              <option value="high" className="bg-[#0f0f16]">High</option>
+            </select>
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDialogOpen(false)} disabled={addingTask}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="gradient" size="sm" disabled={addingTask || !form.task.trim()}>
+              {addingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Task'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   )
 }

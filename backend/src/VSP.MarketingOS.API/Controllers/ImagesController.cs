@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,40 +11,65 @@ namespace VSP.MarketingOS.API.Controllers;
 [Authorize]
 public class ImagesController : ControllerBase
 {
+    private readonly AppDbContext _db;
+
+    public ImagesController(AppDbContext db) => _db = db;
+
     [HttpGet]
-    public IActionResult List() => Ok(AppStore.Images);
+    public async Task<IActionResult> List()
+    {
+        var orgId = User.GetOrganizationId();
+        var list = await _db.Images.AsNoTracking()
+            .Where(i => i.OrganizationId == orgId && !i.IsDeleted)
+            .OrderByDescending(i => i.CreatedAt)
+            .ToListAsync();
+        return Ok(list.Select(Map));
+    }
 
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateImageDto dto, CancellationToken ct)
     {
         await Task.Delay(800, ct); // simulate generation latency
+        var orgId = User.GetOrganizationId();
         var seed = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var item = new Dictionary<string, object?>
+        var item = new MarketingImage
         {
-            ["id"] = AppStore.NewId(),
-            ["title"] = string.IsNullOrWhiteSpace(dto.Prompt) ? $"{dto.Type} Design" : dto.Prompt,
-            ["type"] = dto.Type,
-            ["size"] = "1080x1080",
-            ["url"] = $"https://picsum.photos/seed/{seed}/400/400",
-            ["liked"] = false,
-            ["prompt"] = dto.Prompt,
+            Title = string.IsNullOrWhiteSpace(dto.Prompt) ? $"{dto.Type} Design" : dto.Prompt,
+            Type = dto.Type,
+            Size = "1080x1080",
+            Url = $"https://picsum.photos/seed/{seed}/400/400",
+            Liked = false,
+            Prompt = dto.Prompt,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.Images.Insert(0, item));
-        return Ok(item);
+        _db.Images.Add(item);
+        await _db.SaveChangesAsync(ct);
+        return Ok(Map(item));
     }
 
     [HttpPut("{id}/like")]
-    public IActionResult ToggleLike(string id)
+    public async Task<IActionResult> ToggleLike(Guid id)
     {
-        Dictionary<string, object?>? found = null;
-        AppStore.Lock(() =>
-        {
-            found = AppStore.Images.FirstOrDefault(i => $"{i.GetValueOrDefault("id")}" == id);
-            if (found != null) found["liked"] = !(bool)(found["liked"] ?? false);
-        });
+        var orgId = User.GetOrganizationId();
+        var found = await _db.Images.FirstOrDefaultAsync(i => i.Id == id && i.OrganizationId == orgId && !i.IsDeleted);
         if (found == null) return NotFound();
-        return Ok(found);
+        found.Liked = !found.Liked;
+        found.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return Ok(Map(found));
     }
+
+    private static object Map(MarketingImage i) => new
+    {
+        id = i.Id.ToString(),
+        title = i.Title,
+        type = i.Type,
+        size = i.Size,
+        url = i.Url,
+        liked = i.Liked,
+        prompt = i.Prompt,
+    };
 }
 
 public record GenerateImageDto(string Type, string Prompt);

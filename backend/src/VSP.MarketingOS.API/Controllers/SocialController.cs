@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,56 +11,72 @@ namespace VSP.MarketingOS.API.Controllers;
 [Authorize]
 public class SocialController : ControllerBase
 {
+    private readonly AppDbContext _db;
+
+    public SocialController(AppDbContext db) => _db = db;
+
     [HttpGet("posts")]
-    public IActionResult GetPosts([FromQuery] string? status) 
+    public async Task<IActionResult> GetPosts([FromQuery] string? status)
     {
-        IEnumerable<Dictionary<string, object?>> list = AppStore.SocialPosts;
+        var orgId = User.GetOrganizationId();
+        var q = _db.SocialPosts.AsNoTracking().Where(p => p.OrganizationId == orgId && !p.IsDeleted);
         if (!string.IsNullOrWhiteSpace(status))
-            list = list.Where(p => $"{p.GetValueOrDefault("status")}" == status);
-        return Ok(list.ToList());
+            q = q.Where(p => p.Status == status);
+        var list = await q.OrderByDescending(p => p.CreatedAt).ToListAsync();
+        return Ok(list.Select(Map));
     }
 
     [HttpPost("posts")]
-    public IActionResult CreatePost([FromBody] CreateSocialPostDto dto)
+    public async Task<IActionResult> CreatePost([FromBody] CreateSocialPostDto dto)
     {
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        var item = new SocialPost
         {
-            ["id"] = AppStore.NewId(),
-            ["platform"] = dto.Platform,
-            ["content"] = dto.Content,
-            ["status"] = dto.PublishNow ? "published" : "draft",
-            ["scheduledAt"] = dto.PublishNow ? DateTime.UtcNow.ToString("o") : null,
-            ["engagement"] = 0,
+            Platform = dto.Platform,
+            Content = dto.Content,
+            Status = dto.PublishNow ? "published" : "draft",
+            ScheduledAt = dto.PublishNow ? DateTime.UtcNow : null,
+            Engagement = 0,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.SocialPosts.Insert(0, item));
-        return Ok(item);
+        _db.SocialPosts.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(Map(item));
     }
 
     [HttpPost("posts/schedule")]
-    public IActionResult SchedulePost([FromBody] ScheduleSocialPostDto dto)
+    public async Task<IActionResult> SchedulePost([FromBody] ScheduleSocialPostDto dto)
     {
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        DateTime? scheduledAt = DateTime.TryParse(dto.ScheduledAt, out var dt) ? dt.ToUniversalTime() : null;
+        var item = new SocialPost
         {
-            ["id"] = AppStore.NewId(),
-            ["platform"] = dto.Platform,
-            ["content"] = dto.Content,
-            ["status"] = "scheduled",
-            ["scheduledAt"] = dto.ScheduledAt,
-            ["engagement"] = 0,
+            Platform = dto.Platform,
+            Content = dto.Content,
+            Status = "scheduled",
+            ScheduledAt = scheduledAt,
+            Engagement = 0,
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.SocialPosts.Insert(0, item));
-        return Ok(item);
+        _db.SocialPosts.Add(item);
+        await _db.SaveChangesAsync();
+        return Ok(Map(item));
     }
 
     [HttpGet("analytics")]
-    public IActionResult Analytics()
+    public async Task<IActionResult> Analytics()
     {
+        var orgId = User.GetOrganizationId();
+        var postsThisWeek = await _db.SocialPosts.AsNoTracking()
+            .CountAsync(p => p.OrganizationId == orgId && !p.IsDeleted);
         return Ok(new
         {
             followers = 18420,
             reach = 94200,
             engagementRate = 4.8,
-            postsThisWeek = AppStore.SocialPosts.Count,
+            postsThisWeek,
             byPlatform = new[]
             {
                 new { platform = "Facebook", reach = 32000, engagement = 4.2 },
@@ -68,6 +86,16 @@ public class SocialController : ControllerBase
             }
         });
     }
+
+    private static object Map(SocialPost p) => new
+    {
+        id = p.Id.ToString(),
+        platform = p.Platform,
+        content = p.Content,
+        status = p.Status,
+        scheduledAt = p.ScheduledAt?.ToString("o"),
+        engagement = p.Engagement,
+    };
 }
 
 public record CreateSocialPostDto(string Platform, string Content, bool PublishNow = false);

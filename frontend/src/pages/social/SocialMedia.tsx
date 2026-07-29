@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Calendar, Clock, CheckCircle2, Plus, Send } from 'lucide-react'
+import { Calendar, Clock, CheckCircle2, Plus, Send, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { socialApi } from '@/services/api'
 
 const platforms = [
@@ -67,17 +68,30 @@ export function SocialMedia() {
     return p.startsWith('X') ? 'X' : p
   }
 
+  const openCompose = () => {
+    setNewPost('')
+    setSelectedPlatforms([])
+    setComposing(true)
+  }
+
+  const closeCompose = () => {
+    setComposing(false)
+    setNewPost('')
+    setSelectedPlatforms([])
+  }
+
   const handlePostNow = async () => {
     if (!newPost.trim() || submitting) return
     setSubmitting(true)
     try {
-      await socialApi.create(primaryPlatform(), newPost, true)
-      setNewPost('')
+      await socialApi.create(primaryPlatform(), newPost.trim(), true)
       setComposing(false)
+      setNewPost('')
       setSelectedPlatforms([])
       await load()
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to publish post')
     } finally {
       setSubmitting(false)
     }
@@ -88,13 +102,14 @@ export function SocialMedia() {
     setSubmitting(true)
     try {
       const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      await socialApi.schedule(primaryPlatform(), newPost, scheduledAt)
-      setNewPost('')
+      await socialApi.schedule(primaryPlatform(), newPost.trim(), scheduledAt)
       setComposing(false)
+      setNewPost('')
       setSelectedPlatforms([])
       await load()
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to schedule post')
     } finally {
       setSubmitting(false)
     }
@@ -127,46 +142,58 @@ export function SocialMedia() {
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-white/70">Post Queue</h3>
-        <Button size="sm" variant="gradient" className="gap-1.5" onClick={() => setComposing(true)}>
+        <Button size="sm" variant="gradient" className="gap-1.5" onClick={openCompose}>
           <Plus className="w-3.5 h-3.5" />
           New Post
         </Button>
       </div>
 
-      {/* Compose */}
-      {composing && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <Card className="p-5 border-indigo-500/30">
-            <h3 className="text-sm font-semibold text-white mb-3">Compose Post</h3>
-            <div className="flex gap-2 mb-3 flex-wrap">
-              {platforms.map((p) => {
-                return (
-                  <button
-                    key={p.label}
-                    onClick={() => togglePlatform(p.label)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                      selectedPlatforms.includes(p.label) ? 'border-indigo-500/50 bg-indigo-500/10 text-white/80' : 'border-white/[0.08] text-white/35 hover:border-white/20'
-                    }`}
-                  >
-                    <div className={`w-3.5 h-3.5 rounded-full ${p.dot}`} />
-                    {p.label}
-                  </button>
-                )
-              })}
+      <Dialog
+        open={composing}
+        onClose={() => !submitting && closeCompose()}
+        title="Compose Post"
+        description="Write content, pick platforms, then publish or schedule."
+        className="max-w-lg"
+      >
+        <div className="space-y-4">
+          <Field label="Platforms">
+            <div className="flex gap-2 flex-wrap">
+              {platforms.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => togglePlatform(p.label)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                    selectedPlatforms.includes(p.label) ? 'border-indigo-500/50 bg-indigo-500/10 text-white/80' : 'border-white/[0.08] text-white/35 hover:border-white/20'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full ${p.dot}`} />
+                  {p.label}
+                </button>
+              ))}
             </div>
-            <Textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="Write your post..." className="min-h-[100px] mb-3" />
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSchedule} disabled={submitting}>
-                <Calendar className="w-3.5 h-3.5" />Schedule
-              </Button>
-              <Button size="sm" variant="gradient" className="gap-1.5" onClick={handlePostNow} disabled={submitting}>
-                <Send className="w-3.5 h-3.5" />Post Now
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setComposing(false)}>Cancel</Button>
-            </div>
-          </Card>
-        </motion.div>
-      )}
+          </Field>
+          <Field label="Content">
+            <Textarea
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              placeholder="Write your post..."
+              className="min-h-[100px]"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button size="sm" variant="ghost" onClick={() => !submitting && closeCompose()} disabled={submitting}>Cancel</Button>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSchedule} disabled={submitting || !newPost.trim()}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calendar className="w-3.5 h-3.5" />}
+              Schedule
+            </Button>
+            <Button size="sm" variant="gradient" className="gap-1.5" onClick={handlePostNow} disabled={submitting || !newPost.trim()}>
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Post Now
+            </Button>
+          </div>
+        </div>
+      </Dialog>
 
       <Tabs defaultValue="queue">
         <TabsList>

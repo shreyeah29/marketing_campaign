@@ -3,9 +3,21 @@ import { api } from '@/lib/api'
 // ── Auth ────────────────────────────────────────────────────────────────────
 export const authApi = {
   login: (email: string, password: string) =>
-    api<{ token: string; user: { id: string; name: string; email: string; role: string; organization: string } }>(
+    api<{ token: string; user: { id: string; name: string; email: string; role: string; organization: string; organizationId?: string } }>(
       '/api/auth/login',
       { method: 'POST', body: { email, password }, auth: false }
+    ),
+  register: (payload: {
+    name: string
+    email: string
+    password: string
+    organizationName: string
+    industry?: string
+    website?: string
+  }) =>
+    api<{ token: string; user: { id: string; name: string; email: string; role: string; organization: string; organizationId?: string } }>(
+      '/api/auth/register',
+      { method: 'POST', body: payload, auth: false }
     ),
   forgotPassword: (email: string) =>
     api<{ message: string }>('/api/auth/forgot-password', { method: 'POST', body: { email }, auth: false }),

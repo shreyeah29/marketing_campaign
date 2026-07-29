@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Users, Building2, Star, DollarSign, Plus, Search, Filter, ArrowRight, TrendingUp } from 'lucide-react'
+import { Users, Building2, Star, DollarSign, Plus, Search, Filter, ArrowRight, TrendingUp, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { leadsApi } from '@/services/api'
 
 const statusColor: Record<string, string> = {
@@ -19,12 +20,16 @@ const statusColor: Record<string, string> = {
   lost: 'destructive',
 }
 
+const emptyLeadForm = { name: '', email: '', phone: '', company: '', source: '' }
+
 export function CRM() {
   const [searchTerm, setSearchTerm] = useState('')
   const [leads, setLeads] = useState<any[]>([])
   const [pipelineStages, setPipelineStages] = useState<any[]>([])
   const [stats, setStats] = useState<Record<string, any>>({})
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState(emptyLeadForm)
 
   const load = async (search?: string) => {
     try {
@@ -48,18 +53,29 @@ export function CRM() {
     return () => clearTimeout(t)
   }, [searchTerm])
 
-  const handleAddLead = async () => {
-    if (creating) return
+  const openDialog = () => {
+    setForm(emptyLeadForm)
+    setDialogOpen(true)
+  }
+
+  const handleAddLead = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (creating || !form.name.trim() || !form.email.trim()) return
     setCreating(true)
     try {
       await leadsApi.create({
-        name: 'New Lead',
-        email: `lead${Date.now()}@example.com`,
-        source: 'Manual',
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || undefined,
+        company: form.company.trim() || undefined,
+        source: form.source.trim() || undefined,
       })
+      setDialogOpen(false)
+      setForm(emptyLeadForm)
       await load(searchTerm)
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to create lead')
     } finally {
       setCreating(false)
     }
@@ -136,7 +152,7 @@ export function CRM() {
               />
             </div>
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"><Filter className="w-3 h-3" />Filter</Button>
-            <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5" onClick={handleAddLead} disabled={creating}>
+            <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5" onClick={openDialog}>
               <Plus className="w-3 h-3" />Add Lead
             </Button>
           </div>
@@ -249,6 +265,62 @@ export function CRM() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !creating && setDialogOpen(false)}
+        title="Add Lead"
+        description="Capture a new lead into your CRM pipeline."
+      >
+        <form onSubmit={handleAddLead} className="space-y-4">
+          <Field label="Name">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Jane Doe"
+              required
+            />
+          </Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="jane@company.com"
+              required
+            />
+          </Field>
+          <Field label="Phone">
+            <Input
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              placeholder="+1 (555) 000-0000"
+            />
+          </Field>
+          <Field label="Company">
+            <Input
+              value={form.company}
+              onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
+              placeholder="Acme Inc"
+            />
+          </Field>
+          <Field label="Source">
+            <Input
+              value={form.source}
+              onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
+              placeholder="Website, Referral, Ads…"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDialogOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="gradient" size="sm" disabled={creating || !form.name.trim() || !form.email.trim()}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Lead'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   )
 }

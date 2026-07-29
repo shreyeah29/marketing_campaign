@@ -51,6 +51,7 @@ export function Login() {
           email: res.user.email,
           role: res.user.role,
           organization: res.user.organization,
+          organizationId: res.user.organizationId,
         },
         res.token
       )
@@ -74,6 +75,7 @@ export function Login() {
           email: res.user.email,
           role: res.user.role,
           organization: res.user.organization,
+          organizationId: res.user.organizationId,
         },
         res.token
       )
@@ -304,6 +306,13 @@ export function Login() {
             <Sparkles className="w-4 h-4 text-indigo-400" />
             Try Demo — No signup required
           </Button>
+
+          <p className="text-center text-xs text-white/35 mt-6">
+            New here?{' '}
+            <Link to="/signup" className="text-indigo-400 hover:text-indigo-300 font-medium">
+              Create a free account
+            </Link>
+          </p>
 
           {/* Footer */}
           <p className="text-center text-[11px] text-white/25 mt-8 leading-relaxed">

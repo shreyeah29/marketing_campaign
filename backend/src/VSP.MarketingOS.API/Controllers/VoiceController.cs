@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using VSP.MarketingOS.API.Data;
+using Microsoft.EntityFrameworkCore;
 using VSP.MarketingOS.Application.Interfaces;
+using VSP.MarketingOS.Domain.Entities;
+using VSP.MarketingOS.Infrastructure.Persistence;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -11,38 +13,68 @@ namespace VSP.MarketingOS.API.Controllers;
 public class VoiceController : ControllerBase
 {
     private readonly IVoiceService _voice;
+    private readonly AppDbContext _db;
 
-    public VoiceController(IVoiceService voice) => _voice = voice;
+    public VoiceController(IVoiceService voice, AppDbContext db)
+    {
+        _voice = voice;
+        _db = db;
+    }
 
     [HttpGet("calls")]
-    public IActionResult GetCalls() => Ok(AppStore.VoiceCalls);
+    public async Task<IActionResult> GetCalls()
+    {
+        var orgId = User.GetOrganizationId();
+        var list = await _db.VoiceCalls.AsNoTracking()
+            .Where(c => c.OrganizationId == orgId && !c.IsDeleted)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync();
+        return Ok(list.Select(Map));
+    }
 
     [HttpGet("calls/{id}")]
-    public IActionResult GetCall(string id)
+    public async Task<IActionResult> GetCall(Guid id)
     {
-        var found = AppStore.VoiceCalls.FirstOrDefault(c => $"{c.GetValueOrDefault("id")}" == id);
+        var orgId = User.GetOrganizationId();
+        var found = await _db.VoiceCalls.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && c.OrganizationId == orgId && !c.IsDeleted);
         if (found == null) return NotFound();
-        return Ok(found);
+        return Ok(Map(found));
     }
 
     [HttpPost("calls")]
     public async Task<IActionResult> InitiateCall([FromBody] InitiateCallDto dto, CancellationToken ct)
     {
         await _voice.InitiateCallAsync(new CallRequest(dto.Phone, "+12145550100", "nri-consult-script"), ct);
-        var item = new Dictionary<string, object?>
+        var orgId = User.GetOrganizationId();
+        var item = new VoiceCall
         {
-            ["id"] = AppStore.NewId(),
-            ["name"] = dto.Name ?? "Unknown",
-            ["phone"] = dto.Phone,
-            ["status"] = "queued",
-            ["duration"] = "—",
-            ["disposition"] = "Pending",
-            ["summary"] = "Outbound AI call queued.",
-            ["transcript"] = "",
+            ContactName = dto.Name ?? "Unknown",
+            Phone = dto.Phone,
+            Status = "queued",
+            Duration = "—",
+            Disposition = "Pending",
+            Summary = "Outbound AI call queued.",
+            Transcript = "",
+            OrganizationId = orgId,
+            CreatedBy = User.GetUserId(),
         };
-        AppStore.Lock(() => AppStore.VoiceCalls.Insert(0, item));
-        return Ok(item);
+        _db.VoiceCalls.Add(item);
+        await _db.SaveChangesAsync(ct);
+        return Ok(Map(item));
     }
+
+    private static object Map(VoiceCall c) => new
+    {
+        id = c.Id.ToString(),
+        name = c.ContactName,
+        phone = c.Phone,
+        status = c.Status,
+        duration = c.Duration,
+        disposition = c.Disposition,
+        summary = c.Summary,
+        transcript = c.Transcript,
+    };
 }
 
 public record InitiateCallDto(string Phone, string? Name);

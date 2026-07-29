@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutTemplate, Star, Copy, Eye, Filter, Search, Plus } from 'lucide-react'
+import { LayoutTemplate, Star, Copy, Eye, Filter, Search, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { templatesApi } from '@/services/api'
 
 const categoryColors: Record<string, string> = {
@@ -18,7 +19,9 @@ const categoryColors: Record<string, string> = {
 export function Templates() {
   const [search, setSearch] = useState('')
   const [templates, setTemplates] = useState<any[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [form, setForm] = useState({ name: '', category: '' })
 
   const load = async (q?: string) => {
     try {
@@ -44,14 +47,23 @@ export function Templates() {
     }
   }
 
-  const handleCreate = async () => {
-    if (creating) return
+  const openDialog = () => {
+    setForm({ name: '', category: '' })
+    setDialogOpen(true)
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (creating || !form.name.trim()) return
     setCreating(true)
     try {
-      await templatesApi.create('New Template', 'Campaign')
+      await templatesApi.create(form.name.trim(), form.category.trim() || undefined)
+      setDialogOpen(false)
+      setForm({ name: '', category: '' })
       await load(search)
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to create template')
     } finally {
       setCreating(false)
     }
@@ -71,7 +83,7 @@ export function Templates() {
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"><Filter className="w-3 h-3" />Filter</Button>
-          <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5" onClick={handleCreate} disabled={creating}>
+          <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5" onClick={openDialog}>
             <Plus className="w-3 h-3" />Create Template
           </Button>
         </div>
@@ -105,6 +117,39 @@ export function Templates() {
           </motion.div>
         ))}
       </div>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !creating && setDialogOpen(false)}
+        title="Create Template"
+        description="Add a reusable template for campaigns, email, or social."
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <Field label="Name">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="NRI Welcome Email"
+              required
+            />
+          </Field>
+          <Field label="Category">
+            <Input
+              value={form.category}
+              onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+              placeholder="Campaign, Email, Social…"
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDialogOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="gradient" size="sm" disabled={creating || !form.name.trim()}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Template'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   )
 }

@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Phone, PhoneCall, Clock, CheckCircle2, XCircle, Calendar, Mic, Play } from 'lucide-react'
+import { Phone, PhoneCall, Clock, CheckCircle2, XCircle, Calendar, Mic, Play, Loader2, Plus } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, Field } from '@/components/ui/dialog'
 import { voiceApi } from '@/services/api'
 
 export function VoiceAI() {
   const [callHistory, setCallHistory] = useState<any[]>([])
+  const [dialogOpen, setDialogOpen] = useState(false)
   const [initiating, setInitiating] = useState(false)
+  const [form, setForm] = useState({ name: '', phone: '' })
 
   const load = async () => {
     try {
@@ -26,14 +30,23 @@ export function VoiceAI() {
     load()
   }, [])
 
-  const handleInitiate = async (phone: string, name?: string) => {
-    if (initiating) return
+  const openDialog = (name = '', phone = '') => {
+    setForm({ name, phone })
+    setDialogOpen(true)
+  }
+
+  const handleInitiate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (initiating || !form.phone.trim()) return
     setInitiating(true)
     try {
-      await voiceApi.initiate(phone, name)
+      await voiceApi.initiate(form.phone.trim(), form.name.trim() || undefined)
+      setDialogOpen(false)
+      setForm({ name: '', phone: '' })
       await load()
     } catch (err) {
       console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to initiate call')
     } finally {
       setInitiating(false)
     }
@@ -73,6 +86,14 @@ export function VoiceAI() {
             </motion.div>
           )
         })}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white/70">Voice AI Calls</h3>
+        <Button size="sm" variant="gradient" className="gap-1.5" onClick={() => openDialog()}>
+          <Plus className="w-3.5 h-3.5" />
+          Call Now
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -167,8 +188,7 @@ export function VoiceAI() {
                     size="sm"
                     variant="gradient"
                     className="h-7 text-xs gap-1.5"
-                    disabled={initiating}
-                    onClick={() => handleInitiate(call.phone, call.name)}
+                    onClick={() => openDialog(call.name || '', call.phone || '')}
                   >
                     <PhoneCall className="w-3 h-3" />Call Now
                   </Button>
@@ -228,6 +248,44 @@ export function VoiceAI() {
           </Card>
         </div>
       </div>
+
+      <Dialog
+        open={dialogOpen}
+        onClose={() => !initiating && setDialogOpen(false)}
+        title="Call Now"
+        description="Start an outbound AI voice call."
+      >
+        <form onSubmit={handleInitiate} className="space-y-4">
+          <Field label="Name">
+            <Input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Contact name"
+            />
+          </Field>
+          <Field label="Phone">
+            <Input
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              placeholder="+1 (555) 000-0000"
+              required
+            />
+          </Field>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setDialogOpen(false)} disabled={initiating}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="gradient" size="sm" disabled={initiating || !form.phone.trim()}>
+              {initiating ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                <>
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  Call Now
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   )
 }

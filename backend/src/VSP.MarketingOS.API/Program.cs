@@ -40,8 +40,9 @@ builder.Services.AddCors(opt =>
             .WithOrigins(
                 "http://localhost:5173",
                 "http://localhost:3000",
+                "https://marketing-campaign-six.vercel.app",
                 "https://*.vercel.app",
-                builder.Configuration["AllowedOrigins"] ?? "*"
+                builder.Configuration["AllowedOrigins"] ?? "https://marketing-campaign-six.vercel.app"
             )
             .AllowAnyMethod()
             .AllowAnyHeader()
@@ -96,7 +97,7 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "VSP AI Marketing OS v1"));

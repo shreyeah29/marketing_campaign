@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { MockAIService, type CampaignSection } from '@/services/mock-ai'
+import { aiApi } from '@/services/api'
 import { cn } from '@/lib/utils'
 
 const sectionIcons: Record<string, string> = {
@@ -119,6 +120,8 @@ export function AICommandCenter() {
   const [sections, setSections] = useState<CampaignSection[]>([])
   const [summary, setSummary] = useState('')
   const [progress, setProgress] = useState(0)
+  const [savingAll, setSavingAll] = useState(false)
+  const [savedAll, setSavedAll] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleGenerate = async () => {
@@ -127,21 +130,47 @@ export function AICommandCenter() {
     setSections([])
     setSummary('')
     setProgress(0)
+    setSavedAll(false)
 
     // Animate progress
     const interval = setInterval(() => {
       setProgress((p) => Math.min(p + Math.random() * 15, 90))
     }, 200)
 
-    const result = await MockAIService.generateCampaign(prompt)
-    clearInterval(interval)
-    setProgress(100)
-    setTimeout(() => {
-      setSummary(result.summary)
-      setSections(result.sections)
+    try {
+      const result = await MockAIService.generateCampaign(prompt)
+      clearInterval(interval)
+      setProgress(100)
+      setTimeout(() => {
+        setSummary(result.summary)
+        setSections(result.sections)
+        setLoading(false)
+        setProgress(0)
+      }, 300)
+    } catch (err) {
+      console.error(err)
+      clearInterval(interval)
       setLoading(false)
       setProgress(0)
-    }, 300)
+    }
+  }
+
+  const handleSaveAll = async () => {
+    if (!sections.length || savingAll) return
+    setSavingAll(true)
+    try {
+      await aiApi.saveCampaign({
+        name: prompt.slice(0, 80) || 'AI Generated Campaign',
+        summary,
+        sections,
+      })
+      setSavedAll(true)
+      setTimeout(() => setSavedAll(false), 2000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingAll(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -330,9 +359,9 @@ export function AICommandCenter() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="success">{sections.length} sections</Badge>
-                  <Button size="sm" variant="outline" className="h-7 text-xs">
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleSaveAll} disabled={savingAll}>
                     <Save className="w-3 h-3 mr-1.5" />
-                    Save All
+                    {savedAll ? 'Saved!' : savingAll ? 'Saving...' : 'Save All'}
                   </Button>
                 </div>
               </div>

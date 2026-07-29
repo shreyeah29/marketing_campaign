@@ -1,9 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Building2, Palette, Code, Mail, MessageCircle, Phone, CreditCard, Users, Shield, Key } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { settingsApi } from '@/services/api'
 
 const settingsSections = [
   { icon: Building2, label: 'Organization', desc: 'Name, address, timezone' },
@@ -19,6 +21,89 @@ const settingsSections = [
 ]
 
 export function Settings() {
+  const [org, setOrg] = useState({ name: '', industry: '', website: '', timezone: '', description: '' })
+  const [brand, setBrand] = useState({ primaryColor: '', tagline: '', voice: '' })
+  const [apiKeys, setApiKeys] = useState({ openai: '', sendgrid: '', twilio: '', blandai: '', anthropic: '', meta: '' })
+  const [billing, setBilling] = useState<any>({})
+  const [savingOrg, setSavingOrg] = useState(false)
+  const [savingKeys, setSavingKeys] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await settingsApi.get() as any
+        const o = data?.organization || {}
+        setOrg({
+          name: o.name || '',
+          industry: o.industry || '',
+          website: o.website || '',
+          timezone: o.timezone || '',
+          description: o.description || 'VSP Law Associates is a Dallas-based NRI legal services firm specializing in India property law, succession, POA, and NRI investment compliance.',
+        })
+        const b = data?.brand || {}
+        setBrand({
+          primaryColor: b.primaryColor || '#6366f1',
+          tagline: b.tagline || '',
+          voice: b.voice || '',
+        })
+        const keys = data?.apiKeys || {}
+        setApiKeys({
+          openai: keys.openai || '',
+          sendgrid: keys.sendgrid || '',
+          twilio: keys.twilio || '',
+          blandai: keys.blandai || '',
+          anthropic: keys.anthropic || '',
+          meta: keys.meta || '',
+        })
+        setBilling(data?.billing || {})
+      } catch (err) {
+        console.error(err)
+      }
+    }
+    load()
+  }, [])
+
+  const handleSaveOrg = async () => {
+    setSavingOrg(true)
+    try {
+      await settingsApi.updateOrganization({
+        name: org.name,
+        industry: org.industry,
+        website: org.website,
+        timezone: org.timezone,
+        description: org.description,
+      })
+      await settingsApi.updateBrand({
+        primaryColor: brand.primaryColor,
+        tagline: brand.tagline,
+        voice: brand.voice,
+      })
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingOrg(false)
+    }
+  }
+
+  const handleSaveKeys = async () => {
+    setSavingKeys(true)
+    try {
+      await settingsApi.updateApiKeys(apiKeys)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSavingKeys(false)
+    }
+  }
+
+  const keyFields = [
+    { key: 'openai' as const, label: 'OpenAI API Key', placeholder: 'sk-...' },
+    { key: 'anthropic' as const, label: 'Anthropic API Key', placeholder: 'sk-ant-...' },
+    { key: 'twilio' as const, label: 'Twilio Account SID', placeholder: 'AC...' },
+    { key: 'sendgrid' as const, label: 'SendGrid API Key', placeholder: 'SG...' },
+    { key: 'meta' as const, label: 'Meta Business API', placeholder: 'Bearer ...' },
+  ]
+
   return (
     <div className="p-6 space-y-5">
       <div>
@@ -56,32 +141,45 @@ export function Settings() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-white/50 mb-1.5 block">Organization Name</label>
-                    <Input defaultValue="VSP Law Associates" />
+                    <Input value={org.name} onChange={(e) => setOrg({ ...org, name: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-xs text-white/50 mb-1.5 block">Industry</label>
-                    <Input defaultValue="Legal Services" />
+                    <Input value={org.industry} onChange={(e) => setOrg({ ...org, industry: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs text-white/50 mb-1.5 block">Website</label>
-                    <Input defaultValue="https://vsplawassociates.com" />
+                    <Input value={org.website} onChange={(e) => setOrg({ ...org, website: e.target.value })} />
                   </div>
                   <div>
                     <label className="text-xs text-white/50 mb-1.5 block">Timezone</label>
-                    <Input defaultValue="America/Chicago (CST)" />
+                    <Input value={org.timezone} onChange={(e) => setOrg({ ...org, timezone: e.target.value })} />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs text-white/50 mb-1.5 block">Business Description</label>
                   <textarea
-                    defaultValue="VSP Law Associates is a Dallas-based NRI legal services firm specializing in India property law, succession, POA, and NRI investment compliance."
+                    value={org.description}
+                    onChange={(e) => setOrg({ ...org, description: e.target.value })}
                     className="w-full h-20 rounded-xl border border-white/[0.10] bg-white/5 px-3 py-2 text-sm text-white/70 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   />
                 </div>
                 <Separator />
-                <Button variant="gradient" size="sm">Save Changes</Button>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-white/50 mb-1.5 block">Brand Tagline</label>
+                    <Input value={brand.tagline} onChange={(e) => setBrand({ ...brand, tagline: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/50 mb-1.5 block">Primary Color</label>
+                    <Input value={brand.primaryColor} onChange={(e) => setBrand({ ...brand, primaryColor: e.target.value })} />
+                  </div>
+                </div>
+                <Button variant="gradient" size="sm" onClick={handleSaveOrg} disabled={savingOrg}>
+                  {savingOrg ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </Card>
 
@@ -93,10 +191,12 @@ export function Settings() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-bold text-white">Pro Plan</p>
+                      <p className="font-bold text-white">{billing.plan || 'Pro'} Plan</p>
                       <Badge variant="default">Active</Badge>
                     </div>
-                    <p className="text-xs text-white/40 mt-0.5">$299/month · Renews Aug 29, 2026</p>
+                    <p className="text-xs text-white/40 mt-0.5">
+                      ${billing.amount ?? 299}/month · Renews {billing.renewsAt || 'Aug 29, 2026'}
+                    </p>
                   </div>
                   <Button size="sm" variant="outline" className="h-8 text-xs">Upgrade</Button>
                 </div>
@@ -105,7 +205,7 @@ export function Settings() {
               <div className="space-y-3">
                 {[
                   { label: 'AI Credits Used', value: 8240, max: 10000 },
-                  { label: 'Team Members', value: 4, max: 10 },
+                  { label: 'Team Members', value: Number(billing.seats || 4), max: 10 },
                   { label: 'Active Campaigns', value: 12, max: 50 },
                   { label: 'Contacts', value: 1284, max: 5000 },
                 ].map((usage) => (
@@ -130,30 +230,30 @@ export function Settings() {
               <p className="text-xs text-white/35 mb-6">Connect your AI and marketing service providers</p>
 
               <div className="space-y-3">
-                {[
-                  { label: 'OpenAI API Key', placeholder: 'sk-...', connected: false },
-                  { label: 'Anthropic API Key', placeholder: 'sk-ant-...', connected: false },
-                  { label: 'Twilio Account SID', placeholder: 'AC...', connected: true },
-                  { label: 'SendGrid API Key', placeholder: 'SG...', connected: true },
-                  { label: 'Meta Business API', placeholder: 'Bearer ...', connected: false },
-                ].map((key) => (
-                  <div key={key.label} className="flex items-center gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-white/40 mb-1 block">{key.label}</label>
-                      <Input
-                        type="password"
-                        placeholder={key.placeholder}
-                        defaultValue={key.connected ? '••••••••••••••••' : ''}
-                        className="font-mono text-xs"
-                      />
+                {keyFields.map((key) => {
+                  const connected = Boolean(apiKeys[key.key])
+                  return (
+                    <div key={key.label} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <label className="text-xs text-white/40 mb-1 block">{key.label}</label>
+                        <Input
+                          type="password"
+                          placeholder={key.placeholder}
+                          value={apiKeys[key.key]}
+                          onChange={(e) => setApiKeys({ ...apiKeys, [key.key]: e.target.value })}
+                          className="font-mono text-xs"
+                        />
+                      </div>
+                      <Badge variant={connected ? 'success' : 'secondary'} className="mt-5 shrink-0">
+                        {connected ? 'Connected' : 'Not set'}
+                      </Badge>
                     </div>
-                    <Badge variant={key.connected ? 'success' : 'secondary'} className="mt-5 shrink-0">
-                      {key.connected ? 'Connected' : 'Not set'}
-                    </Badge>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
-              <Button variant="outline" size="sm" className="mt-4">Save API Keys</Button>
+              <Button variant="outline" size="sm" className="mt-4" onClick={handleSaveKeys} disabled={savingKeys}>
+                {savingKeys ? 'Saving...' : 'Save API Keys'}
+              </Button>
             </Card>
           </div>
         </div>

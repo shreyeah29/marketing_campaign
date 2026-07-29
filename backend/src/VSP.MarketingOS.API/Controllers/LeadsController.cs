@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VSP.MarketingOS.API.Data;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,29 +10,92 @@ namespace VSP.MarketingOS.API.Controllers;
 public class LeadsController : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetLeads([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public IActionResult GetLeads([FromQuery] string? status, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        // Mock leads data
-        var leads = new[]
+        IEnumerable<Dictionary<string, object?>> list = AppStore.Leads;
+        if (!string.IsNullOrWhiteSpace(status))
+            list = list.Where(l => $"{l.GetValueOrDefault("status")}" == status);
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            new { Id = "1", Name = "Priya Sharma", Email = "priya@email.com", Status = "qualified", Score = 87, Value = 15000, Source = "Facebook Ad" },
-            new { Id = "2", Name = "Rajesh Kumar", Email = "rajesh@techcorp.com", Status = "contacted", Score = 62, Value = 8000, Source = "Google Ad" },
-            new { Id = "3", Name = "Suresh Mehta", Email = "suresh@gmail.com", Status = "proposal", Score = 91, Value = 25000, Source = "Referral" },
+            var q = search.ToLowerInvariant();
+            list = list.Where(l =>
+                $"{l.GetValueOrDefault("name")}".ToLowerInvariant().Contains(q) ||
+                $"{l.GetValueOrDefault("company")}".ToLowerInvariant().Contains(q) ||
+                $"{l.GetValueOrDefault("email")}".ToLowerInvariant().Contains(q));
+        }
+
+        var all = list.ToList();
+        var pageItems = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return Ok(new { data = pageItems, total = all.Count, page, pageSize });
+    }
+
+    [HttpGet("pipeline")]
+    public IActionResult GetPipeline()
+    {
+        var stages = new[]
+        {
+            new { name = "New", count = AppStore.Leads.Count(l => $"{l["status"]}" == "new"), value = 180000, color = "bg-white/20" },
+            new { name = "Contacted", count = AppStore.Leads.Count(l => $"{l["status"]}" == "contacted"), value = 135000, color = "bg-indigo-500" },
+            new { name = "Qualified", count = AppStore.Leads.Count(l => $"{l["status"]}" == "qualified"), value = 96000, color = "bg-violet-500" },
+            new { name = "Proposal", count = AppStore.Leads.Count(l => $"{l["status"]}" == "proposal"), value = 76000, color = "bg-cyan-500" },
+            new { name = "Won", count = AppStore.Leads.Count(l => $"{l["status"]}" == "won"), value = 52000, color = "bg-emerald-500" },
         };
-        return Ok(new { data = leads, total = leads.Length, page, pageSize });
+        return Ok(new
+        {
+            stages,
+            stats = new
+            {
+                totalLeads = AppStore.Leads.Count,
+                companies = 84,
+                pipelineValue = "$539K",
+                avgScore = AppStore.Leads.Count == 0 ? 0 : (int)AppStore.Leads.Average(l => Convert.ToInt32(l["score"])),
+            }
+        });
     }
 
     [HttpPost]
     public IActionResult CreateLead([FromBody] CreateLeadDto dto)
     {
-        var id = Guid.NewGuid().ToString();
-        return CreatedAtAction(nameof(GetLeads), new { id }, new { id, message = "Lead created successfully" });
+        var id = AppStore.NewId();
+        var item = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["name"] = dto.Name,
+            ["email"] = dto.Email,
+            ["phone"] = dto.Phone ?? "",
+            ["company"] = dto.Company ?? "",
+            ["status"] = "new",
+            ["score"] = 40,
+            ["value"] = 5000,
+            ["source"] = dto.Source ?? "Manual",
+            ["date"] = DateTime.UtcNow.ToString("MMM d"),
+        };
+        AppStore.Lock(() =>
+        {
+            AppStore.Leads.Insert(0, item);
+            AppStore.Activity.Insert(0, new Dictionary<string, object?>
+            {
+                ["id"] = AppStore.NewId(),
+                ["text"] = $"{dto.Name} lead created ({dto.Source ?? "Manual"})",
+                ["time"] = "just now",
+                ["status"] = "new",
+                ["color"] = "bg-emerald-500",
+            });
+        });
+        return CreatedAtAction(nameof(GetLeads), new { id }, item);
     }
 
     [HttpPut("{id}/status")]
     public IActionResult UpdateStatus(string id, [FromBody] UpdateStatusDto dto)
     {
-        return Ok(new { id, status = dto.Status, message = "Status updated" });
+        Dictionary<string, object?>? found = null;
+        AppStore.Lock(() =>
+        {
+            found = AppStore.Leads.FirstOrDefault(l => $"{l.GetValueOrDefault("id")}" == id);
+            if (found != null) found["status"] = dto.Status;
+        });
+        if (found == null) return NotFound(new { message = "Lead not found" });
+        return Ok(found);
     }
 }
 

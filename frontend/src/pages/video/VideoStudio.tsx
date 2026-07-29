@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Video, Play, Loader2, Sparkles, Mic, Music, User, Film, Tv } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
+import { videosApi } from '@/services/api'
 
 const videoTypes = [
   { label: 'Reels / Short', icon: Video, color: 'text-pink-400', bg: 'bg-pink-500/10' },
@@ -15,52 +16,49 @@ const videoTypes = [
   { label: 'Product Demo', icon: Video, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
 ]
 
-const mockVideos = [
-  { id: 1, title: 'NRI Legal Services Explainer', type: 'YouTube', duration: '2:34', status: 'rendered', thumbnail: 'https://picsum.photos/seed/vid1/320/180' },
-  { id: 2, title: 'VSP Law Reel — Dallas NRI', type: 'Reel', duration: '0:45', status: 'rendering', thumbnail: 'https://picsum.photos/seed/vid2/320/180' },
-  { id: 3, title: 'How POA Works — Animated', type: 'Explainer', duration: '3:10', status: 'rendered', thumbnail: 'https://picsum.photos/seed/vid3/320/180' },
-]
-
 export function VideoStudio() {
   const [selectedType, setSelectedType] = useState('Explainer')
   const [brief, setBrief] = useState('')
   const [generating, setGenerating] = useState(false)
   const [renderProgress, setRenderProgress] = useState(0)
   const [showScript, setShowScript] = useState(false)
+  const [script, setScript] = useState('')
+  const [videos, setVideos] = useState<any[]>([])
 
-  const mockScript = `[HOOK — 0-5s]
-Visual: Indian family in USA looking concerned
-VO: "Are you an NRI worried about your property back home?"
+  const load = async () => {
+    try {
+      const list = await videosApi.list()
+      setVideos(list || [])
+    } catch (err) {
+      console.error(err)
+      setVideos([])
+    }
+  }
 
-[PROBLEM — 5-15s]
-Visual: Map from Dallas to India with question marks
-VO: "Property disputes, illegal transfers, missing documents..."
-
-[SOLUTION — 15-35s]
-Visual: Lawyer on secure video call
-VO: "VSP Law Associates handles India property law 100% remotely..."
-
-[SOCIAL PROOF — 35-50s]
-Visual: Client testimonial overlay, stats
-VO: "500+ NRI families protected. No India trip required."
-
-[CTA — 50-60s]
-Visual: Booking page animation
-VO: "Book your FREE 30-minute consultation today."`
+  useEffect(() => {
+    load()
+  }, [])
 
   const handleGenerate = async () => {
     setGenerating(true)
     setRenderProgress(0)
-    await new Promise((r) => setTimeout(r, 1500))
-    setShowScript(true)
-    setGenerating(false)
-    // Simulate rendering
-    let p = 0
-    const interval = setInterval(() => {
-      p += Math.random() * 8
-      setRenderProgress(Math.min(p, 100))
-      if (p >= 100) clearInterval(interval)
-    }, 400)
+    setShowScript(false)
+    try {
+      const result = await videosApi.generate(selectedType, brief) as any
+      setScript(result.script || '')
+      setShowScript(true)
+      setVideos((prev) => [result, ...prev])
+      let p = 0
+      const interval = setInterval(() => {
+        p += Math.random() * 8
+        setRenderProgress(Math.min(p, 100))
+        if (p >= 100) clearInterval(interval)
+      }, 400)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -134,7 +132,7 @@ VO: "Book your FREE 30-minute consultation today."`
                   </h3>
                   <Badge variant="success">Generated</Badge>
                 </div>
-                <pre className="text-xs text-white/50 leading-relaxed font-mono bg-black/20 rounded-lg p-4 border border-white/[0.06] whitespace-pre-wrap">{mockScript}</pre>
+                <pre className="text-xs text-white/50 leading-relaxed font-mono bg-black/20 rounded-lg p-4 border border-white/[0.06] whitespace-pre-wrap">{script}</pre>
 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -168,10 +166,14 @@ VO: "Book your FREE 30-minute consultation today."`
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-white mb-4">Recent Videos</h3>
             <div className="space-y-3">
-              {mockVideos.map((vid) => (
+              {videos.map((vid) => (
                 <div key={vid.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/3 border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer">
                   <div className="relative">
-                    <img src={vid.thumbnail} alt={vid.title} className="w-16 h-9 rounded-lg object-cover" />
+                    <img
+                      src={vid.thumbnail || `https://picsum.photos/seed/${vid.id}/320/180`}
+                      alt={vid.title}
+                      className="w-16 h-9 rounded-lg object-cover"
+                    />
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center">
                         <Play className="w-3 h-3 text-white fill-white" />
@@ -185,7 +187,7 @@ VO: "Book your FREE 30-minute consultation today."`
                       <span className="text-xs text-white/35">{vid.duration}</span>
                     </div>
                   </div>
-                  <Badge variant={vid.status === 'rendered' ? 'success' : 'warning'}>{vid.status}</Badge>
+                  <Badge variant={vid.status === 'ready' || vid.status === 'rendered' ? 'success' : 'warning'}>{vid.status}</Badge>
                 </div>
               ))}
             </div>

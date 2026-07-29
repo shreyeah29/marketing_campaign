@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { ArrowLeft, Sparkles, Mail, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { authApi } from '@/services/api'
 
 const schema = z.object({ email: z.string().email('Enter a valid email address') })
 type FormData = z.infer<typeof schema>
@@ -22,10 +23,16 @@ export function ForgotPassword() {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setSentEmail(data.email)
-    setSent(true)
-    setLoading(false)
+    try {
+      await authApi.forgotPassword(data.email)
+      setSentEmail(data.email)
+      setSent(true)
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to send reset link')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

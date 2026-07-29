@@ -32,20 +32,21 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS — allow Vercel frontend
+// CORS — allow Vercel frontend + local dev
 builder.Services.AddCors(opt =>
 {
     opt.AddPolicy("VspFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "https://marketing-campaign-six.vercel.app",
-                "https://marketing-campaign-waqy.onrender.com",
-                "https://*.vercel.app",
-                builder.Configuration["AllowedOrigins"] ?? "https://marketing-campaign-six.vercel.app"
-            )
+            .SetIsOriginAllowed(origin =>
+            {
+                if (string.IsNullOrWhiteSpace(origin)) return false;
+                if (origin.StartsWith("http://localhost:")) return true;
+                if (origin == "https://marketing-campaign-six.vercel.app") return true;
+                if (origin.EndsWith(".vercel.app")) return true;
+                var configured = builder.Configuration["AllowedOrigins"];
+                return !string.IsNullOrWhiteSpace(configured) && origin == configured;
+            })
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials();

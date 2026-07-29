@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -7,33 +8,7 @@ import { TrendingUp, Download, Sparkles, DollarSign, Users, Target, BarChart3 } 
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-
-const revenueData = [
-  { month: 'Jan', revenue: 42000, target: 40000 },
-  { month: 'Feb', revenue: 55000, target: 45000 },
-  { month: 'Mar', revenue: 48000, target: 50000 },
-  { month: 'Apr', revenue: 72000, target: 55000 },
-  { month: 'May', revenue: 68000, target: 60000 },
-  { month: 'Jun', revenue: 89000, target: 70000 },
-  { month: 'Jul', revenue: 95000, target: 80000 },
-]
-
-const channelData = [
-  { channel: 'Facebook', leads: 72, roi: 320 },
-  { channel: 'Google', leads: 54, roi: 410 },
-  { channel: 'LinkedIn', leads: 24, roi: 280 },
-  { channel: 'Email', leads: 30, roi: 820 },
-  { channel: 'WhatsApp', leads: 36, roi: 650 },
-  { channel: 'Voice AI', leads: 32, roi: 520 },
-]
-
-const aiRecommendations = [
-  { text: 'Increase LinkedIn budget by 20% — highest quality leads with 3.2x LTV', impact: 'High', effort: 'Low' },
-  { text: 'Add retargeting campaign for 1,200 page visitors who didn\'t convert this month', impact: 'High', effort: 'Low' },
-  { text: 'A/B test new email subject lines — current open rate 41% can reach 52%+ with optimization', impact: 'Medium', effort: 'Low' },
-  { text: 'Launch YouTube channel — video content driving 4.7x more engagement in your niche', impact: 'High', effort: 'High' },
-  { text: 'Set up automated WhatsApp follow-up for missed calls — 23% conversion opportunity', impact: 'Medium', effort: 'Medium' },
-]
+import { analyticsApi } from '@/services/api'
 
 const tooltipStyle = {
   background: 'rgba(10,10,20,0.95)',
@@ -44,6 +19,60 @@ const tooltipStyle = {
 }
 
 export function Analytics() {
+  const [kpis, setKpis] = useState<Record<string, number>>({})
+  const [revenueData, setRevenueData] = useState<any[]>([])
+  const [channelData, setChannelData] = useState<any[]>([])
+  const [aiRecommendations, setAiRecommendations] = useState<any[]>([])
+  const [topCampaigns, setTopCampaigns] = useState<any[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dash, channels, recs] = await Promise.all([
+          analyticsApi.dashboard(),
+          analyticsApi.channels(),
+          analyticsApi.recommendations(),
+        ])
+        setKpis((dash?.kpis as Record<string, number>) || {})
+        setRevenueData(dash?.revenueByMonth || [])
+        setChannelData(
+          (channels || []).map((c: any) => ({
+            channel: c.channel || c.name,
+            leads: c.leads ?? 0,
+            roi: c.roi ?? 0,
+            spend: c.spend,
+            revenue: c.revenue,
+          }))
+        )
+        setTopCampaigns(
+          (channels || []).slice(0, 4).map((c: any) => ({
+            name: `${c.channel || c.name} Campaign`,
+            channel: c.channel || c.name,
+            leads: c.leads ?? 0,
+            roi: `${c.roi ?? 0}%`,
+            spend: c.spend != null ? `$${Number(c.spend).toLocaleString()}` : '—',
+            revenue: c.revenue != null ? `$${Number(c.revenue).toLocaleString()}` : '—',
+          }))
+        )
+        setAiRecommendations(recs || [])
+      } catch (err) {
+        console.error(err)
+        setRevenueData([])
+        setChannelData([])
+        setAiRecommendations([])
+        setTopCampaigns([])
+      }
+    }
+    load()
+  }, [])
+
+  const kpiCards = [
+    { icon: TrendingUp, label: 'Marketing Score', value: kpis.marketingScore != null ? `${kpis.marketingScore}/100` : '—', change: '+12 pts', color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
+    { icon: DollarSign, label: 'Campaign ROI', value: kpis.roi != null ? `${kpis.roi}%` : '—', change: '+28%', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
+    { icon: Users, label: 'Total Leads', value: kpis.leads != null ? String(kpis.leads) : '—', change: '+18%', color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
+    { icon: Target, label: 'Conversion Rate', value: kpis.conversionRate != null ? `${kpis.conversionRate}%` : '—', change: '+0.8%', color: 'text-cyan-400', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.18]' },
+  ]
+
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
@@ -63,12 +92,7 @@ export function Analytics() {
 
       {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { icon: TrendingUp, label: 'Marketing Score', value: '87/100', change: '+12 pts', color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
-          { icon: DollarSign, label: 'Campaign ROI', value: '340%', change: '+28%', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
-          { icon: Users, label: 'Total Leads', value: '248', change: '+18%', color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
-          { icon: Target, label: 'Conversion Rate', value: '3.4%', change: '+0.8%', color: 'text-cyan-400', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.18]' },
-        ].map((kpi, i) => {
+        {kpiCards.map((kpi, i) => {
           const Icon = kpi.icon
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
@@ -130,12 +154,7 @@ export function Analytics() {
           <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400 hover:text-indigo-300">View all</Button>
         </div>
         <div className="space-y-1.5">
-          {[
-            { name: 'NRI Dallas Facebook Campaign', channel: 'Facebook', leads: 72, roi: '320%', spend: '$4,500', revenue: '$18,900' },
-            { name: 'Google Search — NRI Legal', channel: 'Google Ads', leads: 54, roi: '410%', spend: '$3,200', revenue: '$16,320' },
-            { name: 'LinkedIn NRI Thought Leadership', channel: 'LinkedIn', leads: 24, roi: '280%', spend: '$2,000', revenue: '$7,600' },
-            { name: 'Email NRI Welcome Series', channel: 'Email', leads: 30, roi: '820%', spend: '$480', revenue: '$4,320' },
-          ].map((c, i) => (
+          {topCampaigns.map((c, i) => (
             <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.06 }}>
               <div className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
                 <div className="w-8 h-8 rounded-xl bg-indigo-500/[0.1] border border-indigo-500/[0.18] flex items-center justify-center shrink-0">
@@ -166,7 +185,7 @@ export function Analytics() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white leading-tight">AI Recommendations</p>
-            <p className="text-[10px] text-indigo-400/60">5 actionable insights this month</p>
+            <p className="text-[10px] text-indigo-400/60">{aiRecommendations.length} actionable insights this month</p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">

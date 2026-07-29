@@ -8,6 +8,7 @@ import { Eye, EyeOff, Sparkles, ArrowRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuthStore } from '@/store/auth'
+import { authApi } from '@/services/api'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
@@ -41,20 +42,48 @@ export function Login() {
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 900))
-    login(
-      { id: '1', name: 'Sarah Mitchell', email: data.email, role: 'Admin', organization: 'VSP Law Associates' },
-      'mock-jwt-token'
-    )
-    navigate('/dashboard')
+    try {
+      const res = await authApi.login(data.email, data.password)
+      login(
+        {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role,
+          organization: res.user.organization,
+        },
+        res.token
+      )
+      navigate('/dashboard')
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDemo = () => {
-    login(
-      { id: '1', name: 'Sarah Mitchell', email: 'sarah@vsplawassociates.com', role: 'Admin', organization: 'VSP Law Associates' },
-      'mock-jwt-demo'
-    )
-    navigate('/dashboard')
+  const handleDemo = async () => {
+    setLoading(true)
+    try {
+      const res = await authApi.login('sarah@vsplawassociates.com', 'demo1234')
+      login(
+        {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          role: res.user.role,
+          organization: res.user.organization,
+        },
+        res.token
+      )
+      navigate('/dashboard')
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : 'Demo login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

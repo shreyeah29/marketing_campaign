@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Clock, CheckCircle2, Plus, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { socialApi } from '@/services/api'
 
 const platforms = [
   { label: 'Facebook', color: 'text-blue-400', dot: 'bg-blue-500', followers: '12.4K' },
@@ -15,31 +16,96 @@ const platforms = [
   { label: 'YouTube', color: 'text-red-400', dot: 'bg-red-500', followers: '2.8K' },
 ]
 
-const scheduledPosts = [
-  { id: 1, platform: 'Facebook', content: '5 Legal Documents Every NRI Must Have — FREE guide in bio! 📋', date: 'Jul 30, 10:00 AM', status: 'scheduled', img: 'https://picsum.photos/seed/p1/60/60' },
-  { id: 2, platform: 'Instagram', content: 'Protecting your Indian property from Dallas 🇮🇳 — VSP Law Associates makes it simple.', date: 'Jul 30, 12:00 PM', status: 'scheduled', img: 'https://picsum.photos/seed/p2/60/60' },
-  { id: 3, platform: 'LinkedIn', content: 'I\'ve worked with 500+ NRI clients. Here\'s what they ALL got wrong...', date: 'Jul 31, 9:00 AM', status: 'scheduled', img: null },
-  { id: 4, platform: 'Facebook', content: 'NRI community event this weekend at Dallas Indian Cultural Center!', date: 'Jul 29, 6:00 PM', status: 'published', img: 'https://picsum.photos/seed/p4/60/60' },
-  { id: 5, platform: 'Instagram', content: 'Client Success Story: Recovered ₹2.8 Cr property from Dallas without flying to India', date: 'Jul 28, 11:00 AM', status: 'published', img: 'https://picsum.photos/seed/p5/60/60' },
-]
-
 const calendarDays = Array.from({ length: 31 }, (_, i) => i + 1)
 const postsOnDay: Record<number, number> = { 29: 2, 30: 3, 31: 1, 1: 2, 3: 1, 5: 2, 7: 3, 10: 1, 14: 2 }
 
 const platformIcon = (name: string) => {
-  const p = platforms.find((p) => p.label === name || p.label.startsWith(name))
+  const p = platforms.find((p) => p.label === name || p.label.startsWith(name) || name.startsWith(p.label.split(' ')[0]))
   if (!p) return null
   return <div className={`w-3.5 h-3.5 rounded-full ${p.dot}`} />
+}
+
+const formatDate = (iso: string | null | undefined) => {
+  if (!iso) return ''
+  try {
+    return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  } catch {
+    return String(iso)
+  }
 }
 
 export function SocialMedia() {
   const [composing, setComposing] = useState(false)
   const [newPost, setNewPost] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [posts, setPosts] = useState<any[]>([])
+  const [analytics, setAnalytics] = useState<any>({})
+  const [submitting, setSubmitting] = useState(false)
+
+  const load = async () => {
+    try {
+      const [list, stats] = await Promise.all([socialApi.posts(), socialApi.analytics()])
+      setPosts(list || [])
+      setAnalytics(stats || {})
+    } catch (err) {
+      console.error(err)
+      setPosts([])
+      setAnalytics({})
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
 
   const togglePlatform = (p: string) => {
     setSelectedPlatforms((prev) => prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p])
   }
+
+  const primaryPlatform = () => {
+    const p = selectedPlatforms[0] || 'Facebook'
+    return p.startsWith('X') ? 'X' : p
+  }
+
+  const handlePostNow = async () => {
+    if (!newPost.trim() || submitting) return
+    setSubmitting(true)
+    try {
+      await socialApi.create(primaryPlatform(), newPost, true)
+      setNewPost('')
+      setComposing(false)
+      setSelectedPlatforms([])
+      await load()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleSchedule = async () => {
+    if (!newPost.trim() || submitting) return
+    setSubmitting(true)
+    try {
+      const scheduledAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      await socialApi.schedule(primaryPlatform(), newPost, scheduledAt)
+      setNewPost('')
+      setComposing(false)
+      setSelectedPlatforms([])
+      await load()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const analyticsCards = [
+    { label: 'Total Reach', value: analytics.reach ? `${(Number(analytics.reach) / 1000).toFixed(1)}K` : '—', change: '+18%' },
+    { label: 'Engagements', value: analytics.engagementRate != null ? `${analytics.engagementRate}%` : '—', change: '+24%' },
+    { label: 'Followers', value: analytics.followers ? Number(analytics.followers).toLocaleString() : '—', change: '+31%' },
+    { label: 'Posts This Week', value: analytics.postsThisWeek != null ? String(analytics.postsThisWeek) : '—', change: '+2.1%' },
+  ]
 
   return (
     <div className="p-6 space-y-5">
@@ -90,8 +156,12 @@ export function SocialMedia() {
             </div>
             <Textarea value={newPost} onChange={(e) => setNewPost(e.target.value)} placeholder="Write your post..." className="min-h-[100px] mb-3" />
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="gap-1.5"><Calendar className="w-3.5 h-3.5" />Schedule</Button>
-              <Button size="sm" variant="gradient" className="gap-1.5"><Send className="w-3.5 h-3.5" />Post Now</Button>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={handleSchedule} disabled={submitting}>
+                <Calendar className="w-3.5 h-3.5" />Schedule
+              </Button>
+              <Button size="sm" variant="gradient" className="gap-1.5" onClick={handlePostNow} disabled={submitting}>
+                <Send className="w-3.5 h-3.5" />Post Now
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => setComposing(false)}>Cancel</Button>
             </div>
           </Card>
@@ -107,7 +177,7 @@ export function SocialMedia() {
         </TabsList>
 
         <TabsContent value="queue" className="space-y-3">
-          {scheduledPosts.filter((p) => p.status === 'scheduled').map((post, i) => (
+          {posts.filter((p) => p.status === 'scheduled').map((post, i) => (
             <motion.div key={post.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
               <Card className="p-4 hover:border-white/[0.15] transition-colors">
                 <div className="flex items-start gap-4">
@@ -119,7 +189,7 @@ export function SocialMedia() {
                       <Badge variant="default" className="text-[10px]">Scheduled</Badge>
                     </div>
                     <p className="text-sm text-white/70 leading-relaxed">{post.content}</p>
-                    <p className="text-xs text-white/35 mt-2 flex items-center gap-1.5"><Clock className="w-3 h-3" />{post.date}</p>
+                    <p className="text-xs text-white/35 mt-2 flex items-center gap-1.5"><Clock className="w-3 h-3" />{formatDate(post.scheduledAt)}</p>
                   </div>
                   <Button size="sm" variant="ghost" className="h-7 text-xs">Edit</Button>
                 </div>
@@ -166,7 +236,7 @@ export function SocialMedia() {
         </TabsContent>
 
         <TabsContent value="published" className="space-y-3">
-          {scheduledPosts.filter((p) => p.status === 'published').map((post) => (
+          {posts.filter((p) => p.status === 'published').map((post) => (
             <Card key={post.id} className="p-4">
               <div className="flex items-start gap-4">
                 {post.img && <img src={post.img} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />}
@@ -177,10 +247,10 @@ export function SocialMedia() {
                     <Badge variant="success" className="text-[10px]"><CheckCircle2 className="w-2.5 h-2.5 mr-1" />Published</Badge>
                   </div>
                   <p className="text-sm text-white/70">{post.content}</p>
-                  <p className="text-xs text-white/35 mt-2">{post.date}</p>
+                  <p className="text-xs text-white/35 mt-2">{formatDate(post.scheduledAt)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-white">{Math.floor(Math.random() * 200 + 50)}</p>
+                  <p className="text-lg font-bold text-white">{post.engagement ?? 0}</p>
                   <p className="text-[10px] text-white/35">engagements</p>
                 </div>
               </div>
@@ -190,12 +260,7 @@ export function SocialMedia() {
 
         <TabsContent value="analytics">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Reach', value: '48.2K', change: '+18%' },
-              { label: 'Engagements', value: '3,840', change: '+24%' },
-              { label: 'Link Clicks', value: '892', change: '+31%' },
-              { label: 'Avg. Engagement', value: '7.9%', change: '+2.1%' },
-            ].map((stat, i) => (
+            {analyticsCards.map((stat, i) => (
               <Card key={i} className="p-4">
                 <p className="text-2xl font-bold text-white">{stat.value}</p>
                 <p className="text-xs text-white/40 mt-1">{stat.label}</p>

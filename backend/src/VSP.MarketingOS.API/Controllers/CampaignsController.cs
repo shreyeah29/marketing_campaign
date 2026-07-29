@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VSP.MarketingOS.API.Data;
 
 namespace VSP.MarketingOS.API.Controllers;
 
@@ -9,27 +10,55 @@ namespace VSP.MarketingOS.API.Controllers;
 public class CampaignsController : ControllerBase
 {
     [HttpGet]
-    public IActionResult GetCampaigns()
+    public IActionResult GetCampaigns([FromQuery] string? search, [FromQuery] string? status)
     {
-        var campaigns = new[]
+        IEnumerable<Dictionary<string, object?>> list = AppStore.Campaigns;
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            new { Id = "1", Name = "NRI Dallas Facebook Campaign", Channel = "Facebook", Status = "active", Budget = 4500, Spent = 3840, Leads = 72, Roi = 320 },
-            new { Id = "2", Name = "Google Search — NRI Legal", Channel = "Google Ads", Status = "active", Budget = 3200, Spent = 2760, Leads = 54, Roi = 410 },
-            new { Id = "3", Name = "Email NRI Welcome Series", Channel = "Email", Status = "active", Budget = 480, Spent = 380, Leads = 30, Roi = 820 },
-        };
-        return Ok(campaigns);
+            var q = search.ToLowerInvariant();
+            list = list.Where(c =>
+                ($"{c.GetValueOrDefault("name")}".ToLowerInvariant().Contains(q)) ||
+                ($"{c.GetValueOrDefault("channel")}".ToLowerInvariant().Contains(q)));
+        }
+        if (!string.IsNullOrWhiteSpace(status))
+            list = list.Where(c => $"{c.GetValueOrDefault("status")}" == status);
+
+        return Ok(list.ToList());
     }
 
     [HttpPost]
     public IActionResult CreateCampaign([FromBody] CreateCampaignDto dto)
     {
-        return CreatedAtAction(nameof(GetCampaigns), new { id = Guid.NewGuid() }, new { message = "Campaign created" });
+        var id = AppStore.NewId();
+        var item = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["name"] = dto.Name,
+            ["channel"] = dto.Channel,
+            ["status"] = "draft",
+            ["budget"] = dto.Budget,
+            ["spent"] = 0m,
+            ["leads"] = 0,
+            ["conversions"] = 0,
+            ["roi"] = 0,
+            ["start"] = dto.StartDate?.ToString("MMM d") ?? DateTime.UtcNow.ToString("MMM d"),
+            ["end"] = dto.EndDate?.ToString("MMM d") ?? "Ongoing",
+        };
+        AppStore.Lock(() => AppStore.Campaigns.Insert(0, item));
+        return CreatedAtAction(nameof(GetCampaigns), new { id }, item);
     }
 
     [HttpPut("{id}/status")]
     public IActionResult UpdateStatus(string id, [FromBody] UpdateCampaignStatusDto dto)
     {
-        return Ok(new { id, status = dto.Status });
+        Dictionary<string, object?>? found = null;
+        AppStore.Lock(() =>
+        {
+            found = AppStore.Campaigns.FirstOrDefault(c => $"{c.GetValueOrDefault("id")}" == id);
+            if (found != null) found["status"] = dto.Status;
+        });
+        if (found == null) return NotFound(new { message = "Campaign not found" });
+        return Ok(found);
     }
 }
 

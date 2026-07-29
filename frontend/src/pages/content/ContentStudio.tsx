@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Mail, Globe, Search, MessageSquare, Package, Newspaper, FileCheck, Sparkles, Loader2, Save, Copy, RefreshCw, Clock, ChevronRight, Share2, AtSign, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MockAIService } from '@/services/mock-ai'
+import { contentApi } from '@/services/api'
 
 const contentTypes = [
   { icon: FileText, label: 'Blog Post', type: 'blog', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
@@ -23,25 +24,55 @@ const contentTypes = [
   { icon: FileCheck, label: 'Proposal', type: 'proposal', color: 'text-teal-400', bg: 'bg-teal-500/10' },
 ]
 
-const recentDrafts = [
-  { title: 'NRI Property Rights Guide 2024', type: 'Blog Post', date: '2h ago', status: 'draft' },
-  { title: 'Welcome Email — NRI Series', type: 'Email', date: '5h ago', status: 'saved' },
-  { title: 'VSP Dallas Landing Page', type: 'Landing Page', date: 'Yesterday', status: 'published' },
-  { title: 'LinkedIn Thought Leadership', type: 'LinkedIn Post', date: '2 days ago', status: 'published' },
-]
+const typeLabel = (type: string) => contentTypes.find((c) => c.type === type)?.label || type
 
 export function ContentStudio() {
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [brief, setBrief] = useState('')
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [drafts, setDrafts] = useState<any[]>([])
+
+  const loadDrafts = async () => {
+    try {
+      const list = await contentApi.drafts()
+      setDrafts(list || [])
+    } catch (err) {
+      console.error(err)
+      setDrafts([])
+    }
+  }
+
+  useEffect(() => {
+    loadDrafts()
+  }, [])
 
   const handleGenerate = async () => {
     if (!selectedType || !brief.trim()) return
     setLoading(true)
-    const result = await MockAIService.generateContent(selectedType, brief)
-    setContent(result)
-    setLoading(false)
+    try {
+      const result = await MockAIService.generateContent(selectedType, brief)
+      setContent(result)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    if (!content || !selectedType || saving) return
+    setSaving(true)
+    try {
+      const title = brief.trim().slice(0, 60) || `${typeLabel(selectedType)} Draft`
+      await contentApi.saveDraft(title, selectedType, content)
+      await loadDrafts()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const selectedTypeInfo = contentTypes.find((c) => c.type === selectedType)
@@ -118,8 +149,8 @@ export function ContentStudio() {
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigator.clipboard.writeText(content)}>
                         <Copy className="w-3 h-3 mr-1.5" />Copy
                       </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        <Save className="w-3 h-3 mr-1.5" />Save Draft
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleSaveDraft} disabled={saving}>
+                        <Save className="w-3 h-3 mr-1.5" />{saving ? 'Saving...' : 'Save Draft'}
                       </Button>
                       <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400" onClick={handleGenerate}>
                         <RefreshCw className="w-3 h-3 mr-1.5" />Regenerate
@@ -157,8 +188,8 @@ export function ContentStudio() {
 
         <TabsContent value="drafts">
           <div className="space-y-3">
-            {recentDrafts.map((draft, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+            {drafts.map((draft, i) => (
+              <motion.div key={draft.id || i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
                 <Card className="p-4 hover:border-white/[0.15] transition-colors cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -168,7 +199,7 @@ export function ContentStudio() {
                       <div>
                         <p className="text-sm font-medium text-white/80">{draft.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <Badge variant="secondary" className="text-[10px]">{draft.type}</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{typeLabel(draft.type)}</Badge>
                           <span className="text-[10px] text-white/35 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{draft.date}</span>
                         </div>
                       </div>

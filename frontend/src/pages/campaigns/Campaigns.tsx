@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Megaphone, Plus, TrendingUp, DollarSign, Users, Search, Filter, MoreHorizontal, Play, Pause, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -6,16 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-
-const campaigns = [
-  { id: 1, name: 'NRI Dallas Facebook Campaign', channel: 'Facebook', status: 'active', budget: 4500, spent: 3840, leads: 72, conversions: 8, roi: 320, start: 'Jul 1', end: 'Jul 31' },
-  { id: 2, name: 'Google Search — NRI Legal', channel: 'Google Ads', status: 'active', budget: 3200, spent: 2760, leads: 54, conversions: 6, roi: 410, start: 'Jul 5', end: 'Aug 5' },
-  { id: 3, name: 'LinkedIn NRI Thought Leadership', channel: 'LinkedIn', status: 'active', budget: 2000, spent: 1560, leads: 24, conversions: 4, roi: 280, start: 'Jul 10', end: 'Aug 10' },
-  { id: 4, name: 'Email NRI Welcome Series', channel: 'Email', status: 'active', budget: 480, spent: 380, leads: 30, conversions: 5, roi: 820, start: 'Jul 1', end: 'Ongoing' },
-  { id: 5, name: 'Instagram NRI Awareness', channel: 'Instagram', status: 'paused', budget: 1500, spent: 890, leads: 28, conversions: 2, roi: 180, start: 'Jun 20', end: 'Jul 20' },
-  { id: 6, name: 'WhatsApp Broadcast — NRI', channel: 'WhatsApp', status: 'active', budget: 800, spent: 620, leads: 40, conversions: 7, roi: 650, start: 'Jul 15', end: 'Aug 15' },
-  { id: 7, name: 'YouTube Explainer Video', channel: 'YouTube', status: 'draft', budget: 2000, spent: 0, leads: 0, conversions: 0, roi: 0, start: 'Aug 1', end: 'Aug 31' },
-]
+import { campaignsApi } from '@/services/api'
 
 const channelColors: Record<string, string> = {
   Facebook: 'text-blue-400',
@@ -29,17 +20,56 @@ const channelColors: Record<string, string> = {
 
 export function Campaigns() {
   const [search, setSearch] = useState('')
+  const [campaigns, setCampaigns] = useState<any[]>([])
+  const [creating, setCreating] = useState(false)
 
-  const filtered = campaigns.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.channel.toLowerCase().includes(search.toLowerCase())
-  )
+  const load = async (q?: string) => {
+    try {
+      const list = await campaignsApi.list(q || undefined)
+      setCampaigns(list || [])
+    } catch (err) {
+      console.error(err)
+      setCampaigns([])
+    }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => load(search), 250)
+    return () => clearTimeout(t)
+  }, [search])
+
+  const handleToggleStatus = async (c: any) => {
+    const next = c.status === 'active' ? 'paused' : 'active'
+    try {
+      await campaignsApi.updateStatus(String(c.id), next)
+      setCampaigns((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: next } : x)))
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (creating) return
+    setCreating(true)
+    try {
+      const created = await campaignsApi.create({
+        name: 'New Campaign',
+        channel: 'Facebook',
+        budget: 1000,
+      }) as any
+      setCampaigns((prev) => [created, ...prev])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCreating(false)
+    }
+  }
 
   const total = {
-    budget: campaigns.reduce((a, c) => a + c.budget, 0),
-    spent: campaigns.reduce((a, c) => a + c.spent, 0),
-    leads: campaigns.reduce((a, c) => a + c.leads, 0),
-    conversions: campaigns.reduce((a, c) => a + c.conversions, 0),
+    budget: campaigns.reduce((a, c) => a + Number(c.budget || 0), 0),
+    spent: campaigns.reduce((a, c) => a + Number(c.spent || 0), 0),
+    leads: campaigns.reduce((a, c) => a + Number(c.leads || 0), 0),
+    conversions: campaigns.reduce((a, c) => a + Number(c.conversions || 0), 0),
   }
 
   return (
@@ -77,7 +107,7 @@ export function Campaigns() {
           <Button size="sm" variant="outline" className="h-9 gap-1.5">
             <Filter className="w-3.5 h-3.5" />Filter
           </Button>
-          <Button size="sm" variant="gradient" className="h-9 gap-1.5">
+          <Button size="sm" variant="gradient" className="h-9 gap-1.5" onClick={handleCreate} disabled={creating}>
             <Plus className="w-3.5 h-3.5" />New Campaign
           </Button>
         </div>
@@ -85,7 +115,7 @@ export function Campaigns() {
 
       {/* Campaign list */}
       <div className="space-y-2.5">
-        {filtered.map((c, i) => (
+        {campaigns.map((c, i) => (
           <motion.div key={c.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
             <Card className="px-5 py-4 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-200 cursor-pointer">
               <div className="flex items-center gap-4">
@@ -105,10 +135,10 @@ export function Campaigns() {
 
                 <div className="hidden md:flex items-center gap-8 shrink-0 mr-2">
                   {[
-                    { label: 'Budget', value: `$${c.budget.toLocaleString()}` },
-                    { label: 'Spent', value: `$${c.spent.toLocaleString()}` },
-                    { label: 'Leads', value: c.leads.toString() },
-                    { label: 'ROI', value: c.roi > 0 ? `${c.roi}%` : '—', highlight: c.roi > 0 },
+                    { label: 'Budget', value: `$${Number(c.budget || 0).toLocaleString()}` },
+                    { label: 'Spent', value: `$${Number(c.spent || 0).toLocaleString()}` },
+                    { label: 'Leads', value: String(c.leads || 0) },
+                    { label: 'ROI', value: Number(c.roi) > 0 ? `${c.roi}%` : '—', highlight: Number(c.roi) > 0 },
                   ].map((m) => (
                     <div key={m.label} className="text-center min-w-[52px]">
                       <p className={`text-sm font-bold tabular-nums ${m.highlight ? 'text-emerald-400' : 'text-white/70'}`}>{m.value}</p>
@@ -117,16 +147,16 @@ export function Campaigns() {
                   ))}
                 </div>
 
-                {c.budget > 0 && (
+                {Number(c.budget) > 0 && (
                   <div className="hidden lg:flex items-center gap-2 w-28 shrink-0">
-                    <Progress value={(c.spent / c.budget) * 100} className="flex-1 h-1" />
-                    <span className="text-[10px] text-white/30 tabular-nums w-8 text-right">{Math.round((c.spent / c.budget) * 100)}%</span>
+                    <Progress value={(Number(c.spent) / Number(c.budget)) * 100} className="flex-1 h-1" />
+                    <span className="text-[10px] text-white/30 tabular-nums w-8 text-right">{Math.round((Number(c.spent) / Number(c.budget)) * 100)}%</span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-0.5 shrink-0">
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70"><Eye className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70">
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70" onClick={() => handleToggleStatus(c)}>
                     {c.status === 'active' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   </Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70"><MoreHorizontal className="w-3.5 h-3.5" /></Button>

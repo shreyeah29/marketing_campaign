@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Download, Heart, Grid3X3, List, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { imagesApi } from '@/services/api'
 
 const imageTypes = [
   { label: 'Flyer', emoji: '📄' },
@@ -17,36 +18,47 @@ const imageTypes = [
   { label: 'Banner', emoji: '🏷️' },
 ]
 
-const mockImages = [
-  { id: 1, title: 'NRI Legal Flyer', type: 'Flyer', size: '1080x1080', url: 'https://picsum.photos/seed/flyer1/400/400', liked: false },
-  { id: 2, title: 'VSP Law Poster', type: 'Poster', size: '1080x1920', url: 'https://picsum.photos/seed/poster1/300/500', liked: true },
-  { id: 3, title: 'Social Campaign Post', type: 'Social Post', size: '1080x1080', url: 'https://picsum.photos/seed/social1/400/400', liked: false },
-  { id: 4, title: 'LinkedIn Banner', type: 'Banner', size: '1584x396', url: 'https://picsum.photos/seed/banner1/600/150', liked: false },
-  { id: 5, title: 'NRI Infographic', type: 'Infographic', size: '800x2000', url: 'https://picsum.photos/seed/info1/300/750', liked: true },
-  { id: 6, title: 'Brand Logo', type: 'Logo', size: '512x512', url: 'https://picsum.photos/seed/logo1/400/400', liked: false },
-]
-
 export function ImageStudio() {
   const [selectedType, setSelectedType] = useState('Flyer')
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
-  const [gallery, setGallery] = useState(mockImages)
+  const [gallery, setGallery] = useState<any[]>([])
   const [view, setView] = useState<'grid' | 'list'>('grid')
+
+  const load = async () => {
+    try {
+      const list = await imagesApi.list()
+      setGallery(list || [])
+    } catch (err) {
+      console.error(err)
+      setGallery([])
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
 
   const handleGenerate = async () => {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 2000))
-    const newImg = {
-      id: Date.now(),
-      title: prompt || `${selectedType} Design`,
-      type: selectedType,
-      size: '1080x1080',
-      url: `https://picsum.photos/seed/${Date.now()}/400/400`,
-      liked: false,
+    try {
+      const newImg = await imagesApi.generate(selectedType, prompt) as any
+      setGallery((prev) => [newImg, ...prev])
+      setPrompt('')
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
     }
-    setGallery([newImg, ...gallery])
-    setLoading(false)
-    setPrompt('')
+  }
+
+  const handleLike = async (img: any) => {
+    try {
+      const updated = await imagesApi.like(String(img.id)) as any
+      setGallery((prev) => prev.map((x) => (x.id === img.id ? { ...x, ...updated } : x)))
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   return (
@@ -129,7 +141,7 @@ export function ImageStudio() {
                   <div className="flex items-center justify-between mt-1">
                     <Badge variant="secondary" className="text-[9px] py-0">{img.type}</Badge>
                     <div className="flex gap-1">
-                      <button className="text-white/20 hover:text-red-400 transition-colors">
+                      <button className="text-white/20 hover:text-red-400 transition-colors" onClick={() => handleLike(img)}>
                         <Heart className="w-3 h-3" fill={img.liked ? 'currentColor' : 'none'} />
                       </button>
                       <button className="text-white/20 hover:text-white/55 transition-colors">
@@ -150,7 +162,9 @@ export function ImageStudio() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><Heart className="w-3.5 h-3.5" /></Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleLike(img)}>
+                    <Heart className="w-3.5 h-3.5" fill={img.liked ? 'currentColor' : 'none'} />
+                  </Button>
                   <Button size="sm" variant="outline" className="h-7 text-xs"><Download className="w-3 h-3 mr-1.5" />Download</Button>
                 </div>
               </Card>

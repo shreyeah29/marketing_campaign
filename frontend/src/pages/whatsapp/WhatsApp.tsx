@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Send, Phone, CheckCheck, Plus, Users, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -7,22 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-
-const conversations = [
-  { id: 1, name: 'Priya Sharma', last: 'Yes, I\'m interested in the consultation', time: '2m ago', unread: 2, status: 'online' },
-  { id: 2, name: 'Rajesh Kumar', last: 'Can we schedule for tomorrow 3pm?', time: '15m ago', unread: 0, status: 'away' },
-  { id: 3, name: 'Anita Patel', last: 'Thank you for the information!', time: '1h ago', unread: 0, status: 'offline' },
-  { id: 4, name: 'Suresh Mehta', last: 'I have a property dispute case...', time: '3h ago', unread: 1, status: 'online' },
-  { id: 5, name: 'Deepa Nair', last: 'Appointment confirmed for Aug 2', time: 'Yesterday', unread: 0, status: 'offline' },
-]
-
-const mockMessages = [
-  { from: 'them', text: 'Hello, I saw your ad about NRI property services. I have a question.', time: '10:32 AM' },
-  { from: 'us', text: 'Namaste! 🙏 I\'m Priya from VSP Law Associates. Happy to help! What\'s your question?', time: '10:33 AM' },
-  { from: 'them', text: 'I own property in Mumbai but live in Dallas. My cousin is claiming he has rights to it. What should I do?', time: '10:35 AM' },
-  { from: 'us', text: 'I understand this must be stressful. This is actually a common issue we help NRIs with. To protect your property, the first step is to have a registered Power of Attorney with a trusted person in India.\n\nWould you like to book a free 30-minute consultation to discuss your specific case?', time: '10:36 AM' },
-  { from: 'them', text: 'Yes, I\'m interested in the consultation', time: '10:37 AM' },
-]
+import { whatsappApi } from '@/services/api'
 
 const quickReplies = [
   'Book free consultation →',
@@ -32,14 +17,88 @@ const quickReplies = [
 ]
 
 export function WhatsApp() {
-  const [activeConv, setActiveConv] = useState(conversations[0])
+  const [conversations, setConversations] = useState<any[]>([])
+  const [activeConv, setActiveConv] = useState<any | null>(null)
   const [message, setMessage] = useState('')
-  const [messages, setMessages] = useState(mockMessages)
+  const [messages, setMessages] = useState<any[]>([])
+  const [sending, setSending] = useState(false)
 
-  const sendMessage = () => {
-    if (!message.trim()) return
-    setMessages([...messages, { from: 'us', text: message, time: 'Now' }])
+  const load = async () => {
+    try {
+      const list = await whatsappApi.conversations()
+      setConversations(list || [])
+      if (list?.length) {
+        const first = list[0] as any
+        setActiveConv(first)
+        const raw = Array.isArray(first.messages) ? first.messages : []
+        const msgs = raw.map((m: any) => ({
+          from: m.from,
+          text: m.text,
+          time: m.at || m.time || '',
+        }))
+        setMessages(msgs)
+      }
+    } catch (err) {
+      console.error(err)
+      setConversations([])
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const selectConv = (conv: any) => {
+    setActiveConv(conv)
+    setMessages(
+      (conv.messages || []).map((m: any) => ({
+        from: m.from,
+        text: m.text,
+        time: m.at || m.time || '',
+      }))
+    )
+  }
+
+  const sendMessage = async () => {
+    if (!message.trim() || !activeConv || sending) return
+    setSending(true)
+    const text = message
     setMessage('')
+    setMessages((prev) => [...prev, { from: 'us', text, time: 'Now' }])
+    try {
+      const updated = await whatsappApi.send({
+        conversationId: String(activeConv.id),
+        phone: activeConv.phone,
+        text,
+      }) as any
+      if (updated) {
+        setConversations((prev) =>
+          prev.map((c) => (c.id === activeConv.id ? { ...c, ...updated } : c))
+        )
+        setActiveConv((prev: any) => (prev ? { ...prev, ...updated } : prev))
+        if (updated.messages) {
+          setMessages(
+            updated.messages.map((m: any) => ({
+              from: m.from,
+              text: m.text,
+              time: m.at || m.time || '',
+            }))
+          )
+        }
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (!activeConv) {
+    return (
+      <div className="p-6 h-[calc(100vh-64px-48px)] flex items-center justify-center text-white/40 text-sm">
+        No conversations yet
+      </div>
+    )
   }
 
   return (
@@ -56,14 +115,14 @@ export function WhatsApp() {
             {conversations.map((conv) => (
               <button
                 key={conv.id}
-                onClick={() => setActiveConv(conv)}
+                onClick={() => selectConv(conv)}
                 className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-colors ${
                   activeConv.id === conv.id ? 'bg-indigo-500/15 border border-indigo-500/30' : 'hover:bg-white/5 border border-transparent'
                 }`}
               >
                 <div className="relative">
                   <Avatar className="w-9 h-9">
-                    <AvatarFallback className="text-xs">{conv.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="text-xs">{(conv.name || '?').charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-zinc-950 ${
                     conv.status === 'online' ? 'bg-emerald-500' : conv.status === 'away' ? 'bg-amber-500' : 'bg-white/20'
@@ -72,11 +131,11 @@ export function WhatsApp() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-white/80 truncate">{conv.name}</p>
-                    <span className="text-[10px] text-white/35 shrink-0">{conv.time}</span>
+                    <span className="text-[10px] text-white/35 shrink-0">{conv.lastAt || conv.time}</span>
                   </div>
-                  <p className="text-[11px] text-white/40 truncate">{conv.last}</p>
+                  <p className="text-[11px] text-white/40 truncate">{conv.lastMessage || conv.last}</p>
                 </div>
-                {conv.unread > 0 && (
+                {Number(conv.unread) > 0 && (
                   <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center text-[9px] text-white font-bold shrink-0">
                     {conv.unread}
                   </div>
@@ -105,7 +164,7 @@ export function WhatsApp() {
         {/* Chat header */}
         <div className="flex items-center gap-3 p-4 border-b border-white/[0.08]">
           <Avatar className="w-8 h-8">
-            <AvatarFallback className="text-xs">{activeConv.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback className="text-xs">{(activeConv.name || '?').charAt(0)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <p className="text-sm font-semibold text-white/80">{activeConv.name}</p>
@@ -168,7 +227,7 @@ export function WhatsApp() {
             className="flex-1"
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           />
-          <Button onClick={sendMessage} size="icon" variant="gradient"><Send className="w-4 h-4" /></Button>
+          <Button onClick={sendMessage} size="icon" variant="gradient" disabled={sending}><Send className="w-4 h-4" /></Button>
         </div>
       </Card>
     </div>

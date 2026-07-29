@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -12,63 +13,26 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { analyticsApi, aiApi } from '@/services/api'
 
-const revenueData = [
-  { month: 'Jan', revenue: 42000, leads: 120 },
-  { month: 'Feb', revenue: 55000, leads: 145 },
-  { month: 'Mar', revenue: 48000, leads: 132 },
-  { month: 'Apr', revenue: 72000, leads: 190 },
-  { month: 'May', revenue: 68000, leads: 178 },
-  { month: 'Jun', revenue: 89000, leads: 220 },
-  { month: 'Jul', revenue: 95000, leads: 248 },
-]
+const CHANNEL_COLORS: Record<string, string> = {
+  Facebook: '#6366f1',
+  Google: '#8b5cf6',
+  LinkedIn: '#06b6d4',
+  Email: '#10b981',
+  WhatsApp: '#f59e0b',
+}
 
-const channelData = [
-  { name: 'Facebook', value: 35, color: '#6366f1' },
-  { name: 'Google', value: 28, color: '#8b5cf6' },
-  { name: 'LinkedIn', value: 18, color: '#06b6d4' },
-  { name: 'Email', value: 12, color: '#10b981' },
-  { name: 'WhatsApp', value: 7, color: '#f59e0b' },
-]
+const FUNNEL_FILLS = ['#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b']
 
-const funnelData = [
-  { name: 'Visitors', value: 12400, fill: '#6366f1', width: 100 },
-  { name: 'Leads', value: 3800, fill: '#8b5cf6', width: 75 },
-  { name: 'Qualified', value: 1240, fill: '#06b6d4', width: 52 },
-  { name: 'Proposals', value: 480, fill: '#10b981', width: 34 },
-  { name: 'Closed', value: 128, fill: '#f59e0b', width: 20 },
-]
-
-const kpis = [
-  { label: 'Marketing Score', value: '87', unit: '/100', change: 12, icon: Zap, colorClass: 'text-indigo-400', bgClass: 'bg-indigo-500/[0.12]', borderClass: 'border-indigo-500/20', glowColor: 'rgba(99,102,241,0.12)' },
-  { label: 'Revenue (MTD)', value: '$95K', unit: '', change: 23, icon: DollarSign, colorClass: 'text-emerald-400', bgClass: 'bg-emerald-500/[0.10]', borderClass: 'border-emerald-500/20', glowColor: 'rgba(16,185,129,0.1)' },
-  { label: 'Total Leads', value: '248', unit: '', change: 18, icon: Users, colorClass: 'text-violet-400', bgClass: 'bg-violet-500/[0.10]', borderClass: 'border-violet-500/20', glowColor: 'rgba(139,92,246,0.1)' },
-  { label: 'Appointments', value: '34', unit: '', change: -4, icon: Calendar, colorClass: 'text-cyan-400', bgClass: 'bg-cyan-500/[0.10]', borderClass: 'border-cyan-500/20', glowColor: 'rgba(6,182,212,0.1)' },
-  { label: 'ROI', value: '340%', unit: '', change: 28, icon: TrendingUp, colorClass: 'text-emerald-400', bgClass: 'bg-emerald-500/[0.10]', borderClass: 'border-emerald-500/20', glowColor: 'rgba(16,185,129,0.1)' },
-  { label: 'Conversion', value: '3.4%', unit: '', change: 0.8, icon: Target, colorClass: 'text-indigo-400', bgClass: 'bg-indigo-500/[0.12]', borderClass: 'border-indigo-500/20', glowColor: 'rgba(99,102,241,0.12)' },
-  { label: 'Active Campaigns', value: '12', unit: '', change: 3, icon: Activity, colorClass: 'text-violet-400', bgClass: 'bg-violet-500/[0.10]', borderClass: 'border-violet-500/20', glowColor: 'rgba(139,92,246,0.1)' },
-]
-
-const recentActivity = [
-  { text: 'Priya Sharma submitted NRI consultation form', time: '2m ago', status: 'new', color: 'bg-emerald-500' },
-  { text: 'AI generated 14-section campaign for VSP Dallas', time: '18m ago', status: 'complete', color: 'bg-indigo-500' },
-  { text: 'Email sequence "NRI Welcome" started for 45 contacts', time: '1h ago', status: 'active', color: 'bg-cyan-500' },
-  { text: 'Facebook campaign "NRI Legal Dallas" went live', time: '2h ago', status: 'live', color: 'bg-violet-500' },
-  { text: 'AI Voice call with Rajesh Kumar — Appointment booked', time: '3h ago', status: 'complete', color: 'bg-white/20' },
-]
-
-const aiInsights = [
-  { text: 'LinkedIn campaigns show 34% higher lead quality — reallocate 15% from Facebook budget', priority: 'high' },
-  { text: 'Email open rates peak Tue 10am & Thu 2pm — reschedule sends for +22% open rate', priority: 'medium' },
-  { text: 'Mobile traffic 68% but only 31% conversions — UX gap worth ~$45K/mo in revenue', priority: 'high' },
-  { text: 'NRI segment has 3.2x higher LTV — create dedicated high-touch nurture track', priority: 'medium' },
-]
-
-const upcomingTasks = [
-  { task: 'Review Facebook ad creative for Q3', due: 'Today, 3:00 PM', priority: 'high' },
-  { task: 'Approve WhatsApp template for NRI campaign', due: 'Tomorrow, 10:00 AM', priority: 'medium' },
-  { task: 'Monthly analytics review call', due: 'Aug 1, 11:00 AM', priority: 'low' },
-  { task: 'Launch Google Ads NRI retargeting', due: 'Aug 2', priority: 'high' },
+const kpiMeta = [
+  { key: 'marketingScore', label: 'Marketing Score', unit: '/100', change: 12, icon: Zap, colorClass: 'text-indigo-400', bgClass: 'bg-indigo-500/[0.12]', borderClass: 'border-indigo-500/20', glowColor: 'rgba(99,102,241,0.12)', format: (v: number) => String(v) },
+  { key: 'revenue', label: 'Revenue (MTD)', unit: '', change: 23, icon: DollarSign, colorClass: 'text-emerald-400', bgClass: 'bg-emerald-500/[0.10]', borderClass: 'border-emerald-500/20', glowColor: 'rgba(16,185,129,0.1)', format: (v: number) => `$${Math.round(v / 1000)}K` },
+  { key: 'leads', label: 'Total Leads', unit: '', change: 18, icon: Users, colorClass: 'text-violet-400', bgClass: 'bg-violet-500/[0.10]', borderClass: 'border-violet-500/20', glowColor: 'rgba(139,92,246,0.1)', format: (v: number) => String(v) },
+  { key: 'appointments', label: 'Appointments', unit: '', change: -4, icon: Calendar, colorClass: 'text-cyan-400', bgClass: 'bg-cyan-500/[0.10]', borderClass: 'border-cyan-500/20', glowColor: 'rgba(6,182,212,0.1)', format: (v: number) => String(v) },
+  { key: 'roi', label: 'ROI', unit: '', change: 28, icon: TrendingUp, colorClass: 'text-emerald-400', bgClass: 'bg-emerald-500/[0.10]', borderClass: 'border-emerald-500/20', glowColor: 'rgba(16,185,129,0.1)', format: (v: number) => `${v}%` },
+  { key: 'conversionRate', label: 'Conversion', unit: '', change: 0.8, icon: Target, colorClass: 'text-indigo-400', bgClass: 'bg-indigo-500/[0.12]', borderClass: 'border-indigo-500/20', glowColor: 'rgba(99,102,241,0.12)', format: (v: number) => `${v}%` },
+  { key: 'activeCampaigns', label: 'Active Campaigns', unit: '', change: 3, icon: Activity, colorClass: 'text-violet-400', bgClass: 'bg-violet-500/[0.10]', borderClass: 'border-violet-500/20', glowColor: 'rgba(139,92,246,0.1)', format: (v: number) => String(v) },
 ]
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -93,13 +57,78 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function Dashboard() {
   const navigate = useNavigate()
+  const [kpis, setKpis] = useState<Record<string, number>>({})
+  const [revenueData, setRevenueData] = useState<any[]>([])
+  const [channelData, setChannelData] = useState<any[]>([])
+  const [funnelData, setFunnelData] = useState<any[]>([])
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [aiInsights, setAiInsights] = useState<any[]>([])
+  const [upcomingTasks, setUpcomingTasks] = useState<any[]>([])
+  const [addingTask, setAddingTask] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dash, channels, insights] = await Promise.all([
+          analyticsApi.dashboard(),
+          analyticsApi.channels(),
+          aiApi.insights(),
+        ])
+        setKpis((dash?.kpis as Record<string, number>) || {})
+        setRevenueData(dash?.revenueByMonth || [])
+        setFunnelData(
+          (dash?.funnel || []).map((f: any, i: number) => ({
+            ...f,
+            fill: FUNNEL_FILLS[i % FUNNEL_FILLS.length],
+          }))
+        )
+        setRecentActivity((dash?.activity as any[]) || [])
+        setUpcomingTasks((dash?.tasks as any[]) || [])
+        setChannelData(
+          (channels || []).map((c: any) => ({
+            name: c.name || c.channel,
+            value: c.value ?? c.leads ?? 0,
+            color: CHANNEL_COLORS[c.name || c.channel] || '#6366f1',
+          }))
+        )
+        setAiInsights(insights || [])
+      } catch (err) {
+        console.error(err)
+        setRevenueData([])
+        setChannelData([])
+        setFunnelData([])
+        setRecentActivity([])
+        setAiInsights([])
+        setUpcomingTasks([])
+      }
+    }
+    load()
+  }, [])
+
+  const handleAddTask = async () => {
+    if (addingTask) return
+    setAddingTask(true)
+    try {
+      const task = await analyticsApi.createTask('New task', 'Soon', 'medium') as any
+      setUpcomingTasks((prev) => [task, ...prev])
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setAddingTask(false)
+    }
+  }
+
+  const kpiCards = kpiMeta.map((meta) => ({
+    ...meta,
+    value: meta.format(Number(kpis[meta.key] ?? 0)),
+  }))
 
   return (
     <div className="p-6 space-y-5 max-w-[1600px]">
 
       {/* ── KPI Row ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        {kpis.map((kpi, i) => {
+        {kpiCards.map((kpi, i) => {
           const Icon = kpi.icon
           const isUp = kpi.change > 0
           return (
@@ -275,13 +304,14 @@ export function Dashboard() {
           <p className="text-[11px] text-white/35 mb-4">Conversion pipeline</p>
           <div className="space-y-2.5">
             {funnelData.map((stage, i) => {
-              const pct = Math.round((stage.value / funnelData[0].value) * 100)
+              const base = funnelData[0]?.value || 1
+              const pct = Math.round((stage.value / base) * 100)
               return (
                 <div key={stage.name}>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs text-white/50 font-medium">{stage.name}</span>
                     <span className="text-xs font-semibold text-white/70 tabular-nums">
-                      {stage.value.toLocaleString()}
+                      {Number(stage.value).toLocaleString()}
                     </span>
                   </div>
                   <div className="h-7 rounded-lg overflow-hidden bg-white/[0.04] border border-white/[0.05]">
@@ -314,14 +344,14 @@ export function Dashboard() {
           <div className="space-y-3.5">
             {recentActivity.map((item, i) => (
               <motion.div
-                key={i}
+                key={item.id || i}
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 + 0.2, duration: 0.3 }}
                 className="flex items-start gap-3"
               >
                 <div className="mt-1.5 shrink-0">
-                  <div className={cn('w-1.5 h-1.5 rounded-full', item.color)} />
+                  <div className={cn('w-1.5 h-1.5 rounded-full', item.color || 'bg-indigo-500')} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white/65 leading-relaxed font-medium">{item.text}</p>
@@ -346,7 +376,7 @@ export function Dashboard() {
             </div>
             <div>
               <p className="text-sm font-semibold text-white leading-tight">AI Insights</p>
-              <p className="text-[10px] text-indigo-400/70">4 recommendations</p>
+              <p className="text-[10px] text-indigo-400/70">{aiInsights.length} recommendations</p>
             </div>
           </div>
           <div className="space-y-2.5">
@@ -390,14 +420,14 @@ export function Dashboard() {
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm font-semibold text-white">Upcoming Tasks</p>
-          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5">
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1.5" onClick={handleAddTask} disabled={addingTask}>
             + Add task
           </Button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {upcomingTasks.map((t, i) => (
             <motion.div
-              key={i}
+              key={t.id || i}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 + 0.1 }}

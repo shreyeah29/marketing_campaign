@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users, Building2, Star, DollarSign, Plus, Search, Filter, ArrowRight, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,22 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-
-const leads = [
-  { id: 1, name: 'Priya Sharma', email: 'priya@email.com', company: 'Self-employed', status: 'qualified', score: 87, value: 15000, source: 'Facebook Ad', date: 'Jul 29' },
-  { id: 2, name: 'Rajesh Kumar', email: 'rajesh@techcorp.com', company: 'TechCorp Inc', status: 'contacted', score: 62, value: 8000, source: 'Google Ad', date: 'Jul 28' },
-  { id: 3, name: 'Anita Patel', email: 'anita@gmail.com', company: 'Own Business', status: 'new', score: 45, value: 12000, source: 'WhatsApp', date: 'Jul 29' },
-  { id: 4, name: 'Suresh Mehta', email: 'suresh@gmail.com', company: 'Mehta Consulting', status: 'proposal', score: 91, value: 25000, source: 'Referral', date: 'Jul 27' },
-  { id: 5, name: 'Deepa Nair', email: 'deepa@nair.in', company: 'Nair Family Trust', status: 'won', score: 100, value: 18000, source: 'LinkedIn', date: 'Jul 25' },
-]
-
-const pipelineStages = [
-  { name: 'New', count: 24, value: 180000, color: 'bg-white/20' },
-  { name: 'Contacted', count: 18, value: 135000, color: 'bg-indigo-500' },
-  { name: 'Qualified', count: 12, value: 96000, color: 'bg-violet-500' },
-  { name: 'Proposal', count: 8, value: 76000, color: 'bg-cyan-500' },
-  { name: 'Won', count: 5, value: 52000, color: 'bg-emerald-500' },
-]
+import { leadsApi } from '@/services/api'
 
 const statusColor: Record<string, string> = {
   new: 'secondary',
@@ -36,21 +21,61 @@ const statusColor: Record<string, string> = {
 
 export function CRM() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [leads, setLeads] = useState<any[]>([])
+  const [pipelineStages, setPipelineStages] = useState<any[]>([])
+  const [stats, setStats] = useState<Record<string, any>>({})
+  const [creating, setCreating] = useState(false)
 
-  const filtered = leads.filter((l) =>
-    l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    l.company.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const load = async (search?: string) => {
+    try {
+      const [listRes, pipe] = await Promise.all([
+        leadsApi.list({ search: search || undefined }),
+        leadsApi.pipeline(),
+      ])
+      setLeads(listRes?.data || [])
+      setPipelineStages(pipe?.stages || [])
+      setStats(pipe?.stats || {})
+    } catch (err) {
+      console.error(err)
+      setLeads([])
+      setPipelineStages([])
+      setStats({})
+    }
+  }
+
+  useEffect(() => {
+    const t = setTimeout(() => load(searchTerm), 250)
+    return () => clearTimeout(t)
+  }, [searchTerm])
+
+  const handleAddLead = async () => {
+    if (creating) return
+    setCreating(true)
+    try {
+      await leadsApi.create({
+        name: 'New Lead',
+        email: `lead${Date.now()}@example.com`,
+        source: 'Manual',
+      })
+      await load(searchTerm)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const maxCount = Math.max(...pipelineStages.map((s) => Number(s.count) || 0), 1)
 
   return (
     <div className="p-6 space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: Users, label: 'Total Leads', value: '248', color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
-          { icon: Building2, label: 'Companies', value: '84', color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
-          { icon: DollarSign, label: 'Pipeline Value', value: '$539K', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
-          { icon: Star, label: 'Avg Lead Score', value: '74', color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', border: 'border-amber-500/[0.18]' },
+          { icon: Users, label: 'Total Leads', value: String(stats.totalLeads ?? leads.length), color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
+          { icon: Building2, label: 'Companies', value: String(stats.companies ?? '—'), color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
+          { icon: DollarSign, label: 'Pipeline Value', value: String(stats.pipelineValue ?? '—'), color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
+          { icon: Star, label: 'Avg Lead Score', value: String(stats.avgScore ?? '—'), color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', border: 'border-amber-500/[0.18]' },
         ].map((s, i) => {
           const Icon = s.icon
           return (
@@ -71,11 +96,11 @@ export function CRM() {
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-white">Sales Pipeline</h3>
-          <span className="text-xs text-white/35">Total: $539,000</span>
+          <span className="text-xs text-white/35">Total: {stats.pipelineValue ?? '—'}</span>
         </div>
         <div className="flex items-end gap-2 h-24">
           {pipelineStages.map((stage, i) => {
-            const height = (stage.count / pipelineStages[0].count) * 100
+            const height = (Number(stage.count) / maxCount) * 100
             return (
               <div key={stage.name} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-xs text-white/40">{stage.count}</span>
@@ -83,7 +108,7 @@ export function CRM() {
                   initial={{ height: 0 }}
                   animate={{ height: `${height}%` }}
                   transition={{ delay: i * 0.08, duration: 0.5 }}
-                  className={`w-full rounded-t-lg ${stage.color} opacity-80`}
+                  className={`w-full rounded-t-lg ${stage.color || 'bg-indigo-500'} opacity-80`}
                 />
                 <span className="text-[10px] text-white/35 text-center leading-tight">{stage.name}</span>
               </div>
@@ -111,7 +136,9 @@ export function CRM() {
               />
             </div>
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"><Filter className="w-3 h-3" />Filter</Button>
-            <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5"><Plus className="w-3 h-3" />Add Lead</Button>
+            <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5" onClick={handleAddLead} disabled={creating}>
+              <Plus className="w-3 h-3" />Add Lead
+            </Button>
           </div>
         </div>
 
@@ -127,7 +154,7 @@ export function CRM() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((lead, i) => (
+                  {leads.map((lead, i) => (
                     <motion.tr
                       key={lead.id}
                       initial={{ opacity: 0 }}
@@ -138,7 +165,7 @@ export function CRM() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Avatar className="w-7 h-7">
-                            <AvatarFallback className="text-xs">{lead.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="text-xs">{(lead.name || '?').charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="text-xs font-medium text-white/80">{lead.name}</p>
@@ -152,11 +179,11 @@ export function CRM() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Progress value={lead.score} className="w-12 h-1" />
+                          <Progress value={Number(lead.score || 0)} className="w-12 h-1" />
                           <span className="text-xs text-white/50">{lead.score}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-xs font-medium text-white/70">${lead.value.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-xs font-medium text-white/70">${Number(lead.value || 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-xs text-white/40">{lead.source}</td>
                       <td className="px-4 py-3 text-xs text-white/35">{lead.date}</td>
                       <td className="px-4 py-3">
@@ -216,7 +243,7 @@ export function CRM() {
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/[0.1] border border-emerald-500/[0.18] flex items-center justify-center mx-auto mb-4">
               <TrendingUp className="w-6 h-6 text-emerald-400" />
             </div>
-            <p className="text-sm font-semibold text-white/60 mb-1">67 active deals · $539K pipeline</p>
+            <p className="text-sm font-semibold text-white/60 mb-1">67 active deals · {stats.pipelineValue ?? '$539K'} pipeline</p>
             <p className="text-xs text-white/30 mb-5">Track all opportunities across your sales pipeline</p>
             <Button size="sm" variant="gradient" className="gap-1.5"><Plus className="w-3.5 h-3.5" />Add Deal</Button>
           </Card>

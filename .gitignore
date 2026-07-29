@@ -1,23 +1,51 @@
-# Node / Frontend
+# Dependencies
 node_modules/
-frontend/dist/
-frontend/.env
-frontend/.env.local
-frontend/.env.production
+.pnpm-store/
 
-# .NET Backend
-backend/src/**/bin/
-backend/src/**/obj/
-backend/*.user
-backend/**/*.user
-*.suo
-.vs/
+# Build output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
 
-# Environment secrets
-*.env
-appsettings.Production.json
-appsettings.Development.json
+# Turborepo
+.turbo/
+
+# Environment — never commit real values
+.env
+.env.*
+!.env.example
+
+# Prisma
+packages/database/prisma/*.db
+packages/database/prisma/*.db-journal
+packages/database/generated/
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+logs/
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+.idea/
+*.swp
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Misc
+.vercel
+.sentryclirc

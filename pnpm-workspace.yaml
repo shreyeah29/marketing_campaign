@@ -1,0 +1,6 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Hoisting is deliberately restricted: a package must declare every dependency it
+# imports. This is what keeps modules independently extractable into services later.

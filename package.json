@@ -1,0 +1,57 @@
+{
+  "name": "vsp-ai-marketing-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VSP AI Marketing OS — your AI marketing team in one platform",
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22.11.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml}\"",
+    "db:generate": "pnpm --filter @vsp/database generate",
+    "db:migrate": "pnpm --filter @vsp/database migrate:dev",
+    "db:migrate:deploy": "pnpm --filter @vsp/database migrate:deploy",
+    "db:studio": "pnpm --filter @vsp/database studio",
+    "db:seed": "pnpm --filter @vsp/database seed",
+    "db:reset": "pnpm --filter @vsp/database reset",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.9",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml,css}": [
+      "prettier --write"
+    ],
+    "packages/database/prisma/schema.prisma": [
+      "prisma format"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  }
+}

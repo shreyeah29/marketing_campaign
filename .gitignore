@@ -1,0 +1,23 @@
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+
+# .NET Backend
+backend/src/**/bin/
+backend/src/**/obj/
+backend/*.user
+backend/**/*.user
+*.suo
+.vs/
+
+# Environment secrets
+*.env
+appsettings.Production.json
+appsettings.Development.json
+
+# OS
+.DS_Store
+Thumbs.db

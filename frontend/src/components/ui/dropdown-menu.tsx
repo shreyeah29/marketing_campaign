@@ -45,7 +45,15 @@ const DropdownMenuContent = React.forwardRef<
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
-      className={cn('z-50 min-w-[8rem] overflow-hidden rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-1 shadow-lg text-white animate-in fade-in-0 zoom-in-95', className)}
+      className={cn(
+      'z-50 min-w-[8rem] overflow-hidden rounded-2xl p-1 text-white',
+      'bg-zinc-950/95 backdrop-blur-2xl',
+      'border border-white/[0.09]',
+      'shadow-[0_8px_32px_rgba(0,0,0,0.6),0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.06)]',
+      'animate-in fade-in-0 zoom-in-95 duration-150',
+      'data-[side=bottom]:slide-in-from-top-1 data-[side=top]:slide-in-from-bottom-1',
+      className
+    )}
       {...props}
     />
   </DropdownMenuPrimitive.Portal>
@@ -58,7 +66,16 @@ const DropdownMenuItem = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
-    className={cn('relative flex cursor-default select-none items-center rounded-lg px-2 py-1.5 text-sm outline-none transition-colors focus:bg-white/8 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50', inset && 'pl-8', className)}
+    className={cn(
+      'relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2',
+      'text-xs font-medium text-white/55',
+      'outline-none transition-all duration-150',
+      'hover:text-white/90 hover:bg-white/[0.06]',
+      'focus:text-white/90 focus:bg-white/[0.06]',
+      'data-[disabled]:pointer-events-none data-[disabled]:opacity-40',
+      inset && 'pl-8',
+      className
+    )}
     {...props}
   />
 ))
@@ -68,7 +85,7 @@ const DropdownMenuSeparator = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Separator>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator>
 >(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-white/8', className)} {...props} />
+  <DropdownMenuPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent', className)} {...props} />
 ))
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName
 

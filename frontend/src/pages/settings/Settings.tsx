@@ -20,7 +20,7 @@ const settingsSections = [
 
 export function Settings() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div>
         <div className="flex gap-6">
           {/* Sidebar nav */}
@@ -35,7 +35,7 @@ export function Settings() {
                       i === 0 ? 'bg-indigo-500/10 border border-indigo-500/20' : 'border border-transparent'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 shrink-0 ${i === 0 ? 'text-indigo-400' : 'text-white/30'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${i === 0 ? 'text-indigo-400' : 'text-white/35'}`} />
                     <div>
                       <p className={`text-xs font-medium ${i === 0 ? 'text-white/80' : 'text-white/50'}`}>{s.label}</p>
                       <p className="text-[10px] text-white/25">{s.desc}</p>
@@ -47,10 +47,10 @@ export function Settings() {
           </div>
 
           {/* Content */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 space-y-5">
             <Card className="p-6">
               <h3 className="text-sm font-semibold text-white mb-1">Organization Settings</h3>
-              <p className="text-xs text-white/30 mb-6">Manage your organization profile and preferences</p>
+              <p className="text-xs text-white/35 mb-6">Manage your organization profile and preferences</p>
 
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
@@ -77,7 +77,7 @@ export function Settings() {
                   <label className="text-xs text-white/50 mb-1.5 block">Business Description</label>
                   <textarea
                     defaultValue="VSP Law Associates is a Dallas-based NRI legal services firm specializing in India property law, succession, POA, and NRI investment compliance."
-                    className="w-full h-20 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                    className="w-full h-20 rounded-xl border border-white/[0.10] bg-white/5 px-3 py-2 text-sm text-white/70 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
                   />
                 </div>
                 <Separator />
@@ -87,7 +87,7 @@ export function Settings() {
 
             <Card className="p-6">
               <h3 className="text-sm font-semibold text-white mb-1">Plan & Billing</h3>
-              <p className="text-xs text-white/30 mb-6">Your current plan and usage</p>
+              <p className="text-xs text-white/35 mb-6">Your current plan and usage</p>
 
               <div className="p-4 rounded-xl bg-gradient-to-r from-indigo-500/10 to-violet-500/10 border border-indigo-500/20 mb-4">
                 <div className="flex items-center justify-between">
@@ -112,7 +112,7 @@ export function Settings() {
                   <div key={usage.label}>
                     <div className="flex justify-between mb-1">
                       <span className="text-xs text-white/40">{usage.label}</span>
-                      <span className="text-xs text-white/60">{usage.value.toLocaleString()} / {usage.max.toLocaleString()}</span>
+                      <span className="text-xs text-white/55">{usage.value.toLocaleString()} / {usage.max.toLocaleString()}</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
                       <div
@@ -127,7 +127,7 @@ export function Settings() {
 
             <Card className="p-6">
               <h3 className="text-sm font-semibold text-white mb-1">API Keys</h3>
-              <p className="text-xs text-white/30 mb-6">Connect your AI and marketing service providers</p>
+              <p className="text-xs text-white/35 mb-6">Connect your AI and marketing service providers</p>
 
               <div className="space-y-3">
                 {[

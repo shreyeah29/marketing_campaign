@@ -64,7 +64,7 @@ VO: "Book your FREE 30-minute consultation today."`
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Generator */}
         <div className="space-y-4">
@@ -78,13 +78,13 @@ VO: "Book your FREE 30-minute consultation today."`
                     key={t.label}
                     onClick={() => setSelectedType(t.label)}
                     className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-                      selectedType === t.label ? 'border-indigo-500/50 bg-indigo-500/10' : 'border-white/8 hover:border-white/15'
+                      selectedType === t.label ? 'border-indigo-500/50 bg-indigo-500/10' : 'border-white/[0.08] hover:border-white/[0.15]'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-lg ${t.bg} flex items-center justify-center`}>
+                    <div className={`w-8 h-8 rounded-xl ${t.bg} flex items-center justify-center`}>
                       <Icon className={`w-4 h-4 ${t.color}`} />
                     </div>
-                    <span className="text-sm text-white/60 font-medium">{t.label}</span>
+                    <span className="text-sm text-white/55 font-medium">{t.label}</span>
                   </button>
                 )
               })}
@@ -107,10 +107,10 @@ VO: "Book your FREE 30-minute consultation today."`
               ].map((opt) => {
                 const Icon = opt.icon
                 return (
-                  <div key={opt.label} className="p-2 rounded-lg bg-white/3 border border-white/8 text-center">
+                  <div key={opt.label} className="p-2 rounded-lg bg-white/3 border border-white/[0.08] text-center">
                     <Icon className="w-3.5 h-3.5 mx-auto mb-1 text-white/40" />
-                    <p className="text-[10px] text-white/30">{opt.label}</p>
-                    <p className="text-[11px] text-white/60 font-medium">{opt.value}</p>
+                    <p className="text-[10px] text-white/35">{opt.label}</p>
+                    <p className="text-[11px] text-white/55 font-medium">{opt.value}</p>
                   </div>
                 )
               })}
@@ -134,16 +134,16 @@ VO: "Book your FREE 30-minute consultation today."`
                   </h3>
                   <Badge variant="success">Generated</Badge>
                 </div>
-                <pre className="text-xs text-white/50 leading-relaxed font-mono bg-black/20 rounded-lg p-4 border border-white/6 whitespace-pre-wrap">{mockScript}</pre>
+                <pre className="text-xs text-white/50 leading-relaxed font-mono bg-black/20 rounded-lg p-4 border border-white/[0.06] whitespace-pre-wrap">{mockScript}</pre>
 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-medium text-white/50">Video Rendering Progress</p>
-                    <span className="text-xs text-white/30">{Math.round(renderProgress)}%</span>
+                    <span className="text-xs text-white/35">{Math.round(renderProgress)}%</span>
                   </div>
                   <Progress value={renderProgress} />
                   {renderProgress < 100 ? (
-                    <p className="text-xs text-white/30">Rendering your {selectedType}... ETA ~30 seconds</p>
+                    <p className="text-xs text-white/35">Rendering your {selectedType}... ETA ~30 seconds</p>
                   ) : (
                     <Button size="sm" variant="gradient" className="gap-2">
                       <Play className="w-3.5 h-3.5" />
@@ -157,10 +157,10 @@ VO: "Book your FREE 30-minute consultation today."`
 
           {!showScript && (
             <Card className="p-8 flex flex-col items-center justify-center text-center min-h-[300px]">
-              <div className="w-16 h-16 rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-white/3 border border-white/[0.08] flex items-center justify-center mb-4">
                 <Video className="w-8 h-8 text-white/20" />
               </div>
-              <p className="text-sm text-white/30">Select a video type and provide a brief to generate your video with AI</p>
+              <p className="text-sm text-white/35">Select a video type and provide a brief to generate your video with AI</p>
             </Card>
           )}
 
@@ -169,7 +169,7 @@ VO: "Book your FREE 30-minute consultation today."`
             <h3 className="text-sm font-semibold text-white mb-4">Recent Videos</h3>
             <div className="space-y-3">
               {mockVideos.map((vid) => (
-                <div key={vid.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/3 border border-white/6 hover:border-white/15 transition-colors cursor-pointer">
+                <div key={vid.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/3 border border-white/[0.06] hover:border-white/[0.15] transition-colors cursor-pointer">
                   <div className="relative">
                     <img src={vid.thumbnail} alt={vid.title} className="w-16 h-9 rounded-lg object-cover" />
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -182,7 +182,7 @@ VO: "Book your FREE 30-minute consultation today."`
                     <p className="text-sm font-medium text-white/80">{vid.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge variant="secondary" className="text-[10px]">{vid.type}</Badge>
-                      <span className="text-xs text-white/30">{vid.duration}</span>
+                      <span className="text-xs text-white/35">{vid.duration}</span>
                     </div>
                   </div>
                   <Badge variant={vid.status === 'rendered' ? 'success' : 'warning'}>{vid.status}</Badge>

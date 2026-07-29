@@ -4,7 +4,6 @@ import { Sparkles, Loader2, Save, Copy, ChevronDown, ChevronUp, Zap, CheckCircle
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import { MockAIService, type CampaignSection } from '@/services/mock-ai'
 import { cn } from '@/lib/utils'
 
@@ -16,20 +15,20 @@ const sectionIcons: Record<string, string> = {
 }
 
 const sectionColors: Record<string, string> = {
-  strategy: 'border-indigo-500/30 bg-indigo-500/5',
-  audience: 'border-violet-500/30 bg-violet-500/5',
-  budget: 'border-emerald-500/30 bg-emerald-500/5',
-  facebook: 'border-blue-500/30 bg-blue-500/5',
-  instagram: 'border-pink-500/30 bg-pink-500/5',
-  linkedin: 'border-cyan-500/30 bg-cyan-500/5',
-  'google-ads': 'border-yellow-500/30 bg-yellow-500/5',
-  blog: 'border-orange-500/30 bg-orange-500/5',
-  email: 'border-teal-500/30 bg-teal-500/5',
-  whatsapp: 'border-green-500/30 bg-green-500/5',
-  video: 'border-red-500/30 bg-red-500/5',
-  'landing-page': 'border-purple-500/30 bg-purple-500/5',
-  seo: 'border-lime-500/30 bg-lime-500/5',
-  cta: 'border-amber-500/30 bg-amber-500/5',
+  strategy: 'border-indigo-500/[0.18] bg-indigo-500/[0.04]',
+  audience: 'border-violet-500/[0.18] bg-violet-500/[0.04]',
+  budget: 'border-emerald-500/[0.18] bg-emerald-500/[0.04]',
+  facebook: 'border-blue-500/[0.18] bg-blue-500/[0.04]',
+  instagram: 'border-pink-500/[0.18] bg-pink-500/[0.04]',
+  linkedin: 'border-cyan-500/[0.18] bg-cyan-500/[0.04]',
+  'google-ads': 'border-yellow-500/[0.18] bg-yellow-500/[0.04]',
+  blog: 'border-orange-500/[0.18] bg-orange-500/[0.04]',
+  email: 'border-teal-500/[0.18] bg-teal-500/[0.04]',
+  whatsapp: 'border-green-500/[0.18] bg-green-500/[0.04]',
+  video: 'border-red-500/[0.18] bg-red-500/[0.04]',
+  'landing-page': 'border-purple-500/[0.18] bg-purple-500/[0.04]',
+  seo: 'border-lime-500/[0.18] bg-lime-500/[0.04]',
+  cta: 'border-amber-500/[0.18] bg-amber-500/[0.04]',
 }
 
 const promptSuggestions = [
@@ -57,41 +56,50 @@ function SectionCard({ section, index }: { section: CampaignSection; index: numb
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Card className={cn('overflow-hidden border transition-all duration-200', sectionColors[section.id] || 'border-white/8')}>
+      <div className={cn(
+        'rounded-2xl border overflow-hidden',
+        'shadow-[0_1px_3px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.15)]',
+        'transition-all duration-200',
+        sectionColors[section.id] || 'border-white/[0.08] bg-white/[0.02]',
+      )}>
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/3 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-white/[0.03] transition-colors"
         >
-          <span className="text-lg">{sectionIcons[section.id] || '📄'}</span>
-          <span className="font-semibold text-white text-sm flex-1">{section.title}</span>
-          <div className="flex items-center gap-2">
+          <span className="text-base shrink-0">{sectionIcons[section.id] || '📄'}</span>
+          <span className="font-semibold text-white/85 text-[13px] flex-1 text-left">{section.title}</span>
+          <div className="flex items-center gap-2 shrink-0">
             {saved && <Badge variant="success" className="text-[10px]">Saved</Badge>}
-            {expanded ? <ChevronUp className="w-4 h-4 text-white/30" /> : <ChevronDown className="w-4 h-4 text-white/30" />}
+            {expanded
+              ? <ChevronUp className="w-3.5 h-3.5 text-white/25" />
+              : <ChevronDown className="w-3.5 h-3.5 text-white/25" />
+            }
           </div>
         </button>
 
         <AnimatePresence>
           {expanded && (
             <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4">
-                <div className="text-sm text-white/60 leading-relaxed whitespace-pre-wrap font-mono text-xs bg-black/20 rounded-lg p-4 border border-white/6 mb-3">
+              <div className="px-4 pb-4 border-t border-white/[0.05]">
+                <div className="mt-3 text-[11px] text-white/55 leading-relaxed whitespace-pre-wrap bg-black/20 rounded-xl p-3.5 border border-white/[0.05] mb-3 font-mono">
                   {section.content}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleSave}>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleSave}>
                     {saved ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Save className="w-3 h-3" />}
                     {saved ? 'Saved!' : 'Save'}
                   </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5" onClick={handleCopy}>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleCopy}>
                     {copied ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                     {copied ? 'Copied!' : 'Copy'}
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs gap-1.5 text-indigo-400">
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400 hover:text-indigo-300">
                     <RefreshCw className="w-3 h-3" />
                     Regenerate
                   </Button>
@@ -100,7 +108,7 @@ function SectionCard({ section, index }: { section: CampaignSection; index: numb
             </motion.div>
           )}
         </AnimatePresence>
-      </Card>
+      </div>
     </motion.div>
   )
 }
@@ -141,38 +149,42 @@ export function AICommandCenter() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-64px)]">
+    <div className="flex h-[calc(100vh-60px)]">
       {/* Input Panel */}
-      <div className="w-full lg:w-[420px] flex flex-col border-r border-white/6 shrink-0">
+      <div className="w-full lg:w-[400px] flex flex-col border-r border-white/[0.06] shrink-0 bg-[#0a0a0f]">
         {/* Hero */}
-        <div className="p-6 border-b border-white/6">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
+        <div className="p-5 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-[0_4px_12px_rgba(99,102,241,0.4)]">
+              <Sparkles className="w-[17px] h-[17px] text-white" />
             </div>
             <div>
-              <p className="font-bold text-white text-sm">AI Command Center</p>
-              <p className="text-[10px] text-indigo-400">Powered by VSP AI Engine</p>
+              <p className="font-bold text-white text-sm leading-tight">AI Command Center</p>
+              <p className="text-[10px] text-indigo-400/80 leading-tight">Powered by VSP AI Engine</p>
             </div>
           </div>
-          <p className="text-xs text-white/40 leading-relaxed">
-            Describe your business and goals. Our AI will generate a complete 360° marketing campaign — strategy, ads, content, SEO, and more.
+          <p className="text-[11px] text-white/35 leading-relaxed">
+            Describe your business and goals. Our AI generates a complete 360° campaign — strategy, ads, content, SEO, and more.
           </p>
         </div>
 
         {/* Prompt area */}
-        <div className="p-4 flex-1 flex flex-col gap-3">
+        <div className="p-4 flex-1 flex flex-col gap-3 overflow-y-auto">
           <div>
-            <label className="text-xs font-medium text-white/50 mb-1.5 block">Your prompt</label>
+            <label className="text-xs font-semibold text-white/40 mb-1.5 block tracking-wide">Campaign brief</label>
             <Textarea
               ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Create a campaign for VSP Law Associates targeting NRIs in Dallas..."
-              className="min-h-[120px] text-sm resize-none"
+              className="min-h-[120px] text-sm"
             />
-            <p className="text-[10px] text-white/20 mt-1">Press Cmd+Enter to generate</p>
+            <p className="text-[10px] text-white/20 mt-1.5 flex items-center gap-1">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/[0.07] rounded text-[10px] font-semibold text-white/30">⌘</span>
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/[0.07] rounded text-[10px] font-semibold text-white/30">↵</span>
+              to generate
+            </p>
           </div>
 
           <Button
@@ -183,29 +195,23 @@ export function AICommandCenter() {
             className="w-full"
           >
             {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating campaign...
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" />Generating campaign...</>
             ) : (
-              <>
-                <Zap className="w-4 h-4 mr-2" />
-                Generate Full Campaign
-              </>
+              <><Zap className="w-4 h-4" />Generate Full Campaign</>
             )}
           </Button>
 
           {loading && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] text-white/30">
-                <span>AI is crafting your campaign...</span>
-                <span>{Math.round(progress)}%</span>
+            <div className="space-y-2 p-3 rounded-xl bg-indigo-500/[0.06] border border-indigo-500/[0.15]">
+              <div className="flex justify-between text-[11px]">
+                <span className="text-indigo-300/70 font-medium">Crafting your campaign...</span>
+                <span className="text-white/40 tabular-nums">{Math.round(progress)}%</span>
               </div>
-              <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+              <div className="h-1 bg-white/[0.07] rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full"
                   style={{ width: `${progress}%` }}
-                  transition={{ duration: 0.2 }}
+                  transition={{ duration: 0.15 }}
                 />
               </div>
             </div>
@@ -213,13 +219,15 @@ export function AICommandCenter() {
 
           {/* Suggestions */}
           <div>
-            <p className="text-[10px] font-semibold text-white/30 uppercase tracking-wider mb-2">Try these prompts</p>
-            <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.08em] mb-2.5">
+              Try these prompts
+            </p>
+            <div className="space-y-1.5">
               {promptSuggestions.map((s, i) => (
                 <button
                   key={i}
                   onClick={() => setPrompt(s)}
-                  className="w-full text-left text-xs text-white/40 hover:text-white/70 p-2.5 rounded-lg bg-white/3 border border-white/6 hover:border-white/15 transition-all"
+                  className="w-full text-left text-[11px] text-white/40 hover:text-white/65 px-3 py-2.5 rounded-xl bg-white/[0.025] border border-white/[0.06] hover:border-white/[0.12] hover:bg-white/[0.04] transition-all duration-200"
                 >
                   {s}
                 </button>
@@ -229,12 +237,12 @@ export function AICommandCenter() {
         </div>
 
         {/* Stats footer */}
-        <div className="p-4 border-t border-white/6">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            {[{ val: '14', label: 'Sections' }, { val: '~1.8s', label: 'Gen time' }, { val: '500+', label: 'Campaigns' }].map((s) => (
-              <div key={s.label}>
-                <p className="text-sm font-bold text-white">{s.val}</p>
-                <p className="text-[10px] text-white/30">{s.label}</p>
+        <div className="p-4 border-t border-white/[0.06]">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[{ val: '14', label: 'Sections' }, { val: '~2s', label: 'Gen time' }, { val: '500+', label: 'Campaigns' }].map((s) => (
+              <div key={s.label} className="py-2 rounded-xl bg-white/[0.02] border border-white/[0.05]">
+                <p className="text-sm font-bold text-white tabular-nums">{s.val}</p>
+                <p className="text-[10px] text-white/30 mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>

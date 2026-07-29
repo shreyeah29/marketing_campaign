@@ -16,7 +16,7 @@ const contentTypes = [
   { icon: Search, label: 'Google Ad', type: 'google', color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
   { icon: Zap, label: 'LinkedIn Post', type: 'linkedin', color: 'text-sky-400', bg: 'bg-sky-500/10' },
   { icon: AtSign, label: 'Instagram Caption', type: 'instagram', color: 'text-pink-400', bg: 'bg-pink-500/10' },
-  { icon: MessageSquare, label: 'X Post', type: 'x', color: 'text-white/60', bg: 'bg-white/5' },
+  { icon: MessageSquare, label: 'X Post', type: 'x', color: 'text-white/55', bg: 'bg-white/5' },
   { icon: MessageSquare, label: 'SMS', type: 'sms', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   { icon: Package, label: 'Product Description', type: 'product', color: 'text-orange-400', bg: 'bg-orange-500/10' },
   { icon: Newspaper, label: 'Press Release', type: 'press', color: 'text-red-400', bg: 'bg-red-500/10' },
@@ -47,7 +47,7 @@ export function ContentStudio() {
   const selectedTypeInfo = contentTypes.find((c) => c.type === selectedType)
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <Tabs defaultValue="generate">
         <TabsList>
           <TabsTrigger value="generate">Generate Content</TabsTrigger>
@@ -71,13 +71,13 @@ export function ContentStudio() {
                         className={`flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all ${
                           selectedType === ct.type
                             ? 'border-indigo-500/50 bg-indigo-500/10'
-                            : 'border-white/8 bg-white/3 hover:border-white/15'
+                            : 'border-white/[0.08] bg-white/3 hover:border-white/[0.15]'
                         }`}
                       >
                         <div className={`w-7 h-7 rounded-lg ${ct.bg} flex items-center justify-center shrink-0`}>
                           <Icon className={`w-3.5 h-3.5 ${ct.color}`} />
                         </div>
-                        <span className="text-xs font-medium text-white/60">{ct.label}</span>
+                        <span className="text-xs font-medium text-white/55">{ct.label}</span>
                       </button>
                     )
                   })}
@@ -106,7 +106,7 @@ export function ContentStudio() {
             {/* Right: Editor */}
             <div className="lg:col-span-2">
               <Card className="h-full min-h-[500px] flex flex-col">
-                <CardHeader className="flex-row items-center justify-between border-b border-white/8 pb-4">
+                <CardHeader className="flex-row items-center justify-between border-b border-white/[0.08] pb-4">
                   <div className="flex items-center gap-2">
                     {selectedTypeInfo && (
                       <Badge variant="default" className="text-xs">{selectedTypeInfo.label}</Badge>
@@ -143,10 +143,10 @@ export function ContentStudio() {
                     />
                   ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center">
-                      <div className="w-14 h-14 rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center mb-3">
+                      <div className="w-14 h-14 rounded-2xl bg-white/3 border border-white/[0.08] flex items-center justify-center mb-3">
                         <FileText className="w-6 h-6 text-white/20" />
                       </div>
-                      <p className="text-sm text-white/30">Select a content type and describe your brief to generate content</p>
+                      <p className="text-sm text-white/35">Select a content type and describe your brief to generate content</p>
                     </div>
                   )}
                 </CardContent>
@@ -159,17 +159,17 @@ export function ContentStudio() {
           <div className="space-y-3">
             {recentDrafts.map((draft, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                <Card className="p-4 hover:border-white/15 transition-colors cursor-pointer">
+                <Card className="p-4 hover:border-white/[0.15] transition-colors cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/[0.08] flex items-center justify-center">
                         <FileText className="w-4 h-4 text-white/40" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-white/80">{draft.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <Badge variant="secondary" className="text-[10px]">{draft.type}</Badge>
-                          <span className="text-[10px] text-white/30 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{draft.date}</span>
+                          <span className="text-[10px] text-white/35 flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{draft.date}</span>
                         </div>
                       </div>
                     </div>
@@ -191,13 +191,13 @@ export function ContentStudio() {
             {['NRI Legal Email Series', 'Product Launch Blog', 'B2B LinkedIn Outreach', 'E-commerce Product Descriptions', 'SaaS Onboarding Email', 'Real Estate Landing Page'].map((t, i) => (
               <Card key={i} className="p-4 hover:border-indigo-500/30 transition-colors cursor-pointer group">
                 <div className="flex items-start justify-between mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/15 flex items-center justify-center">
                     <FileText className="w-4 h-4 text-indigo-400" />
                   </div>
                   <Badge variant="secondary" className="text-[10px]">Template</Badge>
                 </div>
                 <p className="text-sm font-medium text-white/80 mb-1">{t}</p>
-                <p className="text-xs text-white/30">Click to use this template</p>
+                <p className="text-xs text-white/35">Click to use this template</p>
                 <Button size="sm" variant="outline" className="mt-3 w-full h-7 text-xs group-hover:border-indigo-500/40 group-hover:text-indigo-300">
                   Use Template
                 </Button>

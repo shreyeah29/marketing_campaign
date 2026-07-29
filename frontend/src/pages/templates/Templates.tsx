@@ -27,10 +27,10 @@ const categoryColors: Record<string, string> = {
 
 export function Templates() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/35" />
           <Input placeholder="Search templates..." className="pl-8 h-8 text-xs" />
         </div>
         <div className="flex gap-2">
@@ -55,7 +55,7 @@ export function Templates() {
                   <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
                   <span className="text-xs text-white/50">{t.stars}</span>
                 </div>
-                <span className="text-xs text-white/30">{t.uses} uses</span>
+                <span className="text-xs text-white/35">{t.uses} uses</span>
               </div>
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button size="sm" variant="outline" className="flex-1 h-7 text-xs gap-1.5"><Eye className="w-3 h-3" />Preview</Button>

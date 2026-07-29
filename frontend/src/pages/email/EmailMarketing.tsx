@@ -21,7 +21,7 @@ const sequences = [
 
 export function EmailMarketing() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -34,7 +34,7 @@ export function EmailMarketing() {
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="p-4">
-                <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
+                <div className={`w-8 h-8 rounded-xl ${stat.bg} flex items-center justify-center mb-3`}>
                   <Icon className={`w-4 h-4 ${stat.color}`} />
                 </div>
                 <p className="text-xl font-bold text-white">{stat.value}</p>
@@ -72,7 +72,7 @@ export function EmailMarketing() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-white/80">{c.name}</p>
-                      <p className="text-xs text-white/30">{c.sent.toLocaleString()} emails sent</p>
+                      <p className="text-xs text-white/35">{c.sent.toLocaleString()} emails sent</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export function EmailMarketing() {
                       { label: 'Unsubscribe', value: c.unsub, suffix: '%', good: c.unsub < 0.5 },
                     ].map((m) => (
                       <div key={m.label}>
-                        <p className="text-xs text-white/30 mb-1">{m.label}</p>
+                        <p className="text-xs text-white/35 mb-1">{m.label}</p>
                         <p className={`text-sm font-bold ${m.good ? 'text-emerald-400' : 'text-amber-400'}`}>{m.value}{m.suffix}</p>
                         <Progress value={Math.min(m.value * 2, 100)} className="mt-1 h-1" />
                       </div>
@@ -112,11 +112,11 @@ export function EmailMarketing() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-white/80">{seq.name}</p>
-                  <p className="text-xs text-white/30 mt-0.5">{seq.emails} emails · {seq.active} active · {seq.completed} completed</p>
+                  <p className="text-xs text-white/35 mt-0.5">{seq.emails} emails · {seq.active} active · {seq.completed} completed</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-white">{seq.rate}%</p>
-                  <p className="text-[10px] text-white/30">completion rate</p>
+                  <p className="text-[10px] text-white/35">completion rate</p>
                 </div>
               </div>
               <Progress value={seq.rate} className="mt-3" />
@@ -129,7 +129,7 @@ export function EmailMarketing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {['Welcome Email', 'Follow-up Template', 'Newsletter Layout', 'Promotional Email', 'Transactional Template', 'Re-engagement'].map((t, i) => (
               <Card key={i} className="p-4 hover:border-indigo-500/30 transition-colors cursor-pointer">
-                <div className="h-24 rounded-lg bg-gradient-to-b from-indigo-500/10 to-transparent border border-white/6 mb-3 flex items-center justify-center">
+                <div className="h-24 rounded-lg bg-gradient-to-b from-indigo-500/10 to-transparent border border-white/[0.06] mb-3 flex items-center justify-center">
                   <Mail className="w-8 h-8 text-white/10" />
                 </div>
                 <p className="text-sm font-medium text-white/80">{t}</p>

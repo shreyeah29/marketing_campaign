@@ -11,7 +11,7 @@ const platforms = [
   { label: 'Facebook', color: 'text-blue-400', dot: 'bg-blue-500', followers: '12.4K' },
   { label: 'Instagram', color: 'text-pink-400', dot: 'bg-pink-500', followers: '8.9K' },
   { label: 'LinkedIn', color: 'text-sky-400', dot: 'bg-sky-500', followers: '5.2K' },
-  { label: 'X (Twitter)', color: 'text-white/60', dot: 'bg-white/20', followers: '3.1K' },
+  { label: 'X (Twitter)', color: 'text-white/55', dot: 'bg-white/20', followers: '3.1K' },
   { label: 'YouTube', color: 'text-red-400', dot: 'bg-red-500', followers: '2.8K' },
 ]
 
@@ -42,17 +42,17 @@ export function SocialMedia() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Platform cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {platforms.map((p, i) => {
           return (
             <motion.div key={p.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="p-4 text-center hover:border-white/15 transition-colors cursor-pointer">
+              <Card className="p-4 text-center hover:border-white/[0.15] transition-colors cursor-pointer">
                 <div className={`w-6 h-6 rounded-full ${p.dot} mx-auto mb-2`} />
-                <p className="text-xs font-medium text-white/60">{p.label}</p>
+                <p className="text-xs font-medium text-white/55">{p.label}</p>
                 <p className="text-lg font-bold text-white mt-1">{p.followers}</p>
-                <p className="text-[10px] text-white/30">followers</p>
+                <p className="text-[10px] text-white/35">followers</p>
               </Card>
             </motion.div>
           )
@@ -78,8 +78,8 @@ export function SocialMedia() {
                   <button
                     key={p.label}
                     onClick={() => togglePlatform(p.label)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-all ${
-                      selectedPlatforms.includes(p.label) ? 'border-indigo-500/50 bg-indigo-500/10 text-white/80' : 'border-white/8 text-white/30 hover:border-white/20'
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                      selectedPlatforms.includes(p.label) ? 'border-indigo-500/50 bg-indigo-500/10 text-white/80' : 'border-white/[0.08] text-white/35 hover:border-white/20'
                     }`}
                   >
                     <div className={`w-3.5 h-3.5 rounded-full ${p.dot}`} />
@@ -109,7 +109,7 @@ export function SocialMedia() {
         <TabsContent value="queue" className="space-y-3">
           {scheduledPosts.filter((p) => p.status === 'scheduled').map((post, i) => (
             <motion.div key={post.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.04 }}>
-              <Card className="p-4 hover:border-white/15 transition-colors">
+              <Card className="p-4 hover:border-white/[0.15] transition-colors">
                 <div className="flex items-start gap-4">
                   {post.img && <img src={post.img} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />}
                   <div className="flex-1">
@@ -119,7 +119,7 @@ export function SocialMedia() {
                       <Badge variant="default" className="text-[10px]">Scheduled</Badge>
                     </div>
                     <p className="text-sm text-white/70 leading-relaxed">{post.content}</p>
-                    <p className="text-xs text-white/30 mt-2 flex items-center gap-1.5"><Clock className="w-3 h-3" />{post.date}</p>
+                    <p className="text-xs text-white/35 mt-2 flex items-center gap-1.5"><Clock className="w-3 h-3" />{post.date}</p>
                   </div>
                   <Button size="sm" variant="ghost" className="h-7 text-xs">Edit</Button>
                 </div>
@@ -139,7 +139,7 @@ export function SocialMedia() {
             </div>
             <div className="grid grid-cols-7 gap-1 mb-2">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-                <div key={d} className="text-center text-[10px] font-semibold text-white/30 py-1">{d}</div>
+                <div key={d} className="text-center text-[10px] font-semibold text-white/35 py-1">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1">
@@ -177,11 +177,11 @@ export function SocialMedia() {
                     <Badge variant="success" className="text-[10px]"><CheckCircle2 className="w-2.5 h-2.5 mr-1" />Published</Badge>
                   </div>
                   <p className="text-sm text-white/70">{post.content}</p>
-                  <p className="text-xs text-white/30 mt-2">{post.date}</p>
+                  <p className="text-xs text-white/35 mt-2">{post.date}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold text-white">{Math.floor(Math.random() * 200 + 50)}</p>
-                  <p className="text-[10px] text-white/30">engagements</p>
+                  <p className="text-[10px] text-white/35">engagements</p>
                 </div>
               </div>
             </Card>

@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import { TrendingUp, Download, Sparkles, DollarSign, Users, Target, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 const revenueData = [
@@ -35,39 +35,50 @@ const aiRecommendations = [
   { text: 'Set up automated WhatsApp follow-up for missed calls — 23% conversion opportunity', impact: 'Medium', effort: 'Medium' },
 ]
 
+const tooltipStyle = {
+  background: 'rgba(10,10,20,0.95)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: 12,
+  fontSize: 12,
+  boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+}
+
 export function Analytics() {
   return (
-    <div className="p-6 space-y-6">
-      {/* Header actions */}
+    <div className="p-6 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">Marketing Analytics</h2>
-          <p className="text-xs text-white/30 mt-0.5">July 2026 · All Channels</p>
+          <p className="text-[11px] font-semibold text-white/25 uppercase tracking-[0.08em]">July 2026 · All Channels</p>
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs"><Download className="w-3.5 h-3.5" />Export PDF</Button>
-          <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs"><Download className="w-3.5 h-3.5" />Export Excel</Button>
+          <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs">
+            <Download className="w-3.5 h-3.5" />Export PDF
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5 h-8 text-xs">
+            <Download className="w-3.5 h-3.5" />Export Excel
+          </Button>
         </div>
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: TrendingUp, label: 'Marketing Score', value: '87/100', change: '+12 pts', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { icon: DollarSign, label: 'Campaign ROI', value: '340%', change: '+28%', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { icon: Users, label: 'Total Leads', value: '248', change: '+18%', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-          { icon: Target, label: 'Conversion Rate', value: '3.4%', change: '+0.8%', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+          { icon: TrendingUp, label: 'Marketing Score', value: '87/100', change: '+12 pts', color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
+          { icon: DollarSign, label: 'Campaign ROI', value: '340%', change: '+28%', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
+          { icon: Users, label: 'Total Leads', value: '248', change: '+18%', color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
+          { icon: Target, label: 'Conversion Rate', value: '3.4%', change: '+0.8%', color: 'text-cyan-400', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.18]' },
         ].map((kpi, i) => {
           const Icon = kpi.icon
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="p-4">
-                <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center mb-3`}>
+              <Card className="p-4 hover:bg-white/[0.04] transition-all duration-200">
+                <div className={`w-9 h-9 rounded-xl ${kpi.bg} border ${kpi.border} flex items-center justify-center mb-3`}>
                   <Icon className={`w-4 h-4 ${kpi.color}`} />
                 </div>
-                <p className="text-xl font-bold text-white">{kpi.value}</p>
-                <p className="text-xs text-white/40 mt-0.5">{kpi.label}</p>
-                <Badge variant="success" className="mt-2 text-[10px]">{kpi.change}</Badge>
+                <p className="text-xl font-bold text-white tabular-nums">{kpi.value}</p>
+                <p className="text-xs text-white/40 mt-0.5 font-medium">{kpi.label}</p>
+                <Badge variant="success" className="mt-2.5 text-[10px]">{kpi.change}</Badge>
               </Card>
             </motion.div>
           )
@@ -77,36 +88,36 @@ export function Analytics() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
-          <CardTitle className="text-white text-sm mb-1">Revenue vs Target</CardTitle>
-          <p className="text-xs text-white/30 mb-4">Monthly performance</p>
+          <p className="text-sm font-semibold text-white mb-0.5">Revenue vs Target</p>
+          <p className="text-[11px] text-white/35 mb-4">Monthly performance comparison</p>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={revenueData}>
+            <AreaChart data={revenueData} margin={{ left: -20, right: 4 }}>
               <defs>
                 <linearGradient id="revGrad2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.25} />
                   <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-              <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#revGrad2)" name="Revenue ($)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.28)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.25)' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: 'rgba(255,255,255,0.06)' }} />
+              <Area type="monotone" dataKey="revenue" stroke="#6366f1" strokeWidth={2} fill="url(#revGrad2)" dot={false} activeDot={{ r: 4, fill: '#6366f1', stroke: '#0a0a0f', strokeWidth: 2 }} name="Revenue ($)" />
               <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={1.5} strokeDasharray="5 5" dot={false} name="Target ($)" />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
         <Card className="p-5">
-          <CardTitle className="text-white text-sm mb-1">Channel ROI Comparison</CardTitle>
-          <p className="text-xs text-white/30 mb-4">Return on investment by channel</p>
+          <p className="text-sm font-semibold text-white mb-0.5">Channel ROI Comparison</p>
+          <p className="text-[11px] text-white/35 mb-4">Return on investment by channel</p>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={channelData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="channel" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: '#18181b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="roi" fill="#6366f1" radius={[4, 4, 0, 0]} name="ROI %" />
+            <BarChart data={channelData} margin={{ left: -20, right: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="channel" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.28)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.25)' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar dataKey="roi" fill="#6366f1" radius={[6, 6, 2, 2]} name="ROI %" maxBarSize={36} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -115,10 +126,10 @@ export function Analytics() {
       {/* Top Campaigns */}
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
-          <CardTitle className="text-white text-sm">Top Performing Campaigns</CardTitle>
-          <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400">View all</Button>
+          <p className="text-sm font-semibold text-white">Top Performing Campaigns</p>
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400 hover:text-indigo-300">View all</Button>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-1.5">
           {[
             { name: 'NRI Dallas Facebook Campaign', channel: 'Facebook', leads: 72, roi: '320%', spend: '$4,500', revenue: '$18,900' },
             { name: 'Google Search — NRI Legal', channel: 'Google Ads', leads: 54, roi: '410%', spend: '$3,200', revenue: '$16,320' },
@@ -126,20 +137,20 @@ export function Analytics() {
             { name: 'Email NRI Welcome Series', channel: 'Email', leads: 30, roi: '820%', spend: '$480', revenue: '$4,320' },
           ].map((c, i) => (
             <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.06 }}>
-              <div className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/3 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer">
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/[0.1] border border-indigo-500/[0.18] flex items-center justify-center shrink-0">
                   <BarChart3 className="w-4 h-4 text-indigo-400" />
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white/80">{c.name}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white/80 truncate">{c.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className="text-[10px]">{c.channel}</Badge>
-                    <span className="text-xs text-white/30">{c.leads} leads · {c.spend} spend</span>
+                    <span className="text-[11px] text-white/30">{c.leads} leads · {c.spend} spent</span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <Badge variant="success" className="text-xs">{c.roi} ROI</Badge>
-                  <p className="text-xs text-white/50 mt-0.5">{c.revenue} revenue</p>
+                <div className="text-right shrink-0">
+                  <Badge variant="success" className="text-[10px]">{c.roi} ROI</Badge>
+                  <p className="text-[11px] text-white/45 mt-1 font-semibold tabular-nums">{c.revenue}</p>
                 </div>
               </div>
             </motion.div>
@@ -149,17 +160,20 @@ export function Analytics() {
 
       {/* AI Recommendations */}
       <Card className="p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/[0.12] border border-indigo-500/[0.2] flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-indigo-400" />
           </div>
-          <CardTitle className="text-white text-sm">AI Recommendations</CardTitle>
+          <div>
+            <p className="text-sm font-semibold text-white leading-tight">AI Recommendations</p>
+            <p className="text-[10px] text-indigo-400/60">5 actionable insights this month</p>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {aiRecommendations.map((rec, i) => (
             <motion.div key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.06 }}>
-              <div className="p-4 rounded-xl bg-white/3 border border-white/6 hover:border-indigo-500/30 transition-colors">
-                <p className="text-xs text-white/60 leading-relaxed mb-3">{rec.text}</p>
+              <div className="p-4 rounded-xl bg-white/[0.025] border border-white/[0.07] hover:border-indigo-500/[0.3] hover:bg-white/[0.04] transition-all duration-200 cursor-pointer group">
+                <p className="text-[11px] text-white/55 leading-relaxed mb-3 group-hover:text-white/70 transition-colors">{rec.text}</p>
                 <div className="flex items-center gap-2">
                   <Badge variant={rec.impact === 'High' ? 'default' : 'secondary'} className="text-[10px]">
                     {rec.impact} Impact

@@ -72,7 +72,7 @@ export function WhatsApp() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-white/80 truncate">{conv.name}</p>
-                    <span className="text-[10px] text-white/30 shrink-0">{conv.time}</span>
+                    <span className="text-[10px] text-white/35 shrink-0">{conv.time}</span>
                   </div>
                   <p className="text-[11px] text-white/40 truncate">{conv.last}</p>
                 </div>
@@ -103,7 +103,7 @@ export function WhatsApp() {
       {/* Chat area */}
       <Card className="flex-1 flex flex-col overflow-hidden">
         {/* Chat header */}
-        <div className="flex items-center gap-3 p-4 border-b border-white/8">
+        <div className="flex items-center gap-3 p-4 border-b border-white/[0.08]">
           <Avatar className="w-8 h-8">
             <AvatarFallback className="text-xs">{activeConv.name.charAt(0)}</AvatarFallback>
           </Avatar>
@@ -132,12 +132,12 @@ export function WhatsApp() {
                   className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                     msg.from === 'us'
                       ? 'bg-indigo-600/30 border border-indigo-500/30 text-white/80 rounded-tr-sm'
-                      : 'bg-white/5 border border-white/8 text-white/70 rounded-tl-sm'
+                      : 'bg-white/5 border border-white/[0.08] text-white/70 rounded-tl-sm'
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
                   <div className="flex items-center justify-end gap-1 mt-1">
-                    <span className="text-[10px] text-white/30">{msg.time}</span>
+                    <span className="text-[10px] text-white/35">{msg.time}</span>
                     {msg.from === 'us' && <CheckCheck className="w-3 h-3 text-indigo-400" />}
                   </div>
                 </div>
@@ -152,7 +152,7 @@ export function WhatsApp() {
             <button
               key={r}
               onClick={() => setMessage(r)}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white/80 hover:border-white/20 transition-colors"
+              className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 border border-white/[0.10] text-white/50 hover:text-white/80 hover:border-white/20 transition-colors"
             >
               {r}
             </button>

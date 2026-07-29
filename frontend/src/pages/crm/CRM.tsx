@@ -43,24 +43,24 @@ export function CRM() {
   )
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { icon: Users, label: 'Total Leads', value: '248', color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { icon: Building2, label: 'Companies', value: '84', color: 'text-violet-400', bg: 'bg-violet-500/10' },
-          { icon: DollarSign, label: 'Pipeline Value', value: '$539K', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { icon: Star, label: 'Avg Lead Score', value: '74', color: 'text-amber-400', bg: 'bg-amber-500/10' },
+          { icon: Users, label: 'Total Leads', value: '248', color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
+          { icon: Building2, label: 'Companies', value: '84', color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
+          { icon: DollarSign, label: 'Pipeline Value', value: '$539K', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
+          { icon: Star, label: 'Avg Lead Score', value: '74', color: 'text-amber-400', bg: 'bg-amber-500/[0.1]', border: 'border-amber-500/[0.18]' },
         ].map((s, i) => {
           const Icon = s.icon
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="p-4">
-                <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-3`}>
+              <Card className="p-4 hover:bg-white/[0.04] transition-all duration-200">
+                <div className={`w-9 h-9 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>
                   <Icon className={`w-4 h-4 ${s.color}`} />
                 </div>
-                <p className="text-xl font-bold text-white">{s.value}</p>
-                <p className="text-xs text-white/40 mt-0.5">{s.label}</p>
+                <p className="text-xl font-bold text-white tabular-nums">{s.value}</p>
+                <p className="text-xs text-white/40 mt-0.5 font-medium">{s.label}</p>
               </Card>
             </motion.div>
           )
@@ -71,7 +71,7 @@ export function CRM() {
       <Card className="p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-white">Sales Pipeline</h3>
-          <span className="text-xs text-white/30">Total: $539,000</span>
+          <span className="text-xs text-white/35">Total: $539,000</span>
         </div>
         <div className="flex items-end gap-2 h-24">
           {pipelineStages.map((stage, i) => {
@@ -85,7 +85,7 @@ export function CRM() {
                   transition={{ delay: i * 0.08, duration: 0.5 }}
                   className={`w-full rounded-t-lg ${stage.color} opacity-80`}
                 />
-                <span className="text-[10px] text-white/30 text-center leading-tight">{stage.name}</span>
+                <span className="text-[10px] text-white/35 text-center leading-tight">{stage.name}</span>
               </div>
             )
           })}
@@ -102,7 +102,7 @@ export function CRM() {
           </TabsList>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/35" />
               <Input
                 placeholder="Search..."
                 value={searchTerm}
@@ -120,9 +120,9 @@ export function CRM() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/6">
+                  <tr className="border-b border-white/[0.06]">
                     {['Name', 'Company', 'Status', 'Score', 'Value', 'Source', 'Date', ''].map((h) => (
-                      <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-white/30 uppercase tracking-wider">{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-[11px] font-semibold text-white/35 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -133,7 +133,7 @@ export function CRM() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.04 }}
-                      className="border-b border-white/4 hover:bg-white/3 transition-colors"
+                      className="border-b border-white/[0.05] hover:bg-white/[0.03] transition-colors cursor-pointer"
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
@@ -142,7 +142,7 @@ export function CRM() {
                           </Avatar>
                           <div>
                             <p className="text-xs font-medium text-white/80">{lead.name}</p>
-                            <p className="text-[10px] text-white/30">{lead.email}</p>
+                            <p className="text-[10px] text-white/35">{lead.email}</p>
                           </div>
                         </div>
                       </td>
@@ -158,10 +158,10 @@ export function CRM() {
                       </td>
                       <td className="px-4 py-3 text-xs font-medium text-white/70">${lead.value.toLocaleString()}</td>
                       <td className="px-4 py-3 text-xs text-white/40">{lead.source}</td>
-                      <td className="px-4 py-3 text-xs text-white/30">{lead.date}</td>
+                      <td className="px-4 py-3 text-xs text-white/35">{lead.date}</td>
                       <td className="px-4 py-3">
                         <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
-                          <ArrowRight className="w-3.5 h-3.5 text-white/30" />
+                          <ArrowRight className="w-3.5 h-3.5 text-white/35" />
                         </Button>
                       </td>
                     </motion.tr>
@@ -173,29 +173,38 @@ export function CRM() {
         </TabsContent>
 
         <TabsContent value="contacts">
-          <Card className="p-8 text-center">
-            <Users className="w-10 h-10 text-white/10 mx-auto mb-3" />
-            <p className="text-sm text-white/30">Contact database — 1,284 contacts across all campaigns</p>
-            <Button size="sm" variant="gradient" className="mt-4 gap-1.5"><Plus className="w-3.5 h-3.5" />Add Contact</Button>
+          <Card className="p-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/[0.1] border border-indigo-500/[0.18] flex items-center justify-center mx-auto mb-4">
+              <Users className="w-6 h-6 text-indigo-400" />
+            </div>
+            <p className="text-sm font-semibold text-white/60 mb-1">1,284 contacts synced</p>
+            <p className="text-xs text-white/30 mb-5">All contacts across campaigns, imports and CRM forms</p>
+            <Button size="sm" variant="gradient" className="gap-1.5"><Plus className="w-3.5 h-3.5" />Add Contact</Button>
           </Card>
         </TabsContent>
 
         <TabsContent value="companies">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {['TechCorp Inc', 'Mehta Consulting', 'Patel & Sons', 'NRI Capital LLC', 'Sharma Properties'].map((company, i) => (
-              <Card key={i} className="p-4 hover:border-white/15 transition-colors cursor-pointer">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              { name: 'TechCorp Inc', contacts: 4, value: '$48,200' },
+              { name: 'Mehta Consulting', contacts: 2, value: '$31,500' },
+              { name: 'Patel & Sons', contacts: 3, value: '$22,800' },
+              { name: 'NRI Capital LLC', contacts: 5, value: '$67,400' },
+              { name: 'Sharma Properties', contacts: 1, value: '$14,900' },
+            ].map((company, i) => (
+              <Card key={i} className="p-4 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-200 cursor-pointer">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/[0.1] border border-indigo-500/[0.18] flex items-center justify-center">
                     <Building2 className="w-4 h-4 text-indigo-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-white/80">{company}</p>
-                    <p className="text-xs text-white/30">{Math.floor(Math.random() * 5 + 1)} contacts</p>
+                    <p className="text-sm font-semibold text-white/80">{company.name}</p>
+                    <p className="text-[11px] text-white/35">{company.contacts} contacts</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-white/30">Pipeline value</span>
-                  <span className="text-sm font-bold text-white">${(Math.random() * 50000 + 5000).toFixed(0)}</span>
+                  <span className="text-[11px] text-white/30 font-medium">Pipeline value</span>
+                  <span className="text-sm font-bold text-white tabular-nums">{company.value}</span>
                 </div>
               </Card>
             ))}
@@ -203,9 +212,13 @@ export function CRM() {
         </TabsContent>
 
         <TabsContent value="deals">
-          <Card className="p-8 text-center">
-            <TrendingUp className="w-10 h-10 text-white/10 mx-auto mb-3" />
-            <p className="text-sm text-white/30">Deal pipeline — $539K across 67 active deals</p>
+          <Card className="p-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/[0.1] border border-emerald-500/[0.18] flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-sm font-semibold text-white/60 mb-1">67 active deals · $539K pipeline</p>
+            <p className="text-xs text-white/30 mb-5">Track all opportunities across your sales pipeline</p>
+            <Button size="sm" variant="gradient" className="gap-1.5"><Plus className="w-3.5 h-3.5" />Add Deal</Button>
           </Card>
         </TabsContent>
       </Tabs>

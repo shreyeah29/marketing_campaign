@@ -50,7 +50,7 @@ export function ImageStudio() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Generator */}
       <Card className="p-5">
         <div className="flex items-center gap-2 mb-4">
@@ -68,7 +68,7 @@ export function ImageStudio() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                 selectedType === t.label
                   ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300'
-                  : 'border-white/8 text-white/40 hover:text-white/70 hover:border-white/15'
+                  : 'border-white/[0.08] text-white/40 hover:text-white/70 hover:border-white/[0.15]'
               }`}
             >
               <span>{t.emoji}</span>
@@ -96,8 +96,8 @@ export function ImageStudio() {
               <Sparkles className="w-4 h-4 text-indigo-400" />
             </motion.div>
             <div className="flex-1">
-              <p className="text-xs text-white/60 font-medium">Generating {selectedType}...</p>
-              <p className="text-[10px] text-white/30">AI is creating your design. This usually takes 5–15 seconds.</p>
+              <p className="text-xs text-white/55 font-medium">Generating {selectedType}...</p>
+              <p className="text-[10px] text-white/35">AI is creating your design. This usually takes 5–15 seconds.</p>
             </div>
           </div>
         )}
@@ -105,7 +105,7 @@ export function ImageStudio() {
 
       {/* Gallery */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-white/70">Image Gallery <span className="text-white/30">({gallery.length})</span></h3>
+        <h3 className="text-sm font-semibold text-white/70">Image Gallery <span className="text-white/35">({gallery.length})</span></h3>
         <div className="flex items-center gap-2">
           <Button size="icon" variant={view === 'grid' ? 'secondary' : 'ghost'} className="h-8 w-8" onClick={() => setView('grid')}>
             <Grid3X3 className="w-3.5 h-3.5" />
@@ -132,7 +132,7 @@ export function ImageStudio() {
                       <button className="text-white/20 hover:text-red-400 transition-colors">
                         <Heart className="w-3 h-3" fill={img.liked ? 'currentColor' : 'none'} />
                       </button>
-                      <button className="text-white/20 hover:text-white/60 transition-colors">
+                      <button className="text-white/20 hover:text-white/55 transition-colors">
                         <Download className="w-3 h-3" />
                       </button>
                     </div>
@@ -140,13 +140,13 @@ export function ImageStudio() {
                 </div>
               </Card>
             ) : (
-              <Card className="p-4 flex items-center gap-4 hover:border-white/15 transition-colors cursor-pointer">
+              <Card className="p-4 flex items-center gap-4 hover:border-white/[0.15] transition-colors cursor-pointer">
                 <img src={img.url} alt={img.title} className="w-12 h-12 rounded-lg object-cover" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-white/80">{img.title}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <Badge variant="secondary" className="text-[10px]">{img.type}</Badge>
-                    <span className="text-xs text-white/30">{img.size}</span>
+                    <span className="text-xs text-white/35">{img.size}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">

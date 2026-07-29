@@ -43,24 +43,24 @@ export function Campaigns() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Budget', value: `$${total.budget.toLocaleString()}`, icon: DollarSign, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-          { label: 'Total Spent', value: `$${total.spent.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Total Leads', value: total.leads.toString(), icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/10' },
-          { label: 'Conversions', value: total.conversions.toString(), icon: Megaphone, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+          { label: 'Total Budget', value: `$${total.budget.toLocaleString()}`, icon: DollarSign, color: 'text-indigo-400', bg: 'bg-indigo-500/[0.1]', border: 'border-indigo-500/[0.18]' },
+          { label: 'Total Spent', value: `$${total.spent.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/[0.1]', border: 'border-emerald-500/[0.18]' },
+          { label: 'Total Leads', value: total.leads.toString(), icon: Users, color: 'text-violet-400', bg: 'bg-violet-500/[0.1]', border: 'border-violet-500/[0.18]' },
+          { label: 'Conversions', value: total.conversions.toString(), icon: Megaphone, color: 'text-cyan-400', bg: 'bg-cyan-500/[0.1]', border: 'border-cyan-500/[0.18]' },
         ].map((s, i) => {
           const Icon = s.icon
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-              <Card className="p-4">
-                <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-3`}>
+              <Card className="p-4 hover:bg-white/[0.04] transition-all duration-200">
+                <div className={`w-9 h-9 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>
                   <Icon className={`w-4 h-4 ${s.color}`} />
                 </div>
-                <p className="text-xl font-bold text-white">{s.value}</p>
-                <p className="text-xs text-white/40 mt-0.5">{s.label}</p>
+                <p className="text-xl font-bold text-white tabular-nums">{s.value}</p>
+                <p className="text-xs text-white/40 mt-0.5 font-medium">{s.label}</p>
               </Card>
             </motion.div>
           )
@@ -69,65 +69,67 @@ export function Campaigns() {
 
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search campaigns..." className="pl-8 h-8 text-xs" />
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25" />
+          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search campaigns..." className="pl-9 h-9 text-sm" />
         </div>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5"><Filter className="w-3 h-3" />Filter</Button>
-          <Button size="sm" variant="gradient" className="h-8 text-xs gap-1.5"><Plus className="w-3 h-3" />New Campaign</Button>
+          <Button size="sm" variant="outline" className="h-9 gap-1.5">
+            <Filter className="w-3.5 h-3.5" />Filter
+          </Button>
+          <Button size="sm" variant="gradient" className="h-9 gap-1.5">
+            <Plus className="w-3.5 h-3.5" />New Campaign
+          </Button>
         </div>
       </div>
 
-      {/* Campaign cards */}
-      <div className="grid grid-cols-1 gap-4">
+      {/* Campaign list */}
+      <div className="space-y-2.5">
         {filtered.map((c, i) => (
-          <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-            <Card className="p-5 hover:border-white/15 transition-colors">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center shrink-0">
-                  <Megaphone className="w-5 h-5 text-white/30" />
+          <motion.div key={c.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+            <Card className="px-5 py-4 hover:bg-white/[0.04] hover:border-white/[0.12] transition-all duration-200 cursor-pointer">
+              <div className="flex items-center gap-4">
+                <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center shrink-0">
+                  <Megaphone className="w-4 h-4 text-white/30" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="text-sm font-semibold text-white/80 truncate">{c.name}</p>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={c.status === 'active' ? 'success' : c.status === 'paused' ? 'warning' : 'secondary'} className="text-[10px]">
-                        {c.status}
-                      </Badge>
-                      <span className={`text-xs font-medium ${channelColors[c.channel] || 'text-white/50'}`}>{c.channel}</span>
-                    </div>
+                  <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
+                    <p className="text-sm font-semibold text-white/85 truncate">{c.name}</p>
+                    <Badge variant={c.status === 'active' ? 'success' : c.status === 'paused' ? 'warning' : 'secondary'} className="text-[10px] shrink-0">
+                      {c.status}
+                    </Badge>
+                    <span className={`text-[11px] font-semibold shrink-0 ${channelColors[c.channel] || 'text-white/40'}`}>{c.channel}</span>
                   </div>
-                  <p className="text-xs text-white/30 mb-3">{c.start} → {c.end}</p>
-
-                  <div className="grid grid-cols-4 gap-4 mb-3">
-                    {[
-                      { label: 'Budget', value: `$${c.budget.toLocaleString()}` },
-                      { label: 'Spent', value: `$${c.spent.toLocaleString()}` },
-                      { label: 'Leads', value: c.leads.toString() },
-                      { label: 'ROI', value: c.roi > 0 ? `${c.roi}%` : '—' },
-                    ].map((m) => (
-                      <div key={m.label}>
-                        <p className="text-xs text-white/30">{m.label}</p>
-                        <p className={`text-sm font-bold ${m.label === 'ROI' && c.roi > 0 ? 'text-emerald-400' : 'text-white/70'}`}>{m.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {c.budget > 0 && (
-                    <div className="flex items-center gap-2">
-                      <Progress value={(c.spent / c.budget) * 100} className="flex-1 h-1" />
-                      <span className="text-[10px] text-white/30">{Math.round((c.spent / c.budget) * 100)}% spent</span>
-                    </div>
-                  )}
+                  <p className="text-[11px] text-white/30 font-medium">{c.start} → {c.end}</p>
                 </div>
 
-                <div className="flex flex-col gap-1 shrink-0">
-                  <Button size="icon" variant="ghost" className="h-7 w-7"><Eye className="w-3.5 h-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7">
+                <div className="hidden md:flex items-center gap-8 shrink-0 mr-2">
+                  {[
+                    { label: 'Budget', value: `$${c.budget.toLocaleString()}` },
+                    { label: 'Spent', value: `$${c.spent.toLocaleString()}` },
+                    { label: 'Leads', value: c.leads.toString() },
+                    { label: 'ROI', value: c.roi > 0 ? `${c.roi}%` : '—', highlight: c.roi > 0 },
+                  ].map((m) => (
+                    <div key={m.label} className="text-center min-w-[52px]">
+                      <p className={`text-sm font-bold tabular-nums ${m.highlight ? 'text-emerald-400' : 'text-white/70'}`}>{m.value}</p>
+                      <p className="text-[10px] text-white/30 mt-0.5 font-medium">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {c.budget > 0 && (
+                  <div className="hidden lg:flex items-center gap-2 w-28 shrink-0">
+                    <Progress value={(c.spent / c.budget) * 100} className="flex-1 h-1" />
+                    <span className="text-[10px] text-white/30 tabular-nums w-8 text-right">{Math.round((c.spent / c.budget) * 100)}%</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70"><Eye className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70">
                     {c.status === 'active' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7"><MoreHorizontal className="w-3.5 h-3.5" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-white/35 hover:text-white/70"><MoreHorizontal className="w-3.5 h-3.5" /></Button>
                 </div>
               </div>
             </Card>

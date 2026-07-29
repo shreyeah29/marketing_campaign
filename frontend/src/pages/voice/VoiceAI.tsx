@@ -41,7 +41,7 @@ const upcomingCalls = [
 
 export function VoiceAI() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-5">
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
@@ -54,7 +54,7 @@ export function VoiceAI() {
           return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
               <Card className="p-4">
-                <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-3`}>
+                <div className={`w-8 h-8 rounded-xl ${s.bg} flex items-center justify-center mb-3`}>
                   <Icon className={`w-4 h-4 ${s.color}`} />
                 </div>
                 <p className="text-xl font-bold text-white">{s.value}</p>
@@ -90,23 +90,23 @@ export function VoiceAI() {
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white/80">{call.name}</p>
-                          <p className="text-xs text-white/30">{call.phone}</p>
+                          <p className="text-xs text-white/35">{call.phone}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <Badge variant={call.appointmentStatus === 'booked' ? 'success' : call.appointmentStatus === 'callback' ? 'warning' : 'secondary'}>
                           {call.disposition}
                         </Badge>
-                        <p className="text-[10px] text-white/30 mt-1">{call.date}</p>
+                        <p className="text-[10px] text-white/35 mt-1">{call.date}</p>
                       </div>
                     </div>
 
                     {/* Transcript preview */}
-                    <div className="bg-black/20 rounded-lg p-3 mb-3 border border-white/6">
+                    <div className="bg-black/20 rounded-lg p-3 mb-3 border border-white/[0.06]">
                       <div className="flex items-center gap-2 mb-2">
                         <Mic className="w-3.5 h-3.5 text-indigo-400" />
                         <span className="text-xs font-medium text-white/50">Conversation Transcript</span>
-                        <span className="ml-auto text-[10px] text-white/30">Duration: {call.duration}</span>
+                        <span className="ml-auto text-[10px] text-white/35">Duration: {call.duration}</span>
                       </div>
                       <p className="text-xs text-white/40 leading-relaxed line-clamp-3 font-mono">{call.transcript}</p>
                     </div>
@@ -114,7 +114,7 @@ export function VoiceAI() {
                     {/* Summary */}
                     <div className="p-3 rounded-lg bg-indigo-500/8 border border-indigo-500/20">
                       <p className="text-[10px] font-semibold text-indigo-400 mb-1">AI SUMMARY</p>
-                      <p className="text-xs text-white/60">{call.summary}</p>
+                      <p className="text-xs text-white/55">{call.summary}</p>
                     </div>
 
                     {call.score > 0 && (
@@ -146,7 +146,7 @@ export function VoiceAI() {
                     <p className="text-sm font-semibold text-white/80">{call.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge variant="secondary" className="text-[10px]">{call.type}</Badge>
-                      <span className="text-xs text-white/30 flex items-center gap-1"><Clock className="w-3 h-3" />{call.time}</span>
+                      <span className="text-xs text-white/35 flex items-center gap-1"><Clock className="w-3 h-3" />{call.time}</span>
                     </div>
                   </div>
                   <Button size="sm" variant="gradient" className="h-7 text-xs gap-1.5">
@@ -177,8 +177,8 @@ export function VoiceAI() {
                 { label: 'Caller ID', value: '+1 (469) 555-0100' },
               ].map((cfg) => (
                 <div key={cfg.label} className="flex items-center justify-between">
-                  <span className="text-xs text-white/30">{cfg.label}</span>
-                  <span className="text-xs text-white/60 font-medium">{cfg.value}</span>
+                  <span className="text-xs text-white/35">{cfg.label}</span>
+                  <span className="text-xs text-white/55 font-medium">{cfg.value}</span>
                 </div>
               ))}
             </div>

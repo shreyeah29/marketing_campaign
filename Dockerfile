@@ -2,20 +2,24 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# Copy solution and project files first (layer caching)
+# Copy solution and all project files first (for layer-cached restore)
 COPY backend/VSP.MarketingOS.sln ./backend/
-COPY backend/src/VSP.MarketingOS.API/VSP.MarketingOS.API.csproj ./backend/src/VSP.MarketingOS.API/
-COPY backend/src/VSP.MarketingOS.Application/VSP.MarketingOS.Application.csproj ./backend/src/VSP.MarketingOS.Application/
-COPY backend/src/VSP.MarketingOS.Domain/VSP.MarketingOS.Domain.csproj ./backend/src/VSP.MarketingOS.Domain/
-COPY backend/src/VSP.MarketingOS.Infrastructure/VSP.MarketingOS.Infrastructure.csproj ./backend/src/VSP.MarketingOS.Infrastructure/
+COPY backend/src/VSP.MarketingOS.API/VSP.MarketingOS.API.csproj \
+     ./backend/src/VSP.MarketingOS.API/
+COPY backend/src/VSP.MarketingOS.Application/VSP.MarketingOS.Application.csproj \
+     ./backend/src/VSP.MarketingOS.Application/
+COPY backend/src/VSP.MarketingOS.Domain/VSP.MarketingOS.Domain.csproj \
+     ./backend/src/VSP.MarketingOS.Domain/
+COPY backend/src/VSP.MarketingOS.Infrastructure/VSP.MarketingOS.Infrastructure.csproj \
+     ./backend/src/VSP.MarketingOS.Infrastructure/
 
-# Restore dependencies
-RUN dotnet restore backend/VSP.MarketingOS.sln
+# Restore using the API project directly (avoids .sln backslash path issues on Linux)
+RUN dotnet restore backend/src/VSP.MarketingOS.API/VSP.MarketingOS.API.csproj
 
 # Copy all backend source
 COPY backend/ ./backend/
 
-# Publish
+# Publish (restore already done above)
 RUN dotnet publish backend/src/VSP.MarketingOS.API/VSP.MarketingOS.API.csproj \
     -c Release \
     -o /app/publish \
@@ -25,12 +29,12 @@ RUN dotnet publish backend/src/VSP.MarketingOS.API/VSP.MarketingOS.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 WORKDIR /app
 
-# Create non-root user for security
+# Non-root user for security
 RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 COPY --from=build /app/publish .
 
-# Render sets PORT env var; ASP.NET Core respects ASPNETCORE_URLS
+# Render sets PORT=10000 by default; ASP.NET Core reads ASPNETCORE_URLS
 ENV ASPNETCORE_URLS=http://+:10000
 ENV ASPNETCORE_ENVIRONMENT=Production
 

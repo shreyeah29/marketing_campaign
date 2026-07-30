@@ -123,7 +123,8 @@ export interface ProvisionInput {
 export interface NavEntry {
   label: string
   icon?: string
-  route: string
+  // The API sends `path` (e.g. "/crm/contacts"); the shell links to `/app${path}`.
+  path: string
   section: string
   order: number
 }

@@ -9,6 +9,21 @@ import { authClient, type AuthSession } from '@/lib/auth-client'
 import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
 import { Banner, LoadingScreen } from '@/components/ui'
+import { ToastProvider } from '@/components/kit'
+
+/** Maps feature-registry icon names to glyphs (no icon-font dependency). */
+const NAV_ICONS: Record<string, string> = {
+  dashboard: '▦', users: '👥', 'user-plus': '➕', building: '🏢', target: '🎯',
+  filter: '⑃', 'dollar-sign': '💲', 'check-square': '☑', mail: '✉', 'message-square': '💬',
+  smartphone: '📱', share: '🔗', search: '⌕', 'file-text': '📄', bot: '🤖', 'pen-tool': '✎',
+  image: '🖼', video: '🎬', phone: '📞', mic: '🎙', calendar: '📅', book: '📖',
+  workflow: '⚙', zap: '⚡', 'bar-chart': '📊', 'trending-up': '📈', 'credit-card': '💳',
+  receipt: '🧾', 'life-buoy': '🛟', inbox: '📥', folder: '📁', shield: '🛡', settings: '⚙',
+  globe: '🌐', edit: '✎', layout: '▧', activity: '📶',
+}
+function navIcon(name?: string): string {
+  return (name && NAV_ICONS[name]) || '•'
+}
 
 interface ShellData {
   workspace: Workspace
@@ -79,6 +94,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
   return (
     <WorkspaceContext.Provider value={status.data}>
+      <ToastProvider>
       <div className="shell">
         <aside className="sidebar">
           <div className="brand">
@@ -93,11 +109,11 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
             <div key={group.section} className="nav-section">
               <div className="label">{group.section}</div>
               {group.items.map((item) => {
-                const href = `/app${item.route}`
+                const href = `/app${item.path}`
                 const active = pathname === href
                 return (
-                  <Link key={item.route} href={href} className={`nav-item ${active ? 'active' : ''}`}>
-                    <span className="ico">{item.icon ?? '•'}</span>
+                  <Link key={item.path} href={href} className={`nav-item ${active ? 'active' : ''}`}>
+                    <span className="ico">{navIcon(item.icon)}</span>
                     {item.label}
                   </Link>
                 )
@@ -120,6 +136,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
         </aside>
         <main className="main">{children}</main>
       </div>
+      </ToastProvider>
     </WorkspaceContext.Provider>
   )
 }

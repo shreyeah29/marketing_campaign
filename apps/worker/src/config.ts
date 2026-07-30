@@ -37,6 +37,9 @@ const schema = z.object({
   /** Email delivery (Resend REST). Unset → the mailer logs instead of sending. */
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
+  /** Platform OpenAI key — used to embed knowledge-base documents. Unset → the
+   *  embeddings handler fails the document with a clear reason (never fakes it). */
+  OPENAI_API_KEY: z.string().optional(),
 })
 
 export type WorkerEnv = z.infer<typeof schema>

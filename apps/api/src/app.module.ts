@@ -44,6 +44,7 @@ import {
 import { AiController } from './modules/ai/ai.controller.js'
 import { AiService } from './modules/ai/ai.service.js'
 import { CampaignGenerationService } from './modules/ai/campaign-generation.service.js'
+import { KnowledgeService } from './modules/ai/knowledge.service.js'
 import { ReviewQueueController } from './modules/marketing/review-queue.controller.js'
 import { LeadFormsController } from './modules/marketing/lead-forms.controller.js'
 import { PublicFormsController } from './modules/marketing/public-forms.controller.js'
@@ -133,6 +134,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     AuthGuard,
     AiService,
     CampaignGenerationService,
+    KnowledgeService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,

@@ -21,10 +21,10 @@ const GRANT: readonly string[] = [
   'marketing.campaigns', 'marketing.email', 'marketing.social', 'marketing.seo',
   'marketing.landing_pages', 'marketing.forms', 'marketing.sms', 'marketing.whatsapp',
   // AI
-  'ai.chat', 'ai.copywriter', 'ai.image', 'ai.voice_calling', 'ai.analytics',
-  // Automation + Analytics + Support
+  'ai.chat', 'ai.copywriter', 'ai.image', 'ai.voice_calling', 'ai.analytics', 'ai.knowledge_base',
+  // Automation + Analytics + Support + Comms
   'automation.workflows', 'analytics.dashboard', 'analytics.reports', 'analytics.revenue',
-  'support.ticketing', 'support.helpdesk',
+  'support.ticketing', 'support.helpdesk', 'comms.live_chat',
 ]
 
 async function main(): Promise<void> {

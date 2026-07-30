@@ -15,6 +15,7 @@ import { LOGGER } from '../../infrastructure/database.module.js'
 import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
 import { generateImage, synthesizeSpeech } from './adapters/openai-media.js'
 import { AiService } from './ai.service.js'
+import { KnowledgeService } from './knowledge.service.js'
 
 const messageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant', 'tool']),
@@ -71,6 +72,7 @@ function aiUnavailable(): ServiceUnavailableException {
 export class AiController {
   constructor(
     @Inject(AiService) private readonly ai: AiService,
+    @Inject(KnowledgeService) private readonly knowledge: KnowledgeService,
     @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
@@ -83,8 +85,41 @@ export class AiController {
     @CurrentPrincipal() principal: Principal,
   ): Promise<{ role: 'assistant'; content: string }> {
     const input = zodBody(chatSchema, body)
-    const content = await this.complete(principal, input.messages, input.model, 'chat')
+
+    // RAG: ground the answer in the org's uploaded knowledge. Best-effort — if
+    // there is no knowledge (or no embedding key), retrieval returns nothing and
+    // the chat proceeds normally.
+    const messages = await this.withKnowledgeContext(principal, input.messages)
+    const content = await this.complete(principal, messages, input.model, 'chat')
     return { role: 'assistant', content }
+  }
+
+  /**
+   * Prepends a system message with the most relevant knowledge-base passages for
+   * the latest user turn, so the assistant can cite the organisation's own
+   * documents. Returns the messages unchanged when nothing relevant is found.
+   */
+  private async withKnowledgeContext(
+    principal: Principal,
+    messages: readonly AdapterMessage[],
+  ): Promise<AdapterMessage[]> {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+    if (!lastUser?.content) return [...messages]
+
+    const chunks = await this.knowledge.retrieveForOrg(principal.organizationId, lastUser.content, 6)
+    if (chunks.length === 0) return [...messages]
+
+    const context = chunks
+      .map((c, i) => `[${String(i + 1)}] (from "${c.documentTitle}")\n${c.content}`)
+      .join('\n\n')
+    const system: AdapterMessage = {
+      role: 'system',
+      content:
+        'Use the following context from the organisation\'s knowledge base to answer when relevant. ' +
+        'If the answer is not in the context, say so and answer from general knowledge.\n\n' +
+        context,
+    }
+    return [system, ...messages]
   }
 
   @Post('generate')

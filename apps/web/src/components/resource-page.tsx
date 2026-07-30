@@ -26,7 +26,15 @@ export interface FormField {
   required?: boolean
   placeholder?: string
   hint?: string
-  options?: { value: string; label: string }[]
+  /**
+   * Select options — a static list, or a function of the current form values for
+   * dependent dropdowns (e.g. stages that depend on the chosen pipeline).
+   */
+  options?:
+    | { value: string; label: string }[]
+    | ((form: Record<string, unknown>) => { value: string; label: string }[])
+  /** When this field changes, clear these other fields (dependent selects). */
+  resetOnChange?: string[]
 }
 
 export interface ResourcePageProps<T extends { id: string }> {
@@ -257,7 +265,15 @@ export function ResourcePage<T extends { id: string }>({
             {formError}
           </div>
         ) : null}
-        {(fields ?? []).map((f) => (
+        {(fields ?? []).map((f) => {
+          const selectOptions = typeof f.options === 'function' ? f.options(form) : (f.options ?? [])
+          const applySelect = (value: string): void =>
+            setForm({
+              ...form,
+              [f.name]: value,
+              ...(f.resetOnChange ? Object.fromEntries(f.resetOnChange.map((k) => [k, ''])) : {}),
+            })
+          return (
           <Field key={f.name} label={f.label + (f.required ? ' *' : '')} hint={f.hint}>
             {f.type === 'textarea' ? (
               <textarea
@@ -271,10 +287,10 @@ export function ResourcePage<T extends { id: string }>({
               <select
                 className="select"
                 value={String(form[f.name] ?? '')}
-                onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
+                onChange={(e) => applySelect(e.target.value)}
               >
-                <option value="">Select…</option>
-                {(f.options ?? []).map((o) => (
+                <option value="">{f.placeholder ?? 'Select…'}</option>
+                {selectOptions.map((o) => (
                   <option key={o.value} value={o.value}>
                     {o.label}
                   </option>
@@ -310,7 +326,8 @@ export function ResourcePage<T extends { id: string }>({
               />
             )}
           </Field>
-        ))}
+          )
+        })}
       </Drawer>
 
       <ConfirmDialog

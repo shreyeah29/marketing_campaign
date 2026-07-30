@@ -11,6 +11,7 @@ import {
 import { createLogger, withLogContext, type AppLogger } from '@vsp/observability'
 
 import { loadWorkerEnv } from './config.js'
+import { createEmbeddingsHandler } from './embeddings/indexer.js'
 import { OutboxDispatcher } from './outbox-dispatcher.js'
 import { deadLetterQueue, QUEUE_POLICIES, QUEUES, type QueuePolicy, type TenantJobData } from './queues.js'
 import { SchedulePoller } from './schedule-poller.js'
@@ -214,11 +215,15 @@ async function bootstrap(): Promise<void> {
   // delayed continuation (the mechanism that makes waits real).
   const workflowQueue = new Queue(QUEUES.WORKFLOW_EXECUTION, { connection: bullRedis })
   const workflowHandler = createWorkflowHandler(workflowQueue)
+  const embeddingsHandler = createEmbeddingsHandler(env)
 
-  // Each queue gets its handler. Only the workflow queue has a real handler today;
-  // the rest acknowledge until their module lands (never with fake side effects).
-  const handlerFor = (policy: QueuePolicy): JobHandler =>
-    policy.name === QUEUES.WORKFLOW_EXECUTION ? workflowHandler : acknowledge
+  // Each queue gets its handler. Queues without a real handler acknowledge (never
+  // with fake side effects) until their module lands.
+  const handlerFor = (policy: QueuePolicy): JobHandler => {
+    if (policy.name === QUEUES.WORKFLOW_EXECUTION) return workflowHandler
+    if (policy.name === QUEUES.EMBEDDINGS) return embeddingsHandler
+    return acknowledge
+  }
 
   const workers = QUEUE_POLICIES.map((policy) =>
     createWorker(policy, bullRedis, db, logger, handlerFor(policy)),

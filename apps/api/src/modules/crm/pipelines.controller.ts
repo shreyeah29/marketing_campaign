@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Param, Query } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import { cursorPaginationSchema, type Paginated } from '@vsp/contracts'
-import { type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
@@ -31,6 +31,29 @@ export class PipelinesController {
   list(@Query() q: unknown): Promise<Paginated<unknown>> {
     const { cursor, limit } = cursorPaginationSchema.parse(q)
     return this.crud.list('pipeline', { search: readSearch(q), searchFields: ['name'], cursor, limit })
+  }
+
+  @Get('options')
+  @RequirePermissions(PERMISSIONS.CRM_READ)
+  @ApiOperation({ summary: 'Pipelines with their stages, for selectors' })
+  async options(): Promise<unknown> {
+    // Declared before `:id` so it isn't captured by the param route. Feeds the
+    // pipeline/stage dropdowns so users never type raw IDs.
+    return withTenantTransaction(this.db, (tx) =>
+      tx.pipeline.findMany({
+        where: { deletedAt: null },
+        orderBy: [{ isDefault: 'desc' }, { position: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          isDefault: true,
+          stages: {
+            orderBy: { position: 'asc' },
+            select: { id: true, name: true, position: true, probability: true },
+          },
+        },
+      }),
+    )
   }
 
   @Get(':id')

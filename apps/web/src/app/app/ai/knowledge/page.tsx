@@ -1,5 +1,8 @@
 'use client'
 
+import Link from 'next/link'
+import type { MouseEvent } from 'react'
+
 import { ResourcePage } from '@/components/resource-page'
 
 type KnowledgeBase = {
@@ -24,8 +27,20 @@ export default function KnowledgePage() {
       columns={[
         { key: 'name', header: 'Name', render: (r) => r.name },
         { key: 'description', header: 'Description', render: (r) => r.description ?? '—' },
-        { key: 'embeddingModel', header: 'Embedding model', render: (r) => r.embeddingModel ?? '—' },
         { key: 'documentCount', header: 'Documents', render: (r) => r.documentCount ?? 0 },
+        {
+          key: 'open',
+          header: '',
+          render: (r) => (
+            <Link
+              href={`/app/ai/knowledge/${r.id}`}
+              className="btn ghost sm"
+              onClick={(e: MouseEvent) => e.stopPropagation()}
+            >
+              Open →
+            </Link>
+          ),
+        },
       ]}
       fields={[
         { name: 'name', label: 'Name', required: true },

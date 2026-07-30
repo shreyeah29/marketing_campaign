@@ -339,13 +339,26 @@ async function this_setStatus(db: DatabaseClient, runId: string, status: string)
 
 async function this_fail(db: DatabaseClient, runId: string, error: string): Promise<void> {
   await withTenantTransaction(db, async (tx) => {
-    const run = await tx.workflowRun.findFirst({ where: { id: runId }, select: { workflowId: true } })
+    const run = await tx.workflowRun.findFirst({
+      where: { id: runId },
+      select: { workflowId: true, organizationId: true, workflow: { select: { name: true } } },
+    })
     await tx.workflowRun.updateMany({
       where: { id: runId },
       data: { status: 'FAILED', error, completedAt: new Date() },
     })
     if (run) {
       await tx.workflow.updateMany({ where: { id: run.workflowId }, data: { failureCount: { increment: 1 } } })
+      // Module 9: a failed workflow raises a notification for the team.
+      await tx.notification.create({
+        data: {
+          organizationId: run.organizationId,
+          level: 'ERROR',
+          title: `Workflow failed: ${run.workflow.name}`,
+          body: error,
+          actionUrl: `/app/automation/workflows/${run.workflowId}`,
+        },
+      })
     }
   })
 }

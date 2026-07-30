@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, NotFoundException, Param, Patch, Query } from '@nestjs/common'
+import { Controller, Get, Inject, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import type { Paginated } from '@vsp/contracts'
@@ -43,6 +43,26 @@ export class NotificationsController {
       read: n.readAt != null,
       createdAt: n.createdAt.toISOString(),
     }))
+  }
+
+  @Get('unread-count')
+  @RequirePermissions(PERMISSIONS.ORG_READ)
+  @ApiOperation({ summary: 'Number of unread notifications (for the bell badge)' })
+  async unreadCount(): Promise<{ count: number }> {
+    const count = await withTenantTransaction(this.db, (tx) =>
+      tx.notification.count({ where: { readAt: null } }),
+    )
+    return { count }
+  }
+
+  @Post('read-all')
+  @RequirePermissions(PERMISSIONS.ORG_READ)
+  @ApiOperation({ summary: 'Mark every notification as read' })
+  async readAll(): Promise<{ ok: true; count: number }> {
+    const res = await withTenantTransaction(this.db, (tx) =>
+      tx.notification.updateMany({ where: { readAt: null }, data: { readAt: new Date() } }),
+    )
+    return { ok: true, count: res.count }
   }
 
   @Patch(':id/read')

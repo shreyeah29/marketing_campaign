@@ -158,6 +158,20 @@ export class CampaignGenerationService {
         },
       })
 
+      // Module 9: assets are waiting for a human — raise an "approval required"
+      // notification so a reviewer knows there is work in the queue.
+      if (assets.length > 0) {
+        await tx.notification.create({
+          data: {
+            organizationId: principal.organizationId,
+            level: 'INFO',
+            title: `${String(assets.length)} assets ready for review`,
+            body: `Your campaign "${campaign.name}" was generated. Review and approve the assets.`,
+            actionUrl: '/app/marketing/campaigns',
+          },
+        })
+      }
+
       return { campaignId: campaign.id, assetCount: assets.length, strategy: campaign.strategy }
     })
   }

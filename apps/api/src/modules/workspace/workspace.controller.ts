@@ -1,0 +1,151 @@
+import { Controller, Get, Inject } from '@nestjs/common'
+import { ApiOperation, ApiTags } from '@nestjs/swagger'
+
+import { FEATURES, findLimit, findPlan, type NavEntry } from '@vsp/contracts'
+import {
+  applicableLimits as applicableLimitIds,
+  type DatabaseClient,
+  type EntitlementSnapshot,
+} from '@vsp/database'
+
+import { can, type Principal } from '../../common/auth/principal.js'
+import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
+import { CurrentEntitlements } from '../../common/decorators/current-entitlements.decorator.js'
+import { DATABASE } from '../../infrastructure/database.module.js'
+
+/**
+ * The workspace bootstrap endpoint.
+ *
+ * One call returns everything the frontend needs to render itself for this
+ * organisation: which features are on, the navigation tree computed from them,
+ * the branding, and a limits snapshot. The sidebar, the routes, the dashboard
+ * cards — none are hardcoded; they are derived from this response.
+ *
+ * The navigation is the intersection of three things: features the organisation
+ * has, features that declare a nav entry, and features the *user* has permission
+ * to use. A viewer and an admin in the same org get different menus from the same
+ * enabled feature set, because a nav entry the user cannot act on is noise.
+ *
+ * This endpoint is not itself feature-gated — every authenticated user needs it
+ * to render anything at all.
+ */
+@ApiTags('Workspace')
+@Controller('me')
+export class WorkspaceController {
+  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+
+  @Get('workspace')
+  @ApiOperation({ summary: 'Everything the frontend needs to render for this organisation' })
+  async workspace(
+    @CurrentPrincipal() principal: Principal,
+    @CurrentEntitlements() entitlements: EntitlementSnapshot,
+  ): Promise<unknown> {
+    const [org, branding] = await Promise.all([
+      this.db.organization.findFirst({
+        where: { id: principal.organizationId },
+        select: { id: true, name: true, slug: true, industry: true, timezone: true },
+      }),
+      this.db.branding.findFirst(),
+    ])
+
+    const plan = entitlements.planKey === null ? null : findPlan(entitlements.planKey)
+
+    return {
+      user: {
+        id: principal.id,
+        email: principal.email,
+        name: principal.displayName,
+        role: principal.role,
+        permissions: [...principal.permissions],
+      },
+      organization: org && {
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        industry: org.industry,
+        timezone: org.timezone,
+        status: entitlements.status,
+      },
+      plan: plan && { key: plan.id, name: plan.name },
+      // The flat set, so the frontend can gate a button or a widget on any
+      // feature without walking the nav tree.
+      enabledFeatures: [...entitlements.features],
+      navigation: this.buildNavigation(principal, entitlements),
+      branding: branding && {
+        displayName: branding.displayName,
+        logoUrl: branding.logoUrl,
+        logoDarkUrl: branding.logoDarkUrl,
+        faviconUrl: branding.faviconUrl,
+        primaryColor: branding.primaryColor,
+        secondaryColor: branding.secondaryColor,
+        accentColor: branding.accentColor,
+        headingFont: branding.headingFont,
+        bodyFont: branding.bodyFont,
+        loginTagline: branding.loginTagline,
+      },
+      limits: this.buildLimitsSnapshot(entitlements),
+    }
+  }
+
+  /**
+   * Builds the sidebar from enabled features the user may act on.
+   *
+   * Grouped by section, ordered within a section. A feature contributes its nav
+   * entry only if: the org has it, it declares an entry, and the user holds every
+   * permission the entry requires. This is the dynamic-navigation requirement made
+   * concrete — nothing here is a hardcoded menu.
+   */
+  private buildNavigation(
+    principal: Principal,
+    entitlements: EntitlementSnapshot,
+  ): { section: string; items: NavEntry[] }[] {
+    const visible = FEATURES.filter((feature) => {
+      if (feature.navEntry === undefined) return false
+      if (!entitlements.features.has(feature.id)) return false
+      // Every permission the feature requires must be held, or the menu item
+      // would lead to a 403.
+      return feature.requiredPermissions.every((permission) => can(principal, permission as never))
+    })
+
+    const bySection = new Map<string, NavEntry[]>()
+    for (const feature of visible) {
+      const entry = feature.navEntry
+      if (entry === undefined) continue
+      const list = bySection.get(entry.section) ?? []
+      list.push(entry)
+      bySection.set(entry.section, list)
+    }
+
+    return [...bySection.entries()]
+      .map(([section, items]) => ({
+        section,
+        items: items.sort((a, b) => a.order - b.order),
+      }))
+      // Section order follows the lowest item order within it, so "Overview"
+      // (dashboard, order 1) leads and settings-ish sections fall to the end.
+      .sort((a, b) => (a.items[0]?.order ?? 0) - (b.items[0]?.order ?? 0))
+  }
+
+  /**
+   * The limits that apply to this org, with their definitions.
+   *
+   * Only limits whose governing feature is enabled appear — showing a voice-minute
+   * limit to an org without voice would be noise. Current usage is resolved
+   * lazily by the usage endpoints; this is the caps, not the meter.
+   */
+  private buildLimitsSnapshot(entitlements: EntitlementSnapshot): unknown[] {
+    return applicableLimitIds(entitlements)
+      .map((metric) => {
+        const def = findLimit(metric)
+        if (!def) return null
+        return {
+          metric,
+          name: def.name,
+          unit: def.unit,
+          period: def.period,
+          limit: entitlements.limits.get(metric) ?? null,
+        }
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null)
+  }
+}

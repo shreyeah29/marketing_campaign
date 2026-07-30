@@ -1,12 +1,15 @@
 import { Global, Module, OnApplicationShutdown } from '@nestjs/common'
+import type { Redis } from 'ioredis'
 
 import { createDatabaseClient, type DatabaseClient } from '@vsp/database'
 import { createLogger, type AppLogger } from '@vsp/observability'
 
 import { loadEnv } from '../config/env.js'
+import { createRedis } from './redis.js'
 
 export const DATABASE = Symbol('DATABASE')
 export const LOGGER = Symbol('LOGGER')
+export const REDIS = Symbol('REDIS')
 
 /**
  * Provides the tenant-scoped Prisma client and the application logger.
@@ -47,8 +50,15 @@ export const LOGGER = Symbol('LOGGER')
         })
       },
     },
+    {
+      // A general-purpose Redis client for caching (entitlement snapshots) and
+      // anything else on the hot path. Distinct from the BullMQ connection, which
+      // needs different retry settings.
+      provide: REDIS,
+      useFactory: (): Redis => createRedis(loadEnv(), 'general'),
+    },
   ],
-  exports: [DATABASE, LOGGER],
+  exports: [DATABASE, LOGGER, REDIS],
 })
 export class DatabaseModule implements OnApplicationShutdown {
   constructor() {

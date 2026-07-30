@@ -27,10 +27,36 @@ super-admin as an isolated route group.
 | Slice | Scope | State |
 | ----- | ----- | ----- |
 | 1 | Registries + schema + entitlement engine | ✅ done — verified |
-| 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ▶ next |
-| 3 | Platform plane: `PlatformAdmin` auth, `provisionOrganization` wizard, org lifecycle | pending |
+| 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ✅ done — verified |
+| 3 | Platform plane: `PlatformAdmin` auth, `provisionOrganization` wizard, org lifecycle | ▶ next |
 | 4 | Provider/agent/integration/branding config surfaces | pending |
 | 5 | Frontend: dynamic nav, platform portal, onboarding wizard | pending |
+
+### Slice 2 — verified
+
+- **Entitlement pipeline** now runs in order: authenticated → tenant →
+  **subscription active → feature enabled** → permission → limit. `EntitlementGuard`
+  runs before the permission guard (registration order), resolves the snapshot
+  once and attaches it to the request.
+- **`EntitlementService`**: resolves via `resolveEntitlements`, caches in Redis
+  (60s TTL, explicit invalidation for the platform plane), fails open on a Redis
+  outage so a cache blip is not an outage.
+- **`@RequiresFeature('crm.contacts')`** decorator; a disabled feature → `403
+  feature_not_enabled` with the feature id and `upgradeable: true` (an upgrade
+  prompt, not a dead end). Suspended org → `403 subscription_inactive` before any
+  feature check. Retrofitted onto contacts, companies, leads, deals, agent-runs.
+- **`LimitService.assertWithinLimit`**: `429 limit_exceeded` before the consuming
+  work — an explicit call per action, because a limit is metric-specific and a
+  blanket interceptor cannot know which metric a route consumes.
+- **`GET /v1/me/workspace`**: one call returns the enabled features, the
+  navigation tree (features ∩ nav entries ∩ the user's permissions — a viewer and
+  an admin get different menus), branding and the limits snapshot. This is what
+  drives the dynamic frontend; nothing is a hardcoded sidebar.
+- **Verified**: 4-case integration test through a real Nest pipeline — enabled
+  feature → 200, disabled → 403 feature_not_enabled, suspended → blocked first,
+  permission still enforced after the feature gate. New error codes
+  `feature_not_enabled` / `subscription_inactive` / `limit_exceeded` in the
+  contract. 18 API tests green; API boots with 21 routes.
 
 ### Slice 1 — verified
 

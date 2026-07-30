@@ -4,7 +4,10 @@ import { CqrsModule } from '@nestjs/cqrs'
 
 import type { AppLogger } from '@vsp/observability'
 
+import { EntitlementService } from './common/entitlements/entitlement.service.js'
+import { LimitService } from './common/entitlements/limit.service.js'
 import { ProblemExceptionFilter } from './common/filters/problem.filter.js'
+import { EntitlementGuard } from './common/guards/entitlement.guard.js'
 import { PermissionsGuard } from './common/guards/permissions.guard.js'
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor.js'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js'
@@ -23,6 +26,7 @@ import { HealthController } from './modules/health/health.controller.js'
 import { MembersController } from './modules/members/members.controller.js'
 import { OrganizationsController } from './modules/organizations/organizations.controller.js'
 import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
+import { WorkspaceController } from './modules/workspace/workspace.controller.js'
 
 /**
  * Root module.
@@ -50,12 +54,25 @@ import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
     AgentRunsController,
     AnalyticsController,
     AuditController,
+    WorkspaceController,
   ],
   providers: [
+    // Entitlement resolution and limit enforcement, injectable across the app.
+    EntitlementService,
+    LimitService,
     {
       provide: APP_FILTER,
       inject: [LOGGER],
       useFactory: (logger: AppLogger) => new ProblemExceptionFilter(logger),
+    },
+    {
+      // Runs BEFORE the permission guard, matching the pipeline order:
+      // subscription active → feature enabled → permission granted. Nest executes
+      // global guards in registration order, so this provider is listed first.
+      provide: APP_GUARD,
+      inject: [Reflector, EntitlementService],
+      useFactory: (reflector: Reflector, entitlements: EntitlementService) =>
+        new EntitlementGuard(reflector, entitlements),
     },
     {
       // Deny by default. Every route requires authentication unless it is

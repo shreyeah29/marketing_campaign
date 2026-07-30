@@ -36,7 +36,13 @@ export const ERROR_CODES = {
 
   // 402 / 429
   PAYMENT_REQUIRED: 'payment_required',
+  /** The organisation's plan does not include the module the route belongs to. */
+  FEATURE_NOT_ENABLED: 'feature_not_enabled',
+  /** The organisation is suspended or otherwise not permitted to operate. */
+  SUBSCRIPTION_INACTIVE: 'subscription_inactive',
   ENTITLEMENT_EXCEEDED: 'entitlement_exceeded',
+  /** A configurable usage limit (contacts, emails, voice minutes, …) was reached. */
+  LIMIT_EXCEEDED: 'limit_exceeded',
   /** The organisation's AI spend cap was reached. Refused before dispatch. */
   AI_BUDGET_EXCEEDED: 'ai_budget_exceeded',
   RATE_LIMITED: 'rate_limited',

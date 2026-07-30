@@ -18,6 +18,7 @@ import { publishEvent, withTenantTransaction, type DatabaseClient } from '@vsp/d
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
+import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
 
@@ -48,6 +49,7 @@ import {
  *   · **Permissions declared on the handler**, checked by the global guard.
  */
 @ApiTags('CRM')
+@RequiresFeature('crm.contacts')
 @Controller('contacts')
 export class ContactsController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}

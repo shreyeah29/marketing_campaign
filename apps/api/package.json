@@ -36,9 +36,10 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.28",
     "@types/node": "^22.10.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   }
 }

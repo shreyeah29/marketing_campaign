@@ -18,6 +18,7 @@ import { publishEvent, withTenantTransaction, type DatabaseClient } from '@vsp/d
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
+import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { KEYSET_ORDER, keysetWhere, parseKeyset, toPage } from '../../common/http/pagination.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
@@ -45,6 +46,7 @@ const startRunSchema = z
  * `agents:run`; a viewer cannot set an agent in motion.
  */
 @ApiTags('Agents')
+@RequiresFeature('ai.chat')
 @Controller('agent-runs')
 export class AgentRunsController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}

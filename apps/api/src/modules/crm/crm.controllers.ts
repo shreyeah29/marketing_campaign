@@ -18,6 +18,7 @@ import { publishEvent, withTenantTransaction, type DatabaseClient } from '@vsp/d
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
+import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { KEYSET_ORDER, keysetWhere, parseKeyset, toPage } from '../../common/http/pagination.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
@@ -43,6 +44,7 @@ const createCompanySchema = z
   .strict()
 
 @ApiTags('CRM')
+@RequiresFeature('crm.companies')
 @Controller('companies')
 export class CompaniesController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
@@ -113,6 +115,7 @@ const LEAD_STATUSES = [
 const updateLeadStatusSchema = z.object({ status: z.enum(LEAD_STATUSES) }).strict()
 
 @ApiTags('CRM')
+@RequiresFeature('crm.leads')
 @Controller('leads')
 export class LeadsController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
@@ -227,6 +230,7 @@ const createDealSchema = z
   .strict()
 
 @ApiTags('CRM')
+@RequiresFeature('crm.deals')
 @Controller('deals')
 export class DealsController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}

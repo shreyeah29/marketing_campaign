@@ -49,3 +49,6 @@ Thumbs.db
 # Misc
 .vercel
 .sentryclirc
+
+# Redis snapshots
+dump.rdb

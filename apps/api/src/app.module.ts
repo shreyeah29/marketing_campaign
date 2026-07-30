@@ -6,11 +6,23 @@ import type { AppLogger } from '@vsp/observability'
 
 import { ProblemExceptionFilter } from './common/filters/problem.filter.js'
 import { PermissionsGuard } from './common/guards/permissions.guard.js'
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor.js'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js'
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js'
 import { DatabaseModule, LOGGER } from './infrastructure/database.module.js'
+import { AgentRunsController } from './modules/agents/agent-runs.controller.js'
+import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
+import { CampaignsController } from './modules/campaigns/campaigns.controller.js'
 import { ContactsController } from './modules/crm/contacts.controller.js'
+import {
+  CompaniesController,
+  DealsController,
+  LeadsController,
+} from './modules/crm/crm.controllers.js'
 import { HealthController } from './modules/health/health.controller.js'
+import { MembersController } from './modules/members/members.controller.js'
+import { OrganizationsController } from './modules/organizations/organizations.controller.js'
+import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
 
 /**
  * Root module.
@@ -26,7 +38,19 @@ import { HealthController } from './modules/health/health.controller.js'
  */
 @Module({
   imports: [DatabaseModule, CqrsModule.forRoot()],
-  controllers: [HealthController, ContactsController],
+  controllers: [
+    HealthController,
+    OrganizationsController,
+    MembersController,
+    ContactsController,
+    CompaniesController,
+    LeadsController,
+    DealsController,
+    CampaignsController,
+    AgentRunsController,
+    AnalyticsController,
+    AuditController,
+  ],
   providers: [
     {
       provide: APP_FILTER,
@@ -51,6 +75,13 @@ import { HealthController } from './modules/health/health.controller.js'
       inject: [LOGGER],
       useFactory: (logger: AppLogger) => new TenantInterceptor(logger),
     },
+    {
+      // After the tenant interceptor: the idempotency record is tenant-scoped, so
+      // it needs the context open before it can read or write one.
+      provide: APP_INTERCEPTOR,
+      useClass: IdempotencyInterceptor,
+    },
+    RealtimeGateway,
   ],
 })
 export class AppModule implements NestModule {

@@ -18,6 +18,8 @@ import { createLogger } from '@vsp/observability'
 import { AppModule } from './app.module.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
 import { assertPermissionMatrixValid } from './common/rbac/permissions.js'
+import { registerRateLimit } from './infrastructure/rate-limit.js'
+import { createRedis } from './infrastructure/redis.js'
 
 /**
  * API bootstrap.
@@ -109,6 +111,11 @@ async function bootstrap(): Promise<void> {
     crossOriginResourcePolicy: { policy: 'same-site' },
   })
 
+  // Registered before CORS so an abusive caller is rejected as early as possible,
+  // and before routing so it covers every route including ones added later.
+  const limiterRedis = createRedis(env, 'general')
+  await registerRateLimit(app, limiterRedis, env)
+
   const origins = corsOrigins(env)
   app.enableCors({
     // An explicit allowlist, and no wildcard even in development. The previous
@@ -162,6 +169,12 @@ async function bootstrap(): Promise<void> {
   }
 
   await app.listen({ port: env.API_PORT, host: env.API_HOST })
+
+  // Close Redis on shutdown alongside the HTTP server and database pool.
+  app.enableShutdownHooks()
+  process.once('SIGTERM', () => {
+    void limiterRedis.quit()
+  })
 
   appLogger.info(
     {

@@ -205,7 +205,13 @@ async function bootstrap(): Promise<void> {
     bootLogger.log(`OpenAPI served at /docs`)
   }
 
-  await app.listen({ port: env.API_PORT, host: env.API_HOST })
+  // Prefer the platform-assigned port. Render/Railway/Heroku inject $PORT and
+  // route external traffic to whatever the app binds; honouring it means the app
+  // is detected without any per-host port configuration, while local dev keeps the
+  // validated API_PORT default.
+  const listenPort = process.env['PORT'] ? Number.parseInt(process.env['PORT'], 10) : env.API_PORT
+
+  await app.listen({ port: listenPort, host: env.API_HOST })
 
   // Close Redis on shutdown alongside the HTTP server and database pool.
   app.enableShutdownHooks()
@@ -215,7 +221,7 @@ async function bootstrap(): Promise<void> {
 
   appLogger.info(
     {
-      port: env.API_PORT,
+      port: listenPort,
       environment: env.NODE_ENV,
       corsOrigins: origins,
       swagger: swaggerEnabled(env),

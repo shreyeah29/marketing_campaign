@@ -62,6 +62,17 @@ export const envSchema = z.object({
   ENCRYPTION_MASTER_KEY: secret('ENCRYPTION_MASTER_KEY', 32),
 
   /**
+   * Platform-wide AI keys. When set, every organisation uses them by default —
+   * the operator pays for the credits — so no per-org configuration is needed.
+   * A per-org key configured in Settings → Providers still takes precedence, so an
+   * org can bring its own. Leave unset to require per-org keys (BYOK).
+   */
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  /** Optional default model for the platform LLM key (else the adapter default). */
+  PLATFORM_LLM_MODEL: z.string().optional(),
+
+  /**
    * Served in non-production by default; explicit opt-in required in production.
    *
    * Kept as the raw string rather than transformed to a boolean here. A

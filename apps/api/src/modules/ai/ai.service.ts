@@ -4,6 +4,7 @@ import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { EncryptionService } from '../../common/crypto/encryption.service.js'
+import { loadEnv } from '../../config/env.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
 
 /**
@@ -76,7 +77,10 @@ export class AiService {
         orderBy: { updatedAt: 'desc' },
       }),
     )
-    if (!config || !config.credential) return null
+    // No per-org key configured → fall back to the platform key from the
+    // environment, so every organisation can use AI on the operator's credits
+    // without any per-org setup. A configured per-org key above wins.
+    if (!config || !config.credential) return this.platformFallback(capability)
 
     const cred = config.credential
     let opened: Record<string, unknown>
@@ -100,6 +104,24 @@ export class AiService {
     const model = typeof cfg.model === 'string' ? cfg.model : undefined
 
     return { providerId: config.provider, apiKey, ...(model === undefined ? {} : { model }) }
+  }
+
+  /**
+   * The platform-wide LLM key from the environment. Lets the operator provide one
+   * key for every organisation (they pay for the credits) with zero per-org setup.
+   * OpenAI is preferred when both are set; only LLM has a platform fallback today.
+   */
+  private platformFallback(capability: AiCapability): ResolvedProvider | null {
+    if (capability !== 'LLM') return null
+    const env = loadEnv()
+    const model = env.PLATFORM_LLM_MODEL
+    if (env.OPENAI_API_KEY) {
+      return { providerId: 'openai', apiKey: env.OPENAI_API_KEY, ...(model ? { model } : {}) }
+    }
+    if (env.ANTHROPIC_API_KEY) {
+      return { providerId: 'anthropic', apiKey: env.ANTHROPIC_API_KEY, ...(model ? { model } : {}) }
+    }
+    return null
   }
 
   /**

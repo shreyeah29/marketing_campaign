@@ -66,13 +66,24 @@ export function createLogger(options: CreateLoggerOptions): AppLogger {
   }
 
   if (options.pretty) {
-    return pino({
-      ...config,
-      transport: {
-        target: 'pino-pretty',
-        options: { colorize: true, translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname,service' },
-      },
-    })
+    // Pretty printing is a developer convenience, so a missing or broken
+    // transport must never stop the process. pino resolves the target lazily and
+    // throws if it cannot, which would otherwise turn "pino-pretty is not
+    // installed" into "the API will not start" — a cosmetic dependency taking
+    // down the service.
+    try {
+      return pino({
+        ...config,
+        transport: {
+          target: 'pino-pretty',
+          options: { colorize: true, translateTime: 'HH:MM:ss.l', ignore: 'pid,hostname,service' },
+        },
+      })
+    } catch {
+      const logger = pino(config)
+      logger.warn('pino-pretty is unavailable; falling back to structured JSON output')
+      return logger
+    }
   }
 
   return pino(config)

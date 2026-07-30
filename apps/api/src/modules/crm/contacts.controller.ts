@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   NotFoundException,
@@ -10,6 +11,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common'
+import { z } from 'zod'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import { buildPage, cursorPaginationSchema, decodeCursor, type Paginated } from '@vsp/contracts'
@@ -20,6 +22,7 @@ import { CurrentPrincipal } from '../../common/decorators/current-principal.deco
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
+import { CrudService } from '../../common/crud/crud.service.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
 
 import {
@@ -52,7 +55,10 @@ import {
 @RequiresFeature('crm.contacts')
 @Controller('contacts')
 export class ContactsController {
-  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+  private readonly crud: CrudService
+  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {
+    this.crud = new CrudService(this.db)
+  }
 
   @Get()
   @RequirePermissions(PERMISSIONS.CRM_READ)
@@ -234,6 +240,21 @@ export class ContactsController {
 
       return toResponse(contact)
     })
+  }
+
+  @Delete(':id')
+  @RequirePermissions(PERMISSIONS.CRM_DELETE)
+  @ApiOperation({ summary: 'Delete a contact' })
+  remove(@Param('id') id: string, @CurrentPrincipal() principal: Principal) {
+    return this.crud.remove('contact', principal, id, 'contact')
+  }
+
+  @Delete()
+  @RequirePermissions(PERMISSIONS.CRM_DELETE)
+  @ApiOperation({ summary: 'Bulk-delete contacts' })
+  bulk(@Body() body: unknown, @CurrentPrincipal() principal: Principal) {
+    const { ids } = z.object({ ids: z.array(z.string()) }).parse(body)
+    return this.crud.bulkRemove('contact', principal, ids, 'contact')
   }
 }
 

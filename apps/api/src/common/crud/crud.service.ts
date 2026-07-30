@@ -25,6 +25,50 @@ export interface ListOptions {
   orderBy?: Record<string, 'asc' | 'desc'>
   cursor?: string | undefined
   limit: number
+  /**
+   * When set, restrict to rows owned by this user id ("My Leads"/"Assigned to me").
+   * Applied against the model's primary owner column from the ownership registry.
+   */
+  mineUserId?: string | undefined
+}
+
+/**
+ * Ownership: which user-FK columns a model auto-populates from the authenticated
+ * principal, so the frontend never sends (and cannot spoof) an owner/author id.
+ *
+ *   · `createdBy` — always set to the current user on create (owner/author/creator).
+ *     Set *after* the caller's data, so a client-supplied value cannot override it.
+ *   · `defaultToUser` — set to the current user only when the caller did not supply
+ *     one (e.g. a task assignee or an appointment host may legitimately be someone
+ *     else, but defaults to the creator).
+ *   · `updatedBy` — set to the current user on every update, when the column exists.
+ *
+ * Only columns that actually exist on the model appear here (verified against the
+ * Prisma schema); setting a non-existent column would fail the write.
+ */
+interface Ownership {
+  createdBy?: readonly string[]
+  defaultToUser?: readonly string[]
+  updatedBy?: string
+  /** Column the "mine" filter matches on; defaults to the primary owner column. */
+  mineField?: string
+}
+
+const OWNERSHIP: Record<string, Ownership> = {
+  contact: { createdBy: ['ownerId'] },
+  lead: { createdBy: ['ownerId'] },
+  deal: { createdBy: ['ownerId'] },
+  note: { createdBy: ['authorId'] },
+  activity: { createdBy: ['userId'] },
+  // Creator is stamped on createdById; "My Tasks" means assigned to me.
+  task: { createdBy: ['createdById'], defaultToUser: ['assigneeId'], mineField: 'assigneeId' },
+  appointment: { defaultToUser: ['hostId'] },
+}
+
+/** The column the "mine" list filter matches on for a model. */
+function ownerField(model: string): string | undefined {
+  const o = OWNERSHIP[model]
+  return o?.mineField ?? o?.createdBy?.[0] ?? o?.defaultToUser?.[0]
 }
 
 // The Prisma model delegates, addressed by name. Contained to this module.
@@ -57,12 +101,17 @@ export class CrudService {
           }
         : {}
 
+    // "Mine" filter: rows owned by the current user, via the model's owner column.
+    const mine =
+      opts.mineUserId && ownerField(model) ? { [ownerField(model) as string]: opts.mineUserId } : {}
+
     const rows = (await withTenantTransaction(this.db, (tx) =>
       delegate(tx, model).findMany({
         where: {
           deletedAt: null,
           ...(opts.where ?? {}),
           ...search,
+          ...mine,
           ...(position === null
             ? {}
             : {
@@ -94,9 +143,19 @@ export class CrudService {
     data: Record<string, unknown>,
     action: string,
   ): Promise<T> {
+    // Ownership is stamped from the authenticated principal, not the request body.
+    // `createdBy` columns are applied after the caller's data so a client cannot
+    // spoof them; `defaultToUser` columns fill in only when the caller omitted them.
+    const own = OWNERSHIP[model]
+    const ownership: Record<string, unknown> = {}
+    if (own && principal.type === 'user') {
+      for (const f of own.createdBy ?? []) ownership[f] = principal.id
+      for (const f of own.defaultToUser ?? []) if (data[f] === undefined) ownership[f] = principal.id
+    }
+
     return withTenantTransaction(this.db, async (tx) => {
       const row = await delegate(tx, model).create({
-        data: { ...data, organizationId: principal.organizationId },
+        data: { ...data, ...ownership, organizationId: principal.organizationId },
       })
       await this.audit(tx, principal, `${action}.created`, model, String(row['id']), { after: data })
       return row as T
@@ -115,6 +174,9 @@ export class CrudService {
       if (!before) throw new NotFoundException(`No ${model} with id ${id}`)
       // Strip undefined so a partial update never nulls an omitted field.
       const patch = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined))
+      // Stamp updatedBy from the principal when the model has such a column.
+      const updatedBy = OWNERSHIP[model]?.updatedBy
+      if (updatedBy && principal.type === 'user') patch[updatedBy] = principal.id
       const row = await delegate(tx, model).update({ where: { id }, data: patch })
       await this.audit(tx, principal, `${action}.updated`, model, id, { after: patch })
       return row as T

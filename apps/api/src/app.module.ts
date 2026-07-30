@@ -24,11 +24,24 @@ import { ConfigController } from './modules/config/config.controller.js'
 import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
 import { CampaignsController } from './modules/campaigns/campaigns.controller.js'
 import { ContactsController } from './modules/crm/contacts.controller.js'
-import {
-  CompaniesController,
-  DealsController,
-  LeadsController,
-} from './modules/crm/crm.controllers.js'
+import { CompaniesController } from './modules/crm/companies.controller.js'
+import { LeadsController } from './modules/crm/leads.controller.js'
+import { DealsController } from './modules/crm/deals.controller.js'
+import { TasksController } from './modules/crm/tasks.controller.js'
+import { NotesController } from './modules/crm/notes.controller.js'
+import { PipelinesController } from './modules/crm/pipelines.controller.js'
+import { EmailCampaignsController } from './modules/marketing/email-campaigns.controller.js'
+import { MessageTemplatesController } from './modules/marketing/message-templates.controller.js'
+import { SocialPostsController } from './modules/marketing/social-posts.controller.js'
+import { WorkflowsController } from './modules/automation/workflows.controller.js'
+import { WebhooksController } from './modules/automation/webhooks.controller.js'
+import { AiController } from './modules/ai/ai.controller.js'
+import { AiService } from './modules/ai/ai.service.js'
+import { PromptsController } from './modules/ai/prompts.controller.js'
+import { KnowledgeController } from './modules/ai/knowledge.controller.js'
+import { ApiKeysController } from './modules/settings/api-keys.controller.js'
+import { ConversationsController } from './modules/comms/conversations.controller.js'
+import { NotificationsController } from './modules/notifications/notifications.controller.js'
 import { HealthController } from './modules/health/health.controller.js'
 import { MembersController } from './modules/members/members.controller.js'
 import { OrganizationsController } from './modules/organizations/organizations.controller.js'
@@ -61,6 +74,20 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     CompaniesController,
     LeadsController,
     DealsController,
+    TasksController,
+    NotesController,
+    PipelinesController,
+    EmailCampaignsController,
+    MessageTemplatesController,
+    SocialPostsController,
+    WorkflowsController,
+    WebhooksController,
+    AiController,
+    PromptsController,
+    KnowledgeController,
+    ApiKeysController,
+    ConversationsController,
+    NotificationsController,
     CampaignsController,
     AgentRunsController,
     AnalyticsController,
@@ -80,6 +107,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     AuthService,
     IdentityService,
     AuthGuard,
+    AiService,
     PlatformAuthService,
     ProvisioningService,
     PlatformAdminGuard,

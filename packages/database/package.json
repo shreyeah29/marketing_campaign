@@ -17,7 +17,9 @@
     "validate": "prisma validate",
     "format": "prisma format",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf generated dist .turbo"
+    "clean": "rm -rf generated dist .turbo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1"
@@ -26,7 +28,8 @@
     "@types/node": "^22.20.1",
     "prisma": "^6.10.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -46,6 +46,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vsp_marketing_test
       DIRECT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vsp_marketing_test
       REDIS_URL: redis://localhost:6379
+      APP_DATABASE_URL: postgresql://vsp_app:ci-app-password@localhost:5432/vsp_marketing_test
       BETTER_AUTH_SECRET: ci-only-secret-value-at-least-32-characters
       ENCRYPTION_MASTER_KEY: ci-only-encryption-key-at-least-32-chars
 

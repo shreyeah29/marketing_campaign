@@ -66,6 +66,12 @@ export const TENANT_SCOPED_MODELS = [
   // AI marketing automation — campaign assets & review queue.
   'CampaignAsset',
   'CampaignAssetComment',
+  // Lead capture, landing pages & support.
+  'LeadForm',
+  'FormSubmission',
+  'LandingPage',
+  'SupportTicket',
+  'SupportTicketComment',
 ] as const
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number]

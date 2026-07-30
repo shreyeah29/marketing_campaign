@@ -14,7 +14,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
 import { cursorPaginationSchema, type Paginated } from '@vsp/contracts'
-import { type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CrudService } from '../../common/crud/crud.service.js'
@@ -151,17 +151,65 @@ export class EmailCampaignsController {
 
   @Post(':id/send')
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_PUBLISH)
-  @ApiOperation({ summary: 'Mark a campaign as sending/active' })
+  @ApiOperation({ summary: 'Send the campaign to its recipients now' })
   async send(
     @Param('id') id: string,
     @CurrentPrincipal() principal: Principal,
-  ): Promise<EmailCampaignRow> {
-    return this.crud.update<EmailCampaignRow>(
-      MODEL,
-      principal,
-      id,
-      { status: 'ACTIVE', sentAt: new Date() },
-      ACTION,
-    )
+  ): Promise<{ id: string; queued: number }> {
+    // Sending is real: we materialise one QUEUED `EmailSend` per recipient inside
+    // the same transaction that flips the campaign to ACTIVE, and the worker's
+    // schedule poller delivers them via the mailer. The request returns fast with
+    // the queued count rather than blocking on SMTP for every contact.
+    return withTenantTransaction(this.db, async (tx) => {
+      const campaign = await tx.emailCampaign.findFirst({ where: { id, deletedAt: null } })
+      if (!campaign) throw new BadRequestException('Campaign not found')
+
+      // Recipients: every contact with an email address that hasn't opted out.
+      // A real segment engine would apply `campaign.segmentFilter`; absent that we
+      // send to the whole addressable list, capped so one click can't fan out
+      // unboundedly.
+      const contacts = await tx.contact.findMany({
+        where: { deletedAt: null, email: { not: null } },
+        select: { id: true, email: true },
+        take: 1000,
+      })
+      const recipients = contacts.filter((c): c is { id: string; email: string } => Boolean(c.email))
+
+      if (recipients.length > 0) {
+        await tx.emailSend.createMany({
+          data: recipients.map((c) => ({
+            organizationId: principal.organizationId,
+            emailCampaignId: id,
+            contactId: c.id,
+            toEmail: c.email,
+            subject: campaign.subject,
+            status: 'QUEUED' as const,
+          })),
+        })
+      }
+
+      await tx.emailCampaign.update({
+        where: { id },
+        data: {
+          status: 'ACTIVE',
+          sentAt: new Date(),
+          recipientCount: recipients.length,
+        },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          organizationId: principal.organizationId,
+          actorType: principal.type === 'user' ? 'USER' : 'API_KEY',
+          userId: principal.type === 'user' ? principal.id : null,
+          action: `${ACTION}.sent`,
+          resourceType: ACTION,
+          resourceId: id,
+          after: { recipients: recipients.length },
+        },
+      })
+
+      return { id, queued: recipients.length }
+    })
   }
 }

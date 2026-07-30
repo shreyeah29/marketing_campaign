@@ -13,6 +13,7 @@ import { createLogger, withLogContext, type AppLogger } from '@vsp/observability
 import { loadWorkerEnv } from './config.js'
 import { OutboxDispatcher } from './outbox-dispatcher.js'
 import { deadLetterQueue, QUEUE_POLICIES, QUEUES, type QueuePolicy, type TenantJobData } from './queues.js'
+import { SchedulePoller } from './schedule-poller.js'
 import { createWorkflowHandler } from './workflow/executor.js'
 
 /**
@@ -233,6 +234,12 @@ async function bootstrap(): Promise<void> {
   const dispatcher = new OutboxDispatcher(dispatcherDb, bullRedis, logger)
   void dispatcher.start()
 
+  // Time-driven delivery: queued email sends and due social posts. Owner
+  // connection for the same reason as the dispatcher — it must see due rows
+  // across tenants. Reuses dispatcherDb (both are cross-tenant platform infra).
+  const schedulePoller = new SchedulePoller(dispatcherDb, env, logger)
+  schedulePoller.start()
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'shutting down worker')
 
@@ -240,6 +247,7 @@ async function bootstrap(): Promise<void> {
     // close connections. Closing Redis first would abandon running jobs, and
     // BullMQ would only reclaim them after the stalled interval.
     await dispatcher.stop()
+    await schedulePoller.stop()
     await Promise.all(workers.map((worker) => worker.close()))
     await bullRedis.quit()
     await db.$disconnect()

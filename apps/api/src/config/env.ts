@@ -48,8 +48,18 @@ export const envSchema = z.object({
    */
   APP_URL: z.string().url().default('http://localhost:3000'),
 
-  /** The From address on auth emails. Optional in dev, where email is logged. */
+  /** The From address on auth + marketing emails. Optional in dev, where email is logged. */
   EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
+
+  /**
+   * Email delivery via Resend's REST API (no SMTP library, works on any host).
+   * When set, transactional auth mail and marketing campaigns are really sent;
+   * when unset the mailer logs the message instead, so development and
+   * unconfigured deployments never crash — they simply don't deliver. Provider
+   * choice stays a config change: swap this for another HTTP mail API behind the
+   * same mailer.
+   */
+  RESEND_API_KEY: z.string().optional(),
 
   /**
    * Requiring a verified email before first login is correct in production but

@@ -1,7 +1,7 @@
 import { Global, Module, OnApplicationShutdown } from '@nestjs/common'
 import type { Redis } from 'ioredis'
 
-import { createDatabaseClient, type DatabaseClient } from '@vsp/database'
+import { createAdminClient, createDatabaseClient, type DatabaseClient, type PrismaClient } from '@vsp/database'
 import { createLogger, type AppLogger } from '@vsp/observability'
 
 import { loadEnv } from '../config/env.js'
@@ -10,6 +10,15 @@ import { createRedis } from './redis.js'
 export const DATABASE = Symbol('DATABASE')
 export const LOGGER = Symbol('LOGGER')
 export const REDIS = Symbol('REDIS')
+/**
+ * Unscoped, RLS-exempt client. It exists for the ONE thing the tenant-scoped
+ * client cannot do: resolve a public resource before any tenant context exists —
+ * a hosted lead form or landing page addressed by slug, hit by an anonymous
+ * visitor. Every use must immediately narrow to a single organisation and then
+ * hand off to `withTenantTransaction` for any write. Never inject this to serve
+ * an authenticated request; that is what DATABASE is for.
+ */
+export const SYSTEM_DB = Symbol('SYSTEM_DB')
 
 /**
  * Provides the tenant-scoped Prisma client and the application logger.
@@ -51,6 +60,15 @@ export const REDIS = Symbol('REDIS')
       },
     },
     {
+      provide: SYSTEM_DB,
+      useFactory: (): PrismaClient => {
+        const env = loadEnv()
+        // Prefer the owner connection (bypasses RLS); fall back to the app URL so
+        // local single-role setups still boot. Used only for public slug lookups.
+        return createAdminClient(env.DIRECT_DATABASE_URL ?? env.DATABASE_URL)
+      },
+    },
+    {
       // A general-purpose Redis client for caching (entitlement snapshots) and
       // anything else on the hot path. Distinct from the BullMQ connection, which
       // needs different retry settings.
@@ -58,7 +76,7 @@ export const REDIS = Symbol('REDIS')
       useFactory: (): Redis => createRedis(loadEnv(), 'general'),
     },
   ],
-  exports: [DATABASE, LOGGER, REDIS],
+  exports: [DATABASE, LOGGER, REDIS, SYSTEM_DB],
 })
 export class DatabaseModule implements OnApplicationShutdown {
   constructor() {

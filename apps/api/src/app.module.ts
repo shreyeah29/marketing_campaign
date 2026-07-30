@@ -18,7 +18,8 @@ import { AuthService } from './modules/auth/auth.service.js'
 import { AuthGuard } from './modules/auth/auth.guard.js'
 import { IdentityService } from './modules/auth/identity.service.js'
 import { AuthController } from './modules/auth/auth.controller.js'
-import { EMAIL_PORT, LogEmailTransport } from './modules/auth/email.port.js'
+import { emailTransportProvider } from './modules/auth/email.port.js'
+import { MailerService } from './infrastructure/mailer.js'
 import { AgentRunsController } from './modules/agents/agent-runs.controller.js'
 import { ConfigController } from './modules/config/config.controller.js'
 import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
@@ -44,6 +45,12 @@ import { AiController } from './modules/ai/ai.controller.js'
 import { AiService } from './modules/ai/ai.service.js'
 import { CampaignGenerationService } from './modules/ai/campaign-generation.service.js'
 import { ReviewQueueController } from './modules/marketing/review-queue.controller.js'
+import { LeadFormsController } from './modules/marketing/lead-forms.controller.js'
+import { PublicFormsController } from './modules/marketing/public-forms.controller.js'
+import { SupportTicketsController } from './modules/support/support-tickets.controller.js'
+import { SocialController } from './modules/social/social.controller.js'
+import { LandingPagesController } from './modules/content/landing-pages.controller.js'
+import { PublicPagesController } from './modules/content/public-pages.controller.js'
 import { PromptsController } from './modules/ai/prompts.controller.js'
 import { KnowledgeController } from './modules/ai/knowledge.controller.js'
 import { ApiKeysController } from './modules/settings/api-keys.controller.js'
@@ -88,6 +95,12 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     MessageTemplatesController,
     SocialPostsController,
     ReviewQueueController,
+    LeadFormsController,
+    PublicFormsController,
+    SupportTicketsController,
+    SocialController,
+    LandingPagesController,
+    PublicPagesController,
     WorkflowsController,
     WebhooksController,
     WorkflowEngineController,
@@ -113,7 +126,8 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     LimitService,
     EncryptionService,
     // Tenant authentication and identity (Better Auth + org/role resolution).
-    { provide: EMAIL_PORT, useClass: LogEmailTransport },
+    MailerService,
+    emailTransportProvider,
     AuthService,
     IdentityService,
     AuthGuard,

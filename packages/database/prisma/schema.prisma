@@ -530,20 +530,20 @@ model User {
   sessions            Session[]
   accounts            Account[]
   memberships         Membership[]
-  sentInvitations     Invitation[]        @relation("InvitationInviter")
+  sentInvitations     Invitation[]      @relation("InvitationInviter")
   createdApiKeys      ApiKey[]
-  assignedTasks       Task[]              @relation("TaskAssignee")
-  createdTasks        Task[]              @relation("TaskCreator")
-  ownedLeads          Lead[]              @relation("LeadOwner")
-  ownedDeals          Deal[]              @relation("DealOwner")
-  ownedContacts       Contact[]           @relation("ContactOwner")
+  assignedTasks       Task[]            @relation("TaskAssignee")
+  createdTasks        Task[]            @relation("TaskCreator")
+  ownedLeads          Lead[]            @relation("LeadOwner")
+  ownedDeals          Deal[]            @relation("DealOwner")
+  ownedContacts       Contact[]         @relation("ContactOwner")
   activities          Activity[]
   appointments        Appointment[]
   agentRuns           AgentRun[]
   aiUsage             AiUsage[]
   auditLogs           AuditLog[]
   notifications       Notification[]
-  contentDocuments    ContentDocument[]   @relation("ContentAuthor")
+  contentDocuments    ContentDocument[] @relation("ContentAuthor")
   contentRevisions    ContentRevision[]
   contentApprovals    ContentApproval[]
   uploadedMediaAssets MediaAsset[]
@@ -629,59 +629,64 @@ model Organization {
   subscription Subscription?
   branding     Branding?
 
-  memberships           Membership[]
-  invitations           Invitation[]
-  apiKeys               ApiKey[]
-  usageRecords          UsageRecord[]
-  companies             Company[]
-  contacts              Contact[]
-  leads                 Lead[]
-  deals                 Deal[]
-  pipelines             Pipeline[]
-  activities            Activity[]
-  tasks                 Task[]
-  appointments          Appointment[]
-  notes                 Note[]
-  campaigns             Campaign[]
-  contentDocuments      ContentDocument[]
-  mediaAssets           MediaAsset[]
-  brandKits             BrandKit[]
-  emailCampaigns        EmailCampaign[]
-  emailSequences        EmailSequence[]
-  emailSends            EmailSend[]
-  conversations         Conversation[]
-  messages             Message[]
-  messageTemplates      MessageTemplate[]
-  phoneNumbers          PhoneNumber[]
-  calls                 Call[]
-  socialAccounts        SocialAccount[]
-  socialPosts           SocialPost[]
-  workflows             Workflow[]
-  workflowRuns          WorkflowRun[]
-  metricDailies         MetricDaily[]
-  attributionTouches    AttributionTouch[]
-  knowledgeBases        KnowledgeBase[]
-  knowledgeDocuments    KnowledgeDocument[]
-  knowledgeChunks       KnowledgeChunk[]
-  agentRuns             AgentRun[]
-  aiUsage               AiUsage[]
-  prompts               Prompt[]
-  templates             Template[]
-  templateInstalls      TemplateInstall[]
-  auditLogs             AuditLog[]
-  outboxEvents          OutboxEvent[]
-  webhooks              Webhook[]
-  notifications         Notification[]
-  providerCredentials   ProviderCredential[]
+  memberships            Membership[]
+  invitations            Invitation[]
+  apiKeys                ApiKey[]
+  usageRecords           UsageRecord[]
+  companies              Company[]
+  contacts               Contact[]
+  leads                  Lead[]
+  deals                  Deal[]
+  pipelines              Pipeline[]
+  activities             Activity[]
+  tasks                  Task[]
+  appointments           Appointment[]
+  notes                  Note[]
+  campaigns              Campaign[]
+  contentDocuments       ContentDocument[]
+  mediaAssets            MediaAsset[]
+  brandKits              BrandKit[]
+  emailCampaigns         EmailCampaign[]
+  emailSequences         EmailSequence[]
+  emailSends             EmailSend[]
+  conversations          Conversation[]
+  messages               Message[]
+  messageTemplates       MessageTemplate[]
+  phoneNumbers           PhoneNumber[]
+  calls                  Call[]
+  socialAccounts         SocialAccount[]
+  socialPosts            SocialPost[]
+  workflows              Workflow[]
+  workflowRuns           WorkflowRun[]
+  metricDailies          MetricDaily[]
+  attributionTouches     AttributionTouch[]
+  knowledgeBases         KnowledgeBase[]
+  knowledgeDocuments     KnowledgeDocument[]
+  knowledgeChunks        KnowledgeChunk[]
+  agentRuns              AgentRun[]
+  aiUsage                AiUsage[]
+  prompts                Prompt[]
+  templates              Template[]
+  templateInstalls       TemplateInstall[]
+  auditLogs              AuditLog[]
+  outboxEvents           OutboxEvent[]
+  webhooks               Webhook[]
+  notifications          Notification[]
+  providerCredentials    ProviderCredential[]
   integrationConnections IntegrationConnection[]
-  idempotencyKeys       IdempotencyKey[]
-  featureAssignments    FeatureAssignment[]
-  organizationLimits    OrganizationLimit[]
+  idempotencyKeys        IdempotencyKey[]
+  featureAssignments     FeatureAssignment[]
+  organizationLimits     OrganizationLimit[]
   providerConfigurations ProviderConfiguration[]
-  agentAssignments      AgentAssignment[]
-  customAgents          CustomAgent[]
-  campaignAssets        CampaignAsset[]
-  campaignAssetComments CampaignAssetComment[]
+  agentAssignments       AgentAssignment[]
+  customAgents           CustomAgent[]
+  campaignAssets         CampaignAsset[]
+  campaignAssetComments  CampaignAssetComment[]
+  leadForms              LeadForm[]
+  formSubmissions        FormSubmission[]
+  landingPages           LandingPage[]
+  supportTickets         SupportTicket[]
+  supportTicketComments  SupportTicketComment[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -868,27 +873,27 @@ model Company {
 }
 
 model Contact {
-  id             String    @id @default(uuid(7))
-  organizationId String    @map("organization_id")
-  companyId      String?   @map("company_id")
-  ownerId        String?   @map("owner_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  companyId      String? @map("company_id")
+  ownerId        String? @map("owner_id")
 
-  firstName String  @map("first_name")
-  lastName  String? @map("last_name")
-  email     String? @db.Citext
-  phone     String?
-  jobTitle  String? @map("job_title")
+  firstName   String  @map("first_name")
+  lastName    String? @map("last_name")
+  email       String? @db.Citext
+  phone       String?
+  jobTitle    String? @map("job_title")
   linkedinUrl String? @map("linkedin_url")
-  avatarUrl String? @map("avatar_url")
-  timezone  String?
-  locale    String?
+  avatarUrl   String? @map("avatar_url")
+  timezone    String?
+  locale      String?
 
   // Consent tracking — required for lawful outbound messaging
-  emailOptIn      Boolean   @default(false) @map("email_opt_in")
-  whatsappOptIn   Boolean   @default(false) @map("whatsapp_opt_in")
-  smsOptIn        Boolean   @default(false) @map("sms_opt_in")
-  optOutAt        DateTime? @map("opt_out_at")
-  consentSource   String?   @map("consent_source")
+  emailOptIn    Boolean   @default(false) @map("email_opt_in")
+  whatsappOptIn Boolean   @default(false) @map("whatsapp_opt_in")
+  smsOptIn      Boolean   @default(false) @map("sms_opt_in")
+  optOutAt      DateTime? @map("opt_out_at")
+  consentSource String?   @map("consent_source")
 
   customFields Json?    @map("custom_fields")
   tags         String[] @default([])
@@ -897,17 +902,18 @@ model Contact {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  company       Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  owner         User?         @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  leads         Lead[]
-  deals         Deal[]
-  activities    Activity[]
-  appointments  Appointment[]
-  conversations Conversation[]
-  calls         Call[]
-  emailSends    EmailSend[]
-  notes         Note[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner           User?            @relation("ContactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  leads           Lead[]
+  deals           Deal[]
+  activities      Activity[]
+  appointments    Appointment[]
+  conversations   Conversation[]
+  calls           Call[]
+  emailSends      EmailSend[]
+  notes           Note[]
+  formSubmissions FormSubmission[]
 
   @@unique([organizationId, email])
   @@index([organizationId, deletedAt])
@@ -917,12 +923,12 @@ model Contact {
 }
 
 model Lead {
-  id             String     @id @default(uuid(7))
-  organizationId String     @map("organization_id")
-  contactId      String?    @map("contact_id")
-  companyId      String?    @map("company_id")
-  ownerId        String?    @map("owner_id")
-  campaignId     String?    @map("campaign_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  contactId      String? @map("contact_id")
+  companyId      String? @map("company_id")
+  ownerId        String? @map("owner_id")
+  campaignId     String? @map("campaign_id")
 
   status LeadStatus @default(NEW)
   score  Int        @default(0)
@@ -943,13 +949,14 @@ model Lead {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  company      Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  owner        User?        @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
-  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  deals        Deal[]
-  activities   Activity[]
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact         Contact?         @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company         Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner           User?            @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  deals           Deal[]
+  activities      Activity[]
+  formSubmissions FormSubmission[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, status, score])
@@ -997,14 +1004,14 @@ model PipelineStage {
 }
 
 model Deal {
-  id             String     @id @default(uuid(7))
-  organizationId String     @map("organization_id")
-  pipelineId     String     @map("pipeline_id")
-  stageId        String     @map("stage_id")
-  contactId      String?    @map("contact_id")
-  companyId      String?    @map("company_id")
-  leadId         String?    @map("lead_id")
-  ownerId        String?    @map("owner_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  pipelineId     String  @map("pipeline_id")
+  stageId        String  @map("stage_id")
+  contactId      String? @map("contact_id")
+  companyId      String? @map("company_id")
+  leadId         String? @map("lead_id")
+  ownerId        String? @map("owner_id")
 
   title       String
   value       Decimal    @default(0) @db.Decimal(14, 2)
@@ -1083,7 +1090,7 @@ model Task {
   dueAt          DateTime?  @map("due_at")
   completedAt    DateTime?  @map("completed_at")
 
-  assigneeId String? @map("assignee_id")
+  assigneeId  String? @map("assignee_id")
   createdById String? @map("created_by_id")
 
   // Set when an agent proposed the task, so provenance survives
@@ -1272,14 +1279,14 @@ model ContentDocument {
 }
 
 model ContentRevision {
-  id        String   @id @default(uuid(7))
-  documentId String  @map("document_id")
-  version   Int
-  body      Json?
-  plainText String?  @map("plain_text")
-  changeNote String? @map("change_note")
-  authorId  String?  @map("author_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid(7))
+  documentId String   @map("document_id")
+  version    Int
+  body       Json?
+  plainText  String?  @map("plain_text")
+  changeNote String?  @map("change_note")
+  authorId   String?  @map("author_id")
+  createdAt  DateTime @default(now()) @map("created_at")
 
   document ContentDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   author   User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
@@ -1319,24 +1326,24 @@ model MediaAsset {
   mimeType String? @map("mime_type")
 
   // Cloudflare R2
-  storageKey String  @map("storage_key")
-  url        String?
+  storageKey   String  @map("storage_key")
+  url          String?
   thumbnailUrl String? @map("thumbnail_url")
-  sizeBytes  BigInt? @map("size_bytes")
-  width      Int?
-  height     Int?
-  durationMs Int?    @map("duration_ms")
-  checksum   String?
+  sizeBytes    BigInt? @map("size_bytes")
+  width        Int?
+  height       Int?
+  durationMs   Int?    @map("duration_ms")
+  checksum     String?
 
   // Populated when generated rather than uploaded
-  prompt          String?
-  negativePrompt  String?     @map("negative_prompt")
-  generatedBy     AgentId?    @map("generated_by")
+  prompt            String?
+  negativePrompt    String?     @map("negative_prompt")
+  generatedBy       AgentId?    @map("generated_by")
   generatorProvider AiProvider? @map("generator_provider")
-  generatorModel  String?     @map("generator_model")
-  agentRunId      String?     @map("agent_run_id")
-  generationParams Json?      @map("generation_params")
-  failureReason   String?     @map("failure_reason")
+  generatorModel    String?     @map("generator_model")
+  agentRunId        String?     @map("agent_run_id")
+  generationParams  Json?       @map("generation_params")
+  failureReason     String?     @map("failure_reason")
 
   uploadedById String?  @map("uploaded_by_id")
   brandKitId   String?  @map("brand_kit_id")
@@ -1359,10 +1366,10 @@ model MediaAsset {
 }
 
 model BrandKit {
-  id             String    @id @default(uuid(7))
-  organizationId String    @map("organization_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
   name           String
-  isDefault      Boolean   @default(false) @map("is_default")
+  isDefault      Boolean @default(false) @map("is_default")
 
   primaryColor   String?  @map("primary_color")
   secondaryColor String?  @map("secondary_color")
@@ -1416,12 +1423,12 @@ model EmailCampaign {
   agentRunId  String?  @map("agent_run_id")
 
   // Denormalised counters, updated by the analytics rollup worker
-  recipientCount Int @default(0) @map("recipient_count")
-  sentCount      Int @default(0) @map("sent_count")
-  deliveredCount Int @default(0) @map("delivered_count")
-  openCount      Int @default(0) @map("open_count")
-  clickCount     Int @default(0) @map("click_count")
-  bounceCount    Int @default(0) @map("bounce_count")
+  recipientCount   Int @default(0) @map("recipient_count")
+  sentCount        Int @default(0) @map("sent_count")
+  deliveredCount   Int @default(0) @map("delivered_count")
+  openCount        Int @default(0) @map("open_count")
+  clickCount       Int @default(0) @map("click_count")
+  bounceCount      Int @default(0) @map("bounce_count")
   unsubscribeCount Int @default(0) @map("unsubscribe_count")
 
   createdAt DateTime  @default(now()) @map("created_at")
@@ -1450,7 +1457,7 @@ model EmailSequence {
   updatedAt      DateTime       @updatedAt @map("updated_at")
   deletedAt      DateTime?      @map("deleted_at")
 
-  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   steps        EmailSequenceStep[]
   enrollments  EmailSequenceEnrollment[]
 
@@ -1473,8 +1480,8 @@ model EmailSequenceStep {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sequence    EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
-  emailSends  EmailSend[]
+  sequence   EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  emailSends EmailSend[]
 
   @@unique([sequenceId, position])
   @@index([sequenceId])
@@ -1500,11 +1507,11 @@ model EmailSequenceEnrollment {
 }
 
 model EmailSend {
-  id              String          @id @default(uuid(7))
-  organizationId  String          @map("organization_id")
-  emailCampaignId String?         @map("email_campaign_id")
-  sequenceStepId  String?         @map("sequence_step_id")
-  contactId       String?         @map("contact_id")
+  id              String  @id @default(uuid(7))
+  organizationId  String  @map("organization_id")
+  emailCampaignId String? @map("email_campaign_id")
+  sequenceStepId  String? @map("sequence_step_id")
+  contactId       String? @map("contact_id")
 
   toEmail String          @map("to_email") @db.Citext
   subject String
@@ -1540,11 +1547,11 @@ model Conversation {
   channel        ConversationChannel
   contactId      String?             @map("contact_id")
 
-  externalId  String? @map("external_id")
-  subject     String?
-  lastMessageAt DateTime? @map("last_message_at")
-  lastMessagePreview String? @map("last_message_preview")
-  unreadCount Int     @default(0) @map("unread_count")
+  externalId         String?   @map("external_id")
+  subject            String?
+  lastMessageAt      DateTime? @map("last_message_at")
+  lastMessagePreview String?   @map("last_message_preview")
+  unreadCount        Int       @default(0) @map("unread_count")
 
   isOpen     Boolean  @default(true) @map("is_open")
   assignedTo AgentId? @map("assigned_to")
@@ -1570,9 +1577,9 @@ model Message {
   direction      MessageDirection
   status         MessageStatus    @default(QUEUED)
 
-  body        String?
-  mediaUrls   String[] @default([]) @map("media_urls")
-  externalId  String?  @map("external_id")
+  body       String?
+  mediaUrls  String[] @default([]) @map("media_urls")
+  externalId String?  @map("external_id")
 
   // Set when an agent authored the outbound message
   sentByAgent AgentId? @map("sent_by_agent")
@@ -1648,10 +1655,10 @@ model PhoneNumber {
 }
 
 model Call {
-  id             String        @id @default(uuid(7))
-  organizationId String        @map("organization_id")
-  phoneNumberId  String?       @map("phone_number_id")
-  contactId      String?       @map("contact_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  phoneNumberId  String? @map("phone_number_id")
+  contactId      String? @map("contact_id")
 
   direction CallDirection
   status    CallStatus    @default(QUEUED)
@@ -1683,10 +1690,10 @@ model Call {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  phoneNumber  PhoneNumber?  @relation(fields: [phoneNumberId], references: [id], onDelete: SetNull)
-  contact      Contact?      @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  agentRun     AgentRun?     @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  phoneNumber  PhoneNumber? @relation(fields: [phoneNumberId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  agentRun     AgentRun?    @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
   appointment  Appointment?
 
   @@index([organizationId, status, startedAt])
@@ -1702,18 +1709,18 @@ model SocialAccount {
   id             String            @id @default(uuid(7))
   organizationId String            @map("organization_id")
   platform       ChannelType
-  status          IntegrationStatus @default(CONNECTED)
+  status         IntegrationStatus @default(CONNECTED)
 
-  externalId     String  @map("external_id")
-  handle         String?
-  displayName    String? @map("display_name")
-  avatarUrl      String? @map("avatar_url")
-  followerCount  Int?    @map("follower_count")
+  externalId    String  @map("external_id")
+  handle        String?
+  displayName   String? @map("display_name")
+  avatarUrl     String? @map("avatar_url")
+  followerCount Int?    @map("follower_count")
 
   // Credentials are stored via ProviderCredential, never here in plaintext
-  credentialId String?   @map("credential_id")
+  credentialId   String?   @map("credential_id")
   tokenExpiresAt DateTime? @map("token_expires_at")
-  lastSyncedAt DateTime? @map("last_synced_at")
+  lastSyncedAt   DateTime? @map("last_synced_at")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -1734,9 +1741,9 @@ model SocialPost {
   campaignId     String?          @map("campaign_id")
   status         SocialPostStatus @default(DRAFT)
 
-  body      String
-  mediaIds  String[]  @default([]) @map("media_ids")
-  hashtags  String[]  @default([])
+  body        String
+  mediaIds    String[]  @default([]) @map("media_ids")
+  hashtags    String[]  @default([])
   scheduledAt DateTime? @map("scheduled_at")
   publishedAt DateTime? @map("published_at")
 
@@ -1763,17 +1770,17 @@ model SocialPostTarget {
   socialAccountId String           @map("social_account_id")
   status          SocialPostStatus @default(DRAFT)
 
-  externalPostId String? @map("external_post_id")
+  externalPostId String?   @map("external_post_id")
   permalink      String?
-  failureReason  String? @map("failure_reason")
+  failureReason  String?   @map("failure_reason")
   publishedAt    DateTime? @map("published_at")
 
   // Engagement, refreshed by the ingestion worker
-  impressions Int @default(0)
-  likes       Int @default(0)
-  comments    Int @default(0)
-  shares      Int @default(0)
-  clicks      Int @default(0)
+  impressions       Int       @default(0)
+  likes             Int       @default(0)
+  comments          Int       @default(0)
+  shares            Int       @default(0)
+  clicks            Int       @default(0)
   lastMetricsSyncAt DateTime? @map("last_metrics_sync_at")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -1798,8 +1805,8 @@ model Workflow {
   description    String?
   status         WorkflowStatus @default(DRAFT)
 
-  triggerType   String  @map("trigger_type")
-  triggerConfig Json?   @map("trigger_config")
+  triggerType    String  @map("trigger_type")
+  triggerConfig  Json?   @map("trigger_config")
   cronExpression String? @map("cron_expression")
 
   activeVersion Int @default(1) @map("active_version")
@@ -1849,9 +1856,9 @@ model WorkflowRun {
   versionId      String    @map("version_id")
   status         RunStatus @default(PENDING)
 
-  triggeredBy  ActorType @default(SYSTEM) @map("triggered_by")
-  triggerPayload Json?   @map("trigger_payload")
-  context      Json?
+  triggeredBy    ActorType @default(SYSTEM) @map("triggered_by")
+  triggerPayload Json?     @map("trigger_payload")
+  context        Json?
 
   error       String?
   startedAt   DateTime? @map("started_at")
@@ -1910,11 +1917,11 @@ model AgentRun {
   agentId        AgentId
   status         RunStatus @default(PENDING)
 
-  goal      String
-  input     Json?
-  plan      Json?
-  result    Json?
-  error     String?
+  goal   String
+  input  Json?
+  plan   Json?
+  result Json?
+  error  String?
 
   // Delegation tree: the CMO fans out to specialists, each a child run
   parentRunId String? @map("parent_run_id")
@@ -1938,21 +1945,21 @@ model AgentRun {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  initiatedByUser   User?             @relation(fields: [initiatedByUserId], references: [id], onDelete: SetNull)
-  parentRun         AgentRun?         @relation("AgentRunHierarchy", fields: [parentRunId], references: [id], onDelete: Cascade)
-  childRuns         AgentRun[]        @relation("AgentRunHierarchy")
-  steps             AgentRunStep[]
-  toolCalls         ToolCall[]
-  aiUsage           AiUsage[]
-  campaigns         Campaign[]
-  contentDocuments  ContentDocument[]
-  mediaAssets       MediaAsset[]
-  emailCampaigns    EmailCampaign[]
-  socialPosts       SocialPost[]
-  messages          Message[]
-  calls             Call[]
-  tasks             Task[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  initiatedByUser  User?             @relation(fields: [initiatedByUserId], references: [id], onDelete: SetNull)
+  parentRun        AgentRun?         @relation("AgentRunHierarchy", fields: [parentRunId], references: [id], onDelete: Cascade)
+  childRuns        AgentRun[]        @relation("AgentRunHierarchy")
+  steps            AgentRunStep[]
+  toolCalls        ToolCall[]
+  aiUsage          AiUsage[]
+  campaigns        Campaign[]
+  contentDocuments ContentDocument[]
+  mediaAssets      MediaAsset[]
+  emailCampaigns   EmailCampaign[]
+  socialPosts      SocialPost[]
+  messages         Message[]
+  calls            Call[]
+  tasks            Task[]
 
   @@index([organizationId, status, createdAt])
   @@index([organizationId, agentId, createdAt])
@@ -1993,10 +2000,10 @@ model AgentRunStep {
 }
 
 model ToolCall {
-  id      String    @id @default(uuid(7))
-  runId   String    @map("run_id")
-  stepId  String?   @map("step_id")
-  agentId AgentId   @map("agent_id")
+  id      String  @id @default(uuid(7))
+  runId   String  @map("run_id")
+  stepId  String? @map("step_id")
+  agentId AgentId @map("agent_id")
 
   toolName String    @map("tool_name")
   input    Json
@@ -2026,15 +2033,15 @@ model ToolCall {
 }
 
 model AiUsage {
-  id             String       @id @default(uuid(7))
-  organizationId String       @map("organization_id")
-  agentRunId     String?      @map("agent_run_id")
-  userId         String?      @map("user_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  agentRunId     String? @map("agent_run_id")
+  userId         String? @map("user_id")
 
-  kind     ProviderKind
-  provider AiProvider
-  model    String
-  operation String      @map("operation")
+  kind      ProviderKind
+  provider  AiProvider
+  model     String
+  operation String       @map("operation")
 
   inputTokens  Int     @default(0) @map("input_tokens")
   outputTokens Int     @default(0) @map("output_tokens")
@@ -2249,21 +2256,21 @@ model Template {
   // Null for platform-published templates available to every tenant
   organizationId String? @map("organization_id")
 
-  name        String
-  slug        String  @unique @db.Citext
-  description String?
-  category    String
-  kind        String
+  name         String
+  slug         String  @unique @db.Citext
+  description  String?
+  category     String
+  kind         String
   thumbnailUrl String? @map("thumbnail_url")
 
   // Portable definition — campaign strategy, workflow graph, content set
   payload Json
-  version Int    @default(1)
+  version Int  @default(1)
 
-  isPublic    Boolean @default(false) @map("is_public")
-  isFeatured  Boolean @default(false) @map("is_featured")
-  installCount Int    @default(0) @map("install_count")
-  tags        String[] @default([])
+  isPublic     Boolean  @default(false) @map("is_public")
+  isFeatured   Boolean  @default(false) @map("is_featured")
+  installCount Int      @default(0) @map("install_count")
+  tags         String[] @default([])
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -2278,13 +2285,13 @@ model Template {
 }
 
 model TemplateInstall {
-  id             String   @id @default(uuid(7))
-  organizationId String   @map("organization_id")
-  templateId     String   @map("template_id")
-  templateVersion Int     @map("template_version")
+  id              String   @id @default(uuid(7))
+  organizationId  String   @map("organization_id")
+  templateId      String   @map("template_id")
+  templateVersion Int      @map("template_version")
   // What the install created, so it can be traced or rolled back
-  createdRefs    Json?    @map("created_refs")
-  installedAt    DateTime @default(now()) @map("installed_at")
+  createdRefs     Json?    @map("created_refs")
+  installedAt     DateTime @default(now()) @map("installed_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   template     Template     @relation(fields: [templateId], references: [id], onDelete: Cascade)
@@ -2308,25 +2315,25 @@ model ProviderCredential {
   // Envelope encryption: AES-256-GCM ciphertext, its IV and auth tag, plus the
   // wrapped data key. Plaintext never touches this table and is never returned
   // by any API — only a masked hint is exposed.
-  ciphertext    Bytes
-  iv            Bytes
-  authTag       Bytes  @map("auth_tag")
-  wrappedKey    Bytes  @map("wrapped_key")
-  keyVersion    Int    @default(1) @map("key_version")
-  maskedHint    String? @map("masked_hint")
+  ciphertext Bytes
+  iv         Bytes
+  authTag    Bytes   @map("auth_tag")
+  wrappedKey Bytes   @map("wrapped_key")
+  keyVersion Int     @default(1) @map("key_version")
+  maskedHint String? @map("masked_hint")
 
-  isActive     Boolean   @default(true) @map("is_active")
-  lastUsedAt   DateTime? @map("last_used_at")
+  isActive       Boolean   @default(true) @map("is_active")
+  lastUsedAt     DateTime? @map("last_used_at")
   lastVerifiedAt DateTime? @map("last_verified_at")
-  expiresAt    DateTime? @map("expires_at")
-  rotatedAt    DateTime? @map("rotated_at")
+  expiresAt      DateTime? @map("expires_at")
+  rotatedAt      DateTime? @map("rotated_at")
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  socialAccounts SocialAccount[]
+  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  socialAccounts         SocialAccount[]
   providerConfigurations ProviderConfiguration[]
 
   @@unique([organizationId, kind, provider, label])
@@ -2340,10 +2347,10 @@ model IntegrationConnection {
   provider       IntegrationProvider
   status         IntegrationStatus   @default(CONNECTED)
 
-  externalAccountId String? @map("external_account_id")
-  displayName       String? @map("display_name")
+  externalAccountId String?  @map("external_account_id")
+  displayName       String?  @map("display_name")
   scopes            String[] @default([])
-  credentialId      String? @map("credential_id")
+  credentialId      String?  @map("credential_id")
 
   connectedById String?   @map("connected_by_id")
   lastSyncedAt  DateTime? @map("last_synced_at")
@@ -2378,11 +2385,11 @@ model OutboxEvent {
   correlationId String? @map("correlation_id")
   causationId   String? @map("causation_id")
 
-  status      OutboxStatus @default(PENDING)
-  attempts    Int          @default(0)
-  lastError   String?      @map("last_error")
-  availableAt DateTime     @default(now()) @map("available_at")
-  dispatchedAt DateTime?   @map("dispatched_at")
+  status       OutboxStatus @default(PENDING)
+  attempts     Int          @default(0)
+  lastError    String?      @map("last_error")
+  availableAt  DateTime     @default(now()) @map("available_at")
+  dispatchedAt DateTime?    @map("dispatched_at")
 
   occurredAt DateTime @default(now()) @map("occurred_at")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -2409,7 +2416,7 @@ model Webhook {
   updatedAt      DateTime  @updatedAt @map("updated_at")
   deletedAt      DateTime? @map("deleted_at")
 
-  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   deliveries   WebhookDelivery[]
 
   @@index([organizationId, isActive])
@@ -2442,8 +2449,8 @@ model WebhookDelivery {
 /// Append-only. Never updated, never deleted — enforced by a trigger in the
 /// row-level-security migration.
 model AuditLog {
-  id             String    @id @default(uuid(7))
-  organizationId String    @map("organization_id")
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
 
   actorType ActorType @map("actor_type")
   userId    String?   @map("user_id")
@@ -2478,10 +2485,10 @@ model Notification {
   userId         String?           @map("user_id")
   level          NotificationLevel @default(INFO)
 
-  title    String
-  body     String?
+  title     String
+  body      String?
   actionUrl String? @map("action_url")
-  metadata Json?
+  metadata  Json?
 
   readAt    DateTime? @map("read_at")
   createdAt DateTime  @default(now()) @map("created_at")
@@ -2502,9 +2509,9 @@ model IdempotencyKey {
   key            String
   scope          String
 
-  requestHash    String  @map("request_hash")
-  responseStatus Int?    @map("response_status")
-  responseBody   Json?   @map("response_body")
+  requestHash    String    @map("request_hash")
+  responseStatus Int?      @map("response_status")
+  responseBody   Json?     @map("response_body")
   lockedAt       DateTime? @map("locked_at")
 
   expiresAt DateTime @map("expires_at")
@@ -2531,20 +2538,20 @@ model IdempotencyKey {
 /// Platform-global. A named bundle of features + default limits, synced from the
 /// built-in PLANS registry and extendable with bespoke rows by a platform admin.
 model Plan {
-  id           String   @id @default(uuid(7))
+  id              String  @id @default(uuid(7))
   // Stable key matching the code registry (starter/growth/...) for built-ins, or
   // a generated key for custom plans.
-  key          String   @unique
-  name         String
-  description  String?
+  key             String  @unique
+  name            String
+  description     String?
   monthlyPriceUsd Decimal @default(0) @map("monthly_price_usd") @db.Decimal(12, 2)
   yearlyPriceUsd  Decimal @default(0) @map("yearly_price_usd") @db.Decimal(12, 2)
   customPricing   Boolean @default(false) @map("custom_pricing")
   // Default limits for this plan, by metric id. Copied to OrganizationLimit on
   // assignment, then independently overridable.
-  defaultLimits Json?   @map("default_limits")
-  isBuiltIn     Boolean @default(false) @map("is_built_in")
-  isActive      Boolean @default(true) @map("is_active")
+  defaultLimits   Json?   @map("default_limits")
+  isBuiltIn       Boolean @default(false) @map("is_built_in")
+  isActive        Boolean @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2680,15 +2687,15 @@ model AgentAssignment {
 /// Per-organisation custom agent — a bespoke AI employee defined for one client
 /// without touching the code roster.
 model CustomAgent {
-  id             String  @id @default(uuid(7))
-  organizationId String  @map("organization_id")
+  id             String   @id @default(uuid(7))
+  organizationId String   @map("organization_id")
   key            String
   role           String
-  systemPrompt   String  @map("system_prompt")
+  systemPrompt   String   @map("system_prompt")
   // Tool ids and model requirements, validated against the tool registry.
   toolKeys       String[] @default([]) @map("tool_keys")
   requirements   Json?
-  isActive       Boolean @default(true) @map("is_active")
+  isActive       Boolean  @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2701,8 +2708,8 @@ model CustomAgent {
 
 /// Per-organisation white-label branding. One row per organisation.
 model Branding {
-  id             String  @id @default(uuid(7))
-  organizationId String  @unique @map("organization_id")
+  id             String @id @default(uuid(7))
+  organizationId String @unique @map("organization_id")
 
   logoUrl        String? @map("logo_url")
   logoDarkUrl    String? @map("logo_dark_url")
@@ -2715,16 +2722,16 @@ model Branding {
   bodyFont       String? @map("body_font")
 
   // Custom domain the workspace is served from; resolved to the org at request time.
-  customDomain   String? @unique @map("custom_domain")
+  customDomain           String?   @unique @map("custom_domain")
   customDomainVerifiedAt DateTime? @map("custom_domain_verified_at")
 
   // AI personality and prompt variables injected into every agent for this org.
-  aiPersonality  String? @map("ai_personality")
-  promptVariables Json?  @map("prompt_variables")
+  aiPersonality   String? @map("ai_personality")
+  promptVariables Json?   @map("prompt_variables")
 
-  emailFromName  String? @map("email_from_name")
-  emailFooter    String? @map("email_footer")
-  loginTagline   String? @map("login_tagline")
+  emailFromName String? @map("email_from_name")
+  emailFooter   String? @map("email_footer")
+  loginTagline  String? @map("login_tagline")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2741,14 +2748,14 @@ model Branding {
 
 /// Platform operator. Authenticates against the /platform surface only.
 model PlatformAdmin {
-  id            String            @id @default(uuid(7))
-  email         String            @unique @db.Citext
-  name          String
-  passwordHash  String            @map("password_hash")
-  role          PlatformAdminRole @default(OPERATOR)
-  isActive      Boolean           @default(true) @map("is_active")
-  lastLoginAt   DateTime?         @map("last_login_at")
-  twoFactorEnabled Boolean        @default(false) @map("two_factor_enabled")
+  id               String            @id @default(uuid(7))
+  email            String            @unique @db.Citext
+  name             String
+  passwordHash     String            @map("password_hash")
+  role             PlatformAdminRole @default(OPERATOR)
+  isActive         Boolean           @default(true) @map("is_active")
+  lastLoginAt      DateTime?         @map("last_login_at")
+  twoFactorEnabled Boolean           @default(false) @map("two_factor_enabled")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -2761,16 +2768,16 @@ model PlatformAdmin {
 /// Append-only audit of every platform-admin action, kept separate from the
 /// tenant audit log. Records which admin did what to which organisation.
 model PlatformAuditLog {
-  id             String  @id @default(uuid(7))
-  platformAdminId String @map("platform_admin_id")
-  action         String
+  id                   String  @id @default(uuid(7))
+  platformAdminId      String  @map("platform_admin_id")
+  action               String
   // The organisation acted upon, when applicable.
   targetOrganizationId String? @map("target_organization_id")
-  resourceType   String  @map("resource_type")
-  resourceId     String? @map("resource_id")
-  before         Json?
-  after          Json?
-  ipAddress      String? @map("ip_address")
+  resourceType         String  @map("resource_type")
+  resourceId           String? @map("resource_id")
+  before               Json?
+  after                Json?
+  ipAddress            String? @map("ip_address")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -2812,7 +2819,9 @@ enum AssetKind {
   @@map("asset_kind")
 }
 
-/** The full review→publish lifecycle for a generated marketing asset. */
+/**
+ * The full review→publish lifecycle for a generated marketing asset.
+ */
 enum AssetStatus {
   DRAFT
   GENERATED
@@ -2828,20 +2837,20 @@ enum AssetStatus {
 }
 
 model CampaignAsset {
-  id             String        @id @default(uuid(7))
-  organizationId String        @map("organization_id")
-  campaignId     String?       @map("campaign_id")
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  campaignId     String? @map("campaign_id")
 
   platform AssetPlatform @default(GENERIC)
   kind     AssetKind     @default(POST)
   status   AssetStatus   @default(GENERATED)
 
   title    String?
-  body     String        @default("")
+  body     String   @default("")
   caption  String?
-  hashtags String[]      @default([])
+  hashtags String[] @default([])
   cta      String?
-  mediaUrl String?       @map("media_url")
+  mediaUrl String?  @map("media_url")
 
   // Prior AI generations kept so a reviewer can compare/restore versions.
   aiVersions Json? @map("ai_versions")
@@ -2883,4 +2892,170 @@ model CampaignAssetComment {
 
   @@index([organizationId, assetId])
   @@map("campaign_asset_comment")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEAD CAPTURE — public forms that create CRM leads
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum PublishState {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+model LeadForm {
+  id             String       @id @default(uuid(7))
+  organizationId String       @map("organization_id")
+  name           String
+  // Public slug the hosted form and embed script resolve by. Unique per org.
+  slug           String
+  status         PublishState @default(DRAFT)
+
+  // Ordered field definitions: [{ key, label, type, required, options?, placeholder? }]
+  fields Json @default("[]")
+
+  // Presentation + behaviour
+  headline       String?
+  description    String?
+  submitLabel    String? @map("submit_label")
+  successMessage String? @map("success_message")
+  redirectUrl    String? @map("redirect_url")
+  accentColor    String? @map("accent_color")
+
+  // Where captured leads land
+  pipelineId String?  @map("pipeline_id")
+  ownerId    String?  @map("owner_id")
+  tags       String[] @default([])
+
+  submitCount Int @default(0) @map("submit_count")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submissions  FormSubmission[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status, deletedAt])
+  @@map("lead_form")
+}
+
+model FormSubmission {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  formId         String @map("form_id")
+
+  data      Json
+  contactId String? @map("contact_id")
+  leadId    String? @map("lead_id")
+
+  // Light attribution, captured server-side at submit time.
+  ipAddress String? @map("ip_address")
+  userAgent String? @map("user_agent")
+  referrer  String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  form         LeadForm     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, formId])
+  @@index([organizationId, createdAt])
+  @@map("form_submission")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LANDING PAGES — block-based pages published to a public URL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model LandingPage {
+  id             String       @id @default(uuid(7))
+  organizationId String       @map("organization_id")
+  name           String
+  slug           String
+  status         PublishState @default(DRAFT)
+
+  title          String?
+  // Ordered content blocks: [{ type, ...props }] — hero, features, cta, form, richText…
+  blocks         Json    @default("[]")
+  theme          Json?
+  seoTitle       String? @map("seo_title")
+  seoDescription String? @map("seo_description")
+  ogImageUrl     String? @map("og_image_url")
+
+  // Optional lead form embedded on the page
+  formId String? @map("form_id")
+
+  visitCount  Int       @default(0) @map("visit_count")
+  publishedAt DateTime? @map("published_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status, deletedAt])
+  @@map("landing_page")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SUPPORT — internal ticketing
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model SupportTicket {
+  id             String       @id @default(uuid(7))
+  organizationId String       @map("organization_id")
+  subject        String
+  body           String
+  status         TicketStatus @default(OPEN)
+  priority       Priority     @default(MEDIUM)
+
+  requesterId    String? @map("requester_id")
+  requesterEmail String? @map("requester_email")
+  assigneeId     String? @map("assignee_id")
+
+  contactId String? @map("contact_id")
+
+  resolvedAt DateTime? @map("resolved_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  comments     SupportTicketComment[]
+
+  @@index([organizationId, status, deletedAt])
+  @@index([organizationId, assigneeId])
+  @@map("support_ticket")
+}
+
+model SupportTicketComment {
+  id             String   @id @default(uuid(7))
+  organizationId String   @map("organization_id")
+  ticketId       String   @map("ticket_id")
+  authorId       String?  @map("author_id")
+  body           String
+  // Internal notes are hidden from the requester in a customer-facing view.
+  internal       Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ticket       SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, ticketId])
+  @@map("support_ticket_comment")
 }

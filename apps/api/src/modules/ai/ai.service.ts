@@ -123,6 +123,27 @@ export class AiService {
   }
 
   /**
+   * The platform-managed OpenAI key for image generation. Read ONLY from the
+   * environment — never the database, never the user — exactly like `platformKey()`.
+   * Returns null when the operator has not configured the server, which the caller
+   * surfaces as a generic "AI unavailable" error.
+   */
+  platformImageKey(): { apiKey: string } | null {
+    return this.platformOpenAiKey()
+  }
+
+  /** The platform-managed OpenAI key for text-to-speech. See {@link platformImageKey}. */
+  platformVoiceKey(): { apiKey: string } | null {
+    return this.platformOpenAiKey()
+  }
+
+  private platformOpenAiKey(): { apiKey: string } | null {
+    const env = loadEnv()
+    if (!env.OPENAI_API_KEY) return null
+    return { apiKey: env.OPENAI_API_KEY }
+  }
+
+  /**
    * Writes an `ai_usage` row. Best-effort by contract: a ledger failure must never
    * turn a successful completion into an error for the user, and a provider without
    * an `AiProvider` enum member is simply skipped.

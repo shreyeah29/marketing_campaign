@@ -126,6 +126,169 @@ export class AnalyticsController {
       })),
     }
   }
+
+  @Get('overview')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Consolidated headline counts for the dashboard' })
+  async overview(): Promise<unknown> {
+    const [
+      contacts,
+      leads,
+      qualifiedLeads,
+      deals,
+      openDeals,
+      wonDeals,
+      campaigns,
+      activeCampaigns,
+      assetsGenerated,
+      assetsApproved,
+      workflowRuns,
+      emailAgg,
+      aiSpend,
+    ] = await withTenantTransaction(this.db, (tx) =>
+      Promise.all([
+        tx.contact.count({ where: { deletedAt: null } }),
+        tx.lead.count({ where: { deletedAt: null } }),
+        tx.lead.count({ where: { status: 'QUALIFIED', deletedAt: null } }),
+        tx.deal.count({ where: { deletedAt: null } }),
+        tx.deal.count({ where: { status: 'OPEN', deletedAt: null } }),
+        tx.deal.count({ where: { status: 'WON', deletedAt: null } }),
+        tx.campaign.count({ where: { deletedAt: null } }),
+        tx.campaign.count({ where: { status: 'ACTIVE', deletedAt: null } }),
+        tx.campaignAsset.count({ where: { status: 'GENERATED', deletedAt: null } }),
+        tx.campaignAsset.count({ where: { status: 'APPROVED', deletedAt: null } }),
+        tx.workflowRun.count(),
+        tx.emailCampaign.aggregate({ _sum: { sentCount: true }, where: { deletedAt: null } }),
+        tx.aiUsage.aggregate({ _sum: { costUsd: true } }),
+      ]),
+    )
+
+    return {
+      contacts,
+      leads,
+      qualifiedLeads,
+      deals,
+      openDeals,
+      wonDeals,
+      campaigns,
+      activeCampaigns,
+      assetsGenerated,
+      assetsApproved,
+      workflowRuns,
+      emailsSent: emailAgg._sum.sentCount ?? 0,
+      aiSpendUsd: aiSpend._sum.costUsd?.toString() ?? '0',
+    }
+  }
+
+  @Get('leads-funnel')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Lead counts grouped by status, in funnel order' })
+  async leadsFunnel(): Promise<{ stage: string; count: number }[]> {
+    // The canonical funnel order. Every stage is emitted even when empty so the
+    // chart shows a complete funnel, not just the stages that happen to have rows.
+    const ORDER = ['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED'] as const
+
+    const grouped = await withTenantTransaction(this.db, (tx) =>
+      tx.lead.groupBy({ by: ['status'], _count: { _all: true }, where: { deletedAt: null } }),
+    )
+
+    const counts = new Map(grouped.map((g) => [g.status, g._count._all]))
+    return ORDER.map((stage) => ({ stage, count: counts.get(stage) ?? 0 }))
+  }
+
+  @Get('timeseries')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Daily leads, deals and revenue for the last N days' })
+  async timeseries(
+    @Query('days') daysRaw: string | undefined,
+  ): Promise<{ days: { date: string; leads: number; deals: number; revenue: string }[] }> {
+    const parsed = Number(daysRaw)
+    // Default 30, cap at 90, floor at 1. A hostile ?days=99999 can't force an
+    // unbounded scan.
+    const days = Number.isFinite(parsed) ? Math.min(90, Math.max(1, Math.trunc(parsed))) : 30
+
+    // Build the inclusive [start, today] window in UTC so day bucketing lines up
+    // with the 'YYYY-MM-DD' keys regardless of server timezone.
+    const today = new Date()
+    const start = new Date(
+      Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()),
+    )
+    start.setUTCDate(start.getUTCDate() - (days - 1))
+
+    const [leadRows, dealRows] = await withTenantTransaction(this.db, (tx) =>
+      Promise.all([
+        tx.lead.findMany({
+          where: { deletedAt: null, createdAt: { gte: start } },
+          select: { createdAt: true },
+        }),
+        tx.deal.findMany({
+          where: { deletedAt: null, createdAt: { gte: start } },
+          select: { createdAt: true, value: true },
+        }),
+      ]),
+    )
+
+    const dayKey = (d: Date): string => d.toISOString().slice(0, 10)
+
+    // Seed every day in the range with zeros, then fold the rows in.
+    const buckets = new Map<string, { leads: number; deals: number; revenue: number }>()
+    for (let i = 0; i < days; i += 1) {
+      const d = new Date(start)
+      d.setUTCDate(d.getUTCDate() + i)
+      buckets.set(dayKey(d), { leads: 0, deals: 0, revenue: 0 })
+    }
+
+    for (const row of leadRows) {
+      const b = buckets.get(dayKey(row.createdAt))
+      if (b) b.leads += 1
+    }
+    for (const row of dealRows) {
+      const b = buckets.get(dayKey(row.createdAt))
+      if (b) {
+        b.deals += 1
+        b.revenue += Number(row.value)
+      }
+    }
+
+    return {
+      days: Array.from(buckets.entries()).map(([date, v]) => ({
+        date,
+        leads: v.leads,
+        deals: v.deals,
+        revenue: v.revenue.toFixed(2),
+      })),
+    }
+  }
+
+  @Get('channel-performance')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Email engagement and social asset volume by platform' })
+  async channelPerformance(): Promise<unknown> {
+    const [email, assetsByPlatform] = await withTenantTransaction(this.db, (tx) =>
+      Promise.all([
+        tx.emailCampaign.aggregate({
+          _sum: { sentCount: true, openCount: true, clickCount: true },
+          where: { deletedAt: null },
+        }),
+        tx.campaignAsset.groupBy({
+          by: ['platform'],
+          _count: { _all: true },
+          where: { deletedAt: null },
+        }),
+      ]),
+    )
+
+    return {
+      email: {
+        sent: email._sum.sentCount ?? 0,
+        opened: email._sum.openCount ?? 0,
+        clicked: email._sum.clickCount ?? 0,
+      },
+      social: assetsByPlatform
+        .map((row) => ({ platform: row.platform, assets: row._count._all }))
+        .sort((a, b) => b.assets - a.assets),
+    }
+  }
 }
 
 /**

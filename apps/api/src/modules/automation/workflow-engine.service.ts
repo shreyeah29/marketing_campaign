@@ -124,6 +124,65 @@ export class WorkflowEngineService {
     return matches.length
   }
 
+  /**
+   * Like {@link fireEvent} but keyed by organisation id rather than a Principal —
+   * for event sources with no authenticated user, such as an anonymous visitor
+   * submitting a public lead-capture form. The organisation is trusted because it
+   * was resolved server-side from the form's own record, never from the request.
+   */
+  async fireEventForOrg(
+    organizationId: string,
+    event: string,
+    payload: Record<string, unknown>,
+  ): Promise<number> {
+    const context = { organizationId }
+    const matches = await withTenantTransaction(
+      this.db,
+      (tx) =>
+        tx.workflow.findMany({
+          where: { deletedAt: null, status: 'ACTIVE', triggerType: event },
+          select: { id: true },
+        }),
+      context,
+    )
+    for (const wf of matches) {
+      try {
+        const runId = await withTenantTransaction(
+          this.db,
+          async (tx) => {
+            const workflow = await tx.workflow.findFirst({ where: { id: wf.id, deletedAt: null } })
+            if (!workflow) throw new NotFoundException('Workflow not found')
+            const version = await tx.workflowVersion.findFirst({
+              where: { workflowId: wf.id, version: workflow.activeVersion },
+            })
+            if (!version) throw new NotFoundException('Workflow has no saved version to run')
+            const run = await tx.workflowRun.create({
+              data: {
+                organizationId,
+                workflowId: wf.id,
+                versionId: version.id,
+                status: 'PENDING',
+                triggeredBy: 'SYSTEM',
+                triggerPayload: { event, ...payload } as never,
+                context: { trigger: { event, ...payload } } as never,
+              },
+            })
+            await tx.workflow.updateMany({
+              where: { id: wf.id },
+              data: { runCount: { increment: 1 }, lastRunAt: new Date() },
+            })
+            return run.id
+          },
+          context,
+        )
+        await this.enqueue(organizationId, runId)
+      } catch (err) {
+        this.logger.warn({ err, workflowId: wf.id, event }, 'org event trigger failed for workflow')
+      }
+    }
+    return matches.length
+  }
+
   /** Re-enqueues a failed run, resuming from the first failed node. */
   async retry(principal: Principal, runId: string): Promise<{ ok: true }> {
     const resumeNodeId = await withTenantTransaction(this.db, async (tx) => {

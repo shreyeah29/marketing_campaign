@@ -2,27 +2,46 @@
 
 import { useState } from 'react'
 
-import { PageHeader } from '@/components/kit'
-import { Field } from '@/components/ui'
+import { PageHeader, useToast } from '@/components/kit'
+import { Field, Spinner } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 
+interface GeneratedImage {
+  src: string
+  prompt: string
+}
+
+const SIZES = ['1024x1024', '1024x1536', '1536x1024'] as const
+
 /**
- * AI image generation.
- *
- * The form and request path are complete; until an image provider is configured
- * the API answers 409 and the page shows the "provider not configured" banner.
+ * AI image generation — a built-in service. No setup, no provider, no keys: it
+ * just works for every organisation on the platform's managed AI.
  */
 export default function AiImagesPage() {
+  const toast = useToast()
   const [prompt, setPrompt] = useState('')
+  const [size, setSize] = useState<string>(SIZES[0])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [images, setImages] = useState<GeneratedImage[]>([])
 
   async function generate() {
-    if (!prompt.trim() || loading) return
+    const text = prompt.trim()
+    if (!text || loading) return
     setLoading(true)
     setError(null)
     try {
-      await api.post('/ai/image', { prompt: prompt.trim() })
+      const res = await api.post<{ image?: string; url?: string }>('/ai/image', {
+        prompt: text,
+        size,
+      })
+      const src = res.image ?? res.url
+      if (!src) {
+        setError('No image was returned. Please try again.')
+        return
+      }
+      setImages((prev) => [{ src, prompt: text }, ...prev])
+      toast.push('success', 'Image generated')
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Generation failed.')
     } finally {
@@ -34,7 +53,6 @@ export default function AiImagesPage() {
     <>
       <PageHeader title="AI Images" subtitle="Generate images from a text prompt" />
 
-
       <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
         <Field label="Describe the image">
           <textarea
@@ -43,14 +61,29 @@ export default function AiImagesPage() {
             placeholder="e.g. A minimalist product hero shot on a soft gradient background"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
+            disabled={loading}
           />
+        </Field>
+        <Field label="Size">
+          <select
+            className="input"
+            value={size}
+            onChange={(e) => setSize(e.target.value)}
+            disabled={loading}
+          >
+            {SIZES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </Field>
         <button
           className="btn primary"
           onClick={() => void generate()}
           disabled={loading || !prompt.trim()}
         >
-          {loading ? 'Generating…' : 'Generate image'}
+          {loading ? <Spinner /> : 'Generate image'}
         </button>
         {error ? (
           <div className="banner error" style={{ marginTop: 14 }}>
@@ -58,6 +91,32 @@ export default function AiImagesPage() {
           </div>
         ) : null}
       </div>
+
+      {images.length > 0 ? (
+        <div
+          style={{
+            marginTop: 18,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: 14,
+          }}
+        >
+          {images.map((img, i) => (
+            <div key={i} className="card" style={{ padding: 12 }}>
+              <img
+                src={img.src}
+                alt={img.prompt}
+                style={{ width: '100%', borderRadius: 8, display: 'block' }}
+              />
+              <div style={{ marginTop: 10 }}>
+                <a className="btn" href={img.src} download={`ai-image-${String(i + 1)}.png`}>
+                  Download
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </>
   )
 }

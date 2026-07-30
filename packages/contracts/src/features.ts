@@ -306,6 +306,21 @@ const marketing: readonly FeatureManifest[] = [
     frontendRoutes: ['/marketing/pages'],
     backendModule: 'content',
   }),
+  f({
+    id: 'marketing.forms',
+    name: 'Lead Capture Forms',
+    description: 'Hosted and embeddable forms that create CRM leads.',
+    category: 'Marketing',
+    version: 1,
+    dependencies: ['crm.leads'],
+    defaultEnabled: false,
+    billingCategory: 'addon',
+    navEntry: { label: 'Forms', path: '/marketing/forms', icon: 'clipboard', order: 15, section: 'Marketing' },
+    requiredPermissions: ['content:read'],
+    apiRoutes: ['/v1/lead-forms'],
+    frontendRoutes: ['/marketing/forms'],
+    backendModule: 'marketing',
+  }),
 ]
 
 // ─── AI ──────────────────────────────────────────────────────────────────────

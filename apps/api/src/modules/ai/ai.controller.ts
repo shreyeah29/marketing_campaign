@@ -2,14 +2,18 @@ import { Body, Controller, Get, Inject, Post, ServiceUnavailableException } from
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
+import type { AppLogger } from '@vsp/observability'
+
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
+import { LOGGER } from '../../infrastructure/database.module.js'
 
 import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
+import { generateImage, synthesizeSpeech } from './adapters/openai-media.js'
 import { AiService } from './ai.service.js'
 
 const messageSchema = z.object({
@@ -33,6 +37,18 @@ const mediaSchema = z.object({
   prompt: z.string().min(1),
 })
 
+const imageSchema = z.object({
+  prompt: z.string().min(1),
+  size: z.string().min(1).optional(),
+})
+
+const voiceSchema = z.object({
+  // Accept either `text` or `prompt` for the copy to speak.
+  text: z.string().min(1).optional(),
+  prompt: z.string().min(1).optional(),
+  voice: z.string().min(1).optional(),
+})
+
 /**
  * AI is a built-in platform service. A failure is a generic 503 that never mentions
  * OpenAI, a provider, or an API key — users are unaware any of that exists.
@@ -53,7 +69,10 @@ function aiUnavailable(): ServiceUnavailableException {
 @ApiTags('AI')
 @Controller('ai')
 export class AiController {
-  constructor(@Inject(AiService) private readonly ai: AiService) {}
+  constructor(
+    @Inject(AiService) private readonly ai: AiService,
+    @Inject(LOGGER) private readonly logger: AppLogger,
+  ) {}
 
   @Post('chat')
   @RequiresFeature('ai.chat')
@@ -104,10 +123,27 @@ export class AiController {
   @Post('image')
   @RequiresFeature('ai.image')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
-  @ApiOperation({ summary: 'Generate an image (requires an image provider)' })
-  async image(@Body() body: unknown): Promise<never> {
-    zodBody(mediaSchema, body)
-    throw aiUnavailable()
+  @ApiOperation({ summary: 'Generate an image from a text prompt' })
+  async image(@Body() body: unknown): Promise<{ image?: string; url?: string }> {
+    const input = zodBody(imageSchema, body)
+    const key = this.ai.platformImageKey()
+    if (!key) throw aiUnavailable()
+
+    try {
+      const result = await generateImage({
+        apiKey: key.apiKey,
+        prompt: input.prompt,
+        ...(input.size ? { size: input.size } : {}),
+      })
+      if (result.b64) return { image: `data:image/png;base64,${result.b64}` }
+      if (result.url) return { url: result.url }
+      throw aiUnavailable()
+    } catch (err) {
+      // Log the real cause server-side (operators need it — bad key, quota, model)
+      // but never surface it to the user.
+      this.logger.error({ err, operation: 'image' }, 'AI image generation failed')
+      throw aiUnavailable()
+    }
   }
 
   @Post('video')
@@ -122,10 +158,28 @@ export class AiController {
   @Post('voice')
   @RequiresFeature('ai.voice_calling')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
-  @ApiOperation({ summary: 'Synthesise voice (requires a voice provider)' })
-  async voice(@Body() body: unknown): Promise<never> {
-    zodBody(mediaSchema, body)
-    throw aiUnavailable()
+  @ApiOperation({ summary: 'Synthesise natural-sounding speech from text' })
+  async voice(@Body() body: unknown): Promise<{ audio: string }> {
+    const input = zodBody(voiceSchema, body)
+    const text = input.text ?? input.prompt
+    if (!text) throw aiUnavailable()
+
+    const key = this.ai.platformVoiceKey()
+    if (!key) throw aiUnavailable()
+
+    try {
+      const result = await synthesizeSpeech({
+        apiKey: key.apiKey,
+        text,
+        ...(input.voice ? { voice: input.voice } : {}),
+      })
+      // Return a base64 data-URL so the browser can play it via <audio src> with no
+      // streaming complexity.
+      return { audio: `data:${result.contentType};base64,${result.audio.toString('base64')}` }
+    } catch (err) {
+      this.logger.error({ err, operation: 'voice' }, 'AI voice synthesis failed')
+      throw aiUnavailable()
+    }
   }
 
   // ── internals ──────────────────────────────────────────────────────────────────

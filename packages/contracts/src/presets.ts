@@ -55,6 +55,7 @@ export const PRESETS: readonly FeaturePreset[] = [
       'marketing.social',
       'marketing.seo',
       'marketing.landing_pages',
+      'marketing.forms',
       'ai.chat',
       'ai.copywriter',
       'ai.image',

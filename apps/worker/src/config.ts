@@ -34,6 +34,9 @@ const schema = z.object({
   DIRECT_DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
   ENCRYPTION_MASTER_KEY: z.string().min(32, 'ENCRYPTION_MASTER_KEY must be at least 32 characters'),
+  /** Email delivery (Resend REST). Unset → the mailer logs instead of sending. */
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
 })
 
 export type WorkerEnv = z.infer<typeof schema>

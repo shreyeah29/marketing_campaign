@@ -41,6 +41,23 @@ export const envSchema = z.object({
   BETTER_AUTH_SECRET: secret('BETTER_AUTH_SECRET', 32),
   BETTER_AUTH_URL: z.string().url().optional(),
 
+  /**
+   * The frontend origin, used to build the links in verification, reset and
+   * invitation emails. Distinct from BETTER_AUTH_URL (the API's own base): the
+   * user clicks a link into the app, not into the API.
+   */
+  APP_URL: z.string().url().default('http://localhost:3000'),
+
+  /** The From address on auth emails. Optional in dev, where email is logged. */
+  EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
+
+  /**
+   * Requiring a verified email before first login is correct in production but
+   * blocks login in any environment without real email delivery. Default off in
+   * development (email is logged), on in production.
+   */
+  REQUIRE_EMAIL_VERIFICATION: z.enum(['true', 'false']).optional(),
+
   /** Wraps per-organisation provider credentials. Rotating it re-wraps, never re-keys. */
   ENCRYPTION_MASTER_KEY: secret('ENCRYPTION_MASTER_KEY', 32),
 
@@ -97,6 +114,13 @@ export function corsOrigins(env: Env): string[] {
   return env.CORS_ALLOWED_ORIGINS.split(',')
     .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter((origin) => origin.length > 0)
+}
+
+export function requireEmailVerification(env: Env): boolean {
+  // Unset means "use the environment default": required in production, relaxed in
+  // development where auth email is only logged.
+  if (env.REQUIRE_EMAIL_VERIFICATION === undefined) return env.NODE_ENV === 'production'
+  return env.REQUIRE_EMAIL_VERIFICATION === 'true'
 }
 
 export function swaggerEnabled(env: Env): boolean {

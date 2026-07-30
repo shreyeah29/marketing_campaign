@@ -46,10 +46,12 @@ export class OrganizationsController {
   @RequirePermissions(PERMISSIONS.ORG_READ)
   @ApiOperation({ summary: "Retrieve the caller's organisation and settings" })
   async getOrganization(): Promise<unknown> {
-    const org = await this.db.organization.findFirst({
-      where: { deletedAt: null },
-      include: { settings: true, subscription: true },
-    })
+    const org = await withTenantTransaction(this.db, (tx) =>
+      tx.organization.findFirst({
+        where: { deletedAt: null },
+        include: { settings: true, subscription: true },
+      }),
+    )
     if (!org) throw new NotFoundException('Organisation not found')
 
     return {

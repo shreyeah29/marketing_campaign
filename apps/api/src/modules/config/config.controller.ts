@@ -95,9 +95,11 @@ export class ConfigController {
   @RequirePermissions(PERMISSIONS.ORG_READ)
   @ApiOperation({ summary: 'Available providers per capability, and current selection' })
   async providers(): Promise<unknown> {
-    const configured = await this.db.providerConfiguration.findMany({
-      select: { capability: true, provider: true, isActive: true, credentialId: true },
-    })
+    const configured = await withTenantTransaction(this.db, (tx) =>
+      tx.providerConfiguration.findMany({
+        select: { capability: true, provider: true, isActive: true, credentialId: true },
+      }),
+    )
     const byCapability = new Map<string, (typeof configured)[number]>(configured.map((c) => [String(c.capability), c]))
 
     return PROVIDER_CAPABILITIES.map((capability) => {
@@ -202,9 +204,11 @@ export class ConfigController {
   @RequirePermissions(PERMISSIONS.ORG_READ)
   @ApiOperation({ summary: 'Built-in agents and this org\'s enablement' })
   async agents(): Promise<unknown> {
-    const assignments = await this.db.agentAssignment.findMany({
-      select: { agentKey: true, enabled: true },
-    })
+    const assignments = await withTenantTransaction(this.db, (tx) =>
+      tx.agentAssignment.findMany({
+        select: { agentKey: true, enabled: true },
+      }),
+    )
     const enabledMap = new Map(assignments.map((a) => [a.agentKey, a.enabled]))
 
     return AGENT_MANIFESTS.map((manifest) => ({
@@ -259,7 +263,7 @@ export class ConfigController {
   @RequirePermissions(PERMISSIONS.ORG_READ)
   @ApiOperation({ summary: 'This organisation\'s branding' })
   async getBranding(): Promise<unknown> {
-    const branding = await this.db.branding.findFirst()
+    const branding = await withTenantTransaction(this.db, (tx) => tx.branding.findFirst())
     return branding ?? {}
   }
 

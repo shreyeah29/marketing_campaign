@@ -54,11 +54,13 @@ export class CompaniesController {
   @ApiOperation({ summary: 'List companies' })
   async list(@Query() query: unknown): Promise<Paginated<unknown>> {
     const { cursor, limit } = parseKeyset(query)
-    const rows = await this.db.company.findMany({
-      where: { deletedAt: null, ...keysetWhere(cursor) },
-      orderBy: KEYSET_ORDER,
-      take: limit + 1,
-    })
+    const rows = await withTenantTransaction(this.db, (tx) =>
+      tx.company.findMany({
+        where: { deletedAt: null, ...keysetWhere(cursor) },
+        orderBy: KEYSET_ORDER,
+        take: limit + 1,
+      }),
+    )
     return toPage(rows, limit, (c) => ({
       id: c.id,
       name: c.name,
@@ -132,15 +134,17 @@ export class LeadsController {
       ? (status as (typeof LEAD_STATUSES)[number])
       : undefined
 
-    const rows = await this.db.lead.findMany({
-      where: {
-        deletedAt: null,
-        ...(validStatus === undefined ? {} : { status: validStatus }),
-        ...keysetWhere(cursor),
-      },
-      orderBy: KEYSET_ORDER,
-      take: limit + 1,
-    })
+    const rows = await withTenantTransaction(this.db, (tx) =>
+      tx.lead.findMany({
+        where: {
+          deletedAt: null,
+          ...(validStatus === undefined ? {} : { status: validStatus }),
+          ...keysetWhere(cursor),
+        },
+        orderBy: KEYSET_ORDER,
+        take: limit + 1,
+      }),
+    )
     return toPage(rows, limit, (l) => ({
       id: l.id,
       status: l.status,
@@ -240,11 +244,13 @@ export class DealsController {
   @ApiOperation({ summary: 'List deals' })
   async list(@Query() query: unknown): Promise<Paginated<unknown>> {
     const { cursor, limit } = parseKeyset(query)
-    const rows = await this.db.deal.findMany({
-      where: { deletedAt: null, ...keysetWhere(cursor) },
-      orderBy: KEYSET_ORDER,
-      take: limit + 1,
-    })
+    const rows = await withTenantTransaction(this.db, (tx) =>
+      tx.deal.findMany({
+        where: { deletedAt: null, ...keysetWhere(cursor) },
+        orderBy: KEYSET_ORDER,
+        take: limit + 1,
+      }),
+    )
     return toPage(rows, limit, (d) => ({
       id: d.id,
       title: d.title,

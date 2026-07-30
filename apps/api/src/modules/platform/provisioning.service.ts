@@ -1,5 +1,3 @@
-import { hash } from 'node:crypto'
-
 import { BadRequestException, ConflictException, Inject, Injectable } from '@nestjs/common'
 
 import {
@@ -14,6 +12,7 @@ import type { AppLogger } from '@vsp/observability'
 
 import { loadEnv } from '../../config/env.js'
 import { LOGGER } from '../../infrastructure/database.module.js'
+import { hashPassword } from '../auth/password.js'
 
 import type { ProvisionOrganizationInput } from './provision.contracts.js'
 
@@ -31,9 +30,9 @@ import type { ProvisionOrganizationInput } from './provision.contracts.js'
  * context to scope to yet, and the platform plane is the one place the owner
  * connection is used deliberately and audited.
  *
- * Password hashing here is a placeholder (`hash`) so provisioning is complete and
- * testable now; Phase 6 swaps it for the Better Auth credential path. The owner
- * account it creates is a real, usable login the moment auth lands.
+ * The owner account it creates is a real, usable login: the password is hashed
+ * with the same scheme Better Auth uses (see `../auth/password`), so the owner can
+ * sign in immediately after provisioning — no separate activation step.
  */
 @Injectable()
 export class ProvisioningService {
@@ -78,6 +77,10 @@ export class ProvisioningService {
     }
 
     const limits = { ...plan.limits, ...(input.limits ?? {}) }
+
+    // Hash before opening the transaction — scrypt is deliberately slow, and it
+    // has no reason to hold a transaction (and its connection) open while it runs.
+    const passwordHash = await hashPassword(input.admin.password)
 
     try {
       return await this.owner.$transaction(async (tx) => {
@@ -125,15 +128,16 @@ export class ProvisioningService {
           },
         })
 
-        // Credential: placeholder hash now, Better Auth in Phase 6. Stored on the
-        // Account row Better Auth already owns, so the swap is a hashing change,
-        // not a schema change.
+        // Credential account, in the exact shape Better Auth's email/password
+        // provider expects: providerId 'credential' and accountId = the user id.
+        // Better Auth looks the credential up by (providerId, accountId) on login,
+        // so matching this convention is what lets a provisioned owner sign in.
         await tx.account.create({
           data: {
             userId: owner.id,
-            accountId: owner.email,
+            accountId: owner.id,
             providerId: 'credential',
-            password: hashPassword(input.admin.password),
+            password: passwordHash,
           },
         })
 
@@ -262,16 +266,4 @@ export class ProvisioningService {
   async disconnect(): Promise<void> {
     await this.owner.$disconnect()
   }
-}
-
-/**
- * Placeholder password hash.
- *
- * Deliberately not a real KDF — Phase 6 replaces this with Better Auth's argon2/
- * scrypt path. It exists so provisioning is complete and the owner account is a
- * real row now; it is never used to *verify* a login (there is no login yet), so
- * it cannot become an accidental production auth path.
- */
-function hashPassword(password: string): string {
-  return `placeholder:${hash('sha256', password)}`
 }

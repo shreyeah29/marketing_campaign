@@ -14,6 +14,11 @@ import { IdempotencyInterceptor } from './common/interceptors/idempotency.interc
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js'
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js'
 import { DatabaseModule, LOGGER } from './infrastructure/database.module.js'
+import { AuthService } from './modules/auth/auth.service.js'
+import { AuthGuard } from './modules/auth/auth.guard.js'
+import { IdentityService } from './modules/auth/identity.service.js'
+import { AuthController } from './modules/auth/auth.controller.js'
+import { EMAIL_PORT, LogEmailTransport } from './modules/auth/email.port.js'
 import { AgentRunsController } from './modules/agents/agent-runs.controller.js'
 import { ConfigController } from './modules/config/config.controller.js'
 import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
@@ -63,12 +68,18 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     WorkspaceController,
     ConfigController,
     PlatformController,
+    AuthController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
     EntitlementService,
     LimitService,
     EncryptionService,
+    // Tenant authentication and identity (Better Auth + org/role resolution).
+    { provide: EMAIL_PORT, useClass: LogEmailTransport },
+    AuthService,
+    IdentityService,
+    AuthGuard,
     PlatformAuthService,
     ProvisioningService,
     PlatformAdminGuard,
@@ -76,6 +87,14 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
       provide: APP_FILTER,
       inject: [LOGGER],
       useFactory: (logger: AppLogger) => new ProblemExceptionFilter(logger),
+    },
+    {
+      // The FIRST global guard: resolves the Better Auth session into a principal
+      // and attaches it to the request, before any guard that reads one. It never
+      // rejects — "who are you" is separate from "may you", which the guards below
+      // decide. Nest runs global guards in registration order, so this is first.
+      provide: APP_GUARD,
+      useExisting: AuthGuard,
     },
     {
       // Runs BEFORE the permission guard, matching the pipeline order:
@@ -115,10 +134,11 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
 })
 export class AppModule implements NestModule {
   configure(_consumer: MiddlewareConsumer): void {
-    // Authentication is middleware rather than a guard so the principal exists
-    // before guards run. It is wired in Phase 6 alongside Better Auth; until then
-    // no principal is attached, and the global guard therefore rejects every
-    // non-public route. That is the correct posture for a partially built API —
-    // it fails closed rather than serving unauthenticated traffic.
+    // Authentication resolves through the global `AuthGuard` registered first,
+    // rather than middleware: with the Fastify adapter a first-registered guard
+    // runs before the entitlement/permission guards and the tenant interceptor,
+    // and attaches the principal to the same request object they read. The Better
+    // Auth endpoints themselves (`/api/auth/*`) are mounted directly on Fastify in
+    // `main.ts`, outside this pipeline, so reaching them never requires a session.
   }
 }

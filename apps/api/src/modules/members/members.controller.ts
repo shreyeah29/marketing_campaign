@@ -51,11 +51,13 @@ export class MembersController {
   @RequirePermissions(PERMISSIONS.MEMBERS_READ)
   @ApiOperation({ summary: 'List members of the organisation' })
   async list(): Promise<unknown[]> {
-    const memberships = await this.db.membership.findMany({
-      where: { deletedAt: null },
-      include: { user: { select: { id: true, name: true, email: true, lastLoginAt: true } } },
-      orderBy: { createdAt: 'asc' },
-    })
+    const memberships = await withTenantTransaction(this.db, (tx) =>
+      tx.membership.findMany({
+        where: { deletedAt: null },
+        include: { user: { select: { id: true, name: true, email: true, lastLoginAt: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+    )
 
     return memberships.map((m) => ({
       membershipId: m.id,

@@ -1,7 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 import type { Redis } from 'ioredis'
 
-import { resolveEntitlements, type DatabaseClient, type EntitlementSnapshot } from '@vsp/database'
+import {
+  resolveEntitlements,
+  withTenant,
+  type DatabaseClient,
+  type EntitlementSnapshot,
+} from '@vsp/database'
 import type { AppLogger } from '@vsp/observability'
 
 import { DATABASE, LOGGER, REDIS } from '../../infrastructure/database.module.js'
@@ -54,7 +59,15 @@ export class EntitlementService {
       this.logger.warn({ err: error, organizationId }, 'entitlement cache read failed; resolving fresh')
     }
 
-    const snapshot = await resolveEntitlements(this.db, organizationId)
+    // Open the tenant context explicitly. This resolves during the *guard* phase
+    // — before the TenantInterceptor opens the request's context — so the ambient
+    // context the Prisma extension needs is not yet present. Opening it here (the
+    // organisation is the guard's subject, not attacker-supplied) makes resolution
+    // work identically whether called from a guard or from a handler that already
+    // has a context; nesting withTenant is safe.
+    const snapshot = await withTenant({ organizationId }, () =>
+      resolveEntitlements(this.db, organizationId),
+    )
 
     try {
       await this.redis.set(

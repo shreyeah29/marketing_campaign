@@ -59,14 +59,16 @@ export class AgentRunsController {
     @Query() query: unknown,
   ): Promise<Paginated<unknown>> {
     const { cursor, limit } = parseKeyset(query)
-    const rows = await this.db.agentRun.findMany({
-      where: {
-        ...(agentId !== undefined && isAgentId(agentId) ? { agentId } : {}),
-        ...keysetWhere(cursor),
-      },
-      orderBy: KEYSET_ORDER,
-      take: limit + 1,
-    })
+    const rows = await withTenantTransaction(this.db, (tx) =>
+      tx.agentRun.findMany({
+        where: {
+          ...(agentId !== undefined && isAgentId(agentId) ? { agentId } : {}),
+          ...keysetWhere(cursor),
+        },
+        orderBy: KEYSET_ORDER,
+        take: limit + 1,
+      }),
+    )
     return toPage(rows, limit, (r) => ({
       id: r.id,
       agentId: r.agentId,
@@ -85,13 +87,15 @@ export class AgentRunsController {
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Retrieve a run with its step and tool-call ledger' })
   async findOne(@Param('id') id: string): Promise<unknown> {
-    const run = await this.db.agentRun.findFirst({
-      where: { id },
-      include: {
-        steps: { orderBy: { position: 'asc' } },
-        toolCalls: { orderBy: { createdAt: 'asc' } },
-      },
-    })
+    const run = await withTenantTransaction(this.db, (tx) =>
+      tx.agentRun.findFirst({
+        where: { id },
+        include: {
+          steps: { orderBy: { position: 'asc' } },
+          toolCalls: { orderBy: { createdAt: 'asc' } },
+        },
+      }),
+    )
     if (!run) throw new NotFoundException('Agent run not found')
 
     return {

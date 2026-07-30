@@ -18,6 +18,8 @@ import {
 import { createLogger } from '@vsp/observability'
 
 import { AppModule } from './app.module.js'
+import { AuthService } from './modules/auth/auth.service.js'
+import { mountBetterAuth } from './modules/auth/fastify-mount.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
 import { assertPermissionMatrixValid } from './common/rbac/permissions.js'
 import { registerRateLimit } from './infrastructure/rate-limit.js'
@@ -160,6 +162,12 @@ async function bootstrap(): Promise<void> {
   })
 
   app.setGlobalPrefix('v1', { exclude: ['health', 'health/ready'] })
+
+  // Tenant authentication endpoints. Mounted on the raw Fastify instance, outside
+  // the Nest routing pipeline and the /v1 prefix, so reaching them never requires
+  // an existing session (they are how one is obtained). Better Auth serves the
+  // whole credential lifecycle under /api/auth/*.
+  mountBetterAuth(app.getHttpAdapter().getInstance(), app.get(AuthService), appLogger)
 
   // No global ValidationPipe. Validation is Zod at the controller boundary, and
   // the schemas in @vsp/contracts are the single source of truth for request

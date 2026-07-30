@@ -64,35 +64,37 @@ export class ContactsController {
     const { cursor, limit } = cursorPaginationSchema.parse(query.data)
     const position = cursor === undefined ? null : decodeCursor(cursor)
 
-    const rows = await this.db.contact.findMany({
-      where: {
-        deletedAt: null,
-        ...(query.data.search === undefined
-          ? {}
-          : {
-              OR: [
-                { firstName: { contains: query.data.search, mode: 'insensitive' } },
-                { lastName: { contains: query.data.search, mode: 'insensitive' } },
-                { email: { contains: query.data.search, mode: 'insensitive' } },
-              ],
-            }),
-        ...(query.data.companyId === undefined ? {} : { companyId: query.data.companyId }),
-        // Seek predicate. The id breaks ties so rows sharing a createdAt are
-        // neither skipped nor repeated at a page boundary.
-        ...(position === null
-          ? {}
-          : {
-              OR: [
-                { createdAt: { lt: new Date(position.value) } },
-                { createdAt: new Date(position.value), id: { lt: position.id } },
-              ],
-            }),
-      },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-      // One extra row is how hasMore is determined without a second query or a
-      // count — a count on a large tenant table costs a scan per page.
-      take: limit + 1,
-    })
+    const rows = await withTenantTransaction(this.db, (tx) =>
+      tx.contact.findMany({
+        where: {
+          deletedAt: null,
+          ...(query.data.search === undefined
+            ? {}
+            : {
+                OR: [
+                  { firstName: { contains: query.data.search, mode: 'insensitive' } },
+                  { lastName: { contains: query.data.search, mode: 'insensitive' } },
+                  { email: { contains: query.data.search, mode: 'insensitive' } },
+                ],
+              }),
+          ...(query.data.companyId === undefined ? {} : { companyId: query.data.companyId }),
+          // Seek predicate. The id breaks ties so rows sharing a createdAt are
+          // neither skipped nor repeated at a page boundary.
+          ...(position === null
+            ? {}
+            : {
+                OR: [
+                  { createdAt: { lt: new Date(position.value) } },
+                  { createdAt: new Date(position.value), id: { lt: position.id } },
+                ],
+              }),
+        },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        // One extra row is how hasMore is determined without a second query or a
+        // count — a count on a large tenant table costs a scan per page.
+        take: limit + 1,
+      }),
+    )
 
     return buildPage(rows.map(toResponse), limit, (row) => row.createdAt)
   }
@@ -104,7 +106,9 @@ export class ContactsController {
     // findFirst, not findUnique: the tenant extension refuses findUnique because
     // Prisma will not accept a non-unique predicate in its where clause, which
     // would leave the lookup unscoped. findFirst takes the same predicate.
-    const contact = await this.db.contact.findFirst({ where: { id, deletedAt: null } })
+    const contact = await withTenantTransaction(this.db, (tx) =>
+      tx.contact.findFirst({ where: { id, deletedAt: null } }),
+    )
     if (!contact) throw new NotFoundException(`No contact with id ${id}`)
     return toResponse(contact)
   }

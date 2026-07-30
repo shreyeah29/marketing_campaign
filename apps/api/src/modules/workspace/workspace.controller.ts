@@ -4,6 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { FEATURES, findLimit, findPlan, type NavEntry } from '@vsp/contracts'
 import {
   applicableLimits as applicableLimitIds,
+  withTenantTransaction,
   type DatabaseClient,
   type EntitlementSnapshot,
 } from '@vsp/database'
@@ -40,13 +41,21 @@ export class WorkspaceController {
     @CurrentPrincipal() principal: Principal,
     @CurrentEntitlements() entitlements: EntitlementSnapshot,
   ): Promise<unknown> {
-    const [org, branding] = await Promise.all([
-      this.db.organization.findFirst({
-        where: { id: principal.organizationId },
-        select: { id: true, name: true, slug: true, industry: true, timezone: true },
-      }),
-      this.db.branding.findFirst(),
-    ])
+    // Wrapped in a tenant transaction so the RLS `app.organization_id` setting is
+    // established for these reads. Opening the AsyncLocalStorage context (which the
+    // interceptor does) satisfies the Prisma extension, but `Organization` and
+    // `Branding` are also RLS-protected, and only the transaction sets the SQL
+    // variable the policies read.
+    const { org, branding } = await withTenantTransaction(this.db, async (tx) => {
+      const [orgRow, brandingRow] = await Promise.all([
+        tx.organization.findFirst({
+          where: { id: principal.organizationId },
+          select: { id: true, name: true, slug: true, industry: true, timezone: true },
+        }),
+        tx.branding.findFirst(),
+      ])
+      return { org: orgRow, branding: brandingRow }
+    })
 
     const plan = entitlements.planKey === null ? null : findPlan(entitlements.planKey)
 

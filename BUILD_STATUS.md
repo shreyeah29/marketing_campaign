@@ -28,9 +28,46 @@ super-admin as an isolated route group.
 | ----- | ----- | ----- |
 | 1 | Registries + schema + entitlement engine | ✅ done — verified |
 | 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ✅ done — verified |
-| 3 | Platform plane: `PlatformAdmin` auth, `provisionOrganization` wizard, org lifecycle | ▶ next |
-| 4 | Provider/agent/integration/branding config surfaces | pending |
+| 3 | Platform plane: admin auth, `provisionOrganization` wizard, org lifecycle | ✅ done — verified |
+| 4 | Provider/agent/integration/branding config surfaces | ▶ next |
 | 5 | Frontend: dynamic nav, platform portal, onboarding wizard | pending |
+
+### Slice 3 — verified (the "onboard a client without code" goal)
+
+The core goal is proven working end-to-end against real Postgres/Redis:
+
+- **Platform-admin realm**, fully isolated from tenants: `PlatformAdmin` table,
+  its own login (`POST /v1/platform/auth/login`), HMAC tokens signed with a key
+  *derived* from the app secret + a platform salt so a platform token is
+  cryptographically distinct from any tenant token. `PlatformAdminGuard` on every
+  portal route; the routes are `@Public()` only to skip the *tenant* guards. A
+  no-token and a bad-token request both 401 — **tenants cannot enter the plane.**
+- **`provisionOrganization`** — the wizard as one atomic transaction on the owner
+  connection: company + owner + subscription + feature assignments (with
+  per-feature config) + limits + branding + platform audit. Either all commits or
+  none. Verified: one call created a law firm on the business plan with **13
+  features** (law_firm preset ∪ plan, dependencies resolved), the voice module
+  configured with a 300-minute cap and `identifyAsAi: true` merged from the
+  preset, 12 limits, an owner member, and branding — **zero manual steps.**
+- **Lifecycle**: suspend / activate / delete (status), change plan (re-syncs
+  PLAN-sourced features, keeps grants), set features (diff + dependency close),
+  clone (re-provisions the source bundle through the same path). Every mutation
+  invalidates the entitlement cache so a suspension locks the org out
+  immediately, and writes to `platform_audit_log`. Verified: suspend flipped the
+  status and recorded `organization.provisioned` + `organization.suspended`.
+- **Catalog endpoint** (`GET /v1/platform/catalog`) returns features grouped by
+  category, plans and presets — the wizard's source data (9 categories, 5 plans,
+  6 presets).
+- Password hashing in both the provisioning and platform-auth paths is a salted
+  placeholder, swapped for the real KDF in Phase 6; it is never on a verify path
+  a tenant reaches. First super-admin is created via
+  `PlatformAuthService.ensureBootstrapAdmin` (a documented one-off; a seed/CLI
+  lands with Phase 6).
+
+Follow-up: the platform services each hold an owner PrismaClient for process
+life; wire their `disconnect()` into shutdown hooks (currently closed on process
+exit). The `/v1/platform` prefix sits under the `v1` global prefix; the design's
+`/platform/v1` is cosmetic and the isolation is by guard + realm, not URL.
 
 ### Slice 2 — verified
 

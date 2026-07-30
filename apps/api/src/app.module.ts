@@ -26,6 +26,10 @@ import { HealthController } from './modules/health/health.controller.js'
 import { MembersController } from './modules/members/members.controller.js'
 import { OrganizationsController } from './modules/organizations/organizations.controller.js'
 import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
+import { PlatformController } from './modules/platform/platform.controller.js'
+import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
+import { ProvisioningService } from './modules/platform/provisioning.service.js'
+import { PlatformAdminGuard } from './modules/platform/platform-admin.guard.js'
 import { WorkspaceController } from './modules/workspace/workspace.controller.js'
 
 /**
@@ -55,11 +59,15 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     AnalyticsController,
     AuditController,
     WorkspaceController,
+    PlatformController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
     EntitlementService,
     LimitService,
+    PlatformAuthService,
+    ProvisioningService,
+    PlatformAdminGuard,
     {
       provide: APP_FILTER,
       inject: [LOGGER],

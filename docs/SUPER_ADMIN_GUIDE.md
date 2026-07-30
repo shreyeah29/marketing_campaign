@@ -48,7 +48,24 @@ feature check) · Activate · Delete · Upgrade/Downgrade plan · **Clone** (cop
 org's feature+config bundle to a new org) · View usage / billing / logs / AI
 usage / storage / active users.
 
-> Status: the registries, entitlement resolver, schema (`PlatformAdmin`,
-> `PlatformAuditLog`, `Organization.status`) and preset resolution are built and
-> verified. The `/platform/v1` endpoints, the `provisionOrganization` command and
-> the portal UI are the next slice.
+> Status: the platform-admin realm, `provisionOrganization` command and lifecycle
+> endpoints are **built and verified end-to-end** — one call provisions a fully
+> configured org from a preset, and suspend/plan/features/clone all work with cache
+> invalidation and audit. Endpoints live under `/v1/platform/*`, guarded by
+> `PlatformAdminGuard` (a separate realm; tenants get 401). The portal UI is Phase
+> 5. First super-admin: `PlatformAuthService.ensureBootstrapAdmin` (seed/CLI in
+> Phase 6).
+
+## Endpoints (built)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/v1/platform/auth/login` | Platform admin login → token |
+| GET | `/v1/platform/catalog` | Features/plans/presets for the wizard |
+| POST | `/v1/platform/organizations` | Provision a fully-configured org |
+| GET | `/v1/platform/organizations` | List all orgs |
+| GET | `/v1/platform/organizations/:id` | Detail + usage (members, contacts, AI cost) |
+| PATCH | `/v1/platform/organizations/:id/status` | Suspend / activate / delete |
+| PATCH | `/v1/platform/organizations/:id/plan` | Change plan (re-syncs plan features) |
+| PUT | `/v1/platform/organizations/:id/features` | Set the enabled feature set |
+| POST | `/v1/platform/organizations/:id/clone` | Clone an org's bundle to a new org |

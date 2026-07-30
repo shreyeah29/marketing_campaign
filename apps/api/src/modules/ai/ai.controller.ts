@@ -1,12 +1,4 @@
-import {
-  Body,
-  ConflictException,
-  Controller,
-  Get,
-  Inject,
-  Post,
-  ServiceUnavailableException,
-} from '@nestjs/common'
+import { Body, Controller, Get, Inject, Post, ServiceUnavailableException } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -18,7 +10,7 @@ import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 
 import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
-import { AiService, type AiCapability } from './ai.service.js'
+import { AiService } from './ai.service.js'
 
 const messageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant', 'tool']),
@@ -41,23 +33,22 @@ const mediaSchema = z.object({
   prompt: z.string().min(1),
 })
 
-/** The 409 the whole architecture is built around: configured or not, never a crash. */
-function notConfigured(capability: string): ConflictException {
-  return new ConflictException({
-    code: 'provider_not_configured',
-    message: `No ${capability} provider configured`,
-  })
+/**
+ * AI is a built-in platform service. A failure is a generic 503 that never mentions
+ * OpenAI, a provider, or an API key — users are unaware any of that exists.
+ */
+const AI_UNAVAILABLE = 'AI is temporarily unavailable. Please try again in a moment.'
+function aiUnavailable(): ServiceUnavailableException {
+  return new ServiceUnavailableException(AI_UNAVAILABLE)
 }
 
 /**
  * AI surfaces — chat, copywriting, and the image/video/voice endpoints.
  *
- * Every route resolves the org's active provider for its capability. When none is
- * configured (the default with no API keys) it answers 409 `provider_not_configured`
- * — a clean, expected outcome the UI renders as a "configure a provider" prompt.
- * The image/video/voice routes are complete and wired; they return that same 409
- * until a provider for the capability is added, which is the correct behaviour, not
- * a stub.
+ * LLM (chat, copywriter) uses the platform-managed key from the environment and
+ * works for every organisation with zero setup. Image/video/voice are not yet part
+ * of the built-in service and return a generic unavailable response — never a
+ * provider/key prompt.
  */
 @ApiTags('AI')
 @Controller('ai')
@@ -116,9 +107,7 @@ export class AiController {
   @ApiOperation({ summary: 'Generate an image (requires an image provider)' })
   async image(@Body() body: unknown): Promise<never> {
     zodBody(mediaSchema, body)
-    await this.requireConfigured('IMAGE', 'image')
-    // Reached only once an image provider is configured; adapters land here.
-    throw notConfigured('image')
+    throw aiUnavailable()
   }
 
   @Post('video')
@@ -127,8 +116,7 @@ export class AiController {
   @ApiOperation({ summary: 'Generate a video (requires a video provider)' })
   async video(@Body() body: unknown): Promise<never> {
     zodBody(mediaSchema, body)
-    await this.requireConfigured('VIDEO', 'video')
-    throw notConfigured('video')
+    throw aiUnavailable()
   }
 
   @Post('voice')
@@ -137,16 +125,10 @@ export class AiController {
   @ApiOperation({ summary: 'Synthesise voice (requires a voice provider)' })
   async voice(@Body() body: unknown): Promise<never> {
     zodBody(mediaSchema, body)
-    await this.requireConfigured('VOICE', 'voice')
-    throw notConfigured('voice')
+    throw aiUnavailable()
   }
 
   // ── internals ──────────────────────────────────────────────────────────────────
-
-  private async requireConfigured(capability: AiCapability, label: string): Promise<void> {
-    const resolved = await this.ai.resolve(capability)
-    if (!resolved) throw notConfigured(label)
-  }
 
   private async complete(
     principal: Principal,
@@ -155,10 +137,8 @@ export class AiController {
     operation: string,
   ): Promise<string> {
     const resolved = await this.ai.resolve('LLM')
-    if (!resolved) throw notConfigured('LLM')
-
-    const adapter = getLlmAdapter(resolved.providerId)
-    if (!adapter) throw notConfigured('LLM')
+    const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
+    if (!resolved || !adapter) throw aiUnavailable()
 
     const chosenModel = model ?? resolved.model ?? adapter.defaultModel
     const startedAt = Date.now()
@@ -191,9 +171,9 @@ export class AiController {
         succeeded: false,
         errorCode: 'provider_error',
       })
-      // A provider-side failure (bad key, quota, outage) is a 503, not a crash.
-      const message = err instanceof Error ? err.message : 'The AI provider is unavailable'
-      throw new ServiceUnavailableException(message)
+      // A provider-side failure (bad key, quota, outage) is a generic 503 — never
+      // the provider's error text.
+      throw aiUnavailable()
     }
   }
 }

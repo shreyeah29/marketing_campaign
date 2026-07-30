@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { PageHeader, ProviderNotConfigured } from '@/components/kit'
+import { PageHeader } from '@/components/kit'
 import { Field } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 
@@ -22,7 +22,6 @@ export default function CopywriterPage() {
   const [format, setFormat] = useState(FORMATS[0] ?? '')
   const [result, setResult] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [notConfigured, setNotConfigured] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function generate() {
@@ -38,11 +37,7 @@ export default function CopywriterPage() {
       })
       setResult(res.content)
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) {
-        setNotConfigured(true)
-      } else {
-        setError(e instanceof ApiError ? e.message : 'Generation failed.')
-      }
+      setError(e instanceof ApiError ? e.message : 'Generation failed.')
     } finally {
       setLoading(false)
     }
@@ -52,7 +47,6 @@ export default function CopywriterPage() {
     <>
       <PageHeader title="AI Copywriter" subtitle="Generate on-brand marketing copy" />
 
-      {notConfigured ? <ProviderNotConfigured capability="LLM" /> : null}
 
       <div className="grid cols-2" style={{ gap: 22, marginTop: 14 }}>
         <div className="card">
@@ -86,7 +80,7 @@ export default function CopywriterPage() {
           <button
             className="btn primary"
             onClick={() => void generate()}
-            disabled={loading || !prompt.trim() || notConfigured}
+            disabled={loading || !prompt.trim()}
           >
             {loading ? 'Generating…' : 'Generate copy'}
           </button>

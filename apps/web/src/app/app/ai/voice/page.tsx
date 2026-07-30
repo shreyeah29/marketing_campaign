@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { PageHeader, ProviderNotConfigured } from '@/components/kit'
+import { PageHeader } from '@/components/kit'
 import { Field } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 
@@ -15,7 +15,6 @@ import { ApiError, api } from '@/lib/api'
 export default function AiVoicePage() {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
-  const [notConfigured, setNotConfigured] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function synthesize() {
@@ -25,8 +24,7 @@ export default function AiVoicePage() {
     try {
       await api.post('/ai/voice', { prompt: prompt.trim() })
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setNotConfigured(true)
-      else setError(e instanceof ApiError ? e.message : 'Synthesis failed.')
+      setError(e instanceof ApiError ? e.message : 'Synthesis failed.')
     } finally {
       setLoading(false)
     }
@@ -36,7 +34,6 @@ export default function AiVoicePage() {
     <>
       <PageHeader title="AI Voice" subtitle="Turn text into natural-sounding speech" />
 
-      {notConfigured ? <ProviderNotConfigured capability="voice" /> : null}
 
       <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
         <Field label="Text to speak">
@@ -51,7 +48,7 @@ export default function AiVoicePage() {
         <button
           className="btn primary"
           onClick={() => void synthesize()}
-          disabled={loading || !prompt.trim() || notConfigured}
+          disabled={loading || !prompt.trim()}
         >
           {loading ? 'Synthesising…' : 'Synthesise voice'}
         </button>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 
-import { PageHeader, ProviderNotConfigured } from '@/components/kit'
+import { PageHeader } from '@/components/kit'
 import { Field } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 
@@ -15,7 +15,6 @@ import { ApiError, api } from '@/lib/api'
 export default function AiImagesPage() {
   const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
-  const [notConfigured, setNotConfigured] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function generate() {
@@ -25,8 +24,7 @@ export default function AiImagesPage() {
     try {
       await api.post('/ai/image', { prompt: prompt.trim() })
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setNotConfigured(true)
-      else setError(e instanceof ApiError ? e.message : 'Generation failed.')
+      setError(e instanceof ApiError ? e.message : 'Generation failed.')
     } finally {
       setLoading(false)
     }
@@ -36,7 +34,6 @@ export default function AiImagesPage() {
     <>
       <PageHeader title="AI Images" subtitle="Generate images from a text prompt" />
 
-      {notConfigured ? <ProviderNotConfigured capability="image" /> : null}
 
       <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
         <Field label="Describe the image">
@@ -51,7 +48,7 @@ export default function AiImagesPage() {
         <button
           className="btn primary"
           onClick={() => void generate()}
-          disabled={loading || !prompt.trim() || notConfigured}
+          disabled={loading || !prompt.trim()}
         >
           {loading ? 'Generating…' : 'Generate image'}
         </button>

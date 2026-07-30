@@ -66,6 +66,11 @@ export class AiService {
   ) {}
 
   async resolve(capability: AiCapability): Promise<ResolvedProvider | null> {
+    // LLM is a built-in platform service: the key comes ONLY from the environment,
+    // never the database or the user. Every org's chat / copywriter / campaign
+    // generation uses the operator's key automatically, with zero setup.
+    if (capability === 'LLM') return this.platformKey()
+
     const config = await withTenantTransaction(this.db, (tx) =>
       tx.providerConfiguration.findFirst({
         where: {
@@ -77,10 +82,8 @@ export class AiService {
         orderBy: { updatedAt: 'desc' },
       }),
     )
-    // No per-org key configured → fall back to the platform key from the
-    // environment, so every organisation can use AI on the operator's credits
-    // without any per-org setup. A configured per-org key above wins.
-    if (!config || !config.credential) return this.platformFallback(capability)
+    // Non-LLM capabilities have no platform key; unconfigured means unavailable.
+    if (!config || !config.credential) return null
 
     const cred = config.credential
     let opened: Record<string, unknown>
@@ -107,21 +110,16 @@ export class AiService {
   }
 
   /**
-   * The platform-wide LLM key from the environment. Lets the operator provide one
-   * key for every organisation (they pay for the credits) with zero per-org setup.
-   * OpenAI is preferred when both are set; only LLM has a platform fallback today.
+   * The platform-managed OpenAI key from the environment — the single source of AI
+   * credentials. Returns null only when the operator has not configured the server,
+   * which the caller surfaces as a generic "AI unavailable" error (never a mention
+   * of OpenAI or keys to the user).
    */
-  private platformFallback(capability: AiCapability): ResolvedProvider | null {
-    if (capability !== 'LLM') return null
+  private platformKey(): ResolvedProvider | null {
     const env = loadEnv()
-    const model = env.PLATFORM_LLM_MODEL
-    if (env.OPENAI_API_KEY) {
-      return { providerId: 'openai', apiKey: env.OPENAI_API_KEY, ...(model ? { model } : {}) }
-    }
-    if (env.ANTHROPIC_API_KEY) {
-      return { providerId: 'anthropic', apiKey: env.ANTHROPIC_API_KEY, ...(model ? { model } : {}) }
-    }
-    return null
+    if (!env.OPENAI_API_KEY) return null
+    const model = env.OPENAI_MODEL
+    return { providerId: 'openai', apiKey: env.OPENAI_API_KEY, ...(model ? { model } : {}) }
   }
 
   /**

@@ -9,7 +9,6 @@ import {
   EmptyState,
   ErrorState,
   PageHeader,
-  ProviderNotConfigured,
   TableSkeleton,
   useToast,
 } from '@/components/kit'
@@ -46,7 +45,6 @@ export default function CampaignsReviewPage() {
   const toast = useToast()
   const [columns, setColumns] = useState<Record<string, Asset[]> | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [notConfigured, setNotConfigured] = useState(false)
   const [brief, setBrief] = useState('')
   const [generating, setGenerating] = useState(false)
   const [active, setActive] = useState<Asset | null>(null)
@@ -63,15 +61,13 @@ export default function CampaignsReviewPage() {
   async function generate() {
     if (brief.trim().length < 4) return
     setGenerating(true)
-    setNotConfigured(false)
     try {
       const res = await api.post<{ assetCount: number }>('/campaign-assets/generate', { brief })
       toast.push('success', `Generated ${res.assetCount} assets — review them below`)
       setBrief('')
       load()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) setNotConfigured(true)
-      else toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')
+      toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')
     } finally {
       setGenerating(false)
     }
@@ -88,7 +84,7 @@ export default function CampaignsReviewPage() {
 
       {/* Generate bar */}
       <div className="card" style={{ marginBottom: 18 }}>
-        <div className="toolbar" style={{ marginBottom: notConfigured ? 12 : 0 }}>
+        <div className="toolbar">
           <input
             className="input grow"
             placeholder="Describe your campaign — e.g. “Launch our new eco-friendly water bottle”"
@@ -101,7 +97,6 @@ export default function CampaignsReviewPage() {
             {generating ? <Spinner /> : '✨ Generate campaign'}
           </button>
         </div>
-        {notConfigured ? <ProviderNotConfigured capability="LLM" /> : null}
       </div>
 
       {error ? (
@@ -190,8 +185,7 @@ function AssetDrawer({ asset, onClose, onChanged }: { asset: Asset; onClose: () 
       toast.push('success', `${label} done`)
       if (close) onChanged()
     } catch (e) {
-      if (e instanceof ApiError && e.status === 409) toast.push('error', 'AI provider not configured')
-      else toast.push('error', e instanceof ApiError ? e.message : `${label} failed`)
+      toast.push('error', e instanceof ApiError ? e.message : `${label} failed`)
     } finally {
       setBusy(null)
     }

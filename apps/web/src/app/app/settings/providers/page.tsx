@@ -109,7 +109,11 @@ export default function ProvidersSettingsPage() {
     setLoading(true)
     setError(null)
     try {
-      setCaps(await api.get<CapabilityConfig[]>('/config/providers'))
+      // AI is a built-in platform service — users never configure AI providers or
+      // keys. Only non-AI capabilities (email, telephony, storage, etc.) are shown.
+      const AI_CAPS = new Set(['llm', 'image', 'video', 'voice', 'transcription'])
+      const all = await api.get<CapabilityConfig[]>('/config/providers')
+      setCaps(all.filter((c) => !AI_CAPS.has(c.capability.toLowerCase())))
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load providers')
     } finally {
@@ -124,14 +128,17 @@ export default function ProvidersSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Providers" subtitle="Connect an AI, email or telephony provider for each capability" />
+      <PageHeader
+        title="Integrations"
+        subtitle="Connect email, telephony and storage providers. AI is built in — no setup needed."
+      />
 
       {loading ? (
         <TableSkeleton cols={2} />
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !caps || caps.length === 0 ? (
-        <EmptyState icon="🔌" title="No capabilities available" />
+        <EmptyState icon="🔌" title="No integrations to configure" hint="AI works out of the box — nothing to set up here yet." />
       ) : (
         <div className="grid cols-2" style={{ alignItems: 'start' }}>
           {caps.map((cap) => (

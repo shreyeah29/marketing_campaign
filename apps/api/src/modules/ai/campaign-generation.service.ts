@@ -1,4 +1,4 @@
-import { ConflictException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common'
+import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common'
 
 import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 
@@ -54,20 +54,8 @@ export class CampaignGenerationService {
     brief: string,
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
     const resolved = await this.ai.resolve('LLM')
-    if (!resolved) {
-      throw new ConflictException({
-        code: 'provider_not_configured',
-        message: 'No LLM provider is configured. Add one in Settings → Providers to generate campaigns.',
-      })
-    }
-
-    const adapter = getLlmAdapter(resolved.providerId)
-    if (!adapter) {
-      throw new ConflictException({
-        code: 'provider_not_configured',
-        message: `No adapter is available for provider "${resolved.providerId}".`,
-      })
-    }
+    const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
+    if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
 
     const model = resolved.model ?? adapter.defaultModel
     const startedAt = Date.now()
@@ -105,8 +93,8 @@ export class CampaignGenerationService {
         succeeded: false,
         errorCode: 'provider_error',
       })
-      const message = err instanceof Error ? err.message : 'The AI provider is unavailable'
-      throw new ServiceUnavailableException(message)
+      // Never surface the provider's error text (may mention OpenAI / the key).
+      throw new ServiceUnavailableException(AI_UNAVAILABLE)
     }
 
     // Persist the campaign + its assets in one transaction. Assets enter the review
@@ -185,16 +173,8 @@ export class CampaignGenerationService {
     asset: { platform: string; kind: string; body: string; title?: string | null },
   ): Promise<string> {
     const resolved = await this.ai.resolve('LLM')
-    if (!resolved) {
-      throw new ConflictException({
-        code: 'provider_not_configured',
-        message: 'No LLM provider is configured.',
-      })
-    }
-    const adapter = getLlmAdapter(resolved.providerId)
-    if (!adapter) {
-      throw new ConflictException({ code: 'provider_not_configured', message: 'No adapter available.' })
-    }
+    const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
+    if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
     const startedAt = Date.now()
     try {
       const result = await adapter.chat({
@@ -220,11 +200,14 @@ export class CampaignGenerationService {
         succeeded: true,
       })
       return result.content.trim()
-    } catch (err) {
-      throw new ServiceUnavailableException(err instanceof Error ? err.message : 'AI provider unavailable')
+    } catch {
+      throw new ServiceUnavailableException(AI_UNAVAILABLE)
     }
   }
 }
+
+/** The single generic message shown when AI can't run — never leaks provider details. */
+const AI_UNAVAILABLE = 'AI is temporarily unavailable. Please try again in a moment.'
 
 const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Given a brief, design a complete multi-channel campaign and return a SINGLE JSON object (no markdown, no prose) with EXACTLY this shape:
 {

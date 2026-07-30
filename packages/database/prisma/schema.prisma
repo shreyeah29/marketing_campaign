@@ -680,6 +680,8 @@ model Organization {
   providerConfigurations ProviderConfiguration[]
   agentAssignments      AgentAssignment[]
   customAgents          CustomAgent[]
+  campaignAssets        CampaignAsset[]
+  campaignAssetComments CampaignAssetComment[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -1196,6 +1198,7 @@ model Campaign {
   socialPosts      SocialPost[]
   emailCampaigns   EmailCampaign[]
   metricDailies    MetricDaily[]
+  campaignAssets   CampaignAsset[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, status, startsAt])
@@ -2776,4 +2779,108 @@ model PlatformAuditLog {
   @@index([platformAdminId, createdAt])
   @@index([targetOrganizationId, createdAt])
   @@map("platform_audit_log")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// AI Marketing Automation — campaign assets & review queue (core product)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum AssetPlatform {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  X
+  GOOGLE
+  YOUTUBE
+  TIKTOK
+  GENERIC
+
+  @@map("asset_platform")
+}
+
+enum AssetKind {
+  POST
+  STORY
+  REEL
+  CAPTION
+  AD_COPY
+  AD_HEADLINE
+  AD_DESCRIPTION
+  IMAGE_PROMPT
+  VIDEO_PROMPT
+
+  @@map("asset_kind")
+}
+
+/** The full review→publish lifecycle for a generated marketing asset. */
+enum AssetStatus {
+  DRAFT
+  GENERATED
+  NEEDS_REVIEW
+  APPROVED
+  REJECTED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+
+  @@map("asset_status")
+}
+
+model CampaignAsset {
+  id             String        @id @default(uuid(7))
+  organizationId String        @map("organization_id")
+  campaignId     String?       @map("campaign_id")
+
+  platform AssetPlatform @default(GENERIC)
+  kind     AssetKind     @default(POST)
+  status   AssetStatus   @default(GENERATED)
+
+  title    String?
+  body     String        @default("")
+  caption  String?
+  hashtags String[]      @default([])
+  cta      String?
+  mediaUrl String?       @map("media_url")
+
+  // Prior AI generations kept so a reviewer can compare/restore versions.
+  aiVersions Json? @map("ai_versions")
+
+  scheduledFor   DateTime? @map("scheduled_for")
+  publishedAt    DateTime? @map("published_at")
+  externalPostId String?   @map("external_post_id")
+  failureReason  String?   @map("failure_reason")
+
+  ownerId    String? @map("owner_id")
+  reviewerId String? @map("reviewer_id")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     Campaign?              @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  comments     CampaignAssetComment[]
+
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, status])
+  @@index([organizationId, campaignId])
+  @@map("campaign_asset")
+}
+
+model CampaignAssetComment {
+  id             String   @id @default(uuid(7))
+  organizationId String   @map("organization_id")
+  assetId        String   @map("asset_id")
+  authorId       String?  @map("author_id")
+  body           String
+  // Records status transitions too, so the row doubles as an approval timeline.
+  event          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  asset        CampaignAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, assetId])
+  @@map("campaign_asset_comment")
 }

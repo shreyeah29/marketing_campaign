@@ -40,6 +40,7 @@ const STARTER_FEATURES = [
 
 const GROWTH_FEATURES = [
   ...STARTER_FEATURES,
+  'marketing.campaigns',
   'crm.pipelines',
   'crm.deals',
   'crm.tasks',

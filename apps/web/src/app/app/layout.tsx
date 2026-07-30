@@ -19,7 +19,7 @@ const NAV_ICONS: Record<string, string> = {
   image: '🖼', video: '🎬', phone: '📞', mic: '🎙', calendar: '📅', book: '📖',
   workflow: '⚙', zap: '⚡', 'bar-chart': '📊', 'trending-up': '📈', 'credit-card': '💳',
   receipt: '🧾', 'life-buoy': '🛟', inbox: '📥', folder: '📁', shield: '🛡', settings: '⚙',
-  globe: '🌐', edit: '✎', layout: '▧', activity: '📶',
+  globe: '🌐', megaphone: '📣', edit: '✎', layout: '▧', activity: '📶',
 }
 function navIcon(name?: string): string {
   return (name && NAV_ICONS[name]) || '•'

@@ -202,6 +202,21 @@ const crm: readonly FeatureManifest[] = [
 
 const marketing: readonly FeatureManifest[] = [
   f({
+    id: 'marketing.campaigns',
+    name: 'Campaigns',
+    description: 'AI-generated campaigns and the content review queue.',
+    category: 'Marketing',
+    version: 1,
+    dependencies: [],
+    defaultEnabled: false,
+    billingCategory: 'addon',
+    navEntry: { label: 'Campaigns', path: '/marketing/campaigns', icon: 'megaphone', order: 35, section: 'Marketing' },
+    requiredPermissions: ['content:read'],
+    apiRoutes: ['/v1/campaign-assets'],
+    frontendRoutes: ['/marketing/campaigns'],
+    backendModule: 'marketing',
+  }),
+  f({
     id: 'marketing.email',
     name: 'Email Campaigns',
     description: 'Bulk and sequenced email with open/click tracking.',

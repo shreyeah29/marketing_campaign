@@ -37,6 +37,8 @@ import { WorkflowsController } from './modules/automation/workflows.controller.j
 import { WebhooksController } from './modules/automation/webhooks.controller.js'
 import { AiController } from './modules/ai/ai.controller.js'
 import { AiService } from './modules/ai/ai.service.js'
+import { CampaignGenerationService } from './modules/ai/campaign-generation.service.js'
+import { ReviewQueueController } from './modules/marketing/review-queue.controller.js'
 import { PromptsController } from './modules/ai/prompts.controller.js'
 import { KnowledgeController } from './modules/ai/knowledge.controller.js'
 import { ApiKeysController } from './modules/settings/api-keys.controller.js'
@@ -80,6 +82,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     EmailCampaignsController,
     MessageTemplatesController,
     SocialPostsController,
+    ReviewQueueController,
     WorkflowsController,
     WebhooksController,
     AiController,
@@ -108,6 +111,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     IdentityService,
     AuthGuard,
     AiService,
+    CampaignGenerationService,
     PlatformAuthService,
     ProvisioningService,
     PlatformAdminGuard,

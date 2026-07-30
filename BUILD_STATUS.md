@@ -12,10 +12,46 @@ not asserted.
 | 2 | Workspace & tooling | ✅ complete |
 | 3 | Database, migrations, RLS | ✅ complete — tenant isolation verified (10-case suite) |
 | 4 | Backend core | ✅ complete |
-| 4.5 | **Modular platform refactor** | ▶ in progress — slice 1 done, see below |
-| 5 | Frontend foundation (consumes `/me/workspace` + platform portal) | pending |
-| 6 | Auth, organisations, RBAC | pending |
+| 4.5 | **Modular platform refactor** | ✅ complete — all 5 slices verified |
+| 5 | Frontend foundation (consumes `/me/workspace` + platform portal) | ✅ complete (with 4.5 slice 5) |
+| 6 | **Auth, organisations, RBAC** | ✅ complete — all 6 slices verified, see below |
 | 7 | Dashboard + first orchestrator slice | pending |
+
+## Phase 6 — Authentication & Identity
+
+Tenant authentication (Better Auth) plus org-awareness, multi-org membership, RBAC,
+invitations and security hardening. Completely separate from the platform-admin
+realm. Full design in [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) and
+[docs/SECURITY.md](docs/SECURITY.md).
+
+| Slice | Scope | State |
+| ----- | ----- | ----- |
+| A | Better Auth core, shared hashing, principal-resolving guard | ✅ done — verified |
+| — | Read-path RLS fix (handler reads run in tenant transactions) | ✅ done — verified |
+| B | Org-awareness: session, list/switch/leave/transfer | ✅ done — verified |
+| C | Invitations lifecycle, role templates, custom permissions | ✅ done — verified |
+| D | Lockout, auth-event audit, session revocation, restriction 403s | ✅ done — verified |
+| E | Frontend auth: login/register/reset/accept, org switcher, session shell | ✅ done — verified |
+| F | Auth tests (33 pass) + docs (AUTHENTICATION/SECURITY/API_STATUS) | ✅ done |
+
+**Acceptance — all verified end-to-end against Postgres 17 + Redis:** a user can
+register, log in, belong to one or more organisations, switch between them
+(role/permissions/features re-resolve per org), receive permissions and feature
+entitlements, and reach the dynamic workspace. Provisioned owners log in with the
+shared hash. A multi-org user switched OWNER (34 perms) → MANAGER (28 perms, 8
+features). Invite→accept joins a fresh user; role change + custom grants propagate
+next request. Lockout freezes after 5 failures; suspended org → 403; unauthenticated
+→ 401. Full browser-simulated flow (cookie jar) green.
+
+Key architectural decisions:
+- Identity (`user`/`session`/`account`/`verification`) is global; org/role lives in
+  the RLS-protected `membership`, resolved on the **owner connection** because
+  identity spans tenants — the same audited pattern the platform plane uses.
+- The principal resolves in a **first global guard** (before entitlement/permission
+  guards and the tenant interceptor). Better Auth endpoints mount on raw Fastify,
+  outside the Nest pipeline, so reaching them never needs a session.
+- Handler reads run in `withTenantTransaction` so the RLS SQL variable is set (the
+  interceptor opens the ALS context; only the transaction sets the SQL var).
 
 ## Phase 4.5 — Modular platform (AI Business OS)
 

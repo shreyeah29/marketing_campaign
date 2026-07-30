@@ -1,6 +1,5 @@
 'use client'
 
-import { ProviderNotConfigured } from '@/components/kit'
 import { ResourcePage } from '@/components/resource-page'
 import { Badge } from '@/components/ui'
 
@@ -14,7 +13,6 @@ interface EmailCampaign {
 export default function EmailCampaignsPage() {
   return (
     <>
-      <ProviderNotConfigured capability="email" />
       <ResourcePage<EmailCampaign>
         title="Email Campaigns"
         subtitle="Draft, schedule and send email campaigns to your audience."

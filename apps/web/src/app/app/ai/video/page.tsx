@@ -1,63 +1,27 @@
 'use client'
 
-import { useState } from 'react'
-
-import { PageHeader } from '@/components/kit'
-import { Field } from '@/components/ui'
-import { ApiError, api } from '@/lib/api'
+import { ModuleIntro } from '@/components/module-intro'
 
 /**
  * AI video generation.
  *
- * The form and request path are complete; until a video provider is configured
- * the API answers 409 and the page shows the "provider not configured" banner.
+ * There is no video-generation provider wired into the platform, so rather than
+ * present a form that always fails, this is an honest gated state describing what
+ * the module does and what it needs — consistent with the other provider-gated
+ * surfaces (meetings, receptionist).
  */
 export default function AiVideoPage() {
-  const [prompt, setPrompt] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function generate() {
-    if (!prompt.trim() || loading) return
-    setLoading(true)
-    setError(null)
-    try {
-      await api.post('/ai/video', { prompt: prompt.trim() })
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Generation failed.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <>
-      <PageHeader title="AI Video" subtitle="Generate short video clips from a text prompt" />
-
-
-      <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
-        <Field label="Describe the video">
-          <textarea
-            className="input"
-            rows={5}
-            placeholder="e.g. A slow dolly shot across a sunlit modern office, 5 seconds"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-        </Field>
-        <button
-          className="btn primary"
-          onClick={() => void generate()}
-          disabled={loading || !prompt.trim()}
-        >
-          {loading ? 'Generating…' : 'Generate video'}
-        </button>
-        {error ? (
-          <div className="banner error" style={{ marginTop: 14 }}>
-            {error}
-          </div>
-        ) : null}
-      </div>
-    </>
+    <ModuleIntro
+      title="AI Video"
+      subtitle="Generate short video clips from a text prompt"
+      icon="🎬"
+      requires="Video generation needs a video model provider connected to the platform."
+      capabilities={[
+        { title: 'Text-to-video', body: 'Turn a prompt into a short, on-brand clip.' },
+        { title: 'Social-ready', body: 'Export formats sized for each platform.' },
+        { title: 'Campaign assets', body: 'Drop generated clips straight into the review queue.' },
+      ]}
+    />
   )
 }

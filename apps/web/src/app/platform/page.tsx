@@ -62,6 +62,7 @@ export default function OrganizationsPage() {
             </Link>
           </div>
         ) : (
+          <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
@@ -95,6 +96,7 @@ export default function OrganizationsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </>

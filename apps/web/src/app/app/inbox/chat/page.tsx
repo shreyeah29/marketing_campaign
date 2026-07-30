@@ -18,10 +18,12 @@ interface Conversation {
 export default function InboxPage() {
   const [rows, setRows] = useState<Conversation[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [gated, setGated] = useState(false)
   const [active, setActive] = useState<Conversation | null>(null)
 
   function load() {
     setError(null)
+    setGated(false)
     api
       .get<Conversation[] | { data: Conversation[] }>('/conversations')
       .then((r) => {
@@ -29,14 +31,29 @@ export default function InboxPage() {
         setRows(list)
         setActive(list[0] ?? null)
       })
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Failed to load'))
+      .catch((e: unknown) => {
+        // A 403 means the live-chat feature isn't enabled for this workspace —
+        // present an honest "requires setup" state, not a scary error.
+        if (e instanceof ApiError && e.status === 403) {
+          setGated(true)
+          setRows([])
+          return
+        }
+        setError(e instanceof ApiError ? e.message : 'Failed to load')
+      })
   }
   useEffect(load, [])
 
   return (
     <>
       <PageHeader title="Inbox" subtitle="Unified conversations across channels" />
-      {error ? (
+      {gated ? (
+        <EmptyState
+          icon="💬"
+          title="Inbox isn't enabled yet"
+          hint="Connect a messaging channel to receive and reply to conversations from email, WhatsApp and live chat in one place."
+        />
+      ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : rows === null ? (
         <TableSkeleton cols={2} />
@@ -47,7 +64,7 @@ export default function InboxPage() {
           hint="Messages from your connected channels (email, WhatsApp, live chat) land here."
         />
       ) : (
-        <div className="grid" style={{ gridTemplateColumns: '300px 1fr', gap: 0, border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', minHeight: 420 }}>
+        <div className="grid split" style={{ gridTemplateColumns: '300px 1fr', gap: 0, border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', minHeight: 420 }}>
           <div style={{ borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
             {rows.map((c) => (
               <button

@@ -20,6 +20,10 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const isLogin = pathname === '/platform/login'
   const [ready, setReady] = useState(false)
+  const [navOpen, setNavOpen] = useState(false)
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
 
   useEffect(() => {
     const token = getPlatformToken()
@@ -49,10 +53,30 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="shell">
-      <aside className="sidebar">
+      <header className="mobile-topbar">
+        <button
+          className="hamburger"
+          onClick={() => setNavOpen(true)}
+          aria-label="Open navigation menu"
+          aria-expanded={navOpen}
+        >
+          ☰
+        </button>
+        <div className="brand" style={{ padding: 0 }}>
+          <span className="dot" />
+          <span>VSP Platform</span>
+        </div>
+      </header>
+
+      {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
+
+      <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
         <div className="brand">
           <span className="dot" />
           <span>VSP Platform</span>
+          <button className="sidebar-close" onClick={() => setNavOpen(false)} aria-label="Close navigation menu">
+            ✕
+          </button>
         </div>
         <div className="nav-section">
           <div className="label">Operator console</div>

@@ -54,7 +54,10 @@ export default function AiSettingsPage() {
 
   return (
     <>
-      <PageHeader title="AI Agents" subtitle="Enable the AI agents your workspace should use" />
+      <PageHeader
+        title="AI Agents"
+        subtitle="Choose which specialist AI assistants appear in your workspace. AI is built in — no keys or setup required."
+      />
 
       {loading ? (
         <TableSkeleton cols={2} />

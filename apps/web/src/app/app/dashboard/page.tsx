@@ -148,7 +148,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend + funnel */}
-          <div className="grid cols-2" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'stretch' }}>
+          <div className="grid cols-2 split" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'stretch' }}>
             <div className="card">
               <div className="spread" style={{ marginBottom: 8 }}>
                 <div>

@@ -40,11 +40,32 @@ export default function NotificationsPage() {
     }
   }
 
+  async function markAllRead() {
+    try {
+      await api.post('/notifications/read-all')
+      toast.push('success', 'All notifications marked as read')
+      load()
+    } catch {
+      toast.push('error', 'Could not mark all as read')
+    }
+  }
+
   const isRead = (n: Notification) => n.isRead === true || n.readAt != null
+  const unread = rows?.some((n) => !isRead(n)) ?? false
 
   return (
     <>
-      <PageHeader title="Notifications" subtitle="Alerts and activity from across your workspace" />
+      <PageHeader
+        title="Notifications"
+        subtitle="Alerts and activity from across your workspace"
+        actions={
+          unread ? (
+            <button className="btn" onClick={markAllRead}>
+              Mark all read
+            </button>
+          ) : undefined
+        }
+      />
       {error ? (
         <ErrorState message={error} onRetry={load} />
       ) : rows === null ? (

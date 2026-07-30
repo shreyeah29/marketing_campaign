@@ -1,20 +1,19 @@
 'use client'
 
-import { EmptyState, PageHeader, ProviderNotConfigured } from '@/components/kit'
+import { ModuleIntro } from '@/components/module-intro'
 
 export default function WhatsAppCampaignsPage() {
   return (
-    <>
-      <PageHeader
-        title="WhatsApp Campaigns"
-        subtitle="Send WhatsApp Business messages once a provider is connected."
-      />
-      <ProviderNotConfigured capability="WhatsApp" />
-      <EmptyState
-        icon="🟢"
-        title="No WhatsApp provider connected"
-        hint="Connect a WhatsApp Business provider to send template messages to your contacts."
-      />
-    </>
+    <ModuleIntro
+      title="WhatsApp Campaigns"
+      subtitle="Send WhatsApp Business messages"
+      icon="🟢"
+      requires="Connect a WhatsApp Business provider to send template messages to your contacts."
+      capabilities={[
+        { title: 'Template messages', body: 'Send approved WhatsApp templates to opted-in contacts.' },
+        { title: 'Conversations', body: 'Continue threads in the unified inbox.' },
+        { title: 'Delivery & read receipts', body: 'Track sent, delivered and read per message.' },
+      ]}
+    />
   )
 }

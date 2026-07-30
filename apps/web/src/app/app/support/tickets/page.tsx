@@ -120,7 +120,7 @@ export default function TicketsPage() {
         }
       />
 
-      <div className="grid cols-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 18 }}>
+      <div className="grid cols-4" style={{ gap: 12, marginBottom: 18 }}>
         <StatCard label="Open" value={summary?.open ?? '—'} />
         <StatCard label="Pending" value={summary?.pending ?? '—'} />
         <StatCard label="Resolved" value={summary?.resolved ?? '—'} />

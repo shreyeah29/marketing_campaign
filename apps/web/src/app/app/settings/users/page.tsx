@@ -37,6 +37,7 @@ export default function UsersSettingsPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState('MEMBER')
   const [inviting, setInviting] = useState(false)
+  const [savingRole, setSavingRole] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -78,12 +79,16 @@ export default function UsersSettingsPage() {
   }
 
   async function changeRole(m: Member, role: string) {
+    if (role === m.role) return
+    setSavingRole(m.membershipId)
     try {
       await api.patch(`/members/${m.membershipId}/role`, { role })
       toast.push('success', `${m.name ?? m.email} is now ${role}`)
       void load()
     } catch (err) {
       toast.push('error', err instanceof ApiError ? err.message : 'Role change failed')
+    } finally {
+      setSavingRole(null)
     }
   }
 
@@ -102,6 +107,7 @@ export default function UsersSettingsPage() {
           <select
             className="select"
             value={r.role}
+            disabled={savingRole === r.membershipId}
             onChange={(e) => void changeRole(r, e.target.value)}
           >
             {ROLES.map((role) => (

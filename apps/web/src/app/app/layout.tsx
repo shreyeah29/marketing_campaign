@@ -60,6 +60,12 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [status, setStatus] = useState<Status>({ kind: 'loading' })
+  // Mobile off-canvas navigation. Closed on every route change so tapping a link
+  // dismisses the menu.
+  const [navOpen, setNavOpen] = useState(false)
+  useEffect(() => {
+    setNavOpen(false)
+  }, [pathname])
 
   const load = useCallback(async () => {
     try {
@@ -96,10 +102,36 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
     <WorkspaceContext.Provider value={status.data}>
       <ToastProvider>
       <div className="shell">
-        <aside className="sidebar">
+        {/* Mobile top bar — only shown below the sidebar breakpoint. */}
+        <header className="mobile-topbar">
+          <button
+            className="hamburger"
+            onClick={() => setNavOpen(true)}
+            aria-label="Open navigation menu"
+            aria-expanded={navOpen}
+          >
+            ☰
+          </button>
+          <div className="brand" style={{ padding: 0 }}>
+            <span className="dot" />
+            <span>{brandName}</span>
+          </div>
+        </header>
+
+        {/* Backdrop behind the off-canvas sidebar on mobile. */}
+        {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
+
+        <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
           <div className="brand">
             <span className="dot" />
             <span>{brandName}</span>
+            <button
+              className="sidebar-close"
+              onClick={() => setNavOpen(false)}
+              aria-label="Close navigation menu"
+            >
+              ✕
+            </button>
           </div>
 
           <OrgSwitcher session={session} activeId={ws.organization?.id ?? null} onSwitched={() => void load()} />

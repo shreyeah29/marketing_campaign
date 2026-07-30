@@ -148,7 +148,7 @@ export default function WorkflowBuilderPage() {
         }
       />
 
-      <div className="grid" style={{ gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}>
+      <div className="grid split" style={{ gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}>
         {/* Node editor */}
         <div className="stack">
           <div className="row" style={{ gap: 8 }}>

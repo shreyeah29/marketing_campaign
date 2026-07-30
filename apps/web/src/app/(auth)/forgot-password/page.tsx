@@ -29,6 +29,10 @@ export default function ForgotPasswordPage() {
   return (
     <div className="center-screen">
       <div className="card auth-card">
+        <div className="brand" style={{ padding: '0 0 20px' }}>
+          <span className="dot" />
+          <strong>VSP</strong>
+        </div>
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>Reset your password</h1>
         <p className="page-sub" style={{ marginBottom: 20 }}>
           Enter your email and we'll send a reset link.

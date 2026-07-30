@@ -1,20 +1,19 @@
 'use client'
 
-import { EmptyState, PageHeader, ProviderNotConfigured } from '@/components/kit'
+import { ModuleIntro } from '@/components/module-intro'
 
 export default function SmsCampaignsPage() {
   return (
-    <>
-      <PageHeader
-        title="SMS Campaigns"
-        subtitle="Reach your audience over SMS once a provider is connected."
-      />
-      <ProviderNotConfigured capability="SMS" />
-      <EmptyState
-        icon="💬"
-        title="No SMS provider connected"
-        hint="Connect an SMS provider to send campaigns to your contacts."
-      />
-    </>
+    <ModuleIntro
+      title="SMS Campaigns"
+      subtitle="Reach your audience over SMS"
+      icon="💬"
+      requires="Connect an SMS provider (Twilio, Telnyx) to send text campaigns to your contacts."
+      capabilities={[
+        { title: 'Broadcasts', body: 'Send a message to a segment of your contacts at once.' },
+        { title: 'Two-way replies', body: 'Route inbound replies into the unified inbox.' },
+        { title: 'Delivery tracking', body: 'See delivered, failed and opt-out counts per send.' },
+      ]}
+    />
   )
 }

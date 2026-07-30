@@ -56,11 +56,12 @@ export default function CopywriterPage() {
               rows={6}
               placeholder="e.g. A launch announcement for our new analytics dashboard"
               value={prompt}
+              disabled={loading}
               onChange={(e) => setPrompt(e.target.value)}
             />
           </Field>
           <Field label="Tone">
-            <select className="select" value={tone} onChange={(e) => setTone(e.target.value)}>
+            <select className="select" value={tone} disabled={loading} onChange={(e) => setTone(e.target.value)}>
               {TONES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -69,7 +70,7 @@ export default function CopywriterPage() {
             </select>
           </Field>
           <Field label="Format">
-            <select className="select" value={format} onChange={(e) => setFormat(e.target.value)}>
+            <select className="select" value={format} disabled={loading} onChange={(e) => setFormat(e.target.value)}>
               {FORMATS.map((f) => (
                 <option key={f} value={f}>
                   {f}

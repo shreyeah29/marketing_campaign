@@ -223,7 +223,7 @@ export default function LandingPageBuilder() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
         {/* Editor */}
         <div className="stack" style={{ gap: 14 }}>
           <div className="card">

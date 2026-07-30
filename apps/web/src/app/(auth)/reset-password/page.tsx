@@ -49,6 +49,10 @@ function ResetPasswordInner() {
   return (
     <div className="center-screen">
       <div className="card auth-card">
+        <div className="brand" style={{ padding: '0 0 20px' }}>
+          <span className="dot" />
+          <strong>VSP</strong>
+        </div>
         <h1 style={{ fontSize: 20, marginBottom: 4 }}>Choose a new password</h1>
         <p className="page-sub" style={{ marginBottom: 20 }}>
           Enter a new password for your account.

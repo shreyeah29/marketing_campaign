@@ -7,10 +7,12 @@ import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fa
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
 import { assertRosterValid, AGENT_IDS, assertCatalogFresh } from '@vsp/ai-core'
+import { assertFeatureRegistryValid } from '@vsp/contracts'
 import {
   assertRowLevelSecurityEnforced,
   assertTenantRegistryComplete,
   createAdminClient,
+  syncRegistries,
   TENANT_SCOPED_MODELS,
 } from '@vsp/database'
 import { createLogger } from '@vsp/observability'
@@ -46,7 +48,11 @@ function toTableName(model: string): string {
  *     deliverable as the literal string `{{brandVoice}}`.
  *   · Stale pricing — budgets are enforced against rates that no longer hold.
  */
-async function runPreflight(databaseUrl: string, logger: Logger): Promise<void> {
+async function runPreflight(
+  databaseUrl: string,
+  directDatabaseUrl: string | undefined,
+  logger: Logger,
+): Promise<void> {
   assertPermissionMatrixValid()
   logger.log('Permission matrix valid')
 
@@ -55,6 +61,12 @@ async function runPreflight(databaseUrl: string, logger: Logger): Promise<void> 
 
   assertCatalogFresh(120)
   logger.log('Model pricing catalog is current')
+
+  // A broken feature registry — an unknown dependency, a duplicate nav path, a
+  // default-enabled feature whose dependency is not — must fail the deploy, not
+  // surface when an organisation's sidebar renders wrong.
+  assertFeatureRegistryValid()
+  logger.log('Feature registry valid')
 
   const probe = createAdminClient(databaseUrl)
   try {
@@ -65,6 +77,23 @@ async function runPreflight(databaseUrl: string, logger: Logger): Promise<void> 
     logger.log(`Tenant registry matches the schema (${String(TENANT_SCOPED_MODELS.length)} models)`)
   } finally {
     await probe.$disconnect()
+  }
+
+  // Sync the code feature and plan registries into their tables. Idempotent, so
+  // concurrent instances racing is harmless. Prefers the owner connection: the
+  // registry tables are platform-global reference data, and the application role
+  // has no business rewriting plans at runtime. Skipped (with a warning) when no
+  // owner URL is configured — a separate deploy step then owns the sync.
+  if (directDatabaseUrl !== undefined) {
+    const owner = createAdminClient(directDatabaseUrl)
+    try {
+      await syncRegistries(owner)
+      logger.log('Feature and plan registries synced')
+    } finally {
+      await owner.$disconnect()
+    }
+  } else {
+    logger.warn('DIRECT_DATABASE_URL not set — skipping registry sync; run it as a deploy step')
   }
 }
 
@@ -80,7 +109,7 @@ async function bootstrap(): Promise<void> {
 
   const bootLogger = new Logger('Bootstrap')
 
-  await runPreflight(env.DATABASE_URL, bootLogger)
+  await runPreflight(env.DATABASE_URL, env.DIRECT_DATABASE_URL, bootLogger)
 
   const adapter = new FastifyAdapter({
     // Trust the proxy: Render and Railway terminate TLS at their edge. Without

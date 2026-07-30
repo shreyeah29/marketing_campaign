@@ -40,6 +40,17 @@ export {
 } from './outbox.js'
 
 export {
+  applicableLimits,
+  hasFeature,
+  resolveEntitlements,
+  syncFeatureRegistry,
+  syncPlanRegistry,
+  syncRegistries,
+  withinLimit,
+  type EntitlementSnapshot,
+} from './entitlements.js'
+
+export {
   MissingTenantContextError,
   RowLevelSecurityNotEnforcedError,
   TenantMismatchError,

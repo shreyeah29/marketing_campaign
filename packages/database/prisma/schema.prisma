@@ -63,6 +63,53 @@ enum PlanTier {
   @@map("plan_tier")
 }
 
+enum OrganizationStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+  DELETED
+
+  @@map("organization_status")
+}
+
+enum FeatureAssignmentSource {
+  // Enabled because the organisation's plan includes it.
+  PLAN
+  // Explicitly granted on top of the plan by a platform admin.
+  GRANT
+  // A custom module built for this one organisation.
+  CUSTOM
+
+  @@map("feature_assignment_source")
+}
+
+enum ProviderCapability {
+  LLM
+  IMAGE
+  VIDEO
+  VOICE
+  TRANSCRIPTION
+  EMBEDDING
+  TELEPHONY
+  EMAIL
+  SOCIAL
+  STORAGE
+  PAYMENT
+
+  @@map("provider_capability")
+}
+
+enum PlatformAdminRole {
+  // Full platform control, including creating other platform admins.
+  SUPER_ADMIN
+  // Can manage organisations but not other admins.
+  OPERATOR
+  // Read-only: usage, billing, logs.
+  SUPPORT
+
+  @@map("platform_admin_role")
+}
+
 enum SubscriptionStatus {
   TRIALING
   ACTIVE
@@ -574,8 +621,13 @@ model Organization {
   locale   String  @default("en")
   metadata Json?
 
+  // Lifecycle, driven by the platform-admin plane. A suspended organisation is
+  // rejected by the SubscriptionGuard before any feature or permission check.
+  status OrganizationStatus @default(TRIAL)
+
   settings     OrganizationSettings?
   subscription Subscription?
+  branding     Branding?
 
   memberships           Membership[]
   invitations           Invitation[]
@@ -623,6 +675,11 @@ model Organization {
   providerCredentials   ProviderCredential[]
   integrationConnections IntegrationConnection[]
   idempotencyKeys       IdempotencyKey[]
+  featureAssignments    FeatureAssignment[]
+  organizationLimits    OrganizationLimit[]
+  providerConfigurations ProviderConfiguration[]
+  agentAssignments      AgentAssignment[]
+  customAgents          CustomAgent[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -724,7 +781,12 @@ model ApiKey {
 model Subscription {
   id             String             @id @default(uuid(7))
   organizationId String             @unique @map("organization_id")
+  // Legacy tier label, retained so existing rows are valid. The plan relation
+  // below is the new source of truth for what an organisation is entitled to.
   tier           PlanTier           @default(FREE)
+  // References a Plan row. Nullable during migration; the entitlement resolver
+  // falls back to the tier label when it is unset.
+  planId         String?            @map("plan_id")
   status         SubscriptionStatus @default(TRIALING)
 
   stripeCustomerId     String? @unique @map("stripe_customer_id")
@@ -745,8 +807,10 @@ model Subscription {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  plan         Plan?        @relation(fields: [planId], references: [id])
 
   @@index([status])
+  @@index([planId])
   @@map("subscription")
 }
 
@@ -2260,6 +2324,7 @@ model ProviderCredential {
 
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   socialAccounts SocialAccount[]
+  providerConfigurations ProviderConfiguration[]
 
   @@unique([organizationId, kind, provider, label])
   @@index([organizationId, kind, isActive])
@@ -2447,4 +2512,268 @@ model IdempotencyKey {
   @@unique([organizationId, scope, key])
   @@index([expiresAt])
   @@map("idempotency_key")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MODULAR PLATFORM — plans, features, entitlements, limits, providers, agents
+//
+// This is the configuration layer that turns the app into an AI Business OS: which
+// organisation gets which modules, providers, agents, limits and branding. The
+// code registries in @vsp/contracts define WHAT exists; these tables record what
+// each organisation HAS. Global tables (Plan, Feature, PlatformAdmin) have no
+// tenant column and no RLS policy; per-organisation tables do, and are registered
+// in TENANT_SCOPED_MODELS + the row_level_security migration like every other.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Platform-global. A named bundle of features + default limits, synced from the
+/// built-in PLANS registry and extendable with bespoke rows by a platform admin.
+model Plan {
+  id           String   @id @default(uuid(7))
+  // Stable key matching the code registry (starter/growth/...) for built-ins, or
+  // a generated key for custom plans.
+  key          String   @unique
+  name         String
+  description  String?
+  monthlyPriceUsd Decimal @default(0) @map("monthly_price_usd") @db.Decimal(12, 2)
+  yearlyPriceUsd  Decimal @default(0) @map("yearly_price_usd") @db.Decimal(12, 2)
+  customPricing   Boolean @default(false) @map("custom_pricing")
+  // Default limits for this plan, by metric id. Copied to OrganizationLimit on
+  // assignment, then independently overridable.
+  defaultLimits Json?   @map("default_limits")
+  isBuiltIn     Boolean @default(false) @map("is_built_in")
+  isActive      Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+
+  @@map("plan")
+}
+
+/// Platform-global. Which features a plan includes.
+model PlanFeature {
+  id         String @id @default(uuid(7))
+  planId     String @map("plan_id")
+  featureKey String @map("feature_key")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, featureKey])
+  @@index([featureKey])
+  @@map("plan_feature")
+}
+
+/// Platform-global mirror of the code feature registry, synced at deploy time so
+/// FeatureAssignment.featureKey has referential integrity. The manifest in code
+/// is the source of truth; this table exists for FKs and admin browsing.
+model Feature {
+  key             String  @id
+  name            String
+  description     String?
+  category        String
+  version         Int     @default(1)
+  billingCategory String  @map("billing_category")
+  defaultEnabled  Boolean @default(false) @map("default_enabled")
+  isCustom        Boolean @default(false) @map("is_custom")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assignments FeatureAssignment[]
+
+  @@index([category])
+  @@map("feature")
+}
+
+/// Per-organisation. THE entitlement record: whether an org has a feature, why,
+/// and its per-feature configuration (settings, provider choices, sub-limits).
+model FeatureAssignment {
+  id             String                  @id @default(uuid(7))
+  organizationId String                  @map("organization_id")
+  featureKey     String                  @map("feature_key")
+  enabled        Boolean                 @default(true)
+  source         FeatureAssignmentSource @default(PLAN)
+  // Per-feature config validated against the feature's schema in @vsp/contracts.
+  // This is where "each module has its own settings, providers and limits" lives.
+  config         Json?
+  // For time-boxed grants and trials; null means indefinite.
+  expiresAt      DateTime?               @map("expires_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  feature      Feature      @relation(fields: [featureKey], references: [key])
+
+  @@unique([organizationId, featureKey])
+  @@index([organizationId, enabled])
+  @@map("feature_assignment")
+}
+
+/// Per-organisation limit override. Seeded from the plan's defaults, then editable.
+model OrganizationLimit {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  // Metric id from the LIMITS registry.
+  metric         String
+  // -1 means unlimited (enterprise). Checked explicitly by the limit service.
+  limitValue     Int    @map("limit_value")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, metric])
+  @@map("organization_limit")
+}
+
+/// Per-organisation provider selection. Picks which concrete provider fills a
+/// capability, pointing at an envelope-encrypted ProviderCredential. The choice is
+/// here; the secret is never in this table.
+model ProviderConfiguration {
+  id             String             @id @default(uuid(7))
+  organizationId String             @map("organization_id")
+  capability     ProviderCapability
+  // Provider key from the provider registry (openai, anthropic, elevenlabs, ...).
+  provider       String
+  credentialId   String?            @map("credential_id")
+  isActive       Boolean            @default(true) @map("is_active")
+  config         Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  credential   ProviderCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, capability, provider])
+  @@index([organizationId, capability, isActive])
+  @@map("provider_configuration")
+}
+
+/// Per-organisation agent enablement. The roster stops being a fixed twelve;
+/// each org enables the built-in agents it bought.
+model AgentAssignment {
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  // AgentId enum value for built-ins, or a CustomAgent id for bespoke agents.
+  agentKey       String  @map("agent_key")
+  enabled        Boolean @default(true)
+  // Per-agent overrides: model, effort, autonomy.
+  config         Json?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, agentKey])
+  @@map("agent_assignment")
+}
+
+/// Per-organisation custom agent — a bespoke AI employee defined for one client
+/// without touching the code roster.
+model CustomAgent {
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  key            String
+  role           String
+  systemPrompt   String  @map("system_prompt")
+  // Tool ids and model requirements, validated against the tool registry.
+  toolKeys       String[] @default([]) @map("tool_keys")
+  requirements   Json?
+  isActive       Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@map("custom_agent")
+}
+
+/// Per-organisation white-label branding. One row per organisation.
+model Branding {
+  id             String  @id @default(uuid(7))
+  organizationId String  @unique @map("organization_id")
+
+  logoUrl        String? @map("logo_url")
+  logoDarkUrl    String? @map("logo_dark_url")
+  faviconUrl     String? @map("favicon_url")
+  displayName    String? @map("display_name")
+  primaryColor   String? @map("primary_color")
+  secondaryColor String? @map("secondary_color")
+  accentColor    String? @map("accent_color")
+  headingFont    String? @map("heading_font")
+  bodyFont       String? @map("body_font")
+
+  // Custom domain the workspace is served from; resolved to the org at request time.
+  customDomain   String? @unique @map("custom_domain")
+  customDomainVerifiedAt DateTime? @map("custom_domain_verified_at")
+
+  // AI personality and prompt variables injected into every agent for this org.
+  aiPersonality  String? @map("ai_personality")
+  promptVariables Json?  @map("prompt_variables")
+
+  emailFromName  String? @map("email_from_name")
+  emailFooter    String? @map("email_footer")
+  loginTagline   String? @map("login_tagline")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("branding")
+}
+
+// ─── Platform-admin plane (the super-admin portal's identity space) ──────────
+// Deliberately separate from User/Membership: a platform admin is NOT a member of
+// any organisation. This is what keeps the super-admin portal invisible to
+// tenants — there is no row linking a platform admin to an org's user space.
+
+/// Platform operator. Authenticates against the /platform surface only.
+model PlatformAdmin {
+  id            String            @id @default(uuid(7))
+  email         String            @unique @db.Citext
+  name          String
+  passwordHash  String            @map("password_hash")
+  role          PlatformAdminRole @default(OPERATOR)
+  isActive      Boolean           @default(true) @map("is_active")
+  lastLoginAt   DateTime?         @map("last_login_at")
+  twoFactorEnabled Boolean        @default(false) @map("two_factor_enabled")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  auditLogs PlatformAuditLog[]
+
+  @@map("platform_admin")
+}
+
+/// Append-only audit of every platform-admin action, kept separate from the
+/// tenant audit log. Records which admin did what to which organisation.
+model PlatformAuditLog {
+  id             String  @id @default(uuid(7))
+  platformAdminId String @map("platform_admin_id")
+  action         String
+  // The organisation acted upon, when applicable.
+  targetOrganizationId String? @map("target_organization_id")
+  resourceType   String  @map("resource_type")
+  resourceId     String? @map("resource_id")
+  before         Json?
+  after          Json?
+  ipAddress      String? @map("ip_address")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  platformAdmin PlatformAdmin @relation(fields: [platformAdminId], references: [id])
+
+  @@index([platformAdminId, createdAt])
+  @@index([targetOrganizationId, createdAt])
+  @@map("platform_audit_log")
 }

@@ -11,10 +11,60 @@ not asserted.
 | 1 | Architecture | ✅ complete |
 | 2 | Workspace & tooling | ✅ complete |
 | 3 | Database, migrations, RLS | ✅ complete — tenant isolation verified (10-case suite) |
-| 4 | Backend core | ✅ complete — see below |
-| 5 | Frontend foundation | ▶ next |
+| 4 | Backend core | ✅ complete |
+| 4.5 | **Modular platform refactor** | ▶ in progress — slice 1 done, see below |
+| 5 | Frontend foundation (consumes `/me/workspace` + platform portal) | pending |
 | 6 | Auth, organisations, RBAC | pending |
 | 7 | Dashboard + first orchestrator slice | pending |
+
+## Phase 4.5 — Modular platform (AI Business OS)
+
+Redesign into a config-driven multi-tenant SaaS: every org gets a different
+combination of modules, agents, providers, limits, branding and integrations,
+onboarded without code. Approved direction: code manifests synced to DB;
+super-admin as an isolated route group.
+
+| Slice | Scope | State |
+| ----- | ----- | ----- |
+| 1 | Registries + schema + entitlement engine | ✅ done — verified |
+| 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ▶ next |
+| 3 | Platform plane: `PlatformAdmin` auth, `provisionOrganization` wizard, org lifecycle | pending |
+| 4 | Provider/agent/integration/branding config surfaces | pending |
+| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | pending |
+
+### Slice 1 — verified
+
+- **Feature registry** (`@vsp/contracts`): 44 features, 9 categories, per-feature
+  Zod config, dependency resolution. `assertFeatureRegistryValid()` in preflight.
+- **Plans** reference features (5 plans, additive tiers, enterprise = full
+  registry, custom supported). **Limits** registry (13 metrics). **Presets**: 6
+  industry templates with per-feature config overrides; `resolvePreset` returns a
+  ready-to-save spec with dependencies closed and config filled.
+- **Schema**: 11 new models (Plan, PlanFeature, Feature, FeatureAssignment,
+  OrganizationLimit, ProviderConfiguration, AgentAssignment, CustomAgent,
+  Branding, PlatformAdmin, PlatformAuditLog) + `Organization.status`. Migration
+  applied; 6 new tenant tables carry RLS policies; global registry tables
+  deliberately do not. Tenant registry now 54 models; isolation suite still 29/29.
+- **Entitlement engine** (`resolveEntitlements`): plan features ∪ grants − revokes,
+  dependency closure, per-org limits, per-feature config. Verified end-to-end:
+  growth plan → 17 features, a GRANT adds a feature, a disabled assignment revokes
+  a plan feature, limits resolve from plan defaults. Registry sync
+  (`syncRegistries`) runs in preflight from the owner connection (44 features, 5
+  plans, 105 plan_feature rows synced).
+- **Docs**: `FEATURE_REGISTRY.md`, `MODULE_REGISTRY.md`, `AI_AGENT_REGISTRY.md`,
+  `PLUGIN_REGISTRY.md`, `SUPER_ADMIN_GUIDE.md`, `CUSTOMIZATION_GUIDE.md`.
+
+### Correctness note found while building
+
+`resolveEntitlements` initially queried outside a tenant transaction, so RLS
+returned nothing (app role, no `app.organization_id` bound) — fail-closed working
+as designed. Fixed by wrapping the reads in `withTenantTransaction`. **Broader
+implication for Phase 6:** when auth is wired and the API serves reads through the
+application role, tenant-scoped reads must run inside a per-request tenant
+transaction (or a connection-level GUC), or RLS filters them. The write path
+already uses `withTenantTransaction`; the read path in the existing controllers
+must be brought under the same wrapper when the principal is attached. Recorded
+here so it is closed in Phase 6, not discovered in production.
 
 ## Phase 4 — backend, item by item
 

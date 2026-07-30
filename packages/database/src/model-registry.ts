@@ -56,6 +56,13 @@ export const TENANT_SCOPED_MODELS = [
   'AuditLog',
   'Notification',
   'IdempotencyKey',
+  // Modular platform — per-organisation configuration tables.
+  'FeatureAssignment',
+  'OrganizationLimit',
+  'ProviderConfiguration',
+  'AgentAssignment',
+  'CustomAgent',
+  'Branding',
 ] as const
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number]

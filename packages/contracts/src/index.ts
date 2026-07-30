@@ -45,3 +45,54 @@ export {
   type EventName,
   type EventPayload,
 } from './events.js'
+
+// ─── Modular platform: features, plans, limits, presets ──────────────────────
+
+export {
+  assertFeatureRegistryValid,
+  DEFAULT_ENABLED_FEATURES,
+  dependentsOf,
+  featureManifestSchema,
+  FEATURE_CATEGORIES,
+  FEATURES,
+  featuresByCategory,
+  findFeature,
+  isKnownFeature,
+  resolveDependencies,
+  type BillingCategory,
+  type FeatureCategory,
+  type FeatureManifest,
+  type NavEntry,
+} from './features.js'
+
+export {
+  defaultFeatureConfig,
+  FEATURE_CONFIG,
+  hasFeatureConfig,
+  validateFeatureConfig,
+} from './feature-config.js'
+
+export {
+  findPlan,
+  isUnlimited,
+  PLANS,
+  UNLIMITED,
+  type PlanDefinition,
+  type PlanTierId,
+} from './plans.js'
+
+export {
+  findLimit,
+  isKnownLimit,
+  LIMITS,
+  type LimitDefinition,
+  type LimitPeriod,
+  type LimitUnit,
+} from './limits.js'
+
+export {
+  findPreset,
+  PRESETS,
+  resolvePreset,
+  type FeaturePreset,
+} from './presets.js'

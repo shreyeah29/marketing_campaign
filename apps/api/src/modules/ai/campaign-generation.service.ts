@@ -71,7 +71,10 @@ export class CampaignGenerationService {
           { role: 'system', content: SYSTEM_PROMPT },
           { role: 'user', content: `Marketing brief: ${brief}\n\nReturn ONLY the JSON object described.` },
         ],
-        temperature: 0.7,
+        // A full multi-platform campaign is a large JSON document, and reasoning
+        // models spend part of the budget on hidden reasoning tokens — the default
+        // 1024 cap truncates the output and JSON.parse fails. Give it real room.
+        maxTokens: 8000,
       })
       await this.ai.recordUsage(principal, {
         capability: 'LLM',
@@ -187,7 +190,8 @@ export class CampaignGenerationService {
       const result = await adapter.chat({
         apiKey: resolved.apiKey,
         model: resolved.model ?? adapter.defaultModel,
-        temperature: 0.9,
+        // Room for reasoning-token overhead so the rewrite isn't truncated.
+        maxTokens: 2000,
         messages: [
           {
             role: 'system',

@@ -63,7 +63,10 @@ export class AdapterError extends Error {
   }
 }
 
-const DEFAULT_MAX_TOKENS = 1024
+// A cap, not a charge — you pay only for tokens actually produced. Kept generous
+// so reasoning-era models (which spend hidden reasoning tokens against this cap)
+// don't truncate normal chat/copywriter replies.
+const DEFAULT_MAX_TOKENS = 4096
 
 async function readError(res: Response, providerId: string): Promise<AdapterError> {
   let detail = `${providerId} request failed (${String(res.status)})`

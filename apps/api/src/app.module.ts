@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 
 import type { AppLogger } from '@vsp/observability'
 
+import { EncryptionService } from './common/crypto/encryption.service.js'
 import { EntitlementService } from './common/entitlements/entitlement.service.js'
 import { LimitService } from './common/entitlements/limit.service.js'
 import { ProblemExceptionFilter } from './common/filters/problem.filter.js'
@@ -14,6 +15,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js'
 import { DatabaseModule, LOGGER } from './infrastructure/database.module.js'
 import { AgentRunsController } from './modules/agents/agent-runs.controller.js'
+import { ConfigController } from './modules/config/config.controller.js'
 import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
 import { CampaignsController } from './modules/campaigns/campaigns.controller.js'
 import { ContactsController } from './modules/crm/contacts.controller.js'
@@ -59,12 +61,14 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     AnalyticsController,
     AuditController,
     WorkspaceController,
+    ConfigController,
     PlatformController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
     EntitlementService,
     LimitService,
+    EncryptionService,
     PlatformAuthService,
     ProvisioningService,
     PlatformAdminGuard,

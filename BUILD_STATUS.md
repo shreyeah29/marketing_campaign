@@ -29,8 +29,34 @@ super-admin as an isolated route group.
 | 1 | Registries + schema + entitlement engine | ✅ done — verified |
 | 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ✅ done — verified |
 | 3 | Platform plane: admin auth, `provisionOrganization` wizard, org lifecycle | ✅ done — verified |
-| 4 | Provider/agent/integration/branding config surfaces | ▶ next |
-| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | pending |
+| 4 | Provider/agent/branding config + credential encryption | ✅ done — verified |
+| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | ▶ next |
+
+### Slice 4 — verified
+
+- **Provider registry** (`@vsp/contracts`): 27 providers across 11 capabilities
+  (LLM: Anthropic/OpenAI/Gemini/xAI/DeepSeek/Mistral/OpenRouter; voice, telephony,
+  image, video, embedding, storage, email, payment). Metadata only — the choice is
+  config, the adapters (Phase-later) implement the ai-core ports. `credentialFields`
+  drive both the admin form and what gets encrypted.
+- **Envelope encryption** (`EncryptionService`): AES-256-GCM, a fresh per-record
+  data key wrapped by an HKDF-derived master key from `ENCRYPTION_MASTER_KEY`. This
+  is the correction to the previous system's plaintext-API-key columns. **Verified
+  through a real DB row**: the plaintext never appears in storage, only a masked
+  hint (`sk-••••7654`) is kept, and it round-trips correctly. 8-case unit test:
+  round trip, no-plaintext-leak, non-deterministic ciphertext, tamper detection on
+  ciphertext/tag/wrapped-key, wrong-master-key rejection, masking.
+- **`ConfigController`** (tenant self-service, org-admin gated): choose a provider
+  per capability and store its credential sealed (api-keys permission); enable/
+  disable agents (the roster is per-org, not a fixed 12); edit white-label
+  branding. Credential and branding writes are audited with the hint, never the
+  secret.
+- API boots with 32 routes; 26 API tests green; contracts + api typecheck clean.
+
+Follow-up: the model router should consult per-org `ProviderConfiguration` to
+resolve which provider fills a capability (the resolver already accepts
+`availableProviders`); wiring that, plus the provider adapters in
+`@vsp/providers`, is downstream of the frontend slice.
 
 ### Slice 3 — verified (the "onboard a client without code" goal)
 

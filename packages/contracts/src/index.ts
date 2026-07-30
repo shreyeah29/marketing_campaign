@@ -96,3 +96,13 @@ export {
   resolvePreset,
   type FeaturePreset,
 } from './presets.js'
+
+export {
+  findProvider,
+  PROVIDER_CAPABILITIES,
+  PROVIDERS,
+  providersFor,
+  validateProviderCredential,
+  type ProviderCapability,
+  type ProviderManifest,
+} from './providers.js'

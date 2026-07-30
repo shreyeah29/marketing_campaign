@@ -95,37 +95,69 @@ function openAiCompatAdapter(cfg: OpenAiCompatConfig): LlmAdapter {
     defaultModel: cfg.defaultModel,
     async chat(input: AdapterChatInput): Promise<AdapterChatResult> {
       const model = input.model ?? cfg.defaultModel
-      const res = await fetch(cfg.baseUrl, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${input.apiKey}`,
-          ...(cfg.extraHeaders ?? {}),
-        },
-        body: JSON.stringify({
-          model,
-          messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
-          max_tokens: input.maxTokens ?? DEFAULT_MAX_TOKENS,
-          ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
-        }),
-        ...(input.signal ? { signal: input.signal } : {}),
-      })
-      if (!res.ok) throw await readError(res, cfg.providerId)
 
-      const data = (await res.json()) as {
-        model?: string
-        choices?: { message?: { content?: string } }[]
-        usage?: { prompt_tokens?: number; completion_tokens?: number }
+      // Newer OpenAI models (the reasoning generation — gpt-5.x, o-series) speak a
+      // slightly different Chat Completions dialect than gpt-4-era models: they use
+      // `max_completion_tokens` instead of `max_tokens` and reject any `temperature`
+      // other than the default (1). Older models want the opposite. Rather than
+      // branch on an ever-changing model list, we start with the classic parameters
+      // and, if the provider rejects one, drop/rename it and retry. Self-healing and
+      // forward-compatible with models that don't exist yet.
+      const body: Record<string, unknown> = {
+        model,
+        messages: input.messages.map((m) => ({ role: m.role, content: m.content })),
+        max_tokens: input.maxTokens ?? DEFAULT_MAX_TOKENS,
+        ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
       }
-      const content = data.choices?.[0]?.message?.content ?? ''
-      return {
-        content,
-        model: data.model ?? model,
-        usage: {
-          inputTokens: data.usage?.prompt_tokens ?? 0,
-          outputTokens: data.usage?.completion_tokens ?? 0,
-        },
+
+      // At most three attempts: initial + one fix for tokens + one fix for temperature.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const res = await fetch(cfg.baseUrl, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${input.apiKey}`,
+            ...(cfg.extraHeaders ?? {}),
+          },
+          body: JSON.stringify(body),
+          ...(input.signal ? { signal: input.signal } : {}),
+        })
+
+        if (res.ok) {
+          const data = (await res.json()) as {
+            model?: string
+            choices?: { message?: { content?: string } }[]
+            usage?: { prompt_tokens?: number; completion_tokens?: number }
+          }
+          const content = data.choices?.[0]?.message?.content ?? ''
+          return {
+            content,
+            model: data.model ?? model,
+            usage: {
+              inputTokens: data.usage?.prompt_tokens ?? 0,
+              outputTokens: data.usage?.completion_tokens ?? 0,
+            },
+          }
+        }
+
+        const err = await readError(res, cfg.providerId)
+        const lower = err.message.toLowerCase()
+        const isParamError = res.status === 400 || res.status === 422
+        // `max_tokens` unsupported → the model wants `max_completion_tokens`.
+        if (isParamError && lower.includes('max_tokens') && 'max_tokens' in body) {
+          body.max_completion_tokens = body.max_tokens
+          delete body.max_tokens
+          continue
+        }
+        // `temperature` unsupported → drop it and let the model use its default.
+        if (isParamError && lower.includes('temperature') && 'temperature' in body) {
+          delete body.temperature
+          continue
+        }
+        throw err
       }
+      // Exhausted retries without a rejection we know how to fix.
+      throw new AdapterError(`${cfg.providerId} rejected the request parameters`, cfg.providerId, 400)
     },
   }
 }

@@ -8,7 +8,7 @@ import { ApiError } from '@/lib/api'
 import { authClient, type AuthSession } from '@/lib/auth-client'
 import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
-import { Banner, LoadingScreen } from '@/components/ui'
+import { Banner, Spinner } from '@/components/ui'
 import { ToastProvider } from '@/components/kit'
 
 /** Maps feature-registry icon names to glyphs (no icon-font dependency). */
@@ -23,6 +23,41 @@ const NAV_ICONS: Record<string, string> = {
 }
 function navIcon(name?: string): string {
   return (name && NAV_ICONS[name]) || '•'
+}
+
+/**
+ * The shell (nav, branding, plan, user) is cached in sessionStorage so a reload or
+ * a hard navigation renders the app instantly instead of blocking on the API — the
+ * cached shell shows immediately while a fresh copy is fetched in the background.
+ * This is what makes the app feel fast even when the API is cold-starting.
+ */
+const SHELL_CACHE_KEY = 'vsp:shell:v1'
+function readShellCache(): { workspace: Workspace; session: AuthSession } | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(SHELL_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { workspace?: Workspace; session?: AuthSession }
+    return parsed.workspace && parsed.session ? { workspace: parsed.workspace, session: parsed.session } : null
+  } catch {
+    return null
+  }
+}
+function writeShellCache(session: AuthSession, workspace: Workspace): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(SHELL_CACHE_KEY, JSON.stringify({ session, workspace }))
+  } catch {
+    /* storage full / disabled — caching is best-effort */
+  }
+}
+function clearShellCache(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(SHELL_CACHE_KEY)
+  } catch {
+    /* ignore */
+  }
 }
 
 interface ShellData {
@@ -68,22 +103,43 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   }, [pathname])
 
   const load = useCallback(async () => {
+    // Render the last known-good shell immediately (optimistic), then revalidate.
+    const cached = readShellCache()
+    if (cached) {
+      applyBranding(cached.workspace.branding)
+      setStatus({ kind: 'ready', data: { ...cached, reload: () => void load() } })
+    }
+
     try {
-      const session = await authClient.session()
+      // Fetch session + workspace concurrently so a cold API is paid once, not twice.
+      const [sessionRes, wsRes] = await Promise.allSettled([
+        authClient.session(),
+        workspaceApi.bootstrap(),
+      ])
+      if (sessionRes.status === 'rejected') throw sessionRes.reason
+      const session = sessionRes.value
+
       if (session.needsOrganization) {
+        clearShellCache()
         setStatus({ kind: 'no-org', session })
         return
       }
-      const ws = await workspaceApi.bootstrap()
+
+      const ws = wsRes.status === 'fulfilled' ? wsRes.value : await workspaceApi.bootstrap()
       applyBranding(ws.branding)
+      writeShellCache(session, ws)
       setStatus({ kind: 'ready', data: { workspace: ws, session, reload: () => void load() } })
     } catch (err) {
-      // No session → sign in. Any other failure is surfaced.
+      // No session → sign in. Any other failure is surfaced — unless we already
+      // rendered a cached shell, in which case we keep it (the API may be waking).
       if (err instanceof ApiError && err.status === 401) {
+        clearShellCache()
         router.replace('/login?next=/app')
         return
       }
-      setStatus({ kind: 'error', message: err instanceof ApiError ? err.message : 'Failed to load workspace' })
+      if (!cached) {
+        setStatus({ kind: 'error', message: err instanceof ApiError ? err.message : 'Failed to load workspace' })
+      }
     }
   }, [router])
 
@@ -91,8 +147,18 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
     void load()
   }, [load])
 
-  if (status.kind === 'loading') return <LoadingScreen />
-  if (status.kind === 'error') return <Banner kind="error">{status.message}</Banner>
+  if (status.kind === 'loading') return <ShellBooting />
+  if (status.kind === 'error')
+    return (
+      <div className="center-screen">
+        <div className="card auth-card" style={{ textAlign: 'center' }}>
+          <Banner kind="error">{status.message}</Banner>
+          <button className="btn primary" style={{ width: '100%', marginTop: 14 }} onClick={() => void load()}>
+            Try again
+          </button>
+        </div>
+      </div>
+    )
   if (status.kind === 'no-org') return <NoOrganization session={status.session} />
 
   const { workspace: ws, session } = status.data
@@ -196,6 +262,8 @@ function OrgSwitcher({
     }
     setBusy(true)
     try {
+      // Drop the cached shell so the switched org isn't shown stale on next load.
+      clearShellCache()
       await authClient.switchOrganization(orgId)
       onSwitched()
     } finally {
@@ -256,6 +324,7 @@ function SignOutButton() {
       disabled={busy}
       onClick={async () => {
         setBusy(true)
+        clearShellCache()
         try {
           await authClient.signOut()
         } finally {
@@ -287,12 +356,43 @@ function NoOrganization({ session }: { session: AuthSession }) {
           className="btn"
           style={{ width: '100%', justifyContent: 'center' }}
           onClick={async () => {
+            clearShellCache()
             await authClient.signOut()
             router.replace('/login')
           }}
         >
           Sign out
         </button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * First-load screen. After a few seconds it explains the wait honestly — the API
+ * cold-starts on the current hosting tier, so the very first request can be slow.
+ * Repeat loads render from the shell cache and never reach this.
+ */
+function ShellBooting() {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 4000)
+    return () => clearTimeout(t)
+  }, [])
+  return (
+    <div className="center-screen">
+      <div style={{ textAlign: 'center', maxWidth: 320 }}>
+        <div className="brand" style={{ justifyContent: 'center', marginBottom: 20 }}>
+          <span className="dot" />
+          <strong>VSP</strong>
+        </div>
+        <Spinner />
+        {slow ? (
+          <p className="muted" style={{ fontSize: 13, marginTop: 16, lineHeight: 1.5 }}>
+            Waking up the server… the first request after a period of inactivity can take up to a minute on the
+            current hosting tier. It stays fast after that.
+          </p>
+        ) : null}
       </div>
     </div>
   )

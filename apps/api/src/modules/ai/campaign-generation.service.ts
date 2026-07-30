@@ -1,9 +1,10 @@
 import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common'
 
 import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import type { AppLogger } from '@vsp/observability'
 
 import type { Principal } from '../../common/auth/principal.js'
-import { DATABASE } from '../../infrastructure/database.module.js'
+import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 
 import { getLlmAdapter } from './adapters/llm.js'
 import { AiService } from './ai.service.js'
@@ -47,6 +48,7 @@ export class CampaignGenerationService {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(AiService) private readonly ai: AiService,
+    @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
   async generate(
@@ -93,7 +95,12 @@ export class CampaignGenerationService {
         succeeded: false,
         errorCode: 'provider_error',
       })
-      // Never surface the provider's error text (may mention OpenAI / the key).
+      // Log the real cause server-side (operators need it — model name, bad key,
+      // quota) but never surface it to the user.
+      this.logger.error(
+        { err, providerId: resolved.providerId, model, operation: 'campaign.generate' },
+        'AI generation failed — check the provider key and OPENAI_MODEL',
+      )
       throw new ServiceUnavailableException(AI_UNAVAILABLE)
     }
 

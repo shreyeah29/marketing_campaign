@@ -105,6 +105,9 @@ export class PlatformController {
         name: p.name,
         description: p.description,
         featureCount: p.featureIds.length,
+        // The wizard pre-checks these when a plan is chosen — the enabled set is
+        // seeded from the plan, then the operator tweaks it.
+        featureIds: p.featureIds,
         monthlyPriceUsd: p.monthlyPriceUsd,
         customPricing: p.customPricing,
       })),
@@ -115,6 +118,8 @@ export class PlatformController {
         description: p.description,
         recommendedPlan: p.recommendedPlan,
         featureCount: p.featureIds.length,
+        // Industry template's feature set, so choosing it pre-checks exactly those.
+        featureIds: p.featureIds,
       })),
     }
   }

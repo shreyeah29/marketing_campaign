@@ -30,7 +30,41 @@ super-admin as an isolated route group.
 | 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ✅ done — verified |
 | 3 | Platform plane: admin auth, `provisionOrganization` wizard, org lifecycle | ✅ done — verified |
 | 4 | Provider/agent/branding config + credential encryption | ✅ done — verified |
-| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | ▶ next |
+| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | ✅ done — verified |
+
+### Slice 5 — verified
+
+The `@vsp/web` Next.js 15 (App Router) frontend. The governing rule: the client
+**never hardcodes what exists**. Features, plans, presets, navigation and limits
+are all read from the API at runtime — `/platform/catalog` and `/me/workspace` —
+so a new module or a re-skinned org needs no frontend change.
+
+- **Platform (super-admin) portal** — `/platform`, a realm never shown to a client
+  org. Token-gated shell; operator login; organization list with live counts;
+  organization detail with usage, AI cost, limits, enabled modules and the
+  lifecycle actions (suspend / reactivate / delete, change plan).
+- **Onboarding wizard** — `/platform/organizations/new`, three steps (Company →
+  Admin user → Plan & modules). Industry-template presets pre-select a tuned module
+  set and recommended plan; plan selection seeds the module set; the feature picker
+  is category-grouped with **live dependency handling** — checking a module pulls in
+  its dependencies, and a module another enabled module needs cannot be unchecked.
+  One submit provisions the whole org.
+- **Tenant app shell** — `/app`, the dynamic-navigation surface. The sidebar is
+  built entirely from `workspace.navigation` (features ∩ nav ∩ the user's
+  permissions); white-label branding is applied at runtime by rewriting CSS
+  variables from the branding response. Tenant auth is Phase 6, so it surfaces an
+  explicit "sign-in required" state rather than a broken page.
+- **Design system** in one stylesheet, themed by CSS custom properties so branding
+  overrides are three variables, not per-tenant CSS.
+
+Verified: `tsc --noEmit` clean, `next build` green (7 routes), and the full call
+sequence the UI makes driven against the live API — login → catalog (9 categories,
+44 features, 5 plans + 6 presets all carrying `featureIds`) → provision (13 features
+on the business plan) → list → detail → suspend → 401 without a token. Every
+response shape matched the frontend's declared types. Also added `featureIds` to
+the catalog's plans and presets so the wizard can seed and diff the selection.
+
+To run locally: API on :4000, then `pnpm --filter @vsp/web dev` (:3000).
 
 ### Slice 4 — verified
 

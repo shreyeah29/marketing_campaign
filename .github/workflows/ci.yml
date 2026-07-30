@@ -22,7 +22,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:pg17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -67,6 +67,23 @@ jobs:
       - name: Apply migrations
         run: pnpm db:migrate:deploy
 
+      # Tenant isolation is the one defect class that becomes a breach, so it is
+      # verified against a real PostgreSQL instance on every run — as the
+      # application role, which is genuinely subject to row-level security.
+      - name: Provision application role
+        working-directory: packages/database
+        run: psql "$DIRECT_DATABASE_URL" -v app_password="ci-app-password" -f scripts/provision-app-role.sql
+
+      - name: Seed isolation fixtures
+        working-directory: packages/database
+        run: psql "$DIRECT_DATABASE_URL" -f scripts/seed-isolation-fixtures.sql
+
+      - name: Verify tenant isolation
+        working-directory: packages/database
+        env:
+          PGPASSWORD: ci-app-password
+        run: psql -h localhost -U vsp_app -d vsp_marketing_test -v ON_ERROR_STOP=1 -f scripts/verify-tenant-isolation.sql
+
       - name: Typecheck
         run: pnpm typecheck
 
@@ -86,6 +103,24 @@ jobs:
     name: Migration drift check
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/shadow
+
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -94,11 +129,13 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Fails if schema.prisma has changed without a corresponding migration —
-      # the previous implementation used EnsureCreated and could not evolve safely.
+
+      # Fails if schema.prisma changed without a migration. The previous .NET
+      # implementation used EnsureCreated and could not evolve a schema at all.
+      #
+      # Not a bare `migrate diff --exit-code`: RLS policies, functions, triggers
+      # and pgvector/trigram indexes cannot be expressed in the Prisma datamodel,
+      # so that would be red on every run and would end up disabled. The script
+      # allowlists those specific objects and fails on everything else.
       - name: Verify schema matches migrations
-        run: pnpm --filter @vsp/database exec prisma migrate diff
-          --from-migrations ./prisma/migrations
-          --to-schema-datamodel ./prisma/schema.prisma
-          --shadow-database-url "postgresql://postgres:postgres@localhost:5432/shadow"
-          --exit-code
+        run: pnpm --filter @vsp/database run migrate:check

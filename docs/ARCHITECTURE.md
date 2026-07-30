@@ -5,7 +5,8 @@
 > A multi-tenant AI operating system in which specialised AI employees collaborate to
 > perform the work of a full-service digital marketing agency.
 
-**Status:** Phase 1 — architecture defined. Implementation proceeds phase by phase.
+**Status:** Phase 3 complete — architecture, workspace, and the database layer, with tenant
+isolation verified against a real PostgreSQL instance. Implementation proceeds phase by phase.
 **Supersedes:** the .NET 9 implementation, preserved at git tag `dotnet-final`.
 
 ---
@@ -46,7 +47,7 @@
         ▼                 ▼                  ▼
 ┌──────────────┐  ┌────────────────┐  ┌─────────────────────────────┐
 │ Neon         │  │ Upstash Redis  │  │ Cloudflare R2               │
-│ Postgres 16  │  │ cache · BullMQ │  │ media · brand assets        │
+│ Postgres 17  │  │ cache · BullMQ │  │ media · brand assets        │
 │ + pgvector   │  │ · rate limits  │  │ · exports                   │
 └──────┬───────┘  └────────┬───────┘  └─────────────────────────────┘
        │                   │
@@ -100,24 +101,24 @@ packages/*    → apps/*            ❌  never
 Each is a NestJS module with its own domain/application/infrastructure folders, its own
 Prisma models, and its own events. Each is independently extractable.
 
-| Module | Responsibility |
-|---|---|
-| `iam` | Users, organisations, memberships, roles, invitations, sessions |
-| `billing` | Stripe subscriptions, plans, entitlements, usage-based invoicing |
-| `crm` | Companies, contacts, leads, deals, pipelines, activities, appointments |
-| `campaigns` | Campaign aggregate, channels, budgets, scheduling |
-| `content` | Copy, drafts, revisions, TipTap documents, approvals |
-| `media` | Images, video, brand assets, R2 objects, media library |
-| `messaging` | Email, WhatsApp, SMS — unified conversation model |
-| `telephony` | Outbound/inbound voice calls, transcripts, dispositions |
-| `social` | Accounts, scheduled posts, publishing, engagement ingestion |
-| `automation` | Trigger → condition → action graphs, run history |
-| `analytics` | Metric rollups, attribution, reporting |
-| `knowledge` | RAG corpus, chunking, embeddings, retrieval (pgvector) |
-| `agents` | Agent runs, orchestration sessions, tool-call ledger |
-| `templates` | Template marketplace, install/fork |
-| `audit` | Append-only audit log across every module |
-| `platform` | Health, feature flags, API keys, webhooks, settings |
+| Module       | Responsibility                                                         |
+| ------------ | ---------------------------------------------------------------------- |
+| `iam`        | Users, organisations, memberships, roles, invitations, sessions        |
+| `billing`    | Stripe subscriptions, plans, entitlements, usage-based invoicing       |
+| `crm`        | Companies, contacts, leads, deals, pipelines, activities, appointments |
+| `campaigns`  | Campaign aggregate, channels, budgets, scheduling                      |
+| `content`    | Copy, drafts, revisions, TipTap documents, approvals                   |
+| `media`      | Images, video, brand assets, R2 objects, media library                 |
+| `messaging`  | Email, WhatsApp, SMS — unified conversation model                      |
+| `telephony`  | Outbound/inbound voice calls, transcripts, dispositions                |
+| `social`     | Accounts, scheduled posts, publishing, engagement ingestion            |
+| `automation` | Trigger → condition → action graphs, run history                       |
+| `analytics`  | Metric rollups, attribution, reporting                                 |
+| `knowledge`  | RAG corpus, chunking, embeddings, retrieval (pgvector)                 |
+| `agents`     | Agent runs, orchestration sessions, tool-call ledger                   |
+| `templates`  | Template marketplace, install/fork                                     |
+| `audit`      | Append-only audit log across every module                              |
+| `platform`   | Health, feature flags, API keys, webhooks, settings                    |
 
 Cross-module communication is **events only**. `crm` never imports from `campaigns`.
 
@@ -138,12 +139,38 @@ model. A query issued without a tenant context **throws** rather than returning
 unscoped rows — fail closed, never fail open. A single explicit `systemClient` escape hatch
 exists for platform-level operations and is lint-banned outside `packages/database`.
 
-**Layer 3 — Postgres Row-Level Security.** Policies keyed on `current_setting('app.org_id')`,
-set per transaction. Defence in depth: even a raw `$queryRaw` cannot cross tenants.
+**Layer 3 — Postgres Row-Level Security.** Policies keyed on
+`current_setting('app.organization_id', true)`, set transaction-locally so a pooled connection
+cannot leak the setting into the next request. Applied to all 48 tables carrying a tenant
+column, to `organization` itself, and — via `EXISTS` on the parent — to the 13 child tables
+that have no tenant column of their own. When the setting is absent the predicate is `NULL`
+and every row is filtered: it fails closed.
+
+The privilege boundary is the **database role**, not a flag:
+
+- Migrations and seeds connect as the table **owner**, which is exempt from RLS.
+  → `DIRECT_DATABASE_URL`
+- The application connects as a **non-owner role** with no `BYPASSRLS` and no superuser bit,
+  for which the policies are absolute. → `DATABASE_URL`
+
+_An earlier revision of this design offered an `app.bypass_rls` GUC as the escape hatch. It
+was tested and it failed: PostgreSQL lets any role `SET` a custom GUC, so the application role
+could grant itself a full cross-tenant read. It was removed in favour of the role boundary,
+which cannot be forged by `SET`. The regression is now case 7 of the isolation suite._
+
+`packages/database/scripts/verify-tenant-isolation.sql` asserts all ten guarantees against a
+real PostgreSQL instance as the application role, and runs in CI on every push. The API also
+asserts at boot that its own connection is genuinely subject to RLS, so a misconfigured
+deployment fails immediately rather than silently losing isolation.
 
 **Tenant model:** shared database, shared schema, `organization_id` on every business table,
 composite indexes leading with `organization_id`. Schema-per-tenant is rejected — it does not
 survive thousands of tenants or online migrations.
+
+**Audit trail:** `UPDATE` on `audit_log` is rejected by trigger for every role including the
+owner — rewriting history is never legitimate. `DELETE` is withheld from the application role
+by privilege instead, because retention windows and GDPR erasure are real obligations that a
+blanket prohibition would make impossible.
 
 ---
 
@@ -177,9 +204,9 @@ interface AgentDefinition {
   id: AgentId
   role: string
   systemPrompt: PromptTemplate
-  tools: ToolDefinition[]          // what it may do
-  capabilities: ModelCapability[]  // what model class it needs
-  delegatesTo: AgentId[]           // the CMO fans out to specialists
+  tools: ToolDefinition[] // what it may do
+  capabilities: ModelCapability[] // what model class it needs
+  delegatesTo: AgentId[] // the CMO fans out to specialists
   budget: BudgetPolicy
 }
 ```
@@ -189,10 +216,10 @@ A tool is the only way an agent affects the world:
 ```ts
 interface ToolDefinition<I, O> {
   name: string
-  description: string              // the model reads this
+  description: string // the model reads this
   input: ZodSchema<I>
   output: ZodSchema<O>
-  requiredPermission: Permission   // RBAC checked before execution
+  requiredPermission: Permission // RBAC checked before execution
   idempotencyKey?: (input: I) => string
   execute(input: I, ctx: ToolContext): Promise<O>
 }
@@ -213,7 +240,7 @@ Runs are resumable, cancellable, and stream `run.step.*` events to the client ov
 ### 6.4 Cost governance
 
 Every model call records tokens, latency and computed cost against the organisation. Budget
-policies are enforced *before* dispatch. Usage feeds Stripe metered billing. An AI SaaS
+policies are enforced _before_ dispatch. Usage feeds Stripe metered billing. An AI SaaS
 without per-tenant cost metering is an unbounded liability.
 
 ---
@@ -222,18 +249,18 @@ without per-tenant cost metering is an unbounded liability.
 
 Ports live in `packages/ai-core/ports`. Adapters live in `packages/providers`.
 
-| Port | Adapters |
-|---|---|
-| `LlmPort` | OpenAI · Anthropic · Gemini · xAI · DeepSeek |
-| `ImagePort` | OpenAI Images · Ideogram · Stability · Flux |
-| `VideoPort` | Runway · Kling · Luma · Pika |
-| `VoicePort` | ElevenLabs · OpenAI Voice · Deepgram |
-| `TelephonyPort` | Twilio · Vapi · Retell |
-| `SocialPort` | Meta (FB/IG) · LinkedIn · X · TikTok · YouTube |
-| `EmailPort` | Resend |
-| `StoragePort` | Cloudflare R2 |
-| `PaymentPort` | Stripe |
-| `EmbeddingPort` | OpenAI · Gemini · Voyage |
+| Port            | Adapters                                       |
+| --------------- | ---------------------------------------------- |
+| `LlmPort`       | OpenAI · Anthropic · Gemini · xAI · DeepSeek   |
+| `ImagePort`     | OpenAI Images · Ideogram · Stability · Flux    |
+| `VideoPort`     | Runway · Kling · Luma · Pika                   |
+| `VoicePort`     | ElevenLabs · OpenAI Voice · Deepgram           |
+| `TelephonyPort` | Twilio · Vapi · Retell                         |
+| `SocialPort`    | Meta (FB/IG) · LinkedIn · X · TikTok · YouTube |
+| `EmailPort`     | Resend                                         |
+| `StoragePort`   | Cloudflare R2                                  |
+| `PaymentPort`   | Stripe                                         |
+| `EmbeddingPort` | OpenAI · Gemini · Voyage                       |
 
 Each adapter is registered in a capability registry and resolved at runtime per organisation.
 Adding a provider means adding one file and one registry entry — no business logic changes.
@@ -268,9 +295,9 @@ Queues: `agent-runs` · `content-generation` · `media-generation` · `email-sen
 **Decision: Better Auth**, mounted inside `apps/api` as the single source of truth, with the
 Prisma adapter and the organisation plugin. `apps/web` consumes it through the client SDK.
 
-*Why not Clerk:* Clerk is faster to integrate but externalises the tenant model, prices per
+_Why not Clerk:_ Clerk is faster to integrate but externalises the tenant model, prices per
 MAU, and would make organisations, roles and invitations someone else's schema. For a product
-whose core object *is* the organisation, identity must be ours. *Reversal trigger:* if SSO/SAML
+whose core object _is_ the organisation, identity must be ours. _Reversal trigger:_ if SSO/SAML
 and SCIM for enterprise buyers arrive before we can build them, revisit — that is Clerk's
 strongest argument and a legitimate reason to change this decision.
 
@@ -327,15 +354,15 @@ and tool authorisation. These are the four places where a bug becomes a breach.
 
 ## 13. Phase plan
 
-| Phase | Deliverable | State |
-|---|---|---|
-| 1 | Architecture | ✅ this document |
-| 2 | Workspace, tooling, configuration | ▶ in progress |
-| 3 | Prisma schema + migrations + RLS | |
-| 4 | Backend core: tenancy, CQRS, outbox, ai-core, ports | |
-| 5 | Frontend foundation: design system, shell, command palette | |
-| 6 | Authentication, organisations, RBAC | |
-| 7 | Dashboard + first vertical slice through the orchestrator | |
+| Phase | Deliverable                                                | State            |
+| ----- | ---------------------------------------------------------- | ---------------- |
+| 1     | Architecture                                               | ✅ this document |
+| 2     | Workspace, tooling, configuration                          | ▶ in progress    |
+| 3     | Prisma schema + migrations + RLS                           |                  |
+| 4     | Backend core: tenancy, CQRS, outbox, ai-core, ports        |                  |
+| 5     | Frontend foundation: design system, shell, command palette |                  |
+| 6     | Authentication, organisations, RBAC                        |                  |
+| 7     | Dashboard + first vertical slice through the orchestrator  |                  |
 
 Later: provider adapters, remaining modules, billing, RAG, marketplace.
 
@@ -343,17 +370,17 @@ Later: provider adapters, remaining modules, billing, RAG, marketplace.
 
 ## 14. Deployment
 
-| Layer | Target |
-|---|---|
-| Frontend | Vercel |
-| API + workers | Railway (separate services, shared image) |
-| Postgres | Neon (+ pgvector) |
-| Redis | Upstash |
-| Object storage | Cloudflare R2 |
-| Email | Resend |
-| Payments | Stripe |
-| Errors | Sentry |
-| Product analytics | PostHog |
+| Layer             | Target                                    |
+| ----------------- | ----------------------------------------- |
+| Frontend          | Vercel                                    |
+| API + workers     | Railway (separate services, shared image) |
+| Postgres          | Neon (+ pgvector)                         |
+| Redis             | Upstash                                   |
+| Object storage    | Cloudflare R2                             |
+| Email             | Resend                                    |
+| Payments          | Stripe                                    |
+| Errors            | Sentry                                    |
+| Product analytics | PostHog                                   |
 
 Environments: `development` → `preview` (per PR) → `production`. Migrations run as a
 release step, never at application boot — the previous implementation's `EnsureCreated`

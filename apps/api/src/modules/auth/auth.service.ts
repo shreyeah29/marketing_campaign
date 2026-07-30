@@ -151,12 +151,17 @@ function createBetterAuthInstance(owner: PrismaClient, email: EmailPort) {
       advanced: {
         cookiePrefix: 'vsp',
         useSecureCookies: env.NODE_ENV === 'production',
-        // HttpOnly always, SameSite=Lax so top-level navigations (the email links)
-        // carry the session, Secure in production.
+        // HttpOnly always. In production the frontend (e.g. a *.vercel.app domain)
+        // and this API are different origins, so the session cookie must be
+        // SameSite=None + Secure to be sent on cross-site fetches — Lax would be
+        // dropped and auth would silently fail. In development everything is
+        // localhost (same-site), where Lax over http is correct and Secure is off.
+        // CSRF is still enforced by the trusted-origin allowlist, not by SameSite.
         defaultCookieAttributes: {
           httpOnly: true,
-          sameSite: 'lax',
+          sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
           secure: env.NODE_ENV === 'production',
+          path: '/',
         },
       },
     })

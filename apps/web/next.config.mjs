@@ -6,20 +6,18 @@
  * the modular-platform promise honest on the client: nothing here asserts that a
  * feature, page or agent always exists.
  *
- * `@vsp/contracts` is transpiled so type-only imports of the shared response
- * shapes resolve without a separate build step.
+ * The app is self-contained — it has no `@vsp/*` workspace imports — so it builds
+ * standalone on Vercel without needing the rest of the monorepo resolved.
  */
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@vsp/contracts'],
-  // The API base is read at runtime on the client. Falls back to local dev.
+  // The backend API base URL. Read at build time (NEXT_PUBLIC_* is inlined) and
+  // falls back to local dev when unset — so `pnpm dev` needs no configuration and
+  // production/preview are driven entirely by the Vercel environment variable.
   env: {
-    NEXT_PUBLIC_API_BASE: process.env['NEXT_PUBLIC_API_BASE'] ?? 'http://localhost:4000',
-  },
-  async rewrites() {
-    return []
+    NEXT_PUBLIC_API_URL: process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000',
   },
 }
 

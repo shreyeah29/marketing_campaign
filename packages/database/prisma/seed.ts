@@ -74,7 +74,8 @@ async function main(): Promise<void> {
       organizationId: ORG_ID,
       tagline: 'Your Legal Home Away From Home',
       brandVoice: 'Professional, empathetic, authoritative. Plain language over legalese.',
-      targetAudience: 'Non-resident Indians in the United States with property or family matters in India',
+      targetAudience:
+        'Non-resident Indians in the United States with property or family matters in India',
       valueProps: [
         'Licensed in both jurisdictions',
         'Fixed-fee consultations, no billable surprises',
@@ -484,7 +485,11 @@ async function main(): Promise<void> {
       body: {
         type: 'doc',
         content: [
-          { type: 'heading', attrs: { level: 1 }, content: [{ type: 'text', text: 'NRI Property Rights in India' }] },
+          {
+            type: 'heading',
+            attrs: { level: 1 },
+            content: [{ type: 'text', text: 'NRI Property Rights in India' }],
+          },
           {
             type: 'paragraph',
             content: [
@@ -638,7 +643,11 @@ async function main(): Promise<void> {
           { id: 'trigger', type: 'trigger.event', config: { event: 'crm.lead.created.v1' } },
           { id: 'email', type: 'action.email.send', config: { templateRef: 'welcome-1' } },
           { id: 'wait', type: 'control.wait', config: { days: 2 } },
-          { id: 'branch', type: 'control.condition', config: { field: 'lead.engaged', equals: false } },
+          {
+            id: 'branch',
+            type: 'control.condition',
+            config: { field: 'lead.engaged', equals: false },
+          },
           { id: 'whatsapp', type: 'action.whatsapp.send', config: { templateRef: 'nudge-1' } },
           { id: 'call', type: 'action.voice.call', config: { agent: 'VOICE_AGENT' } },
         ],
@@ -691,7 +700,7 @@ async function main(): Promise<void> {
   for (let dayOffset = 29; dayOffset >= 0; dayOffset -= 1) {
     const date = new Date(daysAgo(dayOffset).toISOString().slice(0, 10))
     for (const [channelIndex, channel] of channels.entries()) {
-      const base = 40 + channelIndex * 25 + ((29 - dayOffset) * 3)
+      const base = 40 + channelIndex * 25 + (29 - dayOffset) * 3
       await prisma.metricDaily.upsert({
         where: {
           organizationId_date_channel_campaignId: {

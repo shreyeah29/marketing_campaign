@@ -33,6 +33,13 @@ export {
 } from './tenant-context.js'
 
 export {
+  claimOutboxBatch,
+  publishEvent,
+  requeueOutboxEvent,
+  type PublishOptions,
+} from './outbox.js'
+
+export {
   MissingTenantContextError,
   RowLevelSecurityNotEnforcedError,
   TenantMismatchError,

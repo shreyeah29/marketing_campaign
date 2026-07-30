@@ -22,7 +22,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@prisma/client": "^6.10.1"
+    "@prisma/client": "^6.10.1",
+    "@vsp/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

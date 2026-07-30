@@ -167,7 +167,7 @@ async function bootstrap(): Promise<void> {
   // the Nest routing pipeline and the /v1 prefix, so reaching them never requires
   // an existing session (they are how one is obtained). Better Auth serves the
   // whole credential lifecycle under /api/auth/*.
-  mountBetterAuth(app.getHttpAdapter().getInstance(), app.get(AuthService), appLogger)
+  mountBetterAuth(app.getHttpAdapter().getInstance(), app.get(AuthService), appLogger, limiterRedis)
 
   // No global ValidationPipe. Validation is Zod at the controller boundary, and
   // the schemas in @vsp/contracts are the single source of truth for request

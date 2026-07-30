@@ -22,6 +22,15 @@ import type { RequestIdentity } from './request-identity.js'
 const switchOrgSchema = z.object({ organizationId: z.string().min(1) }).strict()
 const leaveOrgSchema = z.object({ organizationId: z.string().min(1) }).strict()
 const transferSchema = z.object({ toUserId: z.string().min(1) }).strict()
+const acceptInviteSchema = z.object({ token: z.string().min(1) }).strict()
+
+const INVITE_ERROR_MESSAGES: Record<string, string> = {
+  not_found: 'This invitation link is not valid',
+  not_pending: 'This invitation has already been used or revoked',
+  expired: 'This invitation has expired — ask for a new one',
+  email_mismatch: 'This invitation was sent to a different email address',
+  org_unavailable: 'That organisation is no longer available',
+}
 
 /**
  * The org-awareness layer on top of Better Auth.
@@ -113,6 +122,26 @@ export class AuthController {
     }
 
     return { ok: true }
+  }
+
+  @Public()
+  @Post('invitations/accept')
+  @ApiOperation({ summary: 'Accept an invitation and join the organisation' })
+  async acceptInvitation(
+    @Body() body: unknown,
+    @CurrentIdentity() identity: RequestIdentity,
+  ): Promise<{ ok: true; organizationId: string; role: string }> {
+    const { token } = zodBody(acceptInviteSchema, body)
+
+    const result = await this.identity.acceptInvitation(identity.userId, identity.email, token)
+    if ('error' in result) {
+      throw new ForbiddenException(INVITE_ERROR_MESSAGES[result.error] ?? 'Invitation could not be accepted')
+    }
+
+    // Drop the user straight into the org they just joined.
+    await this.identity.setActiveOrganization(identity.userId, identity.sessionId, result.organizationId)
+
+    return { ok: true, organizationId: result.organizationId, role: result.role }
   }
 
   @Post('transfer-ownership')

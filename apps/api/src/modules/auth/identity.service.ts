@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto'
+
 import { Inject, Injectable } from '@nestjs/common'
 
 import type { PrismaClient } from '@vsp/database'
@@ -215,6 +217,81 @@ export class IdentityService {
     })
 
     return { ok: true }
+  }
+
+  /**
+   * Accepts an invitation on behalf of the signed-in user.
+   *
+   * Lives in the identity layer because the invitee is, by definition, a user who
+   * may not yet belong to the inviting organisation — often a brand-new account
+   * with no org at all. It runs on the owner connection for exactly that reason:
+   * the invitation and the target org are outside any tenant context the invitee
+   * currently has.
+   *
+   * The invitation is bound to a specific email address; accepting it requires the
+   * signed-in user's email to match, so a leaked token cannot be redeemed by
+   * someone else. Idempotent for an existing member.
+   */
+  async acceptInvitation(
+    userId: string,
+    userEmail: string,
+    rawToken: string,
+  ): Promise<
+    | { ok: true; organizationId: string; role: MemberRole }
+    | { error: 'not_found' | 'not_pending' | 'expired' | 'email_mismatch' | 'org_unavailable' }
+  > {
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex')
+    const invitation = await this.owner.invitation.findFirst({
+      where: { tokenHash },
+      include: { organization: { select: { status: true, deletedAt: true } } },
+    })
+    if (!invitation) return { error: 'not_found' }
+    if (invitation.status !== 'PENDING') return { error: 'not_pending' }
+    if (invitation.expiresAt.getTime() < Date.now()) {
+      await this.owner.invitation.updateMany({ where: { id: invitation.id }, data: { status: 'EXPIRED' } })
+      return { error: 'expired' }
+    }
+    if (invitation.email.toLowerCase() !== userEmail.toLowerCase()) return { error: 'email_mismatch' }
+    if (invitation.organization.deletedAt !== null || invitation.organization.status === 'DELETED') {
+      return { error: 'org_unavailable' }
+    }
+
+    const role = invitation.role as MemberRole
+
+    await this.owner.$transaction(async (tx) => {
+      const existing = await tx.membership.findFirst({
+        where: { organizationId: invitation.organizationId, userId },
+        select: { id: true, deletedAt: true },
+      })
+      if (existing) {
+        // Re-activate a previously-removed membership rather than duplicating it.
+        await tx.membership.update({
+          where: { id: existing.id },
+          data: { deletedAt: null, role },
+        })
+      } else {
+        await tx.membership.create({
+          data: { organizationId: invitation.organizationId, userId, role },
+        })
+      }
+
+      await tx.invitation.update({
+        where: { id: invitation.id },
+        data: { status: 'ACCEPTED', acceptedAt: new Date() },
+      })
+
+      await this.writeAudit(
+        tx,
+        invitation.organizationId,
+        userId,
+        'member.invitation_accepted',
+        'invitation',
+        invitation.id,
+        { role },
+      )
+    })
+
+    return { ok: true, organizationId: invitation.organizationId, role }
   }
 
   /**

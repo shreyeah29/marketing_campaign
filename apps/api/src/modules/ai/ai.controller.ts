@@ -113,6 +113,7 @@ export class AiController {
   }
 
   @Get('history')
+  @RequiresFeature('ai.chat')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Recent AI usage for this organisation' })
   async history(): Promise<{ data: unknown[] }> {

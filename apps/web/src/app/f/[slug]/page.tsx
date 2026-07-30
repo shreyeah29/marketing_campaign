@@ -72,6 +72,7 @@ export default function PublicFormPage() {
   const [form, setForm] = useState<PublicForm | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [values, setValues] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState<string | null>(null)
@@ -79,6 +80,7 @@ export default function PublicFormPage() {
 
   const load = useCallback(() => {
     setLoading(true)
+    setLoadError(false)
     api
       .get<PublicForm>(`/public/forms/${slug}`)
       .then((f) => {
@@ -86,8 +88,10 @@ export default function PublicFormPage() {
         setNotFound(false)
       })
       .catch((e: unknown) => {
+        // A real 404 means the form doesn't exist / isn't published — permanent.
+        // Any other error (network blip, 5xx) is transient and recoverable.
         if (e instanceof ApiError && e.status === 404) setNotFound(true)
-        else setNotFound(true)
+        else setLoadError(true)
       })
       .finally(() => setLoading(false))
   }, [slug])
@@ -118,6 +122,21 @@ export default function PublicFormPage() {
     return (
       <div style={shell}>
         <div style={{ opacity: 0.6 }}>Loading…</div>
+      </div>
+    )
+  }
+
+  if (loadError && !notFound) {
+    return (
+      <div style={shell}>
+        <div style={{ ...cardStyle, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <h1 style={{ fontSize: 18, margin: 0 }}>Couldn&apos;t load this form</h1>
+          <p style={{ opacity: 0.7, fontSize: 14, margin: '8px 0 16px' }}>Please check your connection and try again.</p>
+          <button onClick={load} style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: accent, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+            Retry
+          </button>
+        </div>
       </div>
     )
   }

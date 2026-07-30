@@ -19,6 +19,7 @@ import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
+import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
@@ -39,6 +40,14 @@ const scheduleSchema = z.object({ scheduledFor: z.string().datetime() }).strict(
 const rejectSchema = z.object({ reason: z.string().max(1000).optional() }).strict()
 const bulkSchema = z.object({ action: z.enum(['approve', 'reject']), ids: z.array(z.string()).min(1).max(200) }).strict()
 const commentSchema = z.object({ body: z.string().min(1).max(2000) }).strict()
+const ASSET_STATUS = ['DRAFT', 'GENERATED', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED'] as const
+const ASSET_PLATFORM = ['INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'X', 'GOOGLE', 'YOUTUBE', 'TIKTOK', 'GENERIC'] as const
+const listAssetsQuerySchema = z.object({
+  status: z.enum(ASSET_STATUS).optional(),
+  platform: z.enum(ASSET_PLATFORM).optional(),
+  campaignId: z.string().optional(),
+  search: z.string().max(200).optional(),
+})
 
 const APPROVABLE = new Set(['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'])
 
@@ -52,6 +61,7 @@ const APPROVABLE = new Set(['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'])
  * doubles as an approval timeline.
  */
 @ApiTags('Review Queue')
+@RequiresFeature('marketing.campaigns')
 @Controller('campaign-assets')
 export class ReviewQueueController {
   constructor(
@@ -74,11 +84,17 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   @ApiOperation({ summary: 'List assets, filterable by status / campaign / platform' })
   async list(@Query() q: Record<string, string>): Promise<unknown> {
+    // Validate the enum filters: an unknown ?status/?platform must be a 400, not a
+    // PrismaClientValidationError → unhandled 500.
+    const parsed = listAssetsQuerySchema.safeParse(q)
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+    const { status, campaignId, platform, search } = parsed.data
+
     const where: Record<string, unknown> = { deletedAt: null }
-    if (q['status']) where['status'] = q['status']
-    if (q['campaignId']) where['campaignId'] = q['campaignId']
-    if (q['platform']) where['platform'] = q['platform']
-    if (q['search']) where['body'] = { contains: q['search'], mode: 'insensitive' }
+    if (status) where['status'] = status
+    if (campaignId) where['campaignId'] = campaignId
+    if (platform) where['platform'] = platform
+    if (search) where['body'] = { contains: search, mode: 'insensitive' }
 
     const rows = await withTenantTransaction(this.db, (tx) =>
       tx.campaignAsset.findMany({ where, orderBy: { createdAt: 'desc' }, take: 200 }),

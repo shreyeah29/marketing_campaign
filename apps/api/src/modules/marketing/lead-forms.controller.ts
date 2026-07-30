@@ -172,14 +172,14 @@ export class LeadFormsController {
   }
 
   @Post(':id/publish')
-  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @RequirePermissions(PERMISSIONS.CONTENT_PUBLISH)
   @ApiOperation({ summary: 'Publish a lead form' })
   async publish(@Param('id') id: string): Promise<unknown> {
     return this.setStatus(id, 'PUBLISHED')
   }
 
   @Post(':id/unpublish')
-  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @RequirePermissions(PERMISSIONS.CONTENT_PUBLISH)
   @ApiOperation({ summary: 'Return a lead form to draft' })
   async unpublish(@Param('id') id: string): Promise<unknown> {
     return this.setStatus(id, 'DRAFT')

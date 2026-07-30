@@ -31,6 +31,9 @@ export interface SchedulePollerOptions {
 
 const DEFAULTS: SchedulePollerOptions = { pollIntervalMs: 5_000, emailBatch: 25, socialBatch: 25 }
 
+/** How many times a transient email delivery error is retried before giving up. */
+const MAX_EMAIL_ATTEMPTS = 5
+
 export class SchedulePoller {
   private timer: NodeJS.Timeout | null = null
   private running = false
@@ -64,14 +67,19 @@ export class SchedulePoller {
       clearTimeout(this.timer)
       this.timer = null
     }
-    // Let an in-flight tick finish so we don't cut a send mid-flight.
-    for (let i = 0; i < 20 && this.running; i++) await sleep(50)
+    // Let the in-flight tick finish before the caller disconnects the database
+    // client we're mid-write on — cutting it off can leave a delivered email
+    // stuck SENDING and re-sent on restart. Wait generously (a full batch of
+    // network sends), with a hard ceiling so shutdown can't hang forever.
+    const deadline = Date.now() + 60_000
+    while (this.running && Date.now() < deadline) await sleep(100)
   }
 
   private async runOnce(): Promise<void> {
     if (this.running) return
     this.running = true
     try {
+      await this.reclaimStaleClaims()
       await this.deliverQueuedEmails()
       await this.publishDueSocialPosts()
     } catch (err) {
@@ -81,16 +89,55 @@ export class SchedulePoller {
     }
   }
 
+  /**
+   * Recovers work claimed by a worker that died mid-delivery. A row left in the
+   * intermediate state (email SENDING / post PUBLISHING) with no update for a few
+   * minutes is an abandoned claim — return it to the queue so another worker
+   * finishes it, rather than stranding it forever (the poller only picks up
+   * QUEUED/SCHEDULED). The window is generous so it never races a live delivery.
+   */
+  private async reclaimStaleClaims(): Promise<void> {
+    const staleBefore = new Date(Date.now() - 5 * 60_000)
+    const [emails, posts] = await Promise.all([
+      this.db.emailSend.updateMany({
+        where: { status: 'SENDING', updatedAt: { lt: staleBefore } },
+        data: { status: 'QUEUED' },
+      }),
+      this.db.socialPost.updateMany({
+        where: { status: 'PUBLISHING', updatedAt: { lt: staleBefore } },
+        data: { status: 'SCHEDULED' },
+      }),
+    ])
+    if (emails.count > 0 || posts.count > 0) {
+      this.logger.warn({ emails: emails.count, posts: posts.count }, 'reclaimed stale delivery claims')
+    }
+  }
+
   // ── Email ──────────────────────────────────────────────────────────────────
   private async deliverQueuedEmails(): Promise<void> {
-    const batch = await this.db.emailSend.findMany({
+    const candidates = await this.db.emailSend.findMany({
       where: { status: 'QUEUED' },
+      select: { id: true },
       take: this.opts.emailBatch,
-      include: { emailCampaign: true },
+      orderBy: { createdAt: 'asc' },
     })
-    if (batch.length === 0) return
+    if (candidates.length === 0) return
 
-    for (const send of batch) {
+    let processed = 0
+    for (const { id } of candidates) {
+      // Atomic claim: flip QUEUED→SENDING. `count === 1` means WE claimed it; any
+      // other worker (or a re-entrant tick) that raced us gets count 0 and skips.
+      // This is what makes horizontal scaling safe — no row is ever sent twice.
+      const claim = await this.db.emailSend.updateMany({
+        where: { id, status: 'QUEUED' },
+        data: { status: 'SENDING', attempts: { increment: 1 } },
+      })
+      if (claim.count !== 1) continue
+
+      const send = await this.db.emailSend.findUnique({ where: { id }, include: { emailCampaign: true } })
+      if (!send) continue
+      processed++
+
       const campaign = send.emailCampaign
       const from =
         campaign?.fromEmail != null
@@ -98,9 +145,9 @@ export class SchedulePoller {
           : this.env.EMAIL_FROM
       const html =
         campaign?.bodyHtml ??
-        `<div style="font-family:sans-serif;font-size:15px;line-height:1.6;color:#111">${
-          campaign?.bodyText ?? campaign?.preheader ?? send.subject
-        }</div>`
+        `<div style="font-family:sans-serif;font-size:15px;line-height:1.6;color:#111">${escapeHtml(
+          campaign?.bodyText ?? campaign?.preheader ?? send.subject,
+        )}</div>`
       const text = campaign?.bodyText ?? undefined
 
       try {
@@ -111,49 +158,72 @@ export class SchedulePoller {
           html,
           ...(text ? { text } : {}),
         })
-        await this.db.emailSend.update({
-          where: { id: send.id },
-          data: {
-            status: result.delivered ? 'SENT' : 'FAILED',
-            sentAt: result.delivered ? new Date() : null,
-            ...(result.id ? { providerMessageId: result.id } : {}),
-            ...(result.delivered ? {} : { failureReason: 'No email provider configured' }),
-          },
-        })
-        if (result.delivered && send.emailCampaignId) {
-          await this.db.emailCampaign.update({
-            where: { id: send.emailCampaignId },
-            data: { sentCount: { increment: 1 }, deliveredCount: { increment: 1 } },
+        if (result.delivered) {
+          await this.db.emailSend.update({
+            where: { id },
+            data: { status: 'SENT', sentAt: new Date(), ...(result.id ? { providerMessageId: result.id } : {}) },
+          })
+          if (send.emailCampaignId) {
+            await this.db.emailCampaign.update({
+              where: { id: send.emailCampaignId },
+              data: { sentCount: { increment: 1 }, deliveredCount: { increment: 1 } },
+            })
+          }
+        } else {
+          // No provider configured — a permanent condition, not transient. Mark
+          // FAILED so it isn't retried forever against a mailer that can't deliver.
+          await this.db.emailSend.update({
+            where: { id },
+            data: { status: 'FAILED', failureReason: 'No email provider configured' },
           })
         }
       } catch (err) {
-        this.logger.warn({ err, sendId: send.id }, 'email send failed')
+        // Transient provider/network error: return to QUEUED to retry next tick,
+        // up to MAX_EMAIL_ATTEMPTS, then give up so one bad address can't loop.
+        const giveUp = send.attempts >= MAX_EMAIL_ATTEMPTS
+        this.logger.warn({ err, sendId: id, attempts: send.attempts, giveUp }, 'email send failed')
         await this.db.emailSend
           .update({
-            where: { id: send.id },
-            data: { status: 'FAILED', failureReason: (err as Error).message.slice(0, 500) },
+            where: { id },
+            data: { status: giveUp ? 'FAILED' : 'QUEUED', failureReason: errMessage(err) },
           })
           .catch(() => undefined)
-        if (send.emailCampaignId) {
+        if (giveUp && send.emailCampaignId) {
           await this.db.emailCampaign
             .update({ where: { id: send.emailCampaignId }, data: { bounceCount: { increment: 1 } } })
             .catch(() => undefined)
         }
       }
     }
-    this.logger.info({ count: batch.length }, 'processed queued email sends')
+    if (processed > 0) this.logger.info({ count: processed }, 'processed queued email sends')
   }
 
   // ── Social ─────────────────────────────────────────────────────────────────
   private async publishDueSocialPosts(): Promise<void> {
-    const posts = await this.db.socialPost.findMany({
+    const candidates = await this.db.socialPost.findMany({
       where: { status: 'SCHEDULED', deletedAt: null, scheduledAt: { lte: new Date() } },
+      select: { id: true },
       take: this.opts.socialBatch,
-      include: { targets: { include: { socialAccount: true } } },
     })
-    if (posts.length === 0) return
+    if (candidates.length === 0) return
 
-    for (const post of posts) {
+    let published = 0
+    for (const { id } of candidates) {
+      // Atomic claim via the PUBLISHING status: a duplicate social post is
+      // publicly visible, so double-publish must be impossible even with several
+      // worker pods. Only the worker that wins SCHEDULED→PUBLISHING proceeds.
+      const claim = await this.db.socialPost.updateMany({
+        where: { id, status: 'SCHEDULED' },
+        data: { status: 'PUBLISHING' },
+      })
+      if (claim.count !== 1) continue
+
+      const post = await this.db.socialPost.findUnique({
+        where: { id },
+        include: { targets: { include: { socialAccount: true } } },
+      })
+      if (!post) continue
+      published++
       let anyFailed = false
       for (const target of post.targets) {
         if (target.status === 'PUBLISHED') continue
@@ -181,7 +251,7 @@ export class SchedulePoller {
           await this.db.socialPostTarget
             .update({
               where: { id: target.id },
-              data: { status: 'FAILED', failureReason: (err as Error).message.slice(0, 500) },
+              data: { status: 'FAILED', failureReason: errMessage(err) },
             })
             .catch(() => undefined)
         }
@@ -209,7 +279,7 @@ export class SchedulePoller {
         })
         .catch(() => undefined)
     }
-    this.logger.info({ count: posts.length }, 'published due social posts')
+    if (published > 0) this.logger.info({ count: published }, 'published due social posts')
   }
 }
 
@@ -236,4 +306,18 @@ function simulatedPermalink(platform: string, handle: string | null, postId: str
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/** Safe error message even when a non-Error value was thrown. */
+function errMessage(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err)
+  return msg.slice(0, 500)
+}
+
+/** Escapes text interpolated into an HTML email body. */
+function escapeHtml(s: string): string {
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+  )
 }

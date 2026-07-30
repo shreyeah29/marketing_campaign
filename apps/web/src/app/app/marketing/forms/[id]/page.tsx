@@ -175,6 +175,24 @@ function BuilderTab({
   }
 
   async function save() {
+    // Normalise field keys before saving: every field needs a non-empty key
+    // (derived from its label when blank) and keys must be unique, or two fields
+    // would bind to the same value on the public form and silently overwrite each
+    // other in the stored submission.
+    if (form.fields.some((f) => !f.label.trim())) {
+      toast.push('error', 'Every field needs a label')
+      return
+    }
+    const seen = new Map<string, number>()
+    const fields = form.fields.map((f) => {
+      let key = slugKey(f.key?.trim() || f.label)
+      if (!key) key = 'field'
+      const n = seen.get(key) ?? 0
+      seen.set(key, n + 1)
+      if (n > 0) key = `${key}_${String(n + 1)}`
+      return { ...f, key }
+    })
+
     setSaving(true)
     try {
       await api.patch(`/lead-forms/${form.id}`, {
@@ -185,8 +203,9 @@ function BuilderTab({
         successMessage: form.successMessage ?? null,
         redirectUrl: form.redirectUrl ?? null,
         accentColor: form.accentColor ?? null,
-        fields: form.fields,
+        fields,
       })
+      setForm({ ...form, fields })
       toast.push('success', 'Saved')
       onSaved()
     } catch (e) {
@@ -415,8 +434,8 @@ function SubmissionsTab({ formId }: { formId: string }) {
                   </td>
                   <td style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}>
                     {r.leadId ? (
-                      <Link className="btn ghost sm" href={`/app/crm/leads/${r.leadId}`}>
-                        View lead
+                      <Link className="btn ghost sm" href="/app/crm/leads">
+                        View in Leads
                       </Link>
                     ) : (
                       <span className="dim">—</span>

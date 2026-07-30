@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
@@ -20,31 +20,30 @@ type State =
   | { status: 'loading' }
   | { status: 'ready'; page: PublicPage }
   | { status: 'missing' }
+  | { status: 'error' }
 
 export default function PublicLandingPage() {
   const params = useParams<{ slug: string }>()
   const slug = params.slug
   const [state, setState] = useState<State>({ status: 'loading' })
 
-  useEffect(() => {
-    let cancelled = false
+  const load = useCallback(() => {
+    setState({ status: 'loading' })
     api
       .get<PublicPage>(`/public/pages/${slug}`)
       .then((page) => {
-        if (cancelled) return
         setState({ status: 'ready', page })
         const docTitle = page.seoTitle ?? page.title ?? page.name
         if (docTitle) document.title = docTitle
       })
       .catch((e: unknown) => {
-        if (cancelled) return
+        // A 404 is permanent (unpublished/deleted); anything else is transient.
         if (e instanceof ApiError && e.status === 404) setState({ status: 'missing' })
-        else setState({ status: 'missing' })
+        else setState({ status: 'error' })
       })
-    return () => {
-      cancelled = true
-    }
   }, [slug])
+
+  useEffect(load, [load])
 
   if (state.status === 'loading') {
     return (
@@ -82,6 +81,35 @@ export default function PublicLandingPage() {
         <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
         <h1 style={{ fontSize: 24, margin: 0 }}>This page is not available</h1>
         <p style={{ color: '#666', marginTop: 8 }}>The page you are looking for may have been unpublished or removed.</p>
+      </main>
+    )
+  }
+
+  if (state.status === 'error') {
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          padding: 24,
+          fontFamily: 'system-ui, sans-serif',
+          color: '#111',
+          background: '#fff',
+        }}
+      >
+        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+        <h1 style={{ fontSize: 24, margin: 0 }}>Couldn&apos;t load this page</h1>
+        <p style={{ color: '#666', margin: '8px 0 16px' }}>Please check your connection and try again.</p>
+        <button
+          onClick={load}
+          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+        >
+          Retry
+        </button>
       </main>
     )
   }

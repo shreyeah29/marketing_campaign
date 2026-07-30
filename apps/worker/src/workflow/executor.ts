@@ -101,7 +101,18 @@ export function createWorkflowHandler(queue: Queue) {
     let nodeId: string | null | undefined = resumeNodeId ?? graph.start
     let position = await this_stepCount(db, runId)
 
+    // Cycle guard: the `_done` set stops a node re-EXECUTING, but a graph like
+    // A→B→A still routes between completed nodes forever. Cap total steps so a
+    // cyclic or malicious graph fails the run instead of pinning a worker.
+    let steps = 0
+    const maxSteps = graph.nodes.length * 4 + 10
+
     while (nodeId) {
+      if (++steps > maxSteps) {
+        await this_fail(db, runId, 'Workflow exceeded its step limit — the graph likely contains a cycle')
+        logger.warn({ runId, maxSteps }, 'workflow aborted: step limit exceeded (cycle?)')
+        return
+      }
       const node = graph.nodes.find((n) => n.id === nodeId)
       if (!node) break
 
@@ -170,7 +181,15 @@ export function createWorkflowHandler(queue: Queue) {
       } catch (err) {
         const message = err instanceof Error ? err.message : 'node failed'
         await this_closeStep(db, step.id, 'FAILED', { error: message }, startedAt)
-        await this_fail(db, runId, `Node ${node.id}: ${message}`)
+        // Only declare the RUN failed (status FAILED + failure notification +
+        // failureCount) on the LAST attempt. On earlier attempts BullMQ will retry,
+        // so marking it FAILED now would flap the status and spam a notification per
+        // attempt. Intermediate attempts just persist progress and rethrow.
+        const maxAttempts = job.opts.attempts ?? 1
+        const isFinalAttempt = job.attemptsMade + 1 >= maxAttempts
+        if (isFinalAttempt) {
+          await this_fail(db, runId, `Node ${node.id}: ${message}`)
+        }
         // Persist progress so a retry resumes here, then rethrow for BullMQ's
         // retry/backoff. The completed-node set makes that safe.
         context._done = [...done]

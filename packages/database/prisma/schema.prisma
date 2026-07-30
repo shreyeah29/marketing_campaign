@@ -299,6 +299,10 @@ enum MessageStatus {
 
 enum EmailSendStatus {
   QUEUED
+  // Claimed by a worker and being delivered. The intermediate state a poller
+  // atomically transitions QUEUED→SENDING into, so two workers can never deliver
+  // the same row twice.
+  SENDING
   SENT
   DELIVERED
   OPENED
@@ -1519,6 +1523,9 @@ model EmailSend {
 
   providerMessageId String? @unique @map("provider_message_id")
   failureReason     String? @map("failure_reason")
+  // Delivery attempts, so a transient provider error is retried a bounded number
+  // of times rather than being dropped permanently or retried forever.
+  attempts          Int     @default(0)
 
   sentAt      DateTime? @map("sent_at")
   deliveredAt DateTime? @map("delivered_at")

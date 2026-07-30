@@ -180,7 +180,7 @@ export class SocialController {
   }
 
   @Post('posts')
-  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
   @ApiOperation({ summary: 'Create and schedule a social post' })
   async createPost(
     @Body() rawBody: unknown,
@@ -234,7 +234,7 @@ export class SocialController {
   }
 
   @Post('posts/:id/publish-now')
-  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
   @ApiOperation({ summary: 'Bring a scheduled post due immediately' })
   async publishNow(@Param('id') id: string): Promise<{ ok: true }> {
     return withTenantTransaction(this.db, async (tx) => {

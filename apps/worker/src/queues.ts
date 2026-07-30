@@ -31,6 +31,8 @@ export const QUEUES = {
   ANALYTICS_ROLLUP: 'analytics-rollup',
   SCHEDULED_TRIGGERS: 'scheduled-triggers',
   WEBHOOK_DELIVERY: 'webhook-delivery',
+  /** Executes workflow runs node-by-node. Delays re-enqueue with a BullMQ delay. */
+  WORKFLOW_EXECUTION: 'workflow-execution',
 } as const
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES]
@@ -154,6 +156,17 @@ export const QUEUE_POLICIES: readonly QueuePolicy[] = [
     concurrency: 10,
     jobOptions: { ...RETAIN, attempts: 5, backoff: backoff(10_000) },
     rationale: "Customer endpoints are frequently flaky; patience is expected of a webhook sender.",
+  },
+  {
+    name: QUEUES.WORKFLOW_EXECUTION,
+    concurrency: 5,
+    // Three attempts with backoff. Re-execution is safe: the executor tracks
+    // completed nodes on the run, so a retry resumes at the failed node rather
+    // than repeating side effects. Exhaustion dead-letters the run.
+    jobOptions: { ...RETAIN, attempts: 3, backoff: backoff(4_000) },
+    rationale:
+      'Orchestration. Each node is idempotent via the run\'s completed-node set, so retries do not ' +
+      'duplicate actions; delays re-enqueue with a BullMQ delay rather than blocking a worker.',
   },
 ]
 

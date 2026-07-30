@@ -23,6 +23,7 @@ import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
+import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
 
 const generateSchema = z.object({ brief: z.string().min(4).max(4000) }).strict()
 const editSchema = z
@@ -56,6 +57,7 @@ export class ReviewQueueController {
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(CampaignGenerationService) private readonly generation: CampaignGenerationService,
+    @Inject(WorkflowEngineService) private readonly workflows: WorkflowEngineService,
   ) {}
 
   // ── Generation ─────────────────────────────────────────────────────────────
@@ -176,7 +178,10 @@ export class ReviewQueueController {
   @Post(':id/approve')
   @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
   async approve(@Param('id') id: string, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    return this.transition(id, p, 'APPROVED', APPROVABLE, 'Approved', 'approved')
+    const updated = await this.transition(id, p, 'APPROVED', APPROVABLE, 'Approved', 'approved')
+    // Fire the event so any ACTIVE workflow triggered by "asset.approved" runs.
+    await this.workflows.fireEvent(p, 'asset.approved', { assetId: id }).catch(() => undefined)
+    return updated
   }
 
   @Post(':id/reject')

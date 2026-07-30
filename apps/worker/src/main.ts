@@ -12,7 +12,8 @@ import { createLogger, withLogContext, type AppLogger } from '@vsp/observability
 
 import { loadWorkerEnv } from './config.js'
 import { OutboxDispatcher } from './outbox-dispatcher.js'
-import { deadLetterQueue, QUEUE_POLICIES, type QueuePolicy, type TenantJobData } from './queues.js'
+import { deadLetterQueue, QUEUE_POLICIES, QUEUES, type QueuePolicy, type TenantJobData } from './queues.js'
+import { createWorkflowHandler } from './workflow/executor.js'
 
 /**
  * Worker process.
@@ -208,8 +209,18 @@ async function bootstrap(): Promise<void> {
     enableReadyCheck: false,
   })
 
+  // Producer for the workflow queue, so a `delay` node can enqueue its own
+  // delayed continuation (the mechanism that makes waits real).
+  const workflowQueue = new Queue(QUEUES.WORKFLOW_EXECUTION, { connection: bullRedis })
+  const workflowHandler = createWorkflowHandler(workflowQueue)
+
+  // Each queue gets its handler. Only the workflow queue has a real handler today;
+  // the rest acknowledge until their module lands (never with fake side effects).
+  const handlerFor = (policy: QueuePolicy): JobHandler =>
+    policy.name === QUEUES.WORKFLOW_EXECUTION ? workflowHandler : acknowledge
+
   const workers = QUEUE_POLICIES.map((policy) =>
-    createWorker(policy, bullRedis, db, logger, acknowledge),
+    createWorker(policy, bullRedis, db, logger, handlerFor(policy)),
   )
 
   logger.info(

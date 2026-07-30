@@ -61,7 +61,11 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     if (token) headers['Authorization'] = `Bearer ${token}`
   }
 
-  const init: RequestInit = { method: opts.method ?? 'GET', headers }
+  // `credentials: 'include'` so the Better Auth session cookie is sent on tenant
+  // calls. The app and API are same-site in every deployment (same registrable
+  // domain), so the SameSite=Lax cookie flows; the port difference does not make
+  // them cross-site.
+  const init: RequestInit = { method: opts.method ?? 'GET', headers, credentials: 'include' }
   if (opts.body !== undefined) init.body = JSON.stringify(opts.body)
   if (opts.signal) init.signal = opts.signal
 

@@ -63,7 +63,7 @@ function makePrincipal(): Principal {
 class InjectPrincipalGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<{ principal?: Principal }>()
-    request.principal = state.principal
+    if (state.principal !== undefined) request.principal = state.principal
     return true
   }
 }

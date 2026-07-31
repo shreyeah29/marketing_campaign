@@ -102,34 +102,18 @@ export function TableSkeleton({ rows = 6, cols = 4 }: { rows?: number; cols?: nu
 
 // ── "Provider not configured" — the graceful AI/email degradation ──────────────
 export function ProviderNotConfigured({
-  what = 'This provider',
-  capability,
+  what = 'This feature',
 }: {
   what?: string
+  // Retained so existing call sites stay valid; providers are operator-managed, so
+  // the message never tells a customer to configure anything.
   capability?: string
 }) {
   return (
     <div className="banner info" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
       <Icon name="plug" size={18} style={{ color: 'var(--color-primary)' }} />
       <span>
-        <strong>{what} is not configured.</strong>{' '}
-        {capability ? (
-          <>
-            Add a {capability} provider &amp; API key in{' '}
-            <a href="/app/settings/providers" style={{ color: 'var(--color-primary)' }}>
-              Settings → Providers
-            </a>{' '}
-            to enable this.
-          </>
-        ) : (
-          <>
-            Configure it in{' '}
-            <a href="/app/settings/providers" style={{ color: 'var(--color-primary)' }}>
-              Settings → Providers
-            </a>
-            .
-          </>
-        )}
+        <strong>{what} is temporarily unavailable.</strong> Please try again shortly.
       </span>
     </div>
   )

@@ -1,31 +1,28 @@
 'use client'
 
-import Link from 'next/link'
-
 import { Icon, isIconName } from '@/components/icon'
 import { PageHeader } from '@/components/kit'
 
 /**
- * A complete page for a module whose full function depends on an external
+ * A complete page for a module whose full function depends on a platform-managed
  * provider or setup step (storage, telephony, transcription, a billing provider).
  *
- * It is intentionally NOT a "coming soon" placeholder: it states what the module
- * does, lists its capabilities, and tells the operator exactly what to configure
- * to turn it on — the same honest degradation as ProviderNotConfigured, applied to
- * a whole surface.
+ * Provider setup is an operator concern handled in backend configuration, never by
+ * the customer, so this states what the module does and lists its capabilities
+ * without pointing anyone at a settings screen.
  */
 export function ModuleIntro({
   title,
   subtitle,
   icon,
   requires,
-  configureHref = '/app/settings/providers',
   capabilities,
 }: {
   title: string
   subtitle: string
   icon: string
   requires: string
+  // Kept for source compatibility with existing call sites; no longer rendered.
   configureHref?: string
   capabilities: { title: string; body: string }[]
 }) {
@@ -37,10 +34,7 @@ export function ModuleIntro({
           {isIconName(icon) ? <Icon name={icon} size={20} /> : icon}
         </span>
         <span>
-          <strong>Setup required.</strong> {requires}{' '}
-          <Link href={configureHref} style={{ color: 'var(--color-primary)' }}>
-            Configure it →
-          </Link>
+          <strong>Coming soon.</strong> {requires}
         </span>
       </div>
       <div className="grid cols-3">

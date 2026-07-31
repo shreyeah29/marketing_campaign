@@ -326,8 +326,8 @@ export default function InboxPage() {
                               padding: '9px 12px',
                               borderRadius: 12,
                               background: outbound
-                                ? 'color-mix(in srgb, var(--color-primary) 16%, transparent)'
-                                : 'var(--surface, var(--card, #1113))',
+                                ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+                                : 'var(--bg-subtle)',
                               border: '1px solid var(--border)',
                             }}
                           >

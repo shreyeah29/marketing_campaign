@@ -10,19 +10,20 @@ import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
 import { Banner, Spinner } from '@/components/ui'
 import { ToastProvider } from '@/components/kit'
+import { Icon } from '@/components/icon'
 
-/** Maps feature-registry icon names to glyphs (no icon-font dependency). */
-const NAV_ICONS: Record<string, string> = {
-  dashboard: '▦', users: '👥', 'user-plus': '➕', building: '🏢', target: '🎯',
-  filter: '⑃', 'dollar-sign': '💲', 'check-square': '☑', mail: '✉', 'message-square': '💬',
-  smartphone: '📱', share: '🔗', search: '⌕', 'file-text': '📄', bot: '🤖', 'pen-tool': '✎',
-  image: '🖼', video: '🎬', phone: '📞', mic: '🎙', calendar: '📅', book: '📖',
-  workflow: '⚙', zap: '⚡', 'bar-chart': '📊', 'trending-up': '📈', 'credit-card': '💳',
-  receipt: '🧾', 'life-buoy': '🛟', inbox: '📥', folder: '📁', shield: '🛡', settings: '⚙',
-  globe: '🌐', megaphone: '📣', edit: '✎', layout: '▧', activity: '📶',
-}
-function navIcon(name?: string): string {
-  return (name && NAV_ICONS[name]) || '•'
+const THEME_KEY = 'vsp:theme'
+function toggleTheme(): 'light' | 'dark' {
+  const root = document.documentElement
+  const next = root.dataset['theme'] === 'dark' ? 'light' : 'dark'
+  if (next === 'dark') root.dataset['theme'] = 'dark'
+  else delete root.dataset['theme']
+  try {
+    window.localStorage.setItem(THEME_KEY, next)
+  } catch {
+    /* ignore */
+  }
+  return next
 }
 
 /**
@@ -211,7 +212,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
                 const active = pathname === href
                 return (
                   <Link key={item.path} href={href} className={`nav-item ${active ? 'active' : ''}`}>
-                    <span className="ico">{navIcon(item.icon)}</span>
+                    <Icon name={item.icon ?? 'dot'} size={17} style={{ opacity: 0.9 }} />
                     {item.label}
                   </Link>
                 )
@@ -221,14 +222,17 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
           <div style={{ marginTop: 'auto', paddingTop: 16 }}>
             <div className="nav-item" style={{ cursor: 'default' }}>
-              <span className="ico">◍</span>
-              <span>
-                <div style={{ fontSize: 13 }}>{ws.user.name || ws.user.email}</div>
+              <span className="avatar">{(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}</span>
+              <span style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {ws.user.name || ws.user.email}
+                </div>
                 <div className="dim" style={{ fontSize: 11 }}>
                   {ws.user.role} · {ws.plan?.name ?? 'No plan'}
                 </div>
               </span>
             </div>
+            <ThemeToggle />
             <SignOutButton />
           </div>
         </aside>
@@ -283,7 +287,7 @@ function OrgSwitcher({
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {busy ? 'Switching…' : (active?.name ?? 'Select workspace')}
         </span>
-        <span className="dim">▾</span>
+        <Icon name="chevron-down" size={15} className="dim" />
       </button>
       {open && (
         <div
@@ -298,7 +302,7 @@ function OrgSwitcher({
               disabled={!o.isActive}
               onClick={() => void pick(o.organizationId)}
             >
-              <span className="ico">{o.organizationId === activeId ? '●' : '○'}</span>
+              <Icon name={o.organizationId === activeId ? 'check' : 'dot'} size={15} className="dim" />
               <span>
                 <div style={{ fontSize: 13 }}>{o.name}</div>
                 <div className="dim" style={{ fontSize: 11 }}>
@@ -311,6 +315,24 @@ function OrgSwitcher({
         </div>
       )}
     </div>
+  )
+}
+
+function ThemeToggle() {
+  const [dark, setDark] = useState(false)
+  useEffect(() => {
+    setDark(document.documentElement.dataset['theme'] === 'dark')
+  }, [])
+  return (
+    <button
+      className="nav-item"
+      style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
+      onClick={() => setDark(toggleTheme() === 'dark')}
+      aria-label="Toggle colour theme"
+    >
+      <Icon name={dark ? 'sun' : 'moon'} size={16} style={{ opacity: 0.9 }} />
+      {dark ? 'Light mode' : 'Dark mode'}
+    </button>
   )
 }
 
@@ -332,7 +354,7 @@ function SignOutButton() {
         }
       }}
     >
-      <span className="ico">⏻</span>
+      <Icon name="log-out" size={16} style={{ opacity: 0.9 }} />
       {busy ? 'Signing out…' : 'Sign out'}
     </button>
   )

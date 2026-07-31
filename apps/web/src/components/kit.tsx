@@ -66,7 +66,9 @@ export function EmptyState({
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="state">
-      <div className="big">⚠️</div>
+      <div className="state-badge" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
+        <Icon name="alert-triangle" size={22} />
+      </div>
       <h3>Something went wrong</h3>
       <p>{message}</p>
       {onRetry ? (

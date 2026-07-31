@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
+// Broadsheet design system — loaded once, globally, before the app's own CSS so
+// app-level rules still win where genuinely needed during the retheme.
+import '../broadsheet/styles.css'
+import '../broadsheet/extensions.css'
 import './globals.css'
 
 export const metadata: Metadata = {

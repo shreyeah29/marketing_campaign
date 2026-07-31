@@ -73,10 +73,9 @@ export class CampaignGenerationService {
         ],
         // A full multi-platform campaign is a large JSON document, and reasoning
         // models spend part of the budget on hidden reasoning tokens — the old
-        // 1024 cap truncated the output and JSON.parse failed. 4096 is enough for
-        // the plan (verified) and stays within the model's per-request limit; a
-        // larger value (e.g. 8000) is rejected by gpt-5.x with an unhealable 400.
-        maxTokens: 4096,
+        // 1024 cap truncated the output and JSON.parse failed. Ask for generous
+        // headroom; the adapter clamps automatically if the model's limit is lower.
+        maxTokens: 8000,
       })
       await this.ai.recordUsage(principal, {
         capability: 'LLM',

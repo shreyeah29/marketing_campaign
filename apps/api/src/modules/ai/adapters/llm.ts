@@ -113,8 +113,9 @@ function openAiCompatAdapter(cfg: OpenAiCompatConfig): LlmAdapter {
         ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
       }
 
-      // At most three attempts: initial + one fix for tokens + one fix for temperature.
-      for (let attempt = 0; attempt < 3; attempt++) {
+      // A few attempts: initial + rename tokens + drop temperature + clamp an
+      // over-limit token cap (each fix is applied at most once in practice).
+      for (let attempt = 0; attempt < 5; attempt++) {
         const res = await fetch(cfg.baseUrl, {
           method: 'POST',
           headers: {
@@ -156,6 +157,22 @@ function openAiCompatAdapter(cfg: OpenAiCompatConfig): LlmAdapter {
         if (isParamError && lower.includes('temperature') && 'temperature' in body) {
           delete body.temperature
           continue
+        }
+        // Requested output cap exceeds the model's per-request limit → halve it and
+        // retry, so a generous cap never hard-fails on a smaller-limit model.
+        const tokenKey = 'max_completion_tokens' in body ? 'max_completion_tokens' : 'max_tokens' in body ? 'max_tokens' : null
+        if (
+          isParamError &&
+          tokenKey !== null &&
+          lower.includes('token') &&
+          /max(imum)?|less than|too large|exceed|greater than|reduce|at most|must be/.test(lower)
+        ) {
+          const current = Number(body[tokenKey]) || DEFAULT_MAX_TOKENS
+          const next = Math.max(1024, Math.floor(current / 2))
+          if (next < current) {
+            body[tokenKey] = next
+            continue
+          }
         }
         throw err
       }

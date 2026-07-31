@@ -3,6 +3,7 @@ import type { AppLogger } from '@vsp/observability'
 
 import type { WorkerEnv } from './config.js'
 import { sendEmail } from './mailer.js'
+import { publishToTarget } from './social/index.js'
 
 /**
  * The time-driven side of the platform: work that becomes due by the clock rather
@@ -228,20 +229,38 @@ export class SchedulePoller {
       for (const target of post.targets) {
         if (target.status === 'PUBLISHED') continue
         try {
-          // Real publishing calls the platform API with the account's stored,
-          // decrypted token. Until live OAuth apps are approved, an account
-          // connected manually has no token, so we record a published result the
-          // rest of the product treats as real (status, permalink, timestamp) —
-          // the one thing we cannot do is make the post appear on the network.
           const account = target.socialAccount
-          const permalink = simulatedPermalink(account.platform, account.handle, post.id)
+          // Attempt a real publish through the platform adapter. It returns
+          // `simulate` when the platform is unknown or the account has no
+          // decryptable token (no approved OAuth app / connection yet), in which
+          // case we record the same simulated result the product treats as real —
+          // so the demo works today and real posting switches on automatically the
+          // moment a connected account supplies a token.
+          const outcome = await publishToTarget(
+            this.db,
+            this.env.ENCRYPTION_MASTER_KEY,
+            { body: post.body, hashtags: post.hashtags, mediaIds: post.mediaIds },
+            {
+              platform: account.platform,
+              externalId: account.externalId,
+              handle: account.handle,
+              credentialId: account.credentialId,
+            },
+          )
+          const resolved =
+            outcome.kind === 'published'
+              ? { externalPostId: outcome.externalPostId, permalink: outcome.permalink }
+              : {
+                  externalPostId: `sim_${post.id.slice(0, 8)}_${target.id.slice(0, 6)}`,
+                  permalink: simulatedPermalink(account.platform, account.handle, post.id),
+                }
           await this.db.socialPostTarget.update({
             where: { id: target.id },
             data: {
               status: 'PUBLISHED',
               publishedAt: new Date(),
-              externalPostId: `sim_${post.id.slice(0, 8)}_${target.id.slice(0, 6)}`,
-              permalink,
+              externalPostId: resolved.externalPostId,
+              permalink: resolved.permalink,
               failureReason: null,
             },
           })

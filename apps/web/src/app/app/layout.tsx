@@ -197,7 +197,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               onClick={() => setNavOpen(false)}
               aria-label="Close navigation menu"
             >
-              ✕
+              <Icon name="x" size={16} />
             </button>
           </div>
 

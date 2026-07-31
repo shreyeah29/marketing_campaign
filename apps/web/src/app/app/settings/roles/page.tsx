@@ -43,7 +43,7 @@ export default function RolesSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !roles || roles.length === 0 ? (
-        <EmptyState icon="🛡" title="No roles defined" />
+        <EmptyState icon="shield" title="No roles defined" />
       ) : (
         <div className="stack" style={{ gap: 16 }}>
           {roles.map((r) => (

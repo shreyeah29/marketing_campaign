@@ -10,7 +10,7 @@ export default function NotesPage() {
       title="Notes"
       subtitle="Freeform notes across your CRM"
       base="/notes"
-      emptyIcon="📝"
+      emptyIcon="file-text"
       emptyTitle="No notes yet"
       emptyHint="Capture a thought, a call summary, or context on a contact."
       columns={[

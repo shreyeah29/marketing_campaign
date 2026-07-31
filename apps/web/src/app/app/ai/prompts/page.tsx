@@ -17,7 +17,7 @@ export default function PromptsPage() {
       title="Prompt Library"
       subtitle="Reusable prompts for your AI agents and copywriter"
       base="/prompts"
-      emptyIcon="✨"
+      emptyIcon="sparkles"
       emptyTitle="No saved prompts"
       emptyHint="Save prompts you use often so your team can reuse them."
       columns={[

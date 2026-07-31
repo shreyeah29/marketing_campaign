@@ -15,7 +15,7 @@ export default function AiVideoPage() {
     <ModuleIntro
       title="AI Video"
       subtitle="Generate short video clips from a text prompt"
-      icon="🎬"
+      icon="video"
       requires="Video generation needs a video model provider connected to the platform."
       capabilities={[
         { title: 'Text-to-video', body: 'Turn a prompt into a short, on-brand clip.' },

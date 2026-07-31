@@ -16,7 +16,7 @@ export default function PipelinesPage() {
       subtitle="Your deal pipelines and stages"
       base="/pipelines"
       readOnly
-      emptyIcon="📊"
+      emptyIcon="bar-chart"
       emptyTitle="No pipelines yet"
       columns={[
         { key: 'name', header: 'Name', render: (r) => r.name },

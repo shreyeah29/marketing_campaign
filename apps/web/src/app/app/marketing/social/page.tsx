@@ -13,6 +13,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ export default function SocialPage() {
         <TableSkeleton rows={2} cols={3} />
       ) : connected.length === 0 ? (
         <EmptyState
-          icon="🔌"
+          icon="plug"
           title="No accounts connected"
           hint="Connect an account to start scheduling posts."
         />
@@ -199,7 +200,7 @@ export default function SocialPage() {
         <TableSkeleton rows={4} cols={3} />
       ) : posts.length === 0 ? (
         <EmptyState
-          icon="📣"
+          icon="megaphone"
           title="No posts yet"
           hint="Compose a post above to schedule it across your connected accounts."
         />
@@ -367,7 +368,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
   if (accounts.length === 0) {
     return (
       <EmptyState
-        icon="✍️"
+        icon="edit"
         title="Connect an account first"
         hint="You need at least one connected account before you can compose a post."
       />
@@ -432,7 +433,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
           disabled={busy !== null}
           onClick={() => void submit('schedule')}
         >
-          {busy === 'schedule' ? <Spinner /> : scheduledAt ? '⏰ Schedule' : 'Schedule'}
+          {busy === 'schedule' ? <Spinner /> : scheduledAt ? <><Icon name="clock" size={15} /> Schedule</> : 'Schedule'}
         </button>
         <button
           className="btn primary"
@@ -491,8 +492,8 @@ function PostCard({
               Publish now
             </button>
           ) : null}
-          <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>
-            🗑
+          <button className="btn ghost sm" onClick={() => setConfirmDelete(true)} aria-label="Delete">
+            <Icon name="trash" size={15} />
           </button>
         </div>
       </div>
@@ -519,8 +520,8 @@ function PostCard({
             <span className="row" style={{ gap: 8 }}>
               {t.failureReason ? <span className="dim">{t.failureReason}</span> : null}
               {t.permalink ? (
-                <a href={t.permalink} target="_blank" rel="noreferrer">
-                  View ↗
+                <a href={t.permalink} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  View <Icon name="external-link" size={13} />
                 </a>
               ) : null}
             </span>

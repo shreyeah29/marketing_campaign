@@ -71,7 +71,7 @@ export default function NotificationsPage() {
       ) : rows === null ? (
         <TableSkeleton cols={2} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="🔔" title="You're all caught up" hint="Notifications will appear here." />
+        <EmptyState icon="bell" title="You're all caught up" hint="Notifications will appear here." />
       ) : (
         <div className="stack" style={{ gap: 8 }}>
           {rows.map((n) => (

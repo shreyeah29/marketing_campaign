@@ -7,7 +7,7 @@ export default function WhatsAppCampaignsPage() {
     <ModuleIntro
       title="WhatsApp Campaigns"
       subtitle="Send WhatsApp Business messages"
-      icon="🟢"
+      icon="message-square"
       requires="Connect a WhatsApp Business provider to send template messages to your contacts."
       capabilities={[
         { title: 'Template messages', body: 'Send approved WhatsApp templates to opted-in contacts.' },

@@ -15,6 +15,7 @@ import {
   type Column,
 } from '@/components/kit'
 import { Field } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface ApiKey {
   id: string
@@ -127,7 +128,7 @@ export default function ApiKeysPage() {
         subtitle="Programmatic access tokens for this organization"
         actions={
           <button className="btn primary" onClick={openCreate}>
-            ＋ Create key
+            <Icon name="plus" size={15} /> Create key
           </button>
         }
       />
@@ -138,12 +139,12 @@ export default function ApiKeysPage() {
         <TableSkeleton cols={4} />
       ) : rows.length === 0 ? (
         <EmptyState
-          icon="🔑"
+          icon="key"
           title="No API keys yet"
           hint="Create a key to access the API programmatically. The full secret is shown once at creation."
           action={
             <button className="btn primary" onClick={openCreate}>
-              ＋ Create key
+              <Icon name="plus" size={15} /> Create key
             </button>
           }
         />
@@ -200,7 +201,7 @@ export default function ApiKeysPage() {
             <div className="head">
               <h3>Copy your API key</h3>
               <button className="icon-btn" onClick={() => setCreated(null)} aria-label="Close">
-                ✕
+                <Icon name="x" size={16} />
               </button>
             </div>
             <div className="body">

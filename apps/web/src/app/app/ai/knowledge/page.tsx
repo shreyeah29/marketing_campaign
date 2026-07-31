@@ -20,7 +20,7 @@ export default function KnowledgePage() {
       title="Knowledge Bases"
       subtitle="RAG corpora your agents can retrieve from"
       base="/knowledge-bases"
-      emptyIcon="📚"
+      emptyIcon="book"
       emptyTitle="No knowledge bases yet"
       emptyHint="Create a knowledge base to give your agents grounded context."
       createLabel="New knowledge base"

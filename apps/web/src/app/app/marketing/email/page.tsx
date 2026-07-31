@@ -17,7 +17,7 @@ export default function EmailCampaignsPage() {
         title="Email Campaigns"
         subtitle="Draft, schedule and send email campaigns to your audience."
         base="/email-campaigns"
-        emptyIcon="✉️"
+        emptyIcon="mail"
         emptyTitle="No campaigns yet"
         emptyHint="Create your first email campaign to get started."
         columns={[

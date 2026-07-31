@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { Drawer, EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface Workflow {
   id: string
@@ -66,7 +67,7 @@ export default function WorkflowsPage() {
         subtitle="Automate your marketing — trigger → conditions → actions, executed by real workers"
         actions={
           <button className="btn primary" onClick={() => setCreating(true)}>
-            ＋ New workflow
+            <Icon name="plus" size={15} /> New workflow
           </button>
         }
       />
@@ -77,12 +78,12 @@ export default function WorkflowsPage() {
         <TableSkeleton cols={4} />
       ) : rows.length === 0 ? (
         <EmptyState
-          icon="⚙️"
+          icon="settings"
           title="No workflows yet"
           hint="Build an automation: e.g. when an asset is approved → schedule it → notify the team."
           action={
             <button className="btn primary" onClick={() => setCreating(true)}>
-              ＋ New workflow
+              <Icon name="plus" size={15} /> New workflow
             </button>
           }
         />

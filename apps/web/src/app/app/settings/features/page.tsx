@@ -43,7 +43,7 @@ export default function FeaturesPage() {
         subtitle={`${ws.enabledFeatures.length} modules enabled on the ${ws.plan?.name ?? 'current'} plan`}
       />
       {ws.enabledFeatures.length === 0 ? (
-        <EmptyState icon="🧩" title="No modules enabled" hint="Ask your platform administrator to enable modules." />
+        <EmptyState icon="layout" title="No modules enabled" hint="Ask your platform administrator to enable modules." />
       ) : (
         <div className="stack">
           {[...groups.entries()].map(([cat, features]) => (

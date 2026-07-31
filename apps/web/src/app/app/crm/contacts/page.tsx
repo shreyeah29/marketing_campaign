@@ -18,7 +18,7 @@ export default function ContactsPage() {
       title="Contacts"
       subtitle="Everyone in your CRM"
       base="/contacts"
-      emptyIcon="👤"
+      emptyIcon="users"
       emptyTitle="No contacts yet"
       emptyHint="Add your first contact to get started."
       columns={[

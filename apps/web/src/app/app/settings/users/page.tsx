@@ -14,6 +14,7 @@ import {
   type Column,
 } from '@/components/kit'
 import { Badge, Field } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface Member {
   membershipId: string
@@ -132,7 +133,7 @@ export default function UsersSettingsPage() {
         subtitle="People with access to this workspace"
         actions={
           <button className="btn primary" onClick={() => setInviteOpen(true)}>
-            ＋ Invite
+            <Icon name="plus" size={15} /> Invite
           </button>
         }
       />
@@ -142,7 +143,7 @@ export default function UsersSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="👥" title="No members yet" hint="Invite your first teammate to collaborate." />
+        <EmptyState icon="users" title="No members yet" hint="Invite your first teammate to collaborate." />
       ) : (
         <DataTable columns={columns} rows={rows} />
       )}

@@ -64,7 +64,7 @@ export default function AiSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !agents || agents.length === 0 ? (
-        <EmptyState icon="🤖" title="No agents available" />
+        <EmptyState icon="bot" title="No agents available" />
       ) : (
         <div className="stack" style={{ gap: 12 }}>
           {agents.map((a) => (

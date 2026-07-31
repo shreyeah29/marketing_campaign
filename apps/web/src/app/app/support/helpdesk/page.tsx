@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 
 import { PageHeader, SearchInput } from '@/components/kit'
+import { Icon } from '@/components/icon'
 
 interface Article {
   id: string
@@ -81,7 +82,7 @@ export default function HelpdeskPage() {
 
       {results.length === 0 ? (
         <div className="state">
-          <div className="big">🔍</div>
+          <div className="state-badge"><Icon name="search" size={22} /></div>
           <h3>No articles match “{query}”</h3>
           <p>Try a different search, or open a ticket and we will help directly.</p>
         </div>

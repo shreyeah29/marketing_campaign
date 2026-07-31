@@ -14,6 +14,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface KnowledgeBase {
   id: string
@@ -250,14 +251,14 @@ export default function KnowledgeBaseDetailPage() {
   return (
     <>
       <div className="row" style={{ marginBottom: 4 }}>
-        <Link href="/app/ai/knowledge" className="btn ghost sm">← Knowledge bases</Link>
+        <Link href="/app/ai/knowledge" className="btn ghost sm"><Icon name="arrow-left" size={14} /> Knowledge bases</Link>
       </div>
       <PageHeader
         title={kb?.name ?? 'Knowledge base'}
         subtitle={kb?.description ?? 'Upload documents to make them searchable by AI'}
         actions={
           <button className="btn" onClick={() => setPasteOpen(true)}>
-            ＋ Add text
+            <Icon name="plus" size={15} /> Add text
           </button>
         }
       />
@@ -284,7 +285,7 @@ export default function KnowledgeBaseDetailPage() {
           transition: 'border-color .15s, background .15s',
         }}
       >
-        <div style={{ fontSize: 26, marginBottom: 8 }}>📄</div>
+        <div style={{ marginBottom: 8, color: 'var(--color-primary)' }}><Icon name="file-text" size={26} /></div>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Drag &amp; drop files here</div>
         <div className="dim" style={{ fontSize: 13, marginBottom: 12 }}>
           Text files (.txt, .md, .csv, .json, .html…) up to 400 KB each — multiple at once.
@@ -309,7 +310,7 @@ export default function KnowledgeBaseDetailPage() {
                 {u.status === 'error' ? (
                   <span style={{ color: 'var(--danger)' }}>{u.error ?? 'Failed'}</span>
                 ) : u.status === 'done' ? (
-                  <span style={{ color: 'var(--ok)' }}>Queued ✓</span>
+                  <span style={{ color: 'var(--ok)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>Queued <Icon name="check" size={13} /></span>
                 ) : (
                   <span className="row" style={{ gap: 6 }}><Spinner /> {u.status === 'reading' ? 'Reading…' : 'Uploading…'}</span>
                 )}
@@ -359,7 +360,7 @@ export default function KnowledgeBaseDetailPage() {
         <TableSkeleton cols={4} />
       ) : docs.length === 0 ? (
         <EmptyState
-          icon="📚"
+          icon="book"
           title="No documents yet"
           hint="Upload text files or paste content above. Each document is chunked and embedded so AI can retrieve it."
         />
@@ -400,10 +401,10 @@ export default function KnowledgeBaseDetailPage() {
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
                       <button className="btn ghost sm" onClick={() => void reprocess(d)} aria-label="Reprocess">
-                        ↻
+                        <Icon name="refresh" size={15} />
                       </button>
                       <button className="btn ghost sm" onClick={() => setConfirmDel(d)} aria-label="Delete">
-                        🗑
+                        <Icon name="trash" size={15} />
                       </button>
                     </div>
                   </td>
@@ -421,7 +422,7 @@ export default function KnowledgeBaseDetailPage() {
           <div className="modal" role="dialog" aria-label="Add document text">
             <div className="head">
               <h3>Add document</h3>
-              <button className="icon-btn" onClick={() => setPasteOpen(false)} aria-label="Close">✕</button>
+              <button className="icon-btn" onClick={() => setPasteOpen(false)} aria-label="Close"><Icon name="x" size={16} /></button>
             </div>
             <div className="body">
               <Field label="Title *">

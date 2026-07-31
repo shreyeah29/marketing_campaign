@@ -18,7 +18,7 @@ export default function WebhooksPage() {
       subtitle="Deliver platform events to your own endpoints."
       base="/webhooks"
       toForm={(r) => ({ url: r.url, event: r.events?.[0] ?? '', secret: '' })}
-      emptyIcon="🪝"
+      emptyIcon="zap"
       emptyTitle="No webhooks yet"
       emptyHint="Add a webhook to receive event deliveries."
       columns={[

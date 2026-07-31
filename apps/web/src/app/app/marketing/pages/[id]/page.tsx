@@ -7,6 +7,7 @@ import { ApiError, api } from '@/lib/api'
 import { ConfirmDialog, ErrorState, PageHeader, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { PageBlocks, type Block } from '@/components/page-blocks'
+import { Icon } from '@/components/icon'
 
 interface LandingPage {
   id: string
@@ -183,7 +184,7 @@ export default function LandingPageBuilder() {
         actions={
           <div className="row" style={{ gap: 8 }}>
             <button className="btn" onClick={() => router.push('/app/marketing/pages')}>
-              ← Back
+              <Icon name="arrow-left" size={14} /> Back
             </button>
             <button className="btn primary" disabled={saving} onClick={() => void save()}>
               {saving ? <Spinner /> : 'Save'}
@@ -194,7 +195,7 @@ export default function LandingPageBuilder() {
 
       <div className="row" style={{ gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <Badge status={STATUS_TINT[page.status]}>{page.status}</Badge>
-        <span className="dim" style={{ fontSize: 12 }}>👁 {page.visitCount} visits</span>
+        <span className="dim" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="eye" size={13} /> {page.visitCount} visits</span>
         {page.status === 'PUBLISHED' ? (
           <a href={publicUrl} target="_blank" rel="noreferrer" className="dim" style={{ fontSize: 12 }}>
             {publicUrl}
@@ -215,11 +216,11 @@ export default function LandingPageBuilder() {
             disabled={busy !== null}
             onClick={() => void act('Publish', () => api.post<LandingPage>(`/landing-pages/${id}/publish`))}
           >
-            {busy === 'Publish' ? <Spinner /> : '🚀 Publish'}
+            {busy === 'Publish' ? <Spinner /> : <><Icon name="rocket" size={14} /> Publish</>}
           </button>
         )}
         <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>
-          🗑 Delete
+          <Icon name="trash" size={15} /> Delete
         </button>
       </div>
 
@@ -255,7 +256,7 @@ export default function LandingPageBuilder() {
                 </span>
                 <div className="row" style={{ gap: 4 }}>
                   <button className="btn ghost sm" disabled={i === 0} onClick={() => moveBlock(i, -1)} aria-label="Move up">
-                    ↑
+                    <Icon name="arrow-up" size={15} />
                   </button>
                   <button
                     className="btn ghost sm"
@@ -263,10 +264,10 @@ export default function LandingPageBuilder() {
                     onClick={() => moveBlock(i, 1)}
                     aria-label="Move down"
                   >
-                    ↓
+                    <Icon name="arrow-down" size={15} />
                   </button>
                   <button className="btn ghost sm" onClick={() => removeBlock(i)} aria-label="Remove">
-                    ✕
+                    <Icon name="x" size={15} />
                   </button>
                 </div>
               </div>
@@ -276,7 +277,7 @@ export default function LandingPageBuilder() {
 
           <div className="card" style={{ position: 'relative' }}>
             <button className="btn" onClick={() => setAddOpen((o) => !o)}>
-              ＋ Add block
+              <Icon name="plus" size={15} /> Add block
             </button>
             {addOpen ? (
               <div className="stack" style={{ gap: 6, marginTop: 10 }}>
@@ -435,13 +436,13 @@ function FeaturesEditor({ block, onChange }: { block: Block; onChange: (patch: R
               />
             </div>
             <button className="btn ghost sm" onClick={() => setItems(list.filter((_, j) => j !== i))} aria-label="Remove item">
-              ✕
+              <Icon name="x" size={15} />
             </button>
           </div>
         ))}
       </div>
       <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setItems([...list, { title: '', body: '' }])}>
-        ＋ Add feature
+        <Icon name="plus" size={15} /> Add feature
       </button>
     </>
   )

@@ -15,7 +15,8 @@ export type IconName =
   | 'folder' | 'shield' | 'settings' | 'globe' | 'megaphone' | 'edit' | 'layout' | 'activity'
   | 'clipboard' | 'plus' | 'trash' | 'refresh' | 'x' | 'check' | 'chevron-down' | 'chevron-right'
   | 'copy' | 'download' | 'external-link' | 'send' | 'sparkles' | 'arrow-left' | 'upload'
-  | 'sun' | 'moon' | 'log-out' | 'bell' | 'plug' | 'dot'
+  | 'sun' | 'moon' | 'log-out' | 'bell' | 'plug' | 'dot' | 'key' | 'clock'
+  | 'eye' | 'rocket' | 'menu' | 'arrow-up' | 'arrow-down' | 'pause' | 'grid' | 'play'
 
 const P: Record<string, ReactNode> = {
   dashboard: (<><rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" /><rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" /></>),
@@ -77,6 +78,21 @@ const P: Record<string, ReactNode> = {
   bell: (<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /></>),
   plug: (<><path d="M12 22v-5M9 8V2M15 8V2M7 8h10v3a5 5 0 0 1-10 0z" /></>),
   dot: (<circle cx="12" cy="12" r="2.5" />),
+  key: (<><circle cx="7.5" cy="15.5" r="5.5" /><path d="m21 2-9.6 9.6" /><path d="m15.5 7.5 3 3L22 7l-3-3" /></>),
+  clock: (<><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 14" /></>),
+  eye: (<><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></>),
+  rocket: (<><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" /><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" /></>),
+  menu: (<><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></>),
+  'arrow-up': (<><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></>),
+  'arrow-down': (<><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></>),
+  pause: (<><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></>),
+  play: (<polygon points="6 3 20 12 6 21 6 3" />),
+  grid: (<><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /></>),
+}
+
+/** Narrow an arbitrary string to an `IconName` when the icon set contains it. */
+export function isIconName(name: string): name is IconName {
+  return name in P
 }
 
 export function Icon({

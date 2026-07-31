@@ -138,7 +138,7 @@ export default function ProvidersSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !caps || caps.length === 0 ? (
-        <EmptyState icon="🔌" title="No integrations to configure" hint="AI works out of the box — nothing to set up here yet." />
+        <EmptyState icon="plug" title="No integrations to configure" hint="AI works out of the box — nothing to set up here yet." />
       ) : (
         <div className="grid cols-2" style={{ alignItems: 'start' }}>
           {caps.map((cap) => (

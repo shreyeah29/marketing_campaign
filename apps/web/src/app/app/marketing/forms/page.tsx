@@ -70,7 +70,7 @@ export default function FormsPage() {
         <TableSkeleton cols={3} />
       ) : forms.length === 0 ? (
         <EmptyState
-          icon="📝"
+          icon="clipboard"
           title="No forms yet"
           hint="Create your first lead capture form, publish it, and share the link anywhere."
         />

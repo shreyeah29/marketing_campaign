@@ -18,7 +18,7 @@ export default function LeadsPage() {
       title="Leads"
       subtitle="Prospects working through qualification"
       base="/leads"
-      emptyIcon="🎯"
+      emptyIcon="target"
       emptyTitle="No leads yet"
       emptyHint="Capture your first lead to get started."
       columns={[

@@ -13,6 +13,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface LandingPageRow {
   id: string
@@ -83,7 +84,7 @@ export default function LandingPagesListPage() {
         subtitle="Build focused pages to capture leads from your campaigns."
         actions={
           <button className="btn primary" onClick={() => setCreating(true)}>
-            ＋ New page
+            <Icon name="plus" size={15} /> New page
           </button>
         }
       />
@@ -94,7 +95,7 @@ export default function LandingPagesListPage() {
         <TableSkeleton cols={5} />
       ) : rows.length === 0 ? (
         <EmptyState
-          icon="🎨"
+          icon="layout"
           title="No landing pages yet"
           hint="Create your first page, add blocks, then publish it to a public URL."
         />

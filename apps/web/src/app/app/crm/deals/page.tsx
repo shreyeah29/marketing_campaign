@@ -97,7 +97,7 @@ export default function DealsPage() {
       title="Deals / Opportunities"
       subtitle="Open and closed revenue opportunities"
       base="/deals"
-      emptyIcon="💰"
+      emptyIcon="dollar-sign"
       emptyTitle="No deals yet"
       emptyHint="Create your first deal to start tracking revenue."
       columns={[
@@ -135,7 +135,7 @@ function NoPipelines() {
     <>
       <PageHeader title="Deals / Opportunities" subtitle="Open and closed revenue opportunities" />
       <EmptyState
-        icon="🪜"
+        icon="workflow"
         title="No pipelines yet"
         hint="Deals live inside a pipeline stage. A default sales pipeline is set up per workspace — if you don't see one, ask an administrator to add a pipeline first."
       />

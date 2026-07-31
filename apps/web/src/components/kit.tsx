@@ -10,6 +10,8 @@ import {
   type ReactNode,
 } from 'react'
 
+import { Icon, isIconName } from '@/components/icon'
+
 /* ────────────────────────────────────────────────────────────────────────────
  * The shared UI kit. Every feature page is built from these primitives, so the
  * product looks and behaves consistently and no page has to reinvent a table,
@@ -39,7 +41,7 @@ export function PageHeader({
 
 // ── States ─────────────────────────────────────────────────────────────────────
 export function EmptyState({
-  icon = '📭',
+  icon = 'inbox',
   title,
   hint,
   action,
@@ -51,7 +53,9 @@ export function EmptyState({
 }) {
   return (
     <div className="state">
-      <div className="big">{icon}</div>
+      <div className="state-badge">
+        {isIconName(icon) ? <Icon name={icon} size={22} /> : icon}
+      </div>
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
       {action ? <div className="mt">{action}</div> : null}
@@ -104,7 +108,7 @@ export function ProviderNotConfigured({
 }) {
   return (
     <div className="banner info" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-      <span style={{ fontSize: 18 }}>🔌</span>
+      <Icon name="plug" size={18} style={{ color: 'var(--color-primary)' }} />
       <span>
         <strong>{what} is not configured.</strong>{' '}
         {capability ? (
@@ -141,7 +145,7 @@ export function SearchInput({
 }) {
   return (
     <div className="search">
-      <span className="ico">⌕</span>
+      <span className="ico"><Icon name="search" size={15} /></span>
       <input
         className="input"
         value={value}
@@ -304,7 +308,7 @@ export function Drawer({
         <div className="head">
           <h3>{title}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Close">
-            ✕
+            <Icon name="x" size={16} />
           </button>
         </div>
         <div className="body">{children}</div>
@@ -339,8 +343,8 @@ export function ConfirmDialog({
       <div className="modal" role="alertdialog">
         <div className="head">
           <h3>{title}</h3>
-          <button className="icon-btn" onClick={onCancel}>
-            ✕
+          <button className="icon-btn" onClick={onCancel} aria-label="Close">
+            <Icon name="x" size={16} />
           </button>
         </div>
         <div className="body">

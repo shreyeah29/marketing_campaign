@@ -1,7 +1,7 @@
 'use client'
 import { ModuleIntro } from '@/components/module-intro'
 export default function InvoicesPage() {
-  return <ModuleIntro title="Invoices" subtitle="Create, send and track invoices" icon="🧾"
+  return <ModuleIntro title="Invoices" subtitle="Create, send and track invoices" icon="receipt"
     requires="Connect a payment provider (Stripe / Razorpay) to issue and collect on invoices."
     configureHref="/app/settings/providers"
     capabilities={[

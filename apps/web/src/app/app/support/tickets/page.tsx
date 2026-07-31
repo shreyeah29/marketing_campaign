@@ -14,6 +14,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 const STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const
 type Status = (typeof STATUSES)[number]
@@ -145,7 +146,7 @@ export default function TicketsPage() {
         <TableSkeleton cols={5} />
       ) : tickets.length === 0 ? (
         <EmptyState
-          icon="🎫"
+          icon="life-buoy"
           title="No tickets here"
           hint="Open a ticket to start tracking a customer request."
           action={
@@ -400,7 +401,7 @@ function TicketDrawer({
             Close
           </button>
           <button className="btn danger" disabled={busy !== null} onClick={() => setConfirmDelete(true)}>
-            🗑 Delete
+            <Icon name="trash" size={15} /> Delete
           </button>
         </>
       }
@@ -417,8 +418,8 @@ function TicketDrawer({
             <Badge status={STATUS_TINT[ticket.status]}>{ticket.status}</Badge>
             <Badge status={PRIORITY_TINT[ticket.priority]}>{ticket.priority}</Badge>
             {ticket.resolvedAt ? (
-              <span className="dim" style={{ fontSize: 12 }}>
-                ✓ Resolved {new Date(ticket.resolvedAt).toLocaleString()}
+              <span className="dim" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Icon name="check" size={13} /> Resolved {new Date(ticket.resolvedAt).toLocaleString()}
               </span>
             ) : null}
           </div>

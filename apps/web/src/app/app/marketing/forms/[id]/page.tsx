@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, Tabs, TableSkeleton, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 type FieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select'
 
@@ -322,7 +323,7 @@ function BuilderTab({
                   </label>
                   <div className="row" style={{ gap: 4, paddingBottom: 4 }}>
                     <button className="btn ghost sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">
-                      ↑
+                      <Icon name="arrow-up" size={15} />
                     </button>
                     <button
                       className="btn ghost sm"
@@ -330,10 +331,10 @@ function BuilderTab({
                       disabled={i === form.fields.length - 1}
                       aria-label="Move down"
                     >
-                      ↓
+                      <Icon name="arrow-down" size={15} />
                     </button>
                     <button className="btn danger sm" onClick={() => removeField(i)} aria-label="Remove">
-                      ✕
+                      <Icon name="x" size={15} />
                     </button>
                   </div>
                 </div>

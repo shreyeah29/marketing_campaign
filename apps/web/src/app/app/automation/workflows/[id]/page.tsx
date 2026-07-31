@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { Drawer, EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
 import { Badge, Field, LoadingScreen, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface WfNode {
   id: string
@@ -133,13 +134,13 @@ export default function WorkflowBuilderPage() {
         actions={
           <>
             <Link href="/app/automation/workflows" className="btn ghost">
-              ← Back
+              <Icon name="arrow-left" size={14} /> Back
             </Link>
             <button className="btn" onClick={toggleStatus}>
-              {wf.status === 'ACTIVE' ? '⏸ Pause' : '▶ Activate'}
+              {wf.status === 'ACTIVE' ? <><Icon name="pause" size={14} /> Pause</> : <><Icon name="play" size={14} /> Activate</>}
             </button>
             <button className="btn" onClick={run}>
-              ▶ Run now
+              <Icon name="play" size={14} /> Run now
             </button>
             <button className="btn primary" onClick={save} disabled={saving}>
               {saving ? <Spinner /> : 'Save'}
@@ -158,7 +159,7 @@ export default function WorkflowBuilderPage() {
             <button className="btn sm" onClick={() => addNode('delay')}>+ Delay</button>
           </div>
           {graph.nodes.length === 0 ? (
-            <EmptyState icon="🧩" title="Empty workflow" hint="Add steps to build your automation, then Save." />
+            <EmptyState icon="workflow" title="Empty workflow" hint="Add steps to build your automation, then Save." />
           ) : (
             graph.nodes.map((n) => (
               <div key={n.id} className="card">
@@ -170,7 +171,7 @@ export default function WorkflowBuilderPage() {
                       <button className="btn ghost sm" onClick={() => setGraph({ ...graph, start: n.id })}>set start</button>
                     )}
                   </div>
-                  <button className="icon-btn" onClick={() => removeNode(n.id)}>✕</button>
+                  <button className="icon-btn" onClick={() => removeNode(n.id)} aria-label="Remove step"><Icon name="x" size={16} /></button>
                 </div>
 
                 {n.type === 'action' ? (
@@ -218,7 +219,7 @@ export default function WorkflowBuilderPage() {
         <div className="card">
           <div className="spread" style={{ marginBottom: 12 }}>
             <h3 style={{ fontSize: 14 }}>Executions</h3>
-            <button className="btn ghost sm" onClick={loadRuns}>↻</button>
+            <button className="btn ghost sm" onClick={loadRuns} aria-label="Refresh"><Icon name="refresh" size={15} /></button>
           </div>
           {runs.length === 0 ? (
             <div className="dim" style={{ fontSize: 12 }}>No runs yet. Save the graph, then Run now.</div>
@@ -243,7 +244,7 @@ export default function WorkflowBuilderPage() {
           open
           title={`Run · ${openRun.run.status}`}
           onClose={() => setOpenRun(null)}
-          footer={openRun.run.status === 'FAILED' ? <button className="btn primary" onClick={() => void retry(openRun.run.id)}>↻ Retry from failed step</button> : undefined}
+          footer={openRun.run.status === 'FAILED' ? <button className="btn primary" onClick={() => void retry(openRun.run.id)}><Icon name="refresh" size={14} /> Retry from failed step</button> : undefined}
         >
           {openRun.run.error ? <div className="banner error" style={{ marginBottom: 12 }}>{openRun.run.error}</div> : null}
           <div className="stack" style={{ gap: 6 }}>

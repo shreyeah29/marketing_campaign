@@ -18,7 +18,7 @@ export default function CompaniesPage() {
       title="Companies"
       subtitle="Organizations you work with"
       base="/companies"
-      emptyIcon="🏢"
+      emptyIcon="building"
       emptyTitle="No companies yet"
       emptyHint="Add your first company to get started."
       columns={[

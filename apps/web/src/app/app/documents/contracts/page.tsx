@@ -1,7 +1,7 @@
 'use client'
 import { ModuleIntro } from '@/components/module-intro'
 export default function ContractsPage() {
-  return <ModuleIntro title="Contracts" subtitle="Draft, send and e-sign agreements" icon="📄"
+  return <ModuleIntro title="Contracts" subtitle="Draft, send and e-sign agreements" icon="file-text"
     requires="Connect a storage provider to hold documents; e-signature integration enables signing."
     capabilities={[
       { title: 'Templates', body: 'Reusable contract templates with merge fields.' },

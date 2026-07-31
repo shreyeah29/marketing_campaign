@@ -17,7 +17,7 @@ export default function TasksPage() {
       title="Tasks"
       subtitle="Follow-ups and to-dos"
       base="/tasks"
-      emptyIcon="✅"
+      emptyIcon="check-square"
       emptyTitle="No tasks yet"
       emptyHint="Add your first task to stay on top of your work."
       columns={[

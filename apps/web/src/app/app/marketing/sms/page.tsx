@@ -7,7 +7,7 @@ export default function SmsCampaignsPage() {
     <ModuleIntro
       title="SMS Campaigns"
       subtitle="Reach your audience over SMS"
-      icon="💬"
+      icon="message-square"
       requires="Connect an SMS provider (Twilio, Telnyx) to send text campaigns to your contacts."
       capabilities={[
         { title: 'Broadcasts', body: 'Send a message to a segment of your contacts at once.' },

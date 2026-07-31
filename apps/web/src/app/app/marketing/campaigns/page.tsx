@@ -13,6 +13,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 interface Asset {
   id: string
@@ -94,7 +95,7 @@ export default function CampaignsReviewPage() {
             style={{ minWidth: 320 }}
           />
           <button className="btn primary" onClick={() => void generate()} disabled={generating || brief.trim().length < 4}>
-            {generating ? <Spinner /> : '✨ Generate campaign'}
+            {generating ? <Spinner /> : <><Icon name="sparkles" size={15} /> Generate campaign</>}
           </button>
         </div>
       </div>
@@ -105,7 +106,7 @@ export default function CampaignsReviewPage() {
         <TableSkeleton cols={6} />
       ) : total === 0 ? (
         <EmptyState
-          icon="🗂"
+          icon="megaphone"
           title="No campaign assets yet"
           hint="Describe a campaign above and AI will draft posts, captions and ad copy for you to review."
         />
@@ -219,7 +220,7 @@ function AssetDrawer({ asset, onClose, onChanged }: { asset: Asset; onClose: () 
         <Badge status={status === 'APPROVED' || status === 'PUBLISHED' ? 'ok' : status === 'REJECTED' ? 'danger' : 'info'}>
           {status}
         </Badge>
-        {full?.scheduledFor ? <span className="dim" style={{ fontSize: 12 }}>⏰ {new Date(full.scheduledFor).toLocaleString()}</span> : null}
+        {full?.scheduledFor ? <span className="dim" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="clock" size={12} /> {new Date(full.scheduledFor).toLocaleString()}</span> : null}
       </div>
 
       <Field label="Body">
@@ -243,11 +244,11 @@ function AssetDrawer({ asset, onClose, onChanged }: { asset: Asset; onClose: () 
       <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
         {canApprove ? (
           <button className="btn primary sm" disabled={busy !== null} onClick={() => void act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`))}>
-            ✓ Approve
+            <Icon name="check" size={15} /> Approve
           </button>
         ) : null}
         <button className="btn danger sm" disabled={busy !== null} onClick={() => void act('Reject', () => api.post(`/campaign-assets/${asset.id}/reject`, {}))}>
-          ✕ Reject
+          <Icon name="x" size={15} /> Reject
         </button>
         {canSchedule ? (
           <button
@@ -258,17 +259,17 @@ function AssetDrawer({ asset, onClose, onChanged }: { asset: Asset; onClose: () 
               void act('Schedule', () => api.post(`/campaign-assets/${asset.id}/schedule`, { scheduledFor: when }))
             }}
           >
-            ⏰ Schedule (24h)
+            <Icon name="clock" size={15} /> Schedule (24h)
           </button>
         ) : null}
         <button className="btn sm" disabled={busy !== null} onClick={() => void act('Regenerate', () => api.post(`/campaign-assets/${asset.id}/regenerate`, {}))}>
-          {busy === 'Regenerate' ? <Spinner /> : '↻ Regenerate'}
+          {busy === 'Regenerate' ? <Spinner /> : <><Icon name="refresh" size={15} /> Regenerate</>}
         </button>
         <button className="btn ghost sm" disabled={busy !== null} onClick={() => void act('Duplicate', () => api.post(`/campaign-assets/${asset.id}/duplicate`, {}))}>
-          ⧉ Duplicate
+          <Icon name="copy" size={15} /> Duplicate
         </button>
         <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>
-          🗑 Delete
+          <Icon name="trash" size={15} /> Delete
         </button>
       </div>
 

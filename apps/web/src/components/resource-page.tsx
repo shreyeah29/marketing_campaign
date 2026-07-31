@@ -17,6 +17,7 @@ import {
   type Column,
 } from '@/components/kit'
 import { Field } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 /** A form field descriptor — the create/edit drawer is generated from these. */
 export interface FormField {
@@ -81,7 +82,7 @@ export function ResourcePage<T extends { id: string }>({
   toBody,
   searchable = true,
   createLabel = 'New',
-  emptyIcon = '📄',
+  emptyIcon = 'file-text',
   emptyTitle = 'Nothing here yet',
   emptyHint,
   params,
@@ -173,7 +174,7 @@ export function ResourcePage<T extends { id: string }>({
         actions={
           editable ? (
             <button className="btn primary" onClick={openCreate}>
-              ＋ {createLabel}
+              <Icon name="plus" size={15} /> {createLabel}
             </button>
           ) : undefined
         }
@@ -206,7 +207,7 @@ export function ResourcePage<T extends { id: string }>({
           action={
             editable ? (
               <button className="btn primary" onClick={openCreate}>
-                ＋ {createLabel}
+                <Icon name="plus" size={15} /> {createLabel}
               </button>
             ) : undefined
           }
@@ -228,7 +229,7 @@ export function ResourcePage<T extends { id: string }>({
                       onClick={() => setConfirm(row)}
                       aria-label="Delete"
                     >
-                      🗑
+                      <Icon name="trash" size={15} />
                     </button>
                   )
                 : undefined

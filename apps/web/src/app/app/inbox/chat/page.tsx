@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { Drawer, EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
 
 const CHANNELS = ['WEB_CHAT', 'EMAIL', 'WHATSAPP', 'SMS', 'VOICE'] as const
 type Channel = (typeof CHANNELS)[number]
@@ -211,7 +212,7 @@ export default function InboxPage() {
         actions={
           !gated ? (
             <button className="btn primary sm" onClick={() => setDrawerOpen(true)}>
-              ＋ New
+              <Icon name="plus" size={15} /> New
             </button>
           ) : undefined
         }
@@ -219,7 +220,7 @@ export default function InboxPage() {
 
       {gated ? (
         <EmptyState
-          icon="💬"
+          icon="inbox"
           title="Inbox isn't enabled yet"
           hint="Connect a messaging channel to receive and reply to conversations from email, WhatsApp and live chat in one place."
         />
@@ -244,9 +245,9 @@ export default function InboxPage() {
             {rows.length === 0 ? (
               <div style={{ padding: 20 }}>
                 <EmptyState
-                  icon="💬"
+                  icon="message-square"
                   title="No conversations yet"
-                  hint="Start one with ＋ New, or wait for a channel to deliver a message."
+                  hint="Start one with New, or wait for a channel to deliver a message."
                 />
               </div>
             ) : (

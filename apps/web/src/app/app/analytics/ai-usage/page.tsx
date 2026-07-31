@@ -69,7 +69,7 @@ export default function AiUsagePage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !data ? (
-        <EmptyState icon="🤖" title="No AI usage yet" hint="Usage appears once agents start running." />
+        <EmptyState icon="bot" title="No AI usage yet" hint="Usage appears once agents start running." />
       ) : (
         <>
           <div className="grid cols-4" style={{ marginBottom: 22 }}>
@@ -79,7 +79,7 @@ export default function AiUsagePage() {
             <StatCard label="Output tokens" value={(data.totalOutputTokens ?? 0).toLocaleString()} />
           </div>
           {rows.length === 0 ? (
-            <EmptyState icon="🤖" title="No provider breakdown yet" hint="Per-provider usage appears as agents run." />
+            <EmptyState icon="bot" title="No provider breakdown yet" hint="Per-provider usage appears as agents run." />
           ) : (
             <DataTable columns={columns} rows={rows} />
           )}

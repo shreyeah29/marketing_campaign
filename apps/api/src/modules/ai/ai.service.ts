@@ -144,6 +144,24 @@ export class AiService {
   }
 
   /**
+   * The platform-managed Runway key for video (and, when configured, image)
+   * generation. Read ONLY from the environment — never the database, never the
+   * user — so Runway is an operator-level capability that never surfaces in any
+   * tenant configuration UI. Returns null when the operator has not set it, which
+   * the caller renders as a generic "AI unavailable" (video) or a fall-back to the
+   * OpenAI image model (image).
+   */
+  platformRunwayKey(): { apiKey: string; imageModel?: string; videoModel?: string } | null {
+    const env = loadEnv()
+    if (!env.RUNWAY_API_KEY) return null
+    return {
+      apiKey: env.RUNWAY_API_KEY,
+      ...(env.RUNWAY_IMAGE_MODEL ? { imageModel: env.RUNWAY_IMAGE_MODEL } : {}),
+      ...(env.RUNWAY_VIDEO_MODEL ? { videoModel: env.RUNWAY_VIDEO_MODEL } : {}),
+    }
+  }
+
+  /**
    * Writes an `ai_usage` row. Best-effort by contract: a ledger failure must never
    * turn a successful completion into an error for the user, and a provider without
    * an `AiProvider` enum member is simply skipped.

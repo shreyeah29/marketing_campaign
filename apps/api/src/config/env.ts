@@ -81,6 +81,17 @@ export const envSchema = z.object({
   OPENAI_MODEL: z.string().optional(),
 
   /**
+   * Runway media generation (video, and image when preferred). Operator-level and
+   * env-only, exactly like OPENAI_API_KEY: it is never a per-tenant setting and
+   * never surfaces in any configuration UI. When unset, video is unavailable and
+   * image falls back to the OpenAI model. The model overrides are optional escape
+   * hatches if Runway renames a model — the adapter has sensible defaults.
+   */
+  RUNWAY_API_KEY: z.string().optional(),
+  RUNWAY_VIDEO_MODEL: z.string().optional(),
+  RUNWAY_IMAGE_MODEL: z.string().optional(),
+
+  /**
    * Served in non-production by default; explicit opt-in required in production.
    *
    * Kept as the raw string rather than transformed to a boolean here. A

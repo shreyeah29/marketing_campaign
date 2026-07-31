@@ -14,6 +14,7 @@ import { LOGGER } from '../../infrastructure/database.module.js'
 
 import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
 import { generateImage, synthesizeSpeech } from './adapters/openai-media.js'
+import { generateRunwayImage, generateRunwayVideo } from './adapters/runway.js'
 import { AiService } from './ai.service.js'
 import { KnowledgeService } from './knowledge.service.js'
 
@@ -162,6 +163,28 @@ export class AiController {
   @ApiOperation({ summary: 'Generate an image from a text prompt' })
   async image(@Body() body: unknown): Promise<{ image?: string; url?: string }> {
     const input = zodBody(imageSchema, body)
+
+    // Prefer Runway when the operator has configured it (env-only, never a tenant
+    // setting); otherwise fall back to the platform OpenAI image model. Either way
+    // the user just gets an image — they never learn which provider served it.
+    const runway = this.ai.platformRunwayKey()
+    if (runway) {
+      try {
+        const result = await generateRunwayImage({
+          apiKey: runway.apiKey,
+          prompt: input.prompt,
+          ...(runway.imageModel ? { model: runway.imageModel } : {}),
+        })
+        return { url: result.url }
+      } catch (err) {
+        this.logger.error(
+          { err, operation: 'image', provider: 'runway' },
+          'AI image generation failed',
+        )
+        throw aiUnavailable()
+      }
+    }
+
     const key = this.ai.platformImageKey()
     if (!key) throw aiUnavailable()
 
@@ -185,10 +208,30 @@ export class AiController {
   @Post('video')
   @RequiresFeature('ai.video')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
-  @ApiOperation({ summary: 'Generate a video (requires a video provider)' })
-  async video(@Body() body: unknown): Promise<never> {
-    zodBody(mediaSchema, body)
-    throw aiUnavailable()
+  @ApiOperation({ summary: 'Generate a video from a text prompt (Runway)' })
+  async video(@Body() body: unknown): Promise<{ url: string }> {
+    const input = zodBody(mediaSchema, body)
+
+    // Video is operator-level Runway only, resolved from the environment. No key,
+    // no video — surfaced as the same generic 503 as any other AI outage.
+    const runway = this.ai.platformRunwayKey()
+    if (!runway) throw aiUnavailable()
+
+    try {
+      const result = await generateRunwayVideo({
+        apiKey: runway.apiKey,
+        prompt: input.prompt,
+        ...(runway.videoModel ? { model: runway.videoModel } : {}),
+        ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
+      })
+      return { url: result.url }
+    } catch (err) {
+      this.logger.error(
+        { err, operation: 'video', provider: 'runway' },
+        'AI video generation failed',
+      )
+      throw aiUnavailable()
+    }
   }
 
   @Post('voice')

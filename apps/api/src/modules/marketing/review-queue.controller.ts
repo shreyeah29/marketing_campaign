@@ -71,6 +71,14 @@ export class ReviewQueueController {
   ) {}
 
   // ── Generation ─────────────────────────────────────────────────────────────
+  @Post('plan')
+  @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Produce a structured campaign plan (no assets) for review' })
+  async plan(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+    const { brief } = zodBody(generateSchema, body)
+    return this.generation.plan(p, brief)
+  }
+
   @Post('generate')
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })

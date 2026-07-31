@@ -15,6 +15,24 @@ import { CurrentEntitlements } from '../../common/decorators/current-entitlement
 import { DATABASE } from '../../infrastructure/database.module.js'
 
 /**
+ * Sidebar section order. Marketing-led: the creative/AI surfaces lead, analytics
+ * follows, and CRM sits beneath analytics. Sections not listed fall to the end.
+ */
+const SECTION_ORDER: Record<string, number> = {
+  Overview: 0,
+  Marketing: 1,
+  AI: 2,
+  Automation: 3,
+  Analytics: 4,
+  CRM: 5,
+  Communication: 6,
+  Commerce: 7,
+  Support: 8,
+  Documents: 9,
+  Settings: 20,
+}
+
+/**
  * The workspace bootstrap endpoint.
  *
  * One call returns everything the frontend needs to render itself for this
@@ -130,9 +148,13 @@ export class WorkspaceController {
         section,
         items: items.sort((a, b) => a.order - b.order),
       }))
-      // Section order follows the lowest item order within it, so "Overview"
-      // (dashboard, order 1) leads and settings-ish sections fall to the end.
-      .sort((a, b) => (a.items[0]?.order ?? 0) - (b.items[0]?.order ?? 0))
+      // Explicit section order (marketing-led workspace): Overview, then the
+      // creative/marketing surfaces, then analytics, with CRM below it. Unknown
+      // sections fall to the end, tie-broken by their lowest item order.
+      .sort((a, b) => {
+        const rank = (s: string): number => SECTION_ORDER[s] ?? 90
+        return rank(a.section) - rank(b.section) || (a.items[0]?.order ?? 0) - (b.items[0]?.order ?? 0)
+      })
   }
 
   /**

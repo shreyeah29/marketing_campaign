@@ -51,6 +51,45 @@ export class CampaignGenerationService {
     @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
+  /**
+   * Step 1 of the AI campaign flow: produce a structured *plan* (name, objective,
+   * audience, platforms, duration, deliverables) WITHOUT generating or persisting
+   * any assets. The workspace shows this for the user to confirm before spending a
+   * full generation. Reuses the platform LLM; nothing is written to the database.
+   */
+  async plan(principal: Principal, brief: string): Promise<CampaignPlan> {
+    const resolved = await this.ai.resolve('LLM')
+    const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
+    if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
+    const model = resolved.model ?? adapter.defaultModel
+    const startedAt = Date.now()
+    try {
+      const result = await adapter.chat({
+        apiKey: resolved.apiKey,
+        model,
+        maxTokens: 2000,
+        messages: [
+          { role: 'system', content: PLAN_PROMPT },
+          { role: 'user', content: `Brief: ${brief}\n\nReturn ONLY the JSON object described.` },
+        ],
+      })
+      await this.ai.recordUsage(principal, {
+        capability: 'LLM',
+        providerId: resolved.providerId,
+        model: result.model,
+        operation: 'campaign.plan',
+        inputTokens: result.usage.inputTokens,
+        outputTokens: result.usage.outputTokens,
+        latencyMs: Date.now() - startedAt,
+        succeeded: true,
+      })
+      return parseCampaignPlan(result.content)
+    } catch (err) {
+      this.logger.error({ err, model, operation: 'campaign.plan' }, 'AI campaign planning failed')
+      throw new ServiceUnavailableException(AI_UNAVAILABLE)
+    }
+  }
+
   async generate(
     principal: Principal,
     brief: string,
@@ -220,6 +259,52 @@ export class CampaignGenerationService {
 
 /** The single generic message shown when AI can't run — never leaks provider details. */
 const AI_UNAVAILABLE = 'AI is temporarily unavailable. Please try again in a moment.'
+
+/** The structured plan returned by {@link CampaignGenerationService.plan}. */
+export interface CampaignPlan {
+  campaignName: string
+  objective: string
+  audience: string
+  strategy: string
+  platforms: string[]
+  durationDays: number
+  suggestedBudget: number
+  deliverables: string[]
+  estimatedAssets: number
+}
+
+const PLAN_PROMPT = `You are an expert marketing strategist acting as a Marketing Director. Given a brief (and any requested output channels), design a campaign PLAN — NOT the content itself. Return a SINGLE JSON object (no markdown, no prose) with EXACTLY this shape:
+{
+  "campaignName": string,          // punchy, specific
+  "objective": string,             // one clear sentence
+  "audience": string,              // who this targets
+  "strategy": string,              // 2-3 sentence approach
+  "platforms": string[],           // channels, e.g. ["Instagram","Facebook","Google Ads","Email"]
+  "durationDays": number,          // recommended run length
+  "suggestedBudget": number,       // USD, realistic
+  "deliverables": string[],        // e.g. ["6 Instagram posts","3 Meta ad variants","2 email sends","1 landing page"]
+  "estimatedAssets": number        // total assets that would be generated
+}
+Be concrete and realistic for the brief. Return valid JSON only.`
+
+function parseCampaignPlan(raw: string): CampaignPlan {
+  const text = raw.trim().replace(/^\`\`\`(?:json)?/i, '').replace(/\`\`\`$/, '').trim()
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  const json = start >= 0 && end > start ? text.slice(start, end + 1) : text
+  const p = JSON.parse(json) as Partial<CampaignPlan>
+  return {
+    campaignName: String(p.campaignName ?? 'AI Campaign'),
+    objective: String(p.objective ?? ''),
+    audience: String(p.audience ?? ''),
+    strategy: String(p.strategy ?? ''),
+    platforms: Array.isArray(p.platforms) ? p.platforms.map(String) : [],
+    durationDays: Number.isFinite(p.durationDays) ? Number(p.durationDays) : 14,
+    suggestedBudget: Number.isFinite(p.suggestedBudget) ? Number(p.suggestedBudget) : 0,
+    deliverables: Array.isArray(p.deliverables) ? p.deliverables.map(String) : [],
+    estimatedAssets: Number.isFinite(p.estimatedAssets) ? Number(p.estimatedAssets) : 0,
+  }
+}
 
 const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Given a brief, design a complete multi-channel campaign and return a SINGLE JSON object (no markdown, no prose) with EXACTLY this shape:
 {

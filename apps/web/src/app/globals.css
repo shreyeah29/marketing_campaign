@@ -73,6 +73,10 @@ a {
 
 button {
   font-family: inherit;
+  /* Inherit the page text colour — without this, a <button> (e.g. the card-style
+     asset/list buttons) uses the UA default dark button text, which is invisible
+     on the dark surfaces. `.btn`/`.nav-item` set their own colour and are unaffected. */
+  color: inherit;
   cursor: pointer;
 }
 

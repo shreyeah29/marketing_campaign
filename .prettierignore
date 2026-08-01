@@ -1,0 +1,9 @@
+# Generated, vendored, or build output — never prettier-managed. Formatting these
+# fights the tools that produce them (pnpm, prisma generate, next build, tsc) and
+# would make format:check flip red on every install/generate/build.
+pnpm-lock.yaml
+**/dist/
+**/.next/
+**/generated/
+**/coverage/
+**/*.min.js

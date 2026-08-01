@@ -20,6 +20,7 @@ interface Asset {
   hashtags?: string[]
   cta?: string | null
   scheduledFor?: string | null
+  mediaUrl?: string | null
 }
 interface Campaign {
   id: string
@@ -808,8 +809,33 @@ function AssetEditor({
     }
   }
 
+  const isConcept = asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT'
   const canApprove = ['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'].includes(status)
-  const canSchedule = status === 'APPROVED' || status === 'SCHEDULED'
+  const canPublish = status === 'APPROVED'
+  const [publishOpen, setPublishOpen] = useState(false)
+
+  /**
+   * Gate 1 for concepts: approving an image/video *concept* immediately turns it
+   * into a real creative (Runway), which comes back as NEEDS_REVIEW — Gate 2.
+   * For everything else, approve is the final approval.
+   */
+  async function approve() {
+    if (isConcept && !asset.mediaUrl) {
+      setBusy('Generate')
+      try {
+        await api.post(`/campaign-assets/${asset.id}/approve`, {})
+        await api.post(`/campaign-assets/${asset.id}/generate-media`, {})
+        toast.push('success', 'Creative generated — give it a final look')
+        onChanged()
+      } catch (e) {
+        toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')
+      } finally {
+        setBusy(null)
+      }
+      return
+    }
+    await act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`, {}))
+  }
 
   return (
     <div style={{ animation: 'rise 0.2s ease both' }}>
@@ -864,21 +890,57 @@ function AssetEditor({
           </div>
         ) : null}
 
-        {/* Media preview placeholder */}
-        <div
-          style={{
-            border: '1px dashed var(--border-strong)',
-            borderRadius: 'var(--radius)',
-            padding: '28px 16px',
-            textAlign: 'center',
-            color: 'var(--text-dim)',
-            marginBottom: 16,
-            background: 'var(--bg-subtle)',
-          }}
-        >
-          <Icon name="image" size={22} />
-          <div style={{ fontSize: 12, marginTop: 6 }}>Image preview</div>
-        </div>
+        {/* The creative itself — once generated it sits beside its copy. */}
+        {asset.mediaUrl ? (
+          <div style={{ marginBottom: 16 }}>
+            {asset.kind === 'VIDEO_PROMPT' ? (
+              <video
+                src={asset.mediaUrl}
+                controls
+                style={{
+                  width: '100%',
+                  maxHeight: 420,
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                  background: '#000',
+                }}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={asset.mediaUrl}
+                alt={asset.title ?? 'Generated creative'}
+                style={{
+                  width: '100%',
+                  maxHeight: 420,
+                  objectFit: 'contain',
+                  borderRadius: 'var(--radius)',
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-subtle)',
+                }}
+              />
+            )}
+          </div>
+        ) : isConcept ? (
+          <div
+            style={{
+              border: '1px dashed var(--border-strong)',
+              borderRadius: 'var(--radius)',
+              padding: '28px 16px',
+              textAlign: 'center',
+              color: 'var(--text-dim)',
+              marginBottom: 16,
+              background: 'var(--bg-subtle)',
+            }}
+          >
+            <Icon name={asset.kind === 'VIDEO_PROMPT' ? 'video' : 'image'} size={22} />
+            <div style={{ fontSize: 12, marginTop: 6 }}>
+              {busy === 'Generate'
+                ? 'Generating your creative — this takes a few seconds…'
+                : 'Approve this concept and the creative is generated for you in seconds.'}
+            </div>
+          </div>
+        ) : null}
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
           <button
@@ -910,28 +972,26 @@ function AssetEditor({
             )}
           </button>
           {canApprove ? (
+            <button className="btn primary" disabled={busy !== null} onClick={() => void approve()}>
+              {busy === 'Generate' ? (
+                <>
+                  <Spinner /> Generating…
+                </>
+              ) : (
+                <>
+                  <Icon name={isConcept && !asset.mediaUrl ? 'sparkles' : 'check'} size={14} />
+                  {isConcept && !asset.mediaUrl ? 'Approve & generate' : 'Approve'}
+                </>
+              )}
+            </button>
+          ) : null}
+          {canPublish ? (
             <button
               className="btn primary"
               disabled={busy !== null}
-              onClick={() =>
-                void act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`, {}))
-              }
+              onClick={() => setPublishOpen(true)}
             >
-              <Icon name="check" size={14} /> Approve
-            </button>
-          ) : null}
-          {canSchedule ? (
-            <button
-              className="btn"
-              disabled={busy !== null}
-              onClick={() => {
-                const when = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
-                void act('Schedule', () =>
-                  api.post(`/campaign-assets/${asset.id}/schedule`, { scheduledFor: when }),
-                )
-              }}
-            >
-              <Icon name="calendar" size={14} /> Schedule
+              <Icon name="send" size={14} /> Publish
             </button>
           ) : null}
           <button
@@ -968,6 +1028,148 @@ function AssetEditor({
         onConfirm={() => void act('Delete', () => api.del(`/campaign-assets/${asset.id}`))}
         onCancel={() => setConfirmDel(false)}
       />
+
+      {publishOpen ? (
+        <PublishDialog
+          assetId={asset.id}
+          onClose={() => setPublishOpen(false)}
+          onPublished={() => {
+            setPublishOpen(false)
+            toast.push('success', 'Queued for publishing')
+            onChanged()
+          }}
+        />
+      ) : null}
     </div>
+  )
+}
+
+// ── Publish dialog — where an approved creative meets the world ───────────────
+function PublishDialog({
+  assetId,
+  onClose,
+  onPublished,
+}: {
+  assetId: string
+  onClose: () => void
+  onPublished: () => void
+}) {
+  const toast = useToast()
+  const [accounts, setAccounts] = useState<
+    { id: string; platform: string; handle: string | null; displayName: string | null }[] | null
+  >(null)
+  const [chosen, setChosen] = useState<Set<string>>(new Set())
+  const [when, setWhen] = useState('') // empty = post now
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    api
+      .get<
+        {
+          id: string
+          platform: string
+          handle: string | null
+          displayName: string | null
+          status: string
+        }[]
+      >('/social/accounts')
+      .then((rows) => setAccounts(rows.filter((a) => a.status === 'CONNECTED')))
+      .catch(() => setAccounts([]))
+  }, [])
+
+  function toggle(id: string) {
+    setChosen((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function publish() {
+    if (chosen.size === 0) return
+    setBusy(true)
+    try {
+      await api.post(`/campaign-assets/${assetId}/publish`, {
+        accountIds: [...chosen],
+        ...(when ? { scheduledAt: new Date(when).toISOString() } : {}),
+      })
+      onPublished()
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'Publish failed')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="overlay" onClick={onClose} />
+      <div className="modal" role="dialog" aria-label="Publish">
+        <div className="head">
+          <h3>Publish this creative</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div className="body">
+          {accounts === null ? (
+            <Spinner />
+          ) : accounts.length === 0 ? (
+            <p className="muted" style={{ fontSize: 13 }}>
+              No connected accounts yet. Connect Instagram, Facebook or another channel under
+              Marketing → Social first.
+            </p>
+          ) : (
+            <>
+              <div className="field">
+                <label>Where should it go?</label>
+                <div className="stack" style={{ gap: 6 }}>
+                  {accounts.map((a) => (
+                    <label
+                      key={a.id}
+                      className="row"
+                      style={{ gap: 10, cursor: 'pointer', padding: '6px 4px' }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={chosen.has(a.id)}
+                        onChange={() => toggle(a.id)}
+                        style={{ margin: 0 }}
+                      />
+                      <PlatformIcon platform={a.platform} size={16} />
+                      <span style={{ fontSize: 13 }}>
+                        {a.displayName ?? a.handle ?? a.platform}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="field">
+                <label>When?</label>
+                <input
+                  className="input"
+                  type="datetime-local"
+                  value={when}
+                  onChange={(e) => setWhen(e.target.value)}
+                />
+                <span className="hint">Leave empty to post now.</span>
+              </div>
+            </>
+          )}
+        </div>
+        <div className="foot">
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn primary"
+            disabled={busy || chosen.size === 0}
+            onClick={() => void publish()}
+          >
+            {busy ? <Spinner /> : when ? 'Schedule' : 'Post now'}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }

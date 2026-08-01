@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  ServiceUnavailableException,
 } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
@@ -23,6 +24,8 @@ import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
+import { generateRunwayImage, generateRunwayVideo } from '../ai/adapters/runway.js'
+import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
 
@@ -37,6 +40,12 @@ const editSchema = z
   })
   .strict()
 const scheduleSchema = z.object({ scheduledFor: z.string().datetime() }).strict()
+const publishSchema = z
+  .object({
+    accountIds: z.array(z.string().min(1)).min(1),
+    scheduledAt: z.string().datetime().optional(),
+  })
+  .strict()
 const rejectSchema = z.object({ reason: z.string().max(1000).optional() }).strict()
 const bulkSchema = z
   .object({ action: z.enum(['approve', 'reject']), ids: z.array(z.string()).min(1).max(200) })
@@ -89,6 +98,7 @@ export class ReviewQueueController {
     @Inject(DATABASE) private readonly db: DatabaseClient,
     @Inject(CampaignGenerationService) private readonly generation: CampaignGenerationService,
     @Inject(WorkflowEngineService) private readonly workflows: WorkflowEngineService,
+    @Inject(AiService) private readonly ai: AiService,
   ) {}
 
   // ── Generation ─────────────────────────────────────────────────────────────
@@ -246,6 +256,154 @@ export class ReviewQueueController {
     // Fire the event so any ACTIVE workflow triggered by "asset.approved" runs.
     await this.workflows.fireEvent(p, 'asset.approved', { assetId: id }).catch(() => undefined)
     return updated
+  }
+
+  /**
+   * Gate 1 → Gate 2. An approved poster/video *concept* (IMAGE_PROMPT /
+   * VIDEO_PROMPT) becomes a real creative: the prompt goes to Runway, the
+   * resulting media lands on the asset, and the asset returns to NEEDS_REVIEW
+   * for the final human check before publishing.
+   */
+  @Post(':id/generate-media')
+  @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
+  async generateMedia(@Param('id') id: string, @CurrentPrincipal() p: Principal): Promise<unknown> {
+    const asset = await withTenantTransaction(this.db, (tx) =>
+      tx.campaignAsset.findFirst({ where: { id, deletedAt: null } }),
+    )
+    if (!asset) throw new NotFoundException('Asset not found')
+    if (asset.kind !== 'IMAGE_PROMPT' && asset.kind !== 'VIDEO_PROMPT') {
+      throw new BadRequestException('Only image/video concepts can generate media')
+    }
+    if (asset.status !== 'APPROVED') {
+      throw new BadRequestException('Approve the concept first — then media is generated')
+    }
+
+    const runway = this.ai.platformRunwayKey()
+    if (!runway) {
+      throw new ServiceUnavailableException('Media generation is temporarily unavailable')
+    }
+
+    // The slow Runway round-trip happens OUTSIDE any transaction; holding a
+    // connection open for up to minutes would starve the pool.
+    const prompt = [asset.title, asset.body].filter(Boolean).join(' — ')
+    let url: string
+    if (asset.kind === 'IMAGE_PROMPT') {
+      const result = await generateRunwayImage({
+        apiKey: runway.apiKey,
+        prompt,
+        ...(runway.imageModel ? { model: runway.imageModel } : {}),
+      })
+      url = result.url
+    } else {
+      const result = await generateRunwayVideo({
+        apiKey: runway.apiKey,
+        prompt,
+        ...(runway.videoModel ? { model: runway.videoModel } : {}),
+        ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
+      })
+      url = result.url
+    }
+
+    return withTenantTransaction(this.db, async (tx) => {
+      // Every generated creative also lands in the media library, so the
+      // Creative Library can browse everything ever made — approved or not.
+      await tx.mediaAsset.create({
+        data: {
+          organizationId: p.organizationId,
+          type: asset.kind === 'IMAGE_PROMPT' ? 'IMAGE' : 'VIDEO',
+          storageKey: `runway/${id}/${Date.now()}`,
+          url,
+          prompt,
+          generatorProvider: 'RUNWAY',
+          ...(runway.imageModel || runway.videoModel
+            ? {
+                generatorModel:
+                  asset.kind === 'IMAGE_PROMPT' ? runway.imageModel : runway.videoModel,
+              }
+            : {}),
+        },
+      })
+      const updated = await tx.campaignAsset.update({
+        where: { id },
+        data: { mediaUrl: url, status: 'NEEDS_REVIEW' },
+      })
+      await this.comment(tx, p, id, 'Creative generated — awaiting final review', 'generated')
+      return updated
+    })
+  }
+
+  /**
+   * Gate 2 → the world. A finally-approved asset becomes a scheduled social
+   * post on the chosen connected accounts ("post now" when no time is given).
+   * The social worker publishes it on its next tick.
+   */
+  @Post(':id/publish')
+  @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
+  async publish(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
+    const input = zodBody(publishSchema, body)
+    const scheduledAt = input.scheduledAt ? new Date(input.scheduledAt) : new Date()
+
+    return withTenantTransaction(this.db, async (tx) => {
+      const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
+      if (!asset) throw new NotFoundException('Asset not found')
+      if (asset.status !== 'APPROVED') {
+        throw new BadRequestException('Only finally-approved assets can be published')
+      }
+
+      const accounts = await tx.socialAccount.findMany({
+        where: { id: { in: input.accountIds }, deletedAt: null },
+        select: { id: true },
+      })
+      if (accounts.length !== input.accountIds.length) {
+        throw new BadRequestException('One or more accountIds are unknown or disconnected')
+      }
+
+      // The media library row for this creative rides along on the post.
+      const media = asset.mediaUrl
+        ? await tx.mediaAsset.findFirst({
+            where: { url: asset.mediaUrl, deletedAt: null },
+            select: { id: true },
+          })
+        : null
+
+      const post = await tx.socialPost.create({
+        data: {
+          organizationId: p.organizationId,
+          campaignId: asset.campaignId,
+          status: 'SCHEDULED',
+          body: [asset.caption ?? asset.body, asset.cta].filter(Boolean).join('\n\n'),
+          hashtags: asset.hashtags,
+          mediaIds: media ? [media.id] : [],
+          scheduledAt,
+        },
+      })
+      await tx.socialPostTarget.createMany({
+        data: accounts.map((a) => ({
+          postId: post.id,
+          socialAccountId: a.id,
+          status: 'SCHEDULED' as const,
+        })),
+      })
+
+      const updated = await tx.campaignAsset.update({
+        where: { id },
+        data: { status: 'SCHEDULED', scheduledFor: scheduledAt, externalPostId: post.id },
+      })
+      await this.comment(
+        tx,
+        p,
+        id,
+        input.scheduledAt
+          ? `Publishing scheduled for ${scheduledAt.toLocaleString()}`
+          : 'Queued to publish now',
+        'scheduled',
+      )
+      return { asset: updated, postId: post.id }
+    })
   }
 
   @Post(':id/reject')

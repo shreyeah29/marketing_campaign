@@ -6,6 +6,7 @@ import { ApiError, api } from '@/lib/api'
 import { ConfirmDialog, EmptyState, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon, type IconName } from '@/components/icon'
+import { PlatformIcon } from '@/components/platform-icon'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Asset {
@@ -97,16 +98,6 @@ const SECTIONS: {
   { id: 'analytics', label: 'Analytics', icon: 'bar-chart' },
 ]
 
-const PLATFORM_ICON: Record<string, string> = {
-  INSTAGRAM: '📸',
-  FACEBOOK: '👍',
-  LINKEDIN: '💼',
-  X: '𝕏',
-  GOOGLE: '🔍',
-  YOUTUBE: '▶️',
-  TIKTOK: '🎵',
-  GENERIC: '✳️',
-}
 function statusTint(s: string): string {
   if (s === 'APPROVED' || s === 'PUBLISHED') return 'ok'
   if (s === 'REJECTED' || s === 'FAILED') return 'danger'
@@ -616,7 +607,7 @@ function SectionHeader({ def, count }: { def: (typeof SECTIONS)[number]; count: 
 function AssetRow({ asset, onOpen }: { asset: Asset; onOpen: () => void }) {
   return (
     <button className="asset-row" onClick={onOpen}>
-      <div style={{ fontSize: 20, lineHeight: 1 }}>{PLATFORM_ICON[asset.platform] ?? '✳️'}</div>
+      <PlatformIcon platform={asset.platform} size={20} style={{ color: 'var(--color-primary)' }} />
       <div className="body">
         <div className="row" style={{ gap: 8, marginBottom: 5 }}>
           <span className="dim" style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.03em' }}>
@@ -737,8 +728,8 @@ function AnalyticsSection({ assets }: { assets: Asset[] | null }) {
           const n = assets.filter((a) => a.platform === p).length
           return (
             <div key={p} className="row" style={{ gap: 12 }}>
-              <span style={{ width: 90, fontSize: 13 }}>
-                {PLATFORM_ICON[p] ?? '✳️'} {p}
+              <span className="row" style={{ width: 90, fontSize: 13, gap: 6 }}>
+                <PlatformIcon platform={p} size={14} /> {p}
               </span>
               <div
                 style={{ flex: 1, height: 10, background: 'var(--bg-subtle)', borderRadius: 999 }}
@@ -829,7 +820,11 @@ function AssetEditor({
       <div className="card">
         <div className="spread" style={{ marginBottom: 16, alignItems: 'center' }}>
           <div className="row" style={{ gap: 10 }}>
-            <div style={{ fontSize: 22 }}>{PLATFORM_ICON[asset.platform] ?? '✳️'}</div>
+            <PlatformIcon
+              platform={asset.platform}
+              size={22}
+              style={{ color: 'var(--color-primary)' }}
+            />
             <div>
               <div style={{ fontWeight: 650, fontSize: 15 }}>
                 {asset.platform} · {asset.kind}

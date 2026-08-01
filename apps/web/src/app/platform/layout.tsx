@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState, type ReactNode } from 'react'
 
 import { getPlatformToken } from '@/lib/api'
+import { Icon } from '@/components/icon'
 import { platform } from '@/lib/platform'
 
 /**
@@ -65,7 +66,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
           aria-label="Open navigation menu"
           aria-expanded={navOpen}
         >
-          ☰
+          <Icon name="menu" size={22} />
         </button>
         <div className="brand" style={{ padding: 0 }}>
           <span className="dot" />
@@ -84,7 +85,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             onClick={() => setNavOpen(false)}
             aria-label="Close navigation menu"
           >
-            ✕
+            <Icon name="x" size={16} />
           </button>
         </div>
         <div className="nav-section">

@@ -186,7 +186,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               aria-label="Open navigation menu"
               aria-expanded={navOpen}
             >
-              ☰
+              <Icon name="menu" size={22} />
             </button>
             <div className="brand" style={{ padding: 0 }}>
               <span className="dot" />

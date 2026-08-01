@@ -14,6 +14,7 @@ import {
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { PlatformIcon } from '@/components/platform-icon'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,17 +52,6 @@ interface SocialPost {
 
 // ChannelType values that are offered as social destinations.
 const PLATFORMS = ['FACEBOOK', 'INSTAGRAM', 'LINKEDIN', 'X', 'TIKTOK', 'YOUTUBE'] as const
-
-const PLATFORM_ICON: Record<string, string> = {
-  FACEBOOK: '👍',
-  INSTAGRAM: '📸',
-  LINKEDIN: '💼',
-  X: '𝕏',
-  TWITTER: '𝕏',
-  YOUTUBE: '▶️',
-  TIKTOK: '🎵',
-}
-const icon = (p: string) => PLATFORM_ICON[p] ?? '🌐'
 
 function statusTint(status: string): string {
   switch (status) {
@@ -169,7 +159,11 @@ export default function SocialPage() {
             <div key={a.id} className="card">
               <div className="spread">
                 <div className="row" style={{ gap: 10 }}>
-                  <span style={{ fontSize: 22 }}>{icon(a.platform)}</span>
+                  <PlatformIcon
+                    platform={a.platform}
+                    size={22}
+                    style={{ color: 'var(--color-primary)' }}
+                  />
                   <div>
                     <div style={{ fontWeight: 600 }}>{a.displayName ?? a.handle ?? a.platform}</div>
                     <div className="dim" style={{ fontSize: 12 }}>
@@ -297,7 +291,7 @@ function ConnectDrawer({ onClose, onConnected }: { onClose: () => void; onConnec
         <select className="select" value={platform} onChange={(e) => setPlatform(e.target.value)}>
           {PLATFORMS.map((p) => (
             <option key={p} value={p}>
-              {icon(p)} {p}
+              {p}
             </option>
           ))}
         </select>
@@ -424,7 +418,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
                   onChange={() => toggle(a.id)}
                   style={{ margin: 0 }}
                 />
-                {icon(a.platform)} {a.handle ?? a.platform}
+                <PlatformIcon platform={a.platform} size={15} /> {a.handle ?? a.platform}
               </label>
             )
           })}
@@ -531,7 +525,8 @@ function PostCard({
         {post.targets.map((t) => (
           <div key={t.id} className="spread" style={{ fontSize: 12 }}>
             <span className="row" style={{ gap: 6 }}>
-              {icon(t.platform)} {t.handle ? `@${t.handle.replace(/^@/, '')}` : t.platform}
+              <PlatformIcon platform={t.platform} size={14} />{' '}
+              {t.handle ? `@${t.handle.replace(/^@/, '')}` : t.platform}
               <Badge status={statusTint(t.status)}>{t.status}</Badge>
             </span>
             <span className="row" style={{ gap: 8 }}>

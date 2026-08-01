@@ -11,6 +11,7 @@ import {
 } from 'react'
 
 import { Icon, isIconName } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 
 /* ────────────────────────────────────────────────────────────────────────────
  * The shared UI kit. Every feature page is built from these primitives, so the
@@ -29,13 +30,13 @@ export function PageHeader({
   actions?: ReactNode | undefined
 }) {
   return (
-    <div className="topbar">
+    <FadeIn className="topbar">
       <div>
         <h1 className="page-title">{title}</h1>
         {subtitle ? <p className="page-sub">{subtitle}</p> : null}
       </div>
       {actions ? <div className="row">{actions}</div> : null}
-    </div>
+    </FadeIn>
   )
 }
 
@@ -52,12 +53,12 @@ export function EmptyState({
   action?: ReactNode | undefined
 }) {
   return (
-    <div className="state">
+    <FadeIn className="state">
       <div className="state-badge">{isIconName(icon) ? <Icon name={icon} size={22} /> : icon}</div>
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
       {action ? <div className="mt">{action}</div> : null}
-    </div>
+    </FadeIn>
   )
 }
 

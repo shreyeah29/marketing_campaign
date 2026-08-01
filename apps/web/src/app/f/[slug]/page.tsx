@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
+import { Icon } from '@/components/icon'
 
 type FieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select'
 
@@ -133,7 +134,9 @@ export default function PublicFormPage() {
     return (
       <div style={shell}>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ marginBottom: 12 }}>
+            <Icon name="alert-triangle" size={32} />
+          </div>
           <h1 style={{ fontSize: 18, margin: 0 }}>Couldn&apos;t load this form</h1>
           <p style={{ opacity: 0.7, fontSize: 14, margin: '8px 0 16px' }}>
             Please check your connection and try again.
@@ -161,7 +164,9 @@ export default function PublicFormPage() {
     return (
       <div style={shell}>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <div style={{ marginBottom: 12 }}>
+            <Icon name="search" size={32} />
+          </div>
           <h1 style={{ fontSize: 18, margin: 0 }}>This form is not available</h1>
           <p style={{ opacity: 0.6, marginTop: 8, fontSize: 14 }}>
             The link may be incorrect, or the form is no longer published.
@@ -175,7 +180,9 @@ export default function PublicFormPage() {
     return (
       <div style={shell}>
         <div style={{ ...cardStyle, textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+          <div style={{ marginBottom: 12 }}>
+            <Icon name="check" size={40} />
+          </div>
           <h1 style={{ fontSize: 20, margin: 0 }}>{done}</h1>
         </div>
       </div>

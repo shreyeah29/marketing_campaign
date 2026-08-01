@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
+import { Icon } from '@/components/icon'
 import { PageBlocks, type Block } from '@/components/page-blocks'
 
 interface PublicPage {
@@ -78,7 +79,9 @@ export default function PublicLandingPage() {
           background: '#fff',
         }}
       >
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+        <div style={{ marginBottom: 12 }}>
+          <Icon name="search" size={40} />
+        </div>
         <h1 style={{ fontSize: 24, margin: 0 }}>This page is not available</h1>
         <p style={{ color: '#666', marginTop: 8 }}>
           The page you are looking for may have been unpublished or removed.
@@ -103,7 +106,9 @@ export default function PublicLandingPage() {
           background: '#fff',
         }}
       >
-        <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
+        <div style={{ marginBottom: 12 }}>
+          <Icon name="alert-triangle" size={40} />
+        </div>
         <h1 style={{ fontSize: 24, margin: 0 }}>Couldn&apos;t load this page</h1>
         <p style={{ color: '#666', margin: '8px 0 16px' }}>
           Please check your connection and try again.

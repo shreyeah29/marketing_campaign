@@ -18,6 +18,7 @@ import {
 } from '@/components/kit'
 import { Field } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 
 /** A form field descriptor — the create/edit drawer is generated from these. */
 export interface FormField {
@@ -213,7 +214,7 @@ export function ResourcePage<T extends { id: string }>({
           }
         />
       ) : (
-        <>
+        <FadeIn delay={0.06}>
           <DataTable
             columns={columns}
             rows={list.rows}
@@ -242,7 +243,7 @@ export function ResourcePage<T extends { id: string }>({
               </button>
             </div>
           ) : null}
-        </>
+        </FadeIn>
       )}
 
       {/* Create / edit drawer */}

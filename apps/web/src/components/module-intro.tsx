@@ -2,6 +2,7 @@
 
 import { Icon, isIconName } from '@/components/icon'
 import { PageHeader } from '@/components/kit'
+import { Stagger, StaggerItem } from '@/components/motion'
 
 /**
  * A complete page for a module whose full function depends on a platform-managed
@@ -40,16 +41,16 @@ export function ModuleIntro({
           <strong>Coming soon.</strong> {requires}
         </span>
       </div>
-      <div className="cols-3 grid">
+      <Stagger className="cols-3 grid">
         {capabilities.map((c) => (
-          <div key={c.title} className="card">
+          <StaggerItem key={c.title} className="card">
             <h3 style={{ fontSize: 15, marginBottom: 6 }}>{c.title}</h3>
             <p className="muted" style={{ fontSize: 13 }}>
               {c.body}
             </p>
-          </div>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
     </>
   )
 }

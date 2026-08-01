@@ -228,7 +228,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
                   {ws.user.name || ws.user.email}
                 </div>
                 <div className="dim" style={{ fontSize: 11 }}>
-                  {ws.user.role} · {ws.plan?.name ?? 'No plan'}
+                  {ws.user.role}
                 </div>
               </span>
             </div>

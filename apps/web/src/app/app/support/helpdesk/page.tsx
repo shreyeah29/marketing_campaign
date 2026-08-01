@@ -46,7 +46,7 @@ const ARTICLES: Article[] = [
     title: 'Understanding roles & permissions',
     category: 'Admin',
     body:
-      'Every teammate has a role: Viewer, Member, Manager, Admin or Owner. Roles are cumulative — each includes everything the one below it can do, plus more. Members can draft and create; Managers can publish, send and approve; Admins run the workspace; Owners also manage billing. Need a one-off exception? Grant a single extra permission instead of promoting someone to a higher role.',
+      'Every teammate has a role: Viewer, Member, Manager, Admin or Owner. Roles are cumulative — each includes everything the one below it can do, plus more. Members can draft and create; Managers can publish, send and approve; Admins run the workspace; Owners have full control. Need a one-off exception? Grant a single extra permission instead of promoting someone to a higher role.',
   },
   {
     id: 'support-tickets',

@@ -39,8 +39,8 @@ export default function FeaturesPage() {
   return (
     <>
       <PageHeader
-        title="Feature Management"
-        subtitle={`${ws.enabledFeatures.length} modules enabled on the ${ws.plan?.name ?? 'current'} plan`}
+        title="Modules"
+        subtitle={`${ws.enabledFeatures.length} modules enabled for your workspace`}
       />
       {ws.enabledFeatures.length === 0 ? (
         <EmptyState icon="layout" title="No modules enabled" hint="Ask your platform administrator to enable modules." />
@@ -61,8 +61,7 @@ export default function FeaturesPage() {
         </div>
       )}
       <p className="dim" style={{ fontSize: 12, marginTop: 16 }}>
-        Modules are provisioned per organization by the platform operator. To change your plan or enable more
-        modules, contact your administrator.
+        Modules are provisioned for your workspace by your account manager. To enable more modules, get in touch.
       </p>
     </>
   )

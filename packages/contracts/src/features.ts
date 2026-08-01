@@ -663,10 +663,11 @@ const commerce: readonly FeatureManifest[] = [
     dependencies: [],
     defaultEnabled: true,
     billingCategory: 'included',
-    navEntry: { label: 'Billing', path: '/settings/billing', icon: 'credit-card', order: 90, section: 'Settings' },
+    // No client-facing nav: this is a pure service platform with no in-product
+    // billing. Feature retained only as an inert entitlement record.
     requiredPermissions: ['billing:read'],
-    apiRoutes: ['/v1/billing'],
-    frontendRoutes: ['/settings/billing'],
+    apiRoutes: [],
+    frontendRoutes: [],
     backendModule: 'billing',
   }),
   f({
@@ -678,10 +679,10 @@ const commerce: readonly FeatureManifest[] = [
     dependencies: ['commerce.billing'],
     defaultEnabled: false,
     billingCategory: 'addon',
-    navEntry: { label: 'Invoices', path: '/commerce/invoices', icon: 'file-text', order: 10, section: 'Commerce' },
+    // Removed from the client interface — no money/payments surfaces in-product.
     requiredPermissions: ['billing:read'],
-    apiRoutes: ['/v1/invoices'],
-    frontendRoutes: ['/commerce/invoices'],
+    apiRoutes: [],
+    frontendRoutes: [],
     backendModule: 'billing',
   }),
   f({

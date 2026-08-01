@@ -202,6 +202,82 @@ export class AnalyticsController {
     return ORDER.map((stage) => ({ stage, count: counts.get(stage) ?? 0 }))
   }
 
+  @Get('leads')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Lead analytics — funnel, per-source performance, 30-day trend' })
+  async leadAnalytics(): Promise<unknown> {
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const [total, new30d, byStatus, bySourceStatus, recent] = await withTenantTransaction(
+      this.db,
+      (tx) =>
+        Promise.all([
+          tx.lead.count({ where: { deletedAt: null } }),
+          tx.lead.count({ where: { deletedAt: null, createdAt: { gte: since30d } } }),
+          tx.lead.groupBy({ by: ['status'], _count: { _all: true }, where: { deletedAt: null } }),
+          tx.lead.groupBy({
+            by: ['source', 'status'],
+            _count: { _all: true },
+            _sum: { value: true },
+            where: { deletedAt: null },
+          }),
+          tx.lead.findMany({
+            where: { deletedAt: null, createdAt: { gte: since30d } },
+            select: { createdAt: true, source: true },
+          }),
+        ]),
+    )
+
+    const FUNNEL = ['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED']
+    const statusCounts = new Map(byStatus.map((g) => [g.status as string, g._count._all]))
+    const converted = statusCounts.get('CONVERTED') ?? 0
+
+    // Per-source rollup: volume, completions, conversion rate and pipeline value —
+    // the "which source actually produces business" view.
+    const sources = new Map<string, { total: number; converted: number; valueUsd: number }>()
+    for (const g of bySourceStatus) {
+      const key = g.source ?? 'UNKNOWN'
+      const s = sources.get(key) ?? { total: 0, converted: 0, valueUsd: 0 }
+      s.total += g._count._all
+      if (g.status === 'CONVERTED') s.converted += g._count._all
+      s.valueUsd += Number(g._sum.value ?? 0)
+      sources.set(key, s)
+    }
+
+    // Daily volume for the trend line, bucketed in UTC.
+    const dayKey = (d: Date): string => d.toISOString().slice(0, 10)
+    const buckets = new Map<string, number>()
+    for (let i = 29; i >= 0; i -= 1) {
+      const d = new Date()
+      d.setUTCDate(d.getUTCDate() - i)
+      buckets.set(dayKey(d), 0)
+    }
+    for (const row of recent) {
+      const k = dayKey(row.createdAt)
+      if (buckets.has(k)) buckets.set(k, (buckets.get(k) ?? 0) + 1)
+    }
+
+    return {
+      summary: {
+        total,
+        new30d,
+        converted,
+        conversionRatePercent: total > 0 ? Math.round((converted / total) * 1000) / 10 : 0,
+      },
+      funnel: FUNNEL.map((stage) => ({ stage, count: statusCounts.get(stage) ?? 0 })),
+      bySource: [...sources.entries()]
+        .map(([source, s]) => ({
+          source,
+          total: s.total,
+          converted: s.converted,
+          conversionRatePercent: s.total > 0 ? Math.round((s.converted / s.total) * 1000) / 10 : 0,
+          valueUsd: s.valueUsd.toFixed(2),
+        }))
+        .sort((a, b) => b.total - a.total),
+      series: [...buckets.entries()].map(([date, leads]) => ({ date, leads })),
+    }
+  }
+
   @Get('timeseries')
   @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
   @ApiOperation({ summary: 'Daily leads, deals and revenue for the last N days' })

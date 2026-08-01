@@ -72,6 +72,8 @@ import { MetaAdsController } from './modules/meta/meta-ads.controller.js'
 import { AdCampaignService } from './modules/meta/ad-campaign.service.js'
 import { AdPublishService } from './modules/meta/ad-publish.service.js'
 import { MetaWebhooksController } from './modules/meta/meta-webhooks.controller.js'
+import { ChatbotController } from './modules/meta/chatbot.controller.js'
+import { ChatbotService } from './modules/meta/chatbot.service.js'
 
 /**
  * Root module.
@@ -129,6 +131,7 @@ import { MetaWebhooksController } from './modules/meta/meta-webhooks.controller.
     MetaController,
     MetaAdsController,
     MetaWebhooksController,
+    ChatbotController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
@@ -147,6 +150,7 @@ import { MetaWebhooksController } from './modules/meta/meta-webhooks.controller.
     MetaConnectService,
     AdCampaignService,
     AdPublishService,
+    ChatbotService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,

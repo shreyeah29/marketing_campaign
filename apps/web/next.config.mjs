@@ -13,6 +13,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Linting is a dedicated CI step (`eslint src`), so `next build` should not run
+  // its own ESLint pass — it would try to use Next's integration (which expects
+  // eslint-config-next) and can fail the build over lint, which is not the build's
+  // job. This does not disable linting; it just keeps it out of the build.
+  eslint: { ignoreDuringBuilds: true },
   // The backend API base URL. Read at build time (NEXT_PUBLIC_* is inlined) and
   // falls back to local dev when unset — so `pnpm dev` needs no configuration and
   // production/preview are driven entirely by the Vercel environment variable.

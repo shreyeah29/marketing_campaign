@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { authClient, type AuthError } from '@/lib/auth-client'
+import { AuthShell } from '@/components/auth-shell'
 import { Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
 
 export default function LoginPage() {
@@ -48,57 +49,57 @@ function LoginInner() {
   }
 
   return (
-    <div className="center-screen">
-      <div className="card auth-card">
-        <div className="brand" style={{ padding: '0 0 20px' }}>
-          <span className="dot" />
-          <strong>VSP</strong>
-        </div>
-        <h1 style={{ fontSize: 20, marginBottom: 4 }}>Sign in</h1>
-        <p className="page-sub" style={{ marginBottom: 20 }}>
-          Welcome back. Sign in to your workspace.
-        </p>
-        {justRegistered ? (
-          <Banner kind="success">Account created — sign in to continue.</Banner>
-        ) : null}
-        {justReset ? (
-          <Banner kind="success">Password updated — sign in with your new password.</Banner>
-        ) : null}
-        {error ? <Banner kind="error">{error}</Banner> : null}
-        <form onSubmit={submit}>
-          <Field label="Email">
-            <input
-              className="input"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Password">
-            <input
-              className="input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <button className="btn primary" style={{ width: '100%' }} disabled={busy} type="submit">
-            {busy ? <Spinner /> : 'Sign in'}
-          </button>
-        </form>
-        <div className="spread" style={{ marginTop: 16, fontSize: 13 }}>
+    <AuthShell
+      title="Sign in"
+      subtitle="Welcome back. Sign in to your workspace."
+      footer={
+        <div className="spread">
           <Link href="/forgot-password" className="muted">
             Forgot password?
           </Link>
-          <Link href="/register" style={{ color: 'var(--color-primary)' }}>
+          <Link href="/register" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
             Create account
           </Link>
         </div>
-      </div>
-    </div>
+      }
+    >
+      {justRegistered ? (
+        <Banner kind="success">Account created — sign in to continue.</Banner>
+      ) : null}
+      {justReset ? (
+        <Banner kind="success">Password updated — sign in with your new password.</Banner>
+      ) : null}
+      {error ? <Banner kind="error">{error}</Banner> : null}
+      <form onSubmit={submit}>
+        <Field label="Email">
+          <input
+            className="input"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="Password">
+          <input
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <button
+          className="btn primary"
+          style={{ width: '100%', justifyContent: 'center' }}
+          disabled={busy}
+          type="submit"
+        >
+          {busy ? <Spinner /> : 'Sign in'}
+        </button>
+      </form>
+    </AuthShell>
   )
 }

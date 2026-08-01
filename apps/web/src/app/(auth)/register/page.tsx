@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { authClient, type AuthError } from '@/lib/auth-client'
+import { AuthShell } from '@/components/auth-shell'
 import { Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
 
 export default function RegisterPage() {
@@ -47,57 +48,57 @@ function RegisterInner() {
   }
 
   return (
-    <div className="center-screen">
-      <div className="card auth-card">
-        <div className="brand" style={{ padding: '0 0 20px' }}>
-          <span className="dot" />
-          <strong>VSP</strong>
-        </div>
-        <h1 style={{ fontSize: 20, marginBottom: 4 }}>Create your account</h1>
-        <p className="page-sub" style={{ marginBottom: 20 }}>
-          Start here. You'll join a workspace by invitation or provisioning.
-        </p>
-        {error ? <Banner kind="error">{error}</Banner> : null}
-        <form onSubmit={submit}>
-          <Field label="Full name">
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Email">
-            <input
-              className="input"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </Field>
-          <Field label="Password" hint="At least 8 characters.">
-            <input
-              className="input"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <button className="btn primary" style={{ width: '100%' }} disabled={busy} type="submit">
-            {busy ? <Spinner /> : 'Create account'}
-          </button>
-        </form>
-        <div style={{ marginTop: 16, fontSize: 13, textAlign: 'center' }} className="muted">
+    <AuthShell
+      title="Create your account"
+      subtitle="Start here. You'll join a workspace by invitation or provisioning."
+      footer={
+        <div className="muted" style={{ textAlign: 'center' }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--color-primary)' }}>
+          <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
             Sign in
           </Link>
         </div>
-      </div>
-    </div>
+      }
+    >
+      {error ? <Banner kind="error">{error}</Banner> : null}
+      <form onSubmit={submit}>
+        <Field label="Full name">
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="Email">
+          <input
+            className="input"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </Field>
+        <Field label="Password" hint="At least 8 characters.">
+          <input
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </Field>
+        <button
+          className="btn primary"
+          style={{ width: '100%', justifyContent: 'center' }}
+          disabled={busy}
+          type="submit"
+        >
+          {busy ? <Spinner /> : 'Create account'}
+        </button>
+      </form>
+    </AuthShell>
   )
 }

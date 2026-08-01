@@ -8,6 +8,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 
 import { ApiError } from '@/lib/api'
 import { authClient, type AuthError, type AuthSession } from '@/lib/auth-client'
+import { AuthShell } from '@/components/auth-shell'
 import { Banner, LoadingScreen, Spinner } from '@/components/ui'
 
 export default function AcceptInvitationPage() {
@@ -71,62 +72,61 @@ function AcceptInvitationInner() {
   const returnTo = `/accept-invitation?token=${token ?? ''}`
 
   return (
-    <div className="center-screen">
-      <div className="card auth-card">
-        <h1 style={{ fontSize: 20, marginBottom: 4 }}>Accept invitation</h1>
+    <AuthShell
+      title="Accept invitation"
+      subtitle={
+        state.kind === 'needs-auth'
+          ? 'Sign in or create an account to join the workspace you were invited to.'
+          : undefined
+      }
+    >
+      {state.kind === 'needs-auth' && (
+        <>
+          <Link
+            href={`/login?next=${encodeURIComponent(returnTo)}`}
+            className="btn primary"
+            style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }}
+          >
+            Sign in
+          </Link>
+          <Link
+            href={`/register?next=${encodeURIComponent(returnTo)}`}
+            className="btn"
+            style={{ width: '100%', justifyContent: 'center' }}
+          >
+            Create account
+          </Link>
+        </>
+      )}
 
-        {state.kind === 'needs-auth' && (
-          <>
-            <p className="page-sub" style={{ marginBottom: 18 }}>
-              Sign in or create an account to join the workspace you were invited to.
-            </p>
-            <Link
-              href={`/login?next=${encodeURIComponent(returnTo)}`}
-              className="btn primary"
-              style={{ width: '100%', justifyContent: 'center', marginBottom: 10 }}
-            >
-              Sign in
-            </Link>
-            <Link
-              href={`/register?next=${encodeURIComponent(returnTo)}`}
-              className="btn"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              Create account
-            </Link>
-          </>
-        )}
+      {state.kind === 'ready' && (
+        <>
+          <p className="page-sub" style={{ marginBottom: 18 }}>
+            Signed in as <strong>{state.session.user.email}</strong>. Accept to join the workspace.
+          </p>
+          <button
+            className="btn primary"
+            style={{ width: '100%', justifyContent: 'center' }}
+            disabled={busy}
+            onClick={accept}
+          >
+            {busy ? <Spinner /> : 'Accept invitation'}
+          </button>
+        </>
+      )}
 
-        {state.kind === 'ready' && (
-          <>
-            <p className="page-sub" style={{ marginBottom: 18 }}>
-              Signed in as <strong>{state.session.user.email}</strong>. Accept to join the
-              workspace.
-            </p>
-            <button
-              className="btn primary"
-              style={{ width: '100%', justifyContent: 'center' }}
-              disabled={busy}
-              onClick={accept}
-            >
-              {busy ? <Spinner /> : 'Accept invitation'}
-            </button>
-          </>
-        )}
+      {state.kind === 'accepted' && (
+        <Banner kind="success">You're in — taking you to your workspace…</Banner>
+      )}
 
-        {state.kind === 'accepted' && (
-          <Banner kind="success">You're in — taking you to your workspace…</Banner>
-        )}
-
-        {state.kind === 'error' && (
-          <>
-            <Banner kind="error">{state.message}</Banner>
-            <Link href="/login" className="muted" style={{ fontSize: 13 }}>
-              Back to sign in
-            </Link>
-          </>
-        )}
-      </div>
-    </div>
+      {state.kind === 'error' && (
+        <>
+          <Banner kind="error">{state.message}</Banner>
+          <Link href="/login" className="muted" style={{ fontSize: 13 }}>
+            Back to sign in
+          </Link>
+        </>
+      )}
+    </AuthShell>
   )
 }

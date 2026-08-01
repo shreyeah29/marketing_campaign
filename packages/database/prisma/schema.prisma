@@ -698,6 +698,7 @@ model Organization {
   adCreatives            AdCreative[]
   metaLeadForms          MetaLeadForm[]
   adInsights             AdInsight[]
+  adInsightBreakdowns    AdInsightBreakdown[]
   chatbotFlows           ChatbotFlow[]
   chatbotSessions        ChatbotSession[]
 
@@ -3161,6 +3162,17 @@ enum ChatbotSessionStatus {
   @@map("chatbot_session_status")
 }
 
+/// The axis a performance row is broken down by — the shape of "who saw this ad".
+enum InsightDimension {
+  AGE
+  GENDER
+  REGION
+  COUNTRY
+  PLATFORM
+
+  @@map("insight_dimension")
+}
+
 /// One Meta connection per organisation: the client's delegated assets (ad
 /// account, Page, Instagram, WhatsApp) and the encrypted token to act on them.
 model MetaConnection {
@@ -3234,10 +3246,11 @@ model AdCampaign {
 
   organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   connection   MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  adSets       AdSet[]
-  creatives    AdCreative[]
-  ads          Ad[]
-  insights     AdInsight[]
+  adSets            AdSet[]
+  creatives         AdCreative[]
+  ads               Ad[]
+  insights          AdInsight[]
+  insightBreakdowns AdInsightBreakdown[]
 
   @@index([organizationId, reviewStatus])
   @@index([organizationId, deliveryStatus])
@@ -3384,6 +3397,36 @@ model AdInsight {
   @@unique([campaignId, adId, date])
   @@index([organizationId, date])
   @@map("ad_insight")
+}
+
+/// A performance row split by a demographic or placement axis — this is what powers
+/// "who is seeing your ads": which age bands, genders, regions and platforms the
+/// reach and leads came from. Synced from Meta Insights with `breakdowns`.
+model AdInsightBreakdown {
+  id             String           @id @default(uuid(7))
+  organizationId String           @map("organization_id")
+  campaignId     String?          @map("campaign_id")
+  adId           String?          @map("ad_id")
+  date           DateTime         @db.Date
+  dimension      InsightDimension
+  /// The bucket within the dimension, e.g. "25-34", "female", "Maharashtra".
+  value          String
+
+  impressions Int     @default(0)
+  reach       Int     @default(0)
+  clicks      Int     @default(0)
+  leads       Int     @default(0)
+  spend       Decimal @default(0) @db.Decimal(14, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     AdCampaign?  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, adId, date, dimension, value])
+  @@index([organizationId, dimension, date])
+  @@map("ad_insight_breakdown")
 }
 
 /// Idempotency + audit log for inbound Meta webhooks (leadgen, WhatsApp messages).

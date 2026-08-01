@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, TableSkeleton } from '@/components/kit'
 import { DonutChart, LineChart } from '@/components/charts'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
 import { useWorkspace } from '../layout'
 
@@ -135,20 +136,37 @@ export default function DashboardPage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="stack" style={{ gap: 22 }}>
-          {/* KPI row */}
-          <div className="cols-4 grid">
-            <StatCard label="Contacts" value={num(overview?.contacts)} />
-            <StatCard label="Leads" value={num(overview?.leads)} />
-            <StatCard label="Qualified leads" value={num(overview?.qualifiedLeads)} />
-            <StatCard label="Open deals" value={num(overview?.openDeals)} />
-            <StatCard label="Won deals" value={num(overview?.wonDeals)} />
-            <StatCard label="Active campaigns" value={num(overview?.activeCampaigns)} />
-            <StatCard label="Emails sent" value={num(overview?.emailsSent)} />
-            <StatCard label="AI spend" value={money(overview?.aiSpendUsd)} />
-          </div>
+          {/* KPI row — cascades in on load */}
+          <Stagger className="cols-4 grid" interval={0.05}>
+            <StaggerItem>
+              <StatCard label="Contacts" value={num(overview?.contacts)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Leads" value={num(overview?.leads)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Qualified leads" value={num(overview?.qualifiedLeads)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Open deals" value={num(overview?.openDeals)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Won deals" value={num(overview?.wonDeals)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Active campaigns" value={num(overview?.activeCampaigns)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Emails sent" value={num(overview?.emailsSent)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="AI spend" value={money(overview?.aiSpendUsd)} />
+            </StaggerItem>
+          </Stagger>
 
           {/* Trend + funnel */}
-          <div
+          <FadeIn
+            delay={0.12}
             className="cols-2 split grid"
             style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'stretch' }}
           >
@@ -199,10 +217,10 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </div>
+          </FadeIn>
 
           {/* Channel performance */}
-          <div className="card">
+          <FadeIn delay={0.2} className="card">
             <div style={{ fontWeight: 600, marginBottom: 14 }}>Channel performance</div>
             <div className="cols-2 grid" style={{ gap: 20 }}>
               <div className="stack" style={{ gap: 10 }}>
@@ -246,7 +264,7 @@ export default function DashboardPage() {
                                 display: 'block',
                                 height: '100%',
                                 width: `${(s.assets / maxAssets) * 100}%`,
-                                background: 'var(--color-primary)',
+                                background: 'var(--grad-primary)',
                                 borderRadius: 6,
                               }}
                             />
@@ -265,7 +283,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </div>
-          </div>
+          </FadeIn>
         </div>
       )}
     </>

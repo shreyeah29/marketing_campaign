@@ -18,8 +18,6 @@ import {
   FEATURES,
   FEATURE_CATEGORIES,
   findPlan,
-  PLANS,
-  PRESETS,
   resolveDependencies,
   validateFeatureConfig,
 } from '@vsp/contracts'
@@ -42,6 +40,13 @@ import {
 } from './provision.contracts.js'
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) })
+
+/**
+ * Categories the operator can no longer assign. The feature code stays (existing
+ * orgs keep working); they are simply absent from the catalog the wizard renders
+ * and from any new provisioning UI.
+ */
+const HIDDEN_CATEGORIES = new Set(['Commerce', 'Support', 'Communication', 'Automation'])
 
 /**
  * The platform-owner portal API.
@@ -84,12 +89,13 @@ export class PlatformController {
   @Public()
   @UseGuards(PlatformAdminGuard)
   @Get('catalog')
-  @ApiOperation({ summary: 'Features, categories, plans and presets for the wizard' })
+  @ApiOperation({ summary: 'Curated feature categories for the wizard' })
   catalog(): unknown {
+    const categories = FEATURE_CATEGORIES.filter((c) => !HIDDEN_CATEGORIES.has(c))
     return {
-      categories: FEATURE_CATEGORIES,
+      categories,
       // Grouped by category so the wizard renders expandable sections, not a flat list.
-      features: FEATURE_CATEGORIES.map((category) => ({
+      features: categories.map((category) => ({
         category,
         features: FEATURES.filter((f) => f.category === category).map((f) => ({
           id: f.id,
@@ -99,27 +105,6 @@ export class PlatformController {
           billingCategory: f.billingCategory,
           defaultEnabled: f.defaultEnabled,
         })),
-      })),
-      plans: PLANS.map((p) => ({
-        id: p.id,
-        name: p.name,
-        description: p.description,
-        featureCount: p.featureIds.length,
-        // The wizard pre-checks these when a plan is chosen — the enabled set is
-        // seeded from the plan, then the operator tweaks it.
-        featureIds: p.featureIds,
-        monthlyPriceUsd: p.monthlyPriceUsd,
-        customPricing: p.customPricing,
-      })),
-      presets: PRESETS.map((p) => ({
-        id: p.id,
-        name: p.name,
-        industry: p.industry,
-        description: p.description,
-        recommendedPlan: p.recommendedPlan,
-        featureCount: p.featureIds.length,
-        // Industry template's feature set, so choosing it pre-checks exactly those.
-        featureIds: p.featureIds,
       })),
     }
   }
@@ -138,9 +123,9 @@ export class PlatformController {
     const result = await this.provisioning.provision(input as never, actor.id)
     return {
       ...result,
-      message: `Provisioned "${input.company.name}" on the ${input.plan} plan with ${String(
+      message: `Provisioned "${input.company.name}" with ${String(
         result.enabledFeatures.length,
-      )} features.`,
+      )} modules.`,
     }
   }
 
@@ -152,7 +137,7 @@ export class PlatformController {
     const orgs = await this.owner.organization.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-        subscription: { select: { plan: { select: { key: true, name: true } }, status: true } },
+        branding: { select: { logoUrl: true } },
         _count: { select: { memberships: true, featureAssignments: { where: { enabled: true } } } },
       },
     })
@@ -161,7 +146,8 @@ export class PlatformController {
       name: org.name,
       slug: org.slug,
       status: org.status,
-      plan: org.subscription?.plan?.key ?? null,
+      industry: org.industry,
+      logoUrl: org.branding?.logoUrl ?? null,
       members: org._count.memberships,
       enabledFeatures: org._count.featureAssignments,
       createdAt: org.createdAt.toISOString(),
@@ -176,14 +162,23 @@ export class PlatformController {
     const org = await this.owner.organization.findFirst({
       where: { id },
       include: {
-        subscription: { include: { plan: true } },
         branding: true,
+        settings: { select: { brandVoice: true, targetAudience: true, tagline: true } },
         featureAssignments: {
           where: { enabled: true },
           select: { featureKey: true, source: true },
         },
         organizationLimits: true,
-        _count: { select: { memberships: true, contacts: true, campaigns: true, agentRuns: true } },
+        _count: {
+          select: {
+            memberships: true,
+            contacts: true,
+            leads: true,
+            campaigns: true,
+            campaignAssets: true,
+            agentRuns: true,
+          },
+        },
       },
     })
     if (!org) throw new NotFoundException('Organisation not found')
@@ -194,30 +189,127 @@ export class PlatformController {
       _count: true,
     })
 
+    const metadata = (org.metadata ?? {}) as Record<string, unknown>
+
     return {
       id: org.id,
       name: org.name,
       slug: org.slug,
       status: org.status,
       industry: org.industry,
-      plan: org.subscription?.plan && {
-        key: org.subscription.plan.key,
-        name: org.subscription.plan.name,
+      website: org.website,
+      registeredYear:
+        typeof metadata['registeredYear'] === 'number' ? metadata['registeredYear'] : null,
+      description: typeof metadata['description'] === 'string' ? metadata['description'] : null,
+      profile: org.settings && {
+        vision: org.settings.brandVoice,
+        targetAudience: org.settings.targetAudience,
+        tagline: org.settings.tagline,
       },
       features: org.featureAssignments.map((f) => ({ key: f.featureKey, source: f.source })),
       limits: org.organizationLimits.map((l) => ({ metric: l.metric, limit: l.limitValue })),
       branding: org.branding && {
         displayName: org.branding.displayName,
         primaryColor: org.branding.primaryColor,
+        logoUrl: org.branding.logoUrl,
       },
       usage: {
         members: org._count.memberships,
         contacts: org._count.contacts,
+        leads: org._count.leads,
         campaigns: org._count.campaigns,
+        assets: org._count.campaignAssets,
         agentRuns: org._count.agentRuns,
         aiCostUsd: aiUsage._sum.costUsd?.toString() ?? '0',
         aiCalls: aiUsage._count,
       },
+    }
+  }
+
+  // ── Portfolio analytics ──────────────────────────────────────────────────────
+
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Get('analytics')
+  @ApiOperation({ summary: 'Cross-client portfolio analytics for the operator' })
+  async portfolioAnalytics(): Promise<unknown> {
+    const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+    const [orgs, aiByOrg, revenueByOrg, leads30dByOrg, lastActivityByOrg] = await Promise.all([
+      this.owner.organization.findMany({
+        where: { status: { not: 'DELETED' } },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          branding: { select: { logoUrl: true, displayName: true } },
+          featureAssignments: { where: { enabled: true }, select: { featureKey: true } },
+          _count: {
+            select: {
+              memberships: true,
+              leads: true,
+              campaigns: true,
+              campaignAssets: true,
+            },
+          },
+        },
+      }),
+      this.owner.aiUsage.groupBy({
+        by: ['organizationId'],
+        _sum: { costUsd: true },
+        _count: true,
+      }),
+      // Campaign-attributed revenue = deals actually WON, per client.
+      this.owner.deal.groupBy({
+        by: ['organizationId'],
+        where: { status: 'WON' },
+        _sum: { value: true },
+      }),
+      this.owner.lead.groupBy({
+        by: ['organizationId'],
+        where: { createdAt: { gte: since30d } },
+        _count: true,
+      }),
+      this.owner.auditLog.groupBy({
+        by: ['organizationId'],
+        _max: { createdAt: true },
+      }),
+    ])
+
+    const ai = new Map(aiByOrg.map((r) => [r.organizationId, r]))
+    const revenue = new Map(revenueByOrg.map((r) => [r.organizationId, r._sum.value]))
+    const leads30d = new Map(leads30dByOrg.map((r) => [r.organizationId, r._count]))
+    const lastActivity = new Map(lastActivityByOrg.map((r) => [r.organizationId, r._max.createdAt]))
+
+    const organizations = orgs.map((org) => ({
+      id: org.id,
+      name: org.branding?.displayName ?? org.name,
+      slug: org.slug,
+      status: org.status,
+      logoUrl: org.branding?.logoUrl ?? null,
+      createdAt: org.createdAt.toISOString(),
+      members: org._count.memberships,
+      modules: org.featureAssignments.map((f) => f.featureKey),
+      leadsTotal: org._count.leads,
+      leads30d: leads30d.get(org.id) ?? 0,
+      campaigns: org._count.campaigns,
+      assetsGenerated: org._count.campaignAssets,
+      aiCostUsd: ai.get(org.id)?._sum.costUsd?.toString() ?? '0',
+      aiCalls: ai.get(org.id)?._count ?? 0,
+      revenueWonUsd: revenue.get(org.id)?.toString() ?? '0',
+      lastActivityAt: lastActivity.get(org.id)?.toISOString() ?? null,
+    }))
+
+    return {
+      totals: {
+        organizations: organizations.length,
+        active: organizations.filter((o) => o.status === 'ACTIVE').length,
+        members: organizations.reduce((s, o) => s + o.members, 0),
+        leads30d: organizations.reduce((s, o) => s + o.leads30d, 0),
+        campaigns: organizations.reduce((s, o) => s + o.campaigns, 0),
+        assetsGenerated: organizations.reduce((s, o) => s + o.assetsGenerated, 0),
+        aiCostUsd: aiByOrg.reduce((s, r) => s + Number(r._sum.costUsd ?? 0), 0).toFixed(2),
+        revenueWonUsd: revenueByOrg.reduce((s, r) => s + Number(r._sum.value ?? 0), 0).toFixed(2),
+      },
+      organizations,
     }
   }
 

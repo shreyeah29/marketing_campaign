@@ -108,8 +108,30 @@ export class ProvisioningService {
             website: input.company.website ?? null,
             timezone: input.company.timezone,
             status: input.status,
+            // Company basics captured at onboarding — no dedicated columns needed.
+            metadata: {
+              ...(input.company.registeredYear !== undefined
+                ? { registeredYear: input.company.registeredYear }
+                : {}),
+              ...(input.company.description !== undefined
+                ? { description: input.company.description }
+                : {}),
+            },
           },
         })
+
+        // Brand profile — the voice every content-producing agent reads. Created
+        // here so generation is on-brand from the first campaign.
+        if (input.profile) {
+          await tx.organizationSettings.create({
+            data: {
+              organizationId: org.id,
+              brandVoice: input.profile.vision ?? null,
+              targetAudience: input.profile.targetAudience ?? null,
+              tagline: input.profile.tagline ?? null,
+            },
+          })
+        }
 
         // The plan row (synced from the registry) the subscription references.
         const planRow = await tx.plan.findFirstOrThrow({ where: { key: input.plan } })

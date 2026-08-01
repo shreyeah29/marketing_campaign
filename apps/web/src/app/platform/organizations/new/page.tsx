@@ -9,14 +9,20 @@ import { closeDependencies, enabledDependentsOf, indexFeatures } from '@/lib/fea
 import { platform } from '@/lib/platform'
 import type { Catalog, ProvisionInput } from '@/lib/types'
 import { Badge, Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
+import { Icon } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2 | 3 | 4
 
 const STEPS: { n: Step; label: string }[] = [
   { n: 1, label: 'Company' },
-  { n: 2, label: 'Admin user' },
-  { n: 3, label: 'Plan & modules' },
+  { n: 2, label: 'Brand & vision' },
+  { n: 3, label: 'Admin user' },
+  { n: 4, label: 'Modules' },
 ]
+
+/** Keep logo uploads well under the API's 1MB body limit. */
+const MAX_LOGO_BYTES = 400 * 1024
 
 function slugify(name: string): string {
   return name
@@ -35,18 +41,30 @@ export default function NewOrganizationPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
-  // ── Form state ───────────────────────────────────────────────────────────────
+  // ── Company ──────────────────────────────────────────────────────────────────
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [slugTouched, setSlugTouched] = useState(false)
   const [industry, setIndustry] = useState('')
+  const [website, setWebsite] = useState('')
+  const [registeredYear, setRegisteredYear] = useState('')
+  const [description, setDescription] = useState('')
 
+  // ── Brand & vision ───────────────────────────────────────────────────────────
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [primaryColor, setPrimaryColor] = useState('#1e40af')
+  const [accentColor, setAccentColor] = useState('#d97706')
+  const [tagline, setTagline] = useState('')
+  const [vision, setVision] = useState('')
+  const [targetAudience, setTargetAudience] = useState('')
+
+  // ── Admin ────────────────────────────────────────────────────────────────────
   const [adminName, setAdminName] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
 
-  const [plan, setPlan] = useState<string>('growth')
-  const [preset, setPreset] = useState<string | null>(null)
+  // ── Modules ──────────────────────────────────────────────────────────────────
   const [features, setFeatures] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -54,12 +72,11 @@ export default function NewOrganizationPage() {
       .catalog()
       .then((c) => {
         setCatalog(c)
-        // Seed the feature selection from the default plan.
-        const p = c.plans.find((x) => x.id === 'growth') ?? c.plans[0]
-        if (p) {
-          setPlan(p.id)
-          setFeatures(new Set(p.featureIds))
-        }
+        // Seed with the registry's sensible defaults; the operator tweaks from there.
+        const defaults = c.features.flatMap((g) =>
+          g.features.filter((f) => f.defaultEnabled).map((f) => f.id),
+        )
+        setFeatures(new Set(defaults))
       })
       .catch((err: unknown) => {
         if (err instanceof ApiError && err.status === 401) {
@@ -77,30 +94,28 @@ export default function NewOrganizationPage() {
 
   const effectiveSlug = slugTouched ? slug : slugify(name)
 
-  function applyPlan(planId: string) {
-    setPlan(planId)
-    setPreset(null)
-    const p = catalog!.plans.find((x) => x.id === planId)
-    if (p) setFeatures(closeDependencies(p.featureIds, index!))
-  }
-
-  function applyPreset(presetId: string) {
-    const p = catalog!.presets.find((x) => x.id === presetId)
-    if (!p) return
-    setPreset(presetId)
-    setPlan(p.recommendedPlan)
-    setFeatures(closeDependencies(p.featureIds, index!))
+  function onLogoFile(file: File | undefined) {
+    setLogoError(null)
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Please choose an image file (PNG, JPG or SVG).')
+      return
+    }
+    if (file.size > MAX_LOGO_BYTES) {
+      setLogoError('Logo must be under 400 KB. Export a smaller version and try again.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => setLogoDataUrl(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   function toggleFeature(id: string, on: boolean) {
-    setPreset(null) // a manual edit means it is no longer a pristine template
     setFeatures((prev) => {
       const next = new Set(prev)
       if (on) {
-        // Pull in dependencies.
         for (const dep of closeDependencies([id], index!)) next.add(dep)
       } else {
-        // Refuse to remove a feature that enabled features still depend on.
         const blockers = enabledDependentsOf(id, next, index!)
         if (blockers.length > 0) return prev
         next.delete(id)
@@ -110,22 +125,38 @@ export default function NewOrganizationPage() {
   }
 
   const step1Valid = name.trim().length > 0 && /^[a-z0-9-]{2,63}$/.test(effectiveSlug)
-  const step2Valid =
+  const step3Valid =
     adminName.trim().length > 0 &&
     /^[^@]+@[^@]+\.[^@]+$/.test(adminEmail) &&
     adminPassword.length >= 8
 
   async function submit() {
-    if (!step1Valid || !step2Valid) return
+    if (!step1Valid || !step3Valid) return
     setBusy(true)
     setSubmitError(null)
+    const year = Number.parseInt(registeredYear, 10)
     const input: ProvisionInput = {
-      company: { name: name.trim(), slug: effectiveSlug, ...(industry ? { industry } : {}) },
+      company: {
+        name: name.trim(),
+        slug: effectiveSlug,
+        ...(industry.trim() ? { industry: industry.trim() } : {}),
+        ...(website.trim() ? { website: website.trim() } : {}),
+        ...(Number.isFinite(year) ? { registeredYear: year } : {}),
+        ...(description.trim() ? { description: description.trim() } : {}),
+      },
+      profile: {
+        ...(vision.trim() ? { vision: vision.trim() } : {}),
+        ...(targetAudience.trim() ? { targetAudience: targetAudience.trim() } : {}),
+        ...(tagline.trim() ? { tagline: tagline.trim() } : {}),
+      },
+      branding: {
+        displayName: name.trim(),
+        ...(logoDataUrl ? { logoUrl: logoDataUrl } : {}),
+        primaryColor,
+        accentColor,
+      },
       admin: { name: adminName.trim(), email: adminEmail.trim(), password: adminPassword },
-      plan,
       status: 'TRIAL',
-      // The checked set is the truth; send it explicitly rather than the preset so
-      // the operator's tweaks (including removals) are honoured exactly.
       features: [...features],
     }
     try {
@@ -141,10 +172,9 @@ export default function NewOrganizationPage() {
     <>
       <div className="topbar">
         <div>
-          <h1 className="page-title">New organization</h1>
+          <h1 className="page-title">Onboard a client</h1>
           <p className="page-sub">
-            One wizard provisions a fully-configured client — company, admin, plan, modules — with
-            no code.
+            A proper onboarding session — who they are, their brand, their people, their modules.
           </p>
         </div>
         <Link href="/platform" className="btn ghost">
@@ -155,7 +185,7 @@ export default function NewOrganizationPage() {
       <div className="steps">
         {STEPS.map((s) => (
           <div key={s.n} className={`step ${step === s.n ? 'active' : step > s.n ? 'done' : ''}`}>
-            <span className="num">{step > s.n ? '✓' : s.n}</span>
+            <span className="num">{step > s.n ? <Icon name="check" size={12} /> : s.n}</span>
             {s.label}
           </div>
         ))}
@@ -165,13 +195,13 @@ export default function NewOrganizationPage() {
 
       {/* ── Step 1: Company ─────────────────────────────────────────────────── */}
       {step === 1 && (
-        <div className="card" style={{ maxWidth: 640 }}>
+        <FadeIn className="card" style={{ maxWidth: 680 }}>
           <Field label="Company name">
             <input
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Acme Legal LLP"
+              placeholder="Lumen Bulbs Co."
             />
           </Field>
           <Field label="Slug" hint="Used for the tenant's subdomain. Lowercase, numbers, hyphens.">
@@ -182,29 +212,183 @@ export default function NewOrganizationPage() {
                 setSlugTouched(true)
                 setSlug(e.target.value)
               }}
-              placeholder="acme-legal"
+              placeholder="lumen-bulbs"
             />
           </Field>
-          <Field label="Industry" hint="Optional. Helps suggest an industry template next.">
+          <div className="cols-2 grid" style={{ gap: 14 }}>
+            <Field label="Industry">
+              <input
+                className="input"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                placeholder="Consumer lighting"
+              />
+            </Field>
+            <Field label="Registered year">
+              <input
+                className="input"
+                inputMode="numeric"
+                value={registeredYear}
+                onChange={(e) => setRegisteredYear(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="2014"
+              />
+            </Field>
+          </div>
+          <Field label="Website">
             <input
               className="input"
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              placeholder="Legal services"
+              type="url"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://lumenbulbs.com"
+            />
+          </Field>
+          <Field
+            label="About the company"
+            hint="What they do, what they sell, what makes them different. The AI reads this."
+          >
+            <textarea
+              className="input"
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Family-run LED bulb manufacturer selling D2C and through retail chains…"
             />
           </Field>
           <div className="spread mt">
             <span />
             <button className="btn primary" disabled={!step1Valid} onClick={() => setStep(2)}>
-              Continue →
+              Continue <Icon name="chevron-right" size={14} />
             </button>
           </div>
-        </div>
+        </FadeIn>
       )}
 
-      {/* ── Step 2: Admin user ──────────────────────────────────────────────── */}
+      {/* ── Step 2: Brand & vision ──────────────────────────────────────────── */}
       {step === 2 && (
-        <div className="card" style={{ maxWidth: 640 }}>
+        <FadeIn className="card" style={{ maxWidth: 680 }}>
+          <p className="muted" style={{ marginTop: 0, marginBottom: 18 }}>
+            Everything here feeds content generation: the logo lands on generated posters, the
+            vision shapes every caption and email.
+          </p>
+
+          <Field label="Company logo" hint="PNG, JPG or SVG, up to 400 KB.">
+            <div className="row" style={{ gap: 14 }}>
+              <label className="btn" style={{ cursor: 'pointer' }} aria-label="Upload company logo">
+                <Icon name="upload" size={15} />
+                {logoDataUrl ? 'Replace logo' : 'Upload logo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => onLogoFile(e.target.files?.[0])}
+                />
+              </label>
+              {logoDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoDataUrl}
+                  alt="Logo preview"
+                  style={{
+                    height: 48,
+                    maxWidth: 160,
+                    objectFit: 'contain',
+                    borderRadius: 10,
+                    border: '1px solid var(--border)',
+                    background: '#fff',
+                    padding: 6,
+                  }}
+                />
+              ) : null}
+            </div>
+            {logoError ? (
+              <span style={{ color: 'var(--danger)', fontSize: 12 }}>{logoError}</span>
+            ) : null}
+          </Field>
+
+          <div className="cols-2 grid" style={{ gap: 14 }}>
+            <Field label="Primary brand color">
+              <div className="row">
+                <input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  style={{
+                    width: 44,
+                    height: 36,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+                <span className="mono dim">{primaryColor}</span>
+              </div>
+            </Field>
+            <Field label="Accent color">
+              <div className="row">
+                <input
+                  type="color"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  style={{
+                    width: 44,
+                    height: 36,
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                  }}
+                />
+                <span className="mono dim">{accentColor}</span>
+              </div>
+            </Field>
+          </div>
+
+          <Field label="Tagline" hint="One line that captures them.">
+            <input
+              className="input"
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
+              placeholder="Light that lasts."
+            />
+          </Field>
+
+          <Field
+            label="Company vision & story"
+            hint="Their mission, values, story. Woven into every piece of generated content."
+          >
+            <textarea
+              className="input"
+              rows={4}
+              value={vision}
+              onChange={(e) => setVision(e.target.value)}
+              placeholder="We believe great light shouldn't cost the earth…"
+            />
+          </Field>
+
+          <Field label="Target audience" hint="Who their marketing should speak to.">
+            <textarea
+              className="input"
+              rows={3}
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+              placeholder="Homeowners 28–55 renovating on a budget; facility managers…"
+            />
+          </Field>
+
+          <div className="spread mt">
+            <button className="btn ghost" onClick={() => setStep(1)}>
+              <Icon name="arrow-left" size={14} /> Back
+            </button>
+            <button className="btn primary" onClick={() => setStep(3)}>
+              Continue <Icon name="chevron-right" size={14} />
+            </button>
+          </div>
+        </FadeIn>
+      )}
+
+      {/* ── Step 3: Admin user ──────────────────────────────────────────────── */}
+      {step === 3 && (
+        <FadeIn className="card" style={{ maxWidth: 680 }}>
           <p className="muted" style={{ marginTop: 0, marginBottom: 18 }}>
             This person becomes the organization <strong>OWNER</strong> — the first admin account,
             usable the moment they sign in.
@@ -236,79 +420,19 @@ export default function NewOrganizationPage() {
             />
           </Field>
           <div className="spread mt">
-            <button className="btn ghost" onClick={() => setStep(1)}>
-              ← Back
+            <button className="btn ghost" onClick={() => setStep(2)}>
+              <Icon name="arrow-left" size={14} /> Back
             </button>
-            <button className="btn primary" disabled={!step2Valid} onClick={() => setStep(3)}>
-              Continue →
+            <button className="btn primary" disabled={!step3Valid} onClick={() => setStep(4)}>
+              Continue <Icon name="chevron-right" size={14} />
             </button>
           </div>
-        </div>
+        </FadeIn>
       )}
 
-      {/* ── Step 3: Plan & modules ──────────────────────────────────────────── */}
-      {step === 3 && (
-        <div className="stack">
-          {/* Industry templates */}
-          <div className="card">
-            <h3 style={{ marginBottom: 4 }}>Start from an industry template</h3>
-            <p className="dim" style={{ marginBottom: 14, fontSize: 12 }}>
-              Optional. Pre-selects a tuned module set and recommended plan — then tweak below.
-            </p>
-            <div className="cols-3 grid">
-              {catalog.presets.map((p) => (
-                <button
-                  key={p.id}
-                  className="card"
-                  style={{
-                    textAlign: 'left',
-                    borderColor: preset === p.id ? 'var(--color-primary)' : 'var(--border)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => applyPreset(p.id)}
-                >
-                  <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div className="dim" style={{ fontSize: 12, margin: '4px 0 8px' }}>
-                    {p.description}
-                  </div>
-                  <span className="badge">{p.featureCount} modules</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Plan */}
-          <div className="card">
-            <h3 style={{ marginBottom: 12 }}>Plan</h3>
-            <div className="cols-4 grid">
-              {catalog.plans.map((p) => (
-                <button
-                  key={p.id}
-                  className="card"
-                  style={{
-                    textAlign: 'left',
-                    borderColor: plan === p.id ? 'var(--color-primary)' : 'var(--border)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => applyPlan(p.id)}
-                >
-                  <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div className="v" style={{ fontSize: 18, margin: '6px 0' }}>
-                    {p.customPricing
-                      ? 'Custom'
-                      : p.monthlyPriceUsd === null
-                        ? 'Free'
-                        : `$${p.monthlyPriceUsd}/mo`}
-                  </div>
-                  <span className="dim" style={{ fontSize: 11 }}>
-                    {p.featureCount} modules
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Modules */}
+      {/* ── Step 4: Modules ─────────────────────────────────────────────────── */}
+      {step === 4 && (
+        <FadeIn className="stack">
           <div className="card">
             <div className="spread" style={{ marginBottom: 12 }}>
               <h3>Modules</h3>
@@ -369,14 +493,14 @@ export default function NewOrganizationPage() {
           </div>
 
           <div className="spread">
-            <button className="btn ghost" onClick={() => setStep(2)}>
-              ← Back
+            <button className="btn ghost" onClick={() => setStep(3)}>
+              <Icon name="arrow-left" size={14} /> Back
             </button>
             <button className="btn primary" disabled={busy || features.size === 0} onClick={submit}>
-              {busy ? <Spinner /> : `Provision "${name || 'organization'}"`}
+              {busy ? <Spinner /> : `Onboard "${name || 'client'}"`}
             </button>
           </div>
-        </div>
+        </FadeIn>
       )}
     </>
   )

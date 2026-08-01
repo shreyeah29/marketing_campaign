@@ -67,10 +67,10 @@ export default function OrganizationsPage() {
               <thead>
                 <tr>
                   <th>Organization</th>
-                  <th>Plan</th>
+                  <th>Industry</th>
                   <th>Status</th>
                   <th>Members</th>
-                  <th>Features</th>
+                  <th>Modules</th>
                   <th>Created</th>
                 </tr>
               </thead>
@@ -82,16 +82,31 @@ export default function OrganizationsPage() {
                     onClick={() => router.push(`/platform/organizations/${org.id}`)}
                   >
                     <td>
-                      <div style={{ fontWeight: 600 }}>{org.name}</div>
-                      <div className="dim mono">{org.slug}</div>
+                      <div className="row" style={{ gap: 10 }}>
+                        {org.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={org.logoUrl}
+                            alt=""
+                            style={{
+                              width: 26,
+                              height: 26,
+                              objectFit: 'contain',
+                              borderRadius: 7,
+                              background: '#fff',
+                              border: '1px solid var(--border)',
+                            }}
+                          />
+                        ) : (
+                          <span className="avatar">{org.name.charAt(0).toUpperCase()}</span>
+                        )}
+                        <span>
+                          <div style={{ fontWeight: 600 }}>{org.name}</div>
+                          <div className="dim mono">{org.slug}</div>
+                        </span>
+                      </div>
                     </td>
-                    <td>
-                      {org.plan ? (
-                        <span className="badge">{org.plan}</span>
-                      ) : (
-                        <span className="dim">—</span>
-                      )}
-                    </td>
+                    <td className="dim">{org.industry ?? '—'}</td>
                     <td>
                       <Badge status={org.status}>{org.status}</Badge>
                     </td>

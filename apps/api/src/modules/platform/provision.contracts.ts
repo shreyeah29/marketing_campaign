@@ -28,7 +28,23 @@ export const provisionOrganizationSchema = z.object({
     phone: z.string().max(30).optional(),
     country: z.string().length(2).optional(),
     timezone: z.string().max(64).default('UTC'),
+    // Onboarding is a getting-to-know-you session, not a form: capture who the
+    // company actually is. Stored on Organization.metadata.
+    registeredYear: z.number().int().min(1800).max(2100).optional(),
+    description: z.string().max(2000).optional(),
   }),
+
+  // ── Brand profile ────────────────────────────────────────────────────────────
+  // The company's story — fed to every content-producing agent for this tenant,
+  // so generated posters/copy are on-brand from day one. Stored on
+  // OrganizationSettings (brandVoice/targetAudience/tagline).
+  profile: z
+    .object({
+      vision: z.string().max(4000).optional(),
+      targetAudience: z.string().max(2000).optional(),
+      tagline: z.string().max(200).optional(),
+    })
+    .optional(),
 
   // ── First admin (becomes OWNER) ──────────────────────────────────────────────
   admin: z.object({
@@ -41,7 +57,9 @@ export const provisionOrganizationSchema = z.object({
   }),
 
   // ── Subscription ─────────────────────────────────────────────────────────────
-  plan: z.enum(['starter', 'growth', 'business', 'enterprise', 'custom']),
+  // Plans are gone from the product UI (service billed offline); every org is
+  // provisioned on the internal 'custom' plan row unless explicitly overridden.
+  plan: z.enum(['starter', 'growth', 'business', 'enterprise', 'custom']).default('custom'),
   status: z.enum(['TRIAL', 'ACTIVE']).default('TRIAL'),
 
   // ── Modules ──────────────────────────────────────────────────────────────────

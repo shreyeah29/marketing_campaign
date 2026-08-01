@@ -46,13 +46,19 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
     {
       href: '/platform',
       label: 'Organizations',
-      icon: '▦',
+      icon: <Icon name="building" size={16} />,
       match: (p: string) => p === '/platform',
+    },
+    {
+      href: '/platform/analytics',
+      label: 'Analytics',
+      icon: <Icon name="bar-chart" size={16} />,
+      match: (p: string) => p.startsWith('/platform/analytics'),
     },
     {
       href: '/platform/organizations/new',
       label: 'New organization',
-      icon: '＋',
+      icon: <Icon name="plus" size={16} />,
       match: (p: string) => p.startsWith('/platform/organizations/new'),
     },
   ]

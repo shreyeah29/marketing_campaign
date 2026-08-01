@@ -22,31 +22,9 @@ export interface CatalogCategoryGroup {
   features: CatalogFeature[]
 }
 
-export interface CatalogPlan {
-  id: string
-  name: string
-  description: string
-  featureCount: number
-  featureIds: string[]
-  monthlyPriceUsd: number | null
-  customPricing: boolean
-}
-
-export interface CatalogPreset {
-  id: string
-  name: string
-  industry: string
-  description: string
-  recommendedPlan: string
-  featureCount: number
-  featureIds: string[]
-}
-
 export interface Catalog {
   categories: string[]
   features: CatalogCategoryGroup[]
-  plans: CatalogPlan[]
-  presets: CatalogPreset[]
 }
 
 // ── Organisations ──────────────────────────────────────────────────────────────
@@ -58,7 +36,8 @@ export interface OrgListItem {
   name: string
   slug: string
   status: OrgStatus
-  plan: string | null
+  industry: string | null
+  logoUrl: string | null
   members: number
   enabledFeatures: number
   createdAt: string
@@ -70,18 +49,62 @@ export interface OrgDetail {
   slug: string
   status: OrgStatus
   industry: string | null
-  plan: { key: string; name: string } | null
+  website: string | null
+  registeredYear: number | null
+  description: string | null
+  profile: { vision: string | null; targetAudience: string | null; tagline: string | null } | null
   features: { key: string; source: string }[]
   limits: { metric: string; limit: number }[]
-  branding: { displayName: string | null; primaryColor: string | null } | null
+  branding: {
+    displayName: string | null
+    primaryColor: string | null
+    logoUrl: string | null
+  } | null
   usage: {
     members: number
     contacts: number
+    leads: number
     campaigns: number
+    assets: number
     agentRuns: number
     aiCostUsd: string
     aiCalls: number
   }
+}
+
+// ── Portfolio analytics (operator console) ─────────────────────────────────────
+
+export interface PortfolioOrg {
+  id: string
+  name: string
+  slug: string
+  status: OrgStatus
+  logoUrl: string | null
+  createdAt: string
+  members: number
+  modules: string[]
+  leadsTotal: number
+  leads30d: number
+  campaigns: number
+  assetsGenerated: number
+  aiCostUsd: string
+  aiCalls: number
+  revenueWonUsd: string
+  lastActivityAt: string | null
+}
+
+export interface PortfolioAnalytics {
+  totals: {
+    organizations: number
+    active: number
+    members: number
+    leads30d: number
+    campaigns: number
+    assetsGenerated: number
+    aiCostUsd: string
+    revenueWonUsd: string
+  }
+  organizations: PortfolioOrg[]
 }
 
 export interface ProvisionResult {
@@ -104,16 +127,28 @@ export interface ProvisionInput {
     name: string
     slug: string
     industry?: string
+    website?: string
     timezone?: string
+    registeredYear?: number
+    description?: string
+  }
+  profile?: {
+    vision?: string
+    targetAudience?: string
+    tagline?: string
+  }
+  branding?: {
+    displayName?: string
+    logoUrl?: string
+    primaryColor?: string
+    accentColor?: string
   }
   admin: {
     email: string
     name: string
     password: string
   }
-  plan: string
   status?: OrgStatus
-  preset?: string
   features?: string[]
   featureConfig?: Record<string, Record<string, unknown>>
 }

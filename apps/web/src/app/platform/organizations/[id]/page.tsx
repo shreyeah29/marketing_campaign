@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError } from '@/lib/api'
 import { platform } from '@/lib/platform'
-import type { Catalog, OrgDetail, OrgStatus } from '@/lib/types'
+import type { OrgDetail, OrgStatus } from '@/lib/types'
 import { Badge, Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
 
 const NEXT_STATUS: Record<OrgStatus, { label: string; status: OrgStatus; danger?: boolean }[]> = {
@@ -26,7 +26,6 @@ export default function OrganizationDetailPage() {
   const id = params.id
 
   const [org, setOrg] = useState<OrgDetail | null>(null)
-  const [catalog, setCatalog] = useState<Catalog | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(
     search.get('provisioned') ? 'Organization provisioned successfully.' : null,
@@ -48,10 +47,6 @@ export default function OrganizationDetailPage() {
 
   useEffect(() => {
     load()
-    platform
-      .catalog()
-      .then(setCatalog)
-      .catch(() => setCatalog(null))
   }, [load])
 
   async function act(fn: () => Promise<unknown>, ok: string) {
@@ -92,33 +87,81 @@ export default function OrganizationDetailPage() {
 
       <div className="cols-4 grid" style={{ marginBottom: 22 }}>
         <Stat label="Members" value={org.usage.members} />
-        <Stat label="Contacts" value={org.usage.contacts} />
+        <Stat label="Leads" value={org.usage.leads} />
         <Stat label="Campaigns" value={org.usage.campaigns} />
-        <Stat label="Agent runs" value={org.usage.agentRuns} />
+        <Stat label="Assets generated" value={org.usage.assets} />
       </div>
 
       <div className="cols-2 grid">
-        {/* Subscription + lifecycle */}
+        {/* Company & brand profile */}
         <div className="card">
-          <h3 style={{ marginBottom: 14 }}>Subscription</h3>
-          <div className="spread" style={{ marginBottom: 10 }}>
-            <span className="muted">Plan</span>
-            <span className="badge">{org.plan?.name ?? '—'}</span>
+          <div className="row" style={{ gap: 12, marginBottom: 14 }}>
+            {org.branding?.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={org.branding.logoUrl}
+                alt=""
+                style={{
+                  width: 44,
+                  height: 44,
+                  objectFit: 'contain',
+                  borderRadius: 10,
+                  background: '#fff',
+                  border: '1px solid var(--border)',
+                  padding: 4,
+                }}
+              />
+            ) : null}
+            <h3>Company & brand</h3>
           </div>
-          <div className="field">
-            <label>Change plan</label>
-            <select
-              className="select"
-              value={org.plan?.key ?? ''}
-              disabled={acting || !catalog}
-              onChange={(e) => act(() => platform.changePlan(id, e.target.value), 'Plan changed.')}
-            >
-              {(catalog?.plans ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+          <div className="stack" style={{ gap: 8, fontSize: 13 }}>
+            <div className="spread">
+              <span className="muted">Industry</span>
+              <span>{org.industry ?? '—'}</span>
+            </div>
+            <div className="spread">
+              <span className="muted">Registered</span>
+              <span>{org.registeredYear ?? '—'}</span>
+            </div>
+            <div className="spread">
+              <span className="muted">Website</span>
+              {org.website ? (
+                <a
+                  href={org.website}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {org.website.replace(/^https?:\/\//, '')}
+                </a>
+              ) : (
+                <span>—</span>
+              )}
+            </div>
+            {org.description ? (
+              <div>
+                <div className="muted" style={{ marginBottom: 4 }}>
+                  About
+                </div>
+                <p className="dim">{org.description}</p>
+              </div>
+            ) : null}
+            {org.profile?.vision ? (
+              <div>
+                <div className="muted" style={{ marginBottom: 4 }}>
+                  Vision — fed to every generation
+                </div>
+                <p className="dim">{org.profile.vision}</p>
+              </div>
+            ) : null}
+            {org.profile?.targetAudience ? (
+              <div>
+                <div className="muted" style={{ marginBottom: 4 }}>
+                  Target audience
+                </div>
+                <p className="dim">{org.profile.targetAudience}</p>
+              </div>
+            ) : null}
           </div>
 
           <h3 style={{ margin: '20px 0 12px' }}>Lifecycle</h3>

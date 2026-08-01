@@ -12,6 +12,7 @@ import type {
   OrgDetail,
   OrgListItem,
   PlatformAdmin,
+  PortfolioAnalytics,
   ProvisionInput,
   ProvisionResult,
 } from './types'
@@ -48,8 +49,7 @@ export const platform = {
       { platformAuth: true },
     ),
 
-  changePlan: (id: string, plan: string) =>
-    api.patch<{ ok: true }>(`/platform/organizations/${id}/plan`, { plan }, { platformAuth: true }),
+  analytics: () => api.get<PortfolioAnalytics>('/platform/analytics', { platformAuth: true }),
 
   setFeatures: (
     id: string,

@@ -3,7 +3,17 @@
   "ui": "tui",
   "globalDependencies": ["**/.env.*local", "tsconfig.base.json"],
   "globalEnv": ["NODE_ENV", "CI"],
-  "globalPassThroughEnv": ["SENTRY_AUTH_TOKEN", "TURBO_TOKEN", "TURBO_TEAM"],
+  "globalPassThroughEnv": [
+    "SENTRY_AUTH_TOKEN",
+    "TURBO_TOKEN",
+    "TURBO_TEAM",
+    "DATABASE_URL",
+    "DIRECT_DATABASE_URL",
+    "APP_DATABASE_URL",
+    "REDIS_URL",
+    "BETTER_AUTH_SECRET",
+    "ENCRYPTION_MASTER_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build", "db:generate"],

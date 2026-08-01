@@ -66,6 +66,8 @@ import { PlatformAuthService } from './modules/platform/platform-auth.service.js
 import { ProvisioningService } from './modules/platform/provisioning.service.js'
 import { PlatformAdminGuard } from './modules/platform/platform-admin.guard.js'
 import { WorkspaceController } from './modules/workspace/workspace.controller.js'
+import { MetaController } from './modules/meta/meta.controller.js'
+import { MetaConnectService } from './modules/meta/meta-connect.service.js'
 
 /**
  * Root module.
@@ -120,6 +122,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     ConfigController,
     PlatformController,
     AuthController,
+    MetaController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
@@ -135,6 +138,7 @@ import { WorkspaceController } from './modules/workspace/workspace.controller.js
     AiService,
     CampaignGenerationService,
     KnowledgeService,
+    MetaConnectService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,

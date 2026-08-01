@@ -68,6 +68,8 @@ import { PlatformAdminGuard } from './modules/platform/platform-admin.guard.js'
 import { WorkspaceController } from './modules/workspace/workspace.controller.js'
 import { MetaController } from './modules/meta/meta.controller.js'
 import { MetaConnectService } from './modules/meta/meta-connect.service.js'
+import { MetaAdsController } from './modules/meta/meta-ads.controller.js'
+import { AdCampaignService } from './modules/meta/ad-campaign.service.js'
 
 /**
  * Root module.
@@ -123,6 +125,7 @@ import { MetaConnectService } from './modules/meta/meta-connect.service.js'
     PlatformController,
     AuthController,
     MetaController,
+    MetaAdsController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.
@@ -139,6 +142,7 @@ import { MetaConnectService } from './modules/meta/meta-connect.service.js'
     CampaignGenerationService,
     KnowledgeService,
     MetaConnectService,
+    AdCampaignService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,

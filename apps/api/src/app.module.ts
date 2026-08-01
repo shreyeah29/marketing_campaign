@@ -71,6 +71,7 @@ import { MetaConnectService } from './modules/meta/meta-connect.service.js'
 import { MetaAdsController } from './modules/meta/meta-ads.controller.js'
 import { AdCampaignService } from './modules/meta/ad-campaign.service.js'
 import { AdPublishService } from './modules/meta/ad-publish.service.js'
+import { MetaWebhooksController } from './modules/meta/meta-webhooks.controller.js'
 
 /**
  * Root module.
@@ -127,6 +128,7 @@ import { AdPublishService } from './modules/meta/ad-publish.service.js'
     AuthController,
     MetaController,
     MetaAdsController,
+    MetaWebhooksController,
   ],
   providers: [
     // Entitlement resolution and limit enforcement, injectable across the app.

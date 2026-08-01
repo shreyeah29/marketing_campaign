@@ -130,6 +130,9 @@ async function bootstrap(): Promise<void> {
     // Nest's own logs go through pino, so application and framework logs share
     // one structured format rather than needing two parsers.
     logger: ['error', 'warn', 'log'],
+    // Capture the raw request body so inbound webhooks (Meta / WhatsApp) can verify
+    // their X-Hub-Signature-256 against the exact bytes that were signed.
+    rawBody: true,
   })
 
   await app.register(helmet, {

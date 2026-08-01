@@ -8,6 +8,7 @@ import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { AdCampaignService } from './ad-campaign.service.js'
+import { AdPublishService } from './ad-publish.service.js'
 
 const creativeSchema = z
   .object({
@@ -51,7 +52,10 @@ const rejectSchema = z.object({ reason: z.string().min(1).max(1000) })
 @ApiTags('Meta Ads')
 @Controller('meta/campaigns')
 export class MetaAdsController {
-  constructor(private readonly campaigns: AdCampaignService) {}
+  constructor(
+    private readonly campaigns: AdCampaignService,
+    private readonly publisher: AdPublishService,
+  ) {}
 
   @Post()
   @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
@@ -112,6 +116,32 @@ export class MetaAdsController {
   ): Promise<{ ok: true }> {
     const input = zodBody(rejectSchema, body)
     await this.campaigns.reject(principal, id, input.reason)
+    return { ok: true }
+  }
+
+  @Post(':id/publish')
+  @RequirePermissions(PERMISSIONS.ORG_MANAGE)
+  @ApiOperation({ summary: 'Publish an approved campaign to Meta (created paused)' })
+  async publish(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ metaCampaignId: string }> {
+    return this.publisher.publish(principal, id)
+  }
+
+  @Post(':id/activate')
+  @RequirePermissions(PERMISSIONS.ORG_MANAGE)
+  @ApiOperation({ summary: 'Set a published campaign live (this starts real spend)' })
+  async activate(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+    await this.publisher.setStatus(principal, id, 'ACTIVE')
+    return { ok: true }
+  }
+
+  @Post(':id/pause')
+  @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
+  @ApiOperation({ summary: 'Pause a live campaign' })
+  async pause(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+    await this.publisher.setStatus(principal, id, 'PAUSED')
     return { ok: true }
   }
 }

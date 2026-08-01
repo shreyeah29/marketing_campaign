@@ -70,6 +70,7 @@ import { MetaController } from './modules/meta/meta.controller.js'
 import { MetaConnectService } from './modules/meta/meta-connect.service.js'
 import { MetaAdsController } from './modules/meta/meta-ads.controller.js'
 import { AdCampaignService } from './modules/meta/ad-campaign.service.js'
+import { AdPublishService } from './modules/meta/ad-publish.service.js'
 
 /**
  * Root module.
@@ -143,6 +144,7 @@ import { AdCampaignService } from './modules/meta/ad-campaign.service.js'
     KnowledgeService,
     MetaConnectService,
     AdCampaignService,
+    AdPublishService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,

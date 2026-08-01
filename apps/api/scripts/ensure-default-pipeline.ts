@@ -24,10 +24,15 @@ async function main(): Promise<void> {
   const db = createAdminClient(url)
 
   try {
-    const orgs = await db.organization.findMany({ where: { deletedAt: null }, select: { id: true, name: true } })
+    const orgs = await db.organization.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+    })
     let created = 0
     for (const org of orgs) {
-      const existing = await db.pipeline.count({ where: { organizationId: org.id, deletedAt: null } })
+      const existing = await db.pipeline.count({
+        where: { organizationId: org.id, deletedAt: null },
+      })
       if (existing > 0) continue
 
       const pipelineId = randomUUID()
@@ -44,7 +49,9 @@ async function main(): Promise<void> {
       created++
       console.log(`  created default pipeline for ${org.name} (${org.id})`)
     }
-    console.log(`Done. Created ${String(created)} pipeline(s) across ${String(orgs.length)} organisation(s).`)
+    console.log(
+      `Done. Created ${String(created)} pipeline(s) across ${String(orgs.length)} organisation(s).`,
+    )
   } finally {
     await db.$disconnect()
   }

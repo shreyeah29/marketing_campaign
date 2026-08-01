@@ -42,7 +42,10 @@ export class ChatbotController {
   @Post()
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)
   @ApiOperation({ summary: 'Create a WhatsApp chatbot flow for this client' })
-  async create(@Body() body: unknown, @CurrentPrincipal() principal: Principal): Promise<{ id: string }> {
+  async create(
+    @Body() body: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ id: string }> {
     return this.flows.create(principal, zodBody(createSchema, body))
   }
 
@@ -68,7 +71,10 @@ export class ChatbotController {
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)
   @ApiOperation({ summary: 'Delete a chatbot flow' })
-  async remove(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+  async remove(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ ok: true }> {
     await this.flows.remove(principal, id)
     return { ok: true }
   }

@@ -44,11 +44,16 @@ describe('verifyHandshake', () => {
   })
   it('rejects a wrong token', () => {
     expect(
-      verifyHandshake({ 'hub.mode': 'subscribe', 'hub.verify_token': 'nope', 'hub.challenge': '42' }, 'tok'),
+      verifyHandshake(
+        { 'hub.mode': 'subscribe', 'hub.verify_token': 'nope', 'hub.challenge': '42' },
+        'tok',
+      ),
     ).toBeNull()
   })
   it('rejects a non-subscribe mode', () => {
-    expect(verifyHandshake({ 'hub.mode': 'unsubscribe', 'hub.verify_token': 'tok' }, 'tok')).toBeNull()
+    expect(
+      verifyHandshake({ 'hub.mode': 'unsubscribe', 'hub.verify_token': 'tok' }, 'tok'),
+    ).toBeNull()
   })
 })
 
@@ -62,18 +67,31 @@ describe('parseLeadgenEvents', () => {
           changes: [
             {
               field: 'leadgen',
-              value: { leadgen_id: 'lead_9', page_id: 'page_1', form_id: 'form_2', ad_id: 'ad_3', created_time: 100 },
+              value: {
+                leadgen_id: 'lead_9',
+                page_id: 'page_1',
+                form_id: 'form_2',
+                ad_id: 'ad_3',
+                created_time: 100,
+              },
             },
           ],
         },
       ],
     })
     expect(events).toHaveLength(1)
-    expect(events[0]).toMatchObject({ leadgenId: 'lead_9', pageId: 'page_1', formId: 'form_2', adId: 'ad_3' })
+    expect(events[0]).toMatchObject({
+      leadgenId: 'lead_9',
+      pageId: 'page_1',
+      formId: 'form_2',
+      adId: 'ad_3',
+    })
   })
 
   it('ignores non-leadgen changes and empty payloads', () => {
-    expect(parseLeadgenEvents({ object: 'page', entry: [{ changes: [{ field: 'feed', value: {} }] }] })).toHaveLength(0)
+    expect(
+      parseLeadgenEvents({ object: 'page', entry: [{ changes: [{ field: 'feed', value: {} }] }] }),
+    ).toHaveLength(0)
     expect(parseLeadgenEvents({})).toHaveLength(0)
     expect(parseLeadgenEvents(null)).toHaveLength(0)
   })

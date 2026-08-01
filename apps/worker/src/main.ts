@@ -13,7 +13,13 @@ import { createLogger, withLogContext, type AppLogger } from '@vsp/observability
 import { loadWorkerEnv } from './config.js'
 import { createEmbeddingsHandler } from './embeddings/indexer.js'
 import { OutboxDispatcher } from './outbox-dispatcher.js'
-import { deadLetterQueue, QUEUE_POLICIES, QUEUES, type QueuePolicy, type TenantJobData } from './queues.js'
+import {
+  deadLetterQueue,
+  QUEUE_POLICIES,
+  QUEUES,
+  type QueuePolicy,
+  type TenantJobData,
+} from './queues.js'
 import { SchedulePoller } from './schedule-poller.js'
 import { createWorkflowHandler } from './workflow/executor.js'
 
@@ -162,8 +168,9 @@ function createWorker(
         )
       }
 
-      await withTenant({ organizationId, ...(data?.userId === undefined ? {} : { userId: data.userId }) }, () =>
-        handler(job, db, jobLogger),
+      await withTenant(
+        { organizationId, ...(data?.userId === undefined ? {} : { userId: data.userId }) },
+        () => handler(job, db, jobLogger),
       )
     },
     {

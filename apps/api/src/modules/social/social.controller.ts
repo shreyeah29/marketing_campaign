@@ -37,14 +37,7 @@ import { DATABASE } from '../../infrastructure/database.module.js'
 
 // The set of platforms we model. Kept in sync with the Prisma `ChannelType` enum;
 // only the ones that make sense as a social destination are offered for connect.
-const SOCIAL_PLATFORMS = [
-  'FACEBOOK',
-  'INSTAGRAM',
-  'LINKEDIN',
-  'X',
-  'TIKTOK',
-  'YOUTUBE',
-] as const
+const SOCIAL_PLATFORMS = ['FACEBOOK', 'INSTAGRAM', 'LINKEDIN', 'X', 'TIKTOK', 'YOUTUBE'] as const
 
 const connectAccountSchema = z.object({
   platform: z.enum(SOCIAL_PLATFORMS),
@@ -53,9 +46,7 @@ const connectAccountSchema = z.object({
 })
 
 const listPostsSchema = z.object({
-  status: z
-    .enum(['DRAFT', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED', 'DELETED'])
-    .optional(),
+  status: z.enum(['DRAFT', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED', 'DELETED']).optional(),
 })
 
 const createPostSchema = z.object({

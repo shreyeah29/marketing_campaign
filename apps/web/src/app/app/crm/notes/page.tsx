@@ -14,7 +14,11 @@ export default function NotesPage() {
       emptyTitle="No notes yet"
       emptyHint="Capture a thought, a call summary, or context on a contact."
       columns={[
-        { key: 'body', header: 'Note', render: (r) => (r.body.length > 90 ? `${r.body.slice(0, 90)}…` : r.body) },
+        {
+          key: 'body',
+          header: 'Note',
+          render: (r) => (r.body.length > 90 ? `${r.body.slice(0, 90)}…` : r.body),
+        },
         {
           key: 'createdAt',
           header: 'Created',

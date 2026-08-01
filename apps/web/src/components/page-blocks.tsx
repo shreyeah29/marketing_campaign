@@ -46,7 +46,15 @@ function HeroBlock({ block }: { block: Block }) {
         {str(block['heading']) || 'Your headline'}
       </h1>
       {str(block['subheading']) ? (
-        <p style={{ fontSize: 20, lineHeight: 1.5, margin: '0 auto 28px', maxWidth: 640, opacity: 0.75 }}>
+        <p
+          style={{
+            fontSize: 20,
+            lineHeight: 1.5,
+            margin: '0 auto 28px',
+            maxWidth: 640,
+            opacity: 0.75,
+          }}
+        >
           {str(block['subheading'])}
         </p>
       ) : null}
@@ -103,7 +111,9 @@ function FeaturesBlock({ block }: { block: Block }) {
               padding: 20,
             }}
           >
-            <h3 style={{ fontSize: 17, margin: '0 0 8px', fontWeight: 700 }}>{it.title || 'Feature'}</h3>
+            <h3 style={{ fontSize: 17, margin: '0 0 8px', fontWeight: 700 }}>
+              {it.title || 'Feature'}
+            </h3>
             <p style={{ fontSize: 15, lineHeight: 1.5, margin: 0, opacity: 0.75 }}>{it.body}</p>
           </div>
         ))}
@@ -116,7 +126,9 @@ function TextBlock({ block }: { block: Block }) {
   return (
     <section style={section}>
       {str(block['heading']) ? (
-        <h2 style={{ fontSize: 28, margin: '0 0 16px', fontWeight: 700 }}>{str(block['heading'])}</h2>
+        <h2 style={{ fontSize: 28, margin: '0 0 16px', fontWeight: 700 }}>
+          {str(block['heading'])}
+        </h2>
       ) : null}
       <p style={{ fontSize: 17, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-wrap' }}>
         {str(block['body'])}

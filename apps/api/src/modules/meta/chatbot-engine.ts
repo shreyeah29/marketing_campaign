@@ -43,8 +43,16 @@ export interface AdvanceResult {
 }
 
 // Phrases that route a prospect straight to a human agent, ending the bot flow.
-const HANDOFF_PHRASES = ['agent', 'human', 'representative', 'talk to someone', 'speak to someone', 'real person']
-const HANDOFF_MESSAGE = 'No problem — connecting you with our team. Someone will reply here shortly.'
+const HANDOFF_PHRASES = [
+  'agent',
+  'human',
+  'representative',
+  'talk to someone',
+  'speak to someone',
+  'real person',
+]
+const HANDOFF_MESSAGE =
+  'No problem — connecting you with our team. Someone will reply here shortly.'
 
 function wantsHandoff(message: string): boolean {
   const m = message.toLowerCase()
@@ -120,17 +128,27 @@ export function advance(
  * Parse a stored flow's `questions` JSON defensively into a typed config, dropping
  * malformed entries so a bad row can never crash the worker.
  */
-export function parseFlowConfig(questions: unknown, completionMessage?: string | null): ChatbotFlowConfig {
+export function parseFlowConfig(
+  questions: unknown,
+  completionMessage?: string | null,
+): ChatbotFlowConfig {
   const list = Array.isArray(questions) ? questions : []
   const parsed: ChatbotQuestion[] = []
   for (const q of list) {
-    if (q && typeof q === 'object' && typeof (q as ChatbotQuestion).key === 'string' && typeof (q as ChatbotQuestion).prompt === 'string') {
+    if (
+      q &&
+      typeof q === 'object' &&
+      typeof (q as ChatbotQuestion).key === 'string' &&
+      typeof (q as ChatbotQuestion).prompt === 'string'
+    ) {
       const item = q as ChatbotQuestion
       parsed.push({
         key: item.key,
         prompt: item.prompt,
         ...(item.type ? { type: item.type } : {}),
-        ...(Array.isArray(item.options) ? { options: item.options.filter((o) => typeof o === 'string') } : {}),
+        ...(Array.isArray(item.options)
+          ? { options: item.options.filter((o) => typeof o === 'string') }
+          : {}),
       })
     }
   }

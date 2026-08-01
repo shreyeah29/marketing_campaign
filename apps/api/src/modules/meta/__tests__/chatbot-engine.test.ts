@@ -1,12 +1,22 @@
 import { describe, expect, it } from 'vitest'
 
-import { advance, parseFlowConfig, type ChatbotFlowConfig, type ChatbotSessionState } from '../chatbot-engine.js'
+import {
+  advance,
+  parseFlowConfig,
+  type ChatbotFlowConfig,
+  type ChatbotSessionState,
+} from '../chatbot-engine.js'
 
 const FLOW: ChatbotFlowConfig = {
   questions: [
     { key: 'name', prompt: 'What is your name?' },
     { key: 'city', prompt: 'Which city are you in?' },
-    { key: 'interest', prompt: 'What are you interested in?', type: 'choice', options: ['Pricing', 'Stores'] },
+    {
+      key: 'interest',
+      prompt: 'What are you interested in?',
+      type: 'choice',
+      options: ['Pricing', 'Stores'],
+    },
   ],
   completionMessage: 'Thanks! Our team will reach out.',
 }
@@ -30,7 +40,11 @@ describe('chatbot advance — a per-client structured flow', () => {
   })
 
   it('renders a choice question with numbered options', () => {
-    const state: ChatbotSessionState = { currentStep: 1, answers: { name: 'Asha' }, status: 'ACTIVE' }
+    const state: ChatbotSessionState = {
+      currentStep: 1,
+      answers: { name: 'Asha' },
+      status: 'ACTIVE',
+    }
     const r = advance(FLOW, state, 'Hyderabad', { firstContact: false })
     expect(r.answers).toMatchObject({ city: 'Hyderabad' })
     expect(r.replies[0]).toContain('What are you interested in?')

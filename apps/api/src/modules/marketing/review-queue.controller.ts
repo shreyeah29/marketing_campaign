@@ -38,10 +38,31 @@ const editSchema = z
   .strict()
 const scheduleSchema = z.object({ scheduledFor: z.string().datetime() }).strict()
 const rejectSchema = z.object({ reason: z.string().max(1000).optional() }).strict()
-const bulkSchema = z.object({ action: z.enum(['approve', 'reject']), ids: z.array(z.string()).min(1).max(200) }).strict()
+const bulkSchema = z
+  .object({ action: z.enum(['approve', 'reject']), ids: z.array(z.string()).min(1).max(200) })
+  .strict()
 const commentSchema = z.object({ body: z.string().min(1).max(2000) }).strict()
-const ASSET_STATUS = ['DRAFT', 'GENERATED', 'NEEDS_REVIEW', 'APPROVED', 'REJECTED', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED', 'FAILED'] as const
-const ASSET_PLATFORM = ['INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'X', 'GOOGLE', 'YOUTUBE', 'TIKTOK', 'GENERIC'] as const
+const ASSET_STATUS = [
+  'DRAFT',
+  'GENERATED',
+  'NEEDS_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'SCHEDULED',
+  'PUBLISHING',
+  'PUBLISHED',
+  'FAILED',
+] as const
+const ASSET_PLATFORM = [
+  'INSTAGRAM',
+  'FACEBOOK',
+  'LINKEDIN',
+  'X',
+  'GOOGLE',
+  'YOUTUBE',
+  'TIKTOK',
+  'GENERIC',
+] as const
 const listAssetsQuerySchema = z.object({
   status: z.enum(ASSET_STATUS).optional(),
   platform: z.enum(ASSET_PLATFORM).optional(),
@@ -122,10 +143,20 @@ export class ReviewQueueController {
       }),
     )
     const columns: Record<string, unknown[]> = {
-      GENERATED: [], NEEDS_REVIEW: [], APPROVED: [], SCHEDULED: [], PUBLISHED: [], REJECTED: [],
+      GENERATED: [],
+      NEEDS_REVIEW: [],
+      APPROVED: [],
+      SCHEDULED: [],
+      PUBLISHED: [],
+      REJECTED: [],
     }
     for (const r of rows) {
-      const key = r.status === 'DRAFT' ? 'GENERATED' : r.status === 'PUBLISHING' || r.status === 'FAILED' ? 'SCHEDULED' : r.status
+      const key =
+        r.status === 'DRAFT'
+          ? 'GENERATED'
+          : r.status === 'PUBLISHING' || r.status === 'FAILED'
+            ? 'SCHEDULED'
+            : r.status
       ;(columns[key] ?? (columns[key] = [])).push(r)
     }
     return { columns }
@@ -135,7 +166,10 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   async get(@Param('id') id: string): Promise<unknown> {
     const asset = await withTenantTransaction(this.db, (tx) =>
-      tx.campaignAsset.findFirst({ where: { id, deletedAt: null }, include: { comments: { orderBy: { createdAt: 'asc' } } } }),
+      tx.campaignAsset.findFirst({
+        where: { id, deletedAt: null },
+        include: { comments: { orderBy: { createdAt: 'asc' } } },
+      }),
     )
     if (!asset) throw new NotFoundException('Asset not found')
     return asset
@@ -145,7 +179,11 @@ export class ReviewQueueController {
   @Patch(':id')
   @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
   @ApiOperation({ summary: 'Edit an asset' })
-  async edit(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async edit(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const input = zodBody(editSchema, body)
     return withTenantTransaction(this.db, async (tx) => {
       const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
@@ -159,7 +197,9 @@ export class ReviewQueueController {
           ...(input.hashtags === undefined ? {} : { hashtags: input.hashtags }),
           ...(input.cta === undefined ? {} : { cta: input.cta }),
           // An edit after generation/rejection returns it to review.
-          ...(asset.status === 'APPROVED' || asset.status === 'REJECTED' ? { status: 'NEEDS_REVIEW' } : {}),
+          ...(asset.status === 'APPROVED' || asset.status === 'REJECTED'
+            ? { status: 'NEEDS_REVIEW' }
+            : {}),
         },
       })
       await this.comment(tx, p, id, 'Edited', 'edited')
@@ -210,14 +250,29 @@ export class ReviewQueueController {
 
   @Post(':id/reject')
   @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
-  async reject(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async reject(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const { reason } = zodBody(rejectSchema, body)
-    return this.transition(id, p, 'REJECTED', new Set(['GENERATED', 'NEEDS_REVIEW', 'APPROVED', 'SCHEDULED']), `Rejected${reason ? `: ${reason}` : ''}`, 'rejected')
+    return this.transition(
+      id,
+      p,
+      'REJECTED',
+      new Set(['GENERATED', 'NEEDS_REVIEW', 'APPROVED', 'SCHEDULED']),
+      `Rejected${reason ? `: ${reason}` : ''}`,
+      'rejected',
+    )
   }
 
   @Post(':id/schedule')
   @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
-  async schedule(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async schedule(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const { scheduledFor } = zodBody(scheduleSchema, body)
     return withTenantTransaction(this.db, async (tx) => {
       const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
@@ -229,7 +284,13 @@ export class ReviewQueueController {
         where: { id },
         data: { status: 'SCHEDULED', scheduledFor: new Date(scheduledFor) },
       })
-      await this.comment(tx, p, id, `Scheduled for ${new Date(scheduledFor).toLocaleString()}`, 'scheduled')
+      await this.comment(
+        tx,
+        p,
+        id,
+        `Scheduled for ${new Date(scheduledFor).toLocaleString()}`,
+        'scheduled',
+      )
       return updated
     })
   }
@@ -273,7 +334,10 @@ export class ReviewQueueController {
   @Post('bulk')
   @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
   @ApiOperation({ summary: 'Bulk approve or reject' })
-  async bulk(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<{ ok: true; count: number }> {
+  async bulk(
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ ok: true; count: number }> {
     const { action, ids } = zodBody(bulkSchema, body)
     const status = action === 'approve' ? 'APPROVED' : 'REJECTED'
     const count = await withTenantTransaction(this.db, async (tx) => {
@@ -290,10 +354,17 @@ export class ReviewQueueController {
   // ── Comments / timeline ────────────────────────────────────────────────────
   @Post(':id/comments')
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
-  async addComment(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async addComment(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const { body: text } = zodBody(commentSchema, body)
     return withTenantTransaction(this.db, async (tx) => {
-      const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null }, select: { id: true } })
+      const asset = await tx.campaignAsset.findFirst({
+        where: { id, deletedAt: null },
+        select: { id: true },
+      })
       if (!asset) throw new NotFoundException('Asset not found')
       return this.comment(tx, p, id, text, 'comment')
     })

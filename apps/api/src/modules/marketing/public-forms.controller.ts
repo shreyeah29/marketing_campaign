@@ -43,8 +43,17 @@ function coerceFields(value: unknown): FormField[] {
   for (const raw of value) {
     if (raw && typeof raw === 'object') {
       const f = raw as Record<string, unknown>
-      if (typeof f['key'] === 'string' && typeof f['label'] === 'string' && typeof f['type'] === 'string') {
-        out.push({ key: f['key'], label: f['label'], type: f['type'], required: Boolean(f['required']) })
+      if (
+        typeof f['key'] === 'string' &&
+        typeof f['label'] === 'string' &&
+        typeof f['type'] === 'string'
+      ) {
+        out.push({
+          key: f['key'],
+          label: f['label'],
+          type: f['type'],
+          required: Boolean(f['required']),
+        })
       }
     }
   }
@@ -87,7 +96,11 @@ export class PublicFormsController {
   @Public()
   @Post(':slug')
   @ApiOperation({ summary: 'Submit a hosted form' })
-  async submit(@Param('slug') slug: string, @Body() rawBody: unknown, @Req() req: FastifyRequest): Promise<unknown> {
+  async submit(
+    @Param('slug') slug: string,
+    @Body() rawBody: unknown,
+    @Req() req: FastifyRequest,
+  ): Promise<unknown> {
     const bodySchema = z.record(z.string(), z.unknown())
     const parsed = bodySchema.safeParse(rawBody)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
@@ -115,7 +128,11 @@ export class PublicFormsController {
       const val = typeof raw === 'string' ? raw.trim() : undefined
       if (!val) continue
       const tag = `${f.type} ${f.key} ${f.label}`.toLowerCase()
-      if (email === null && (f.type.toLowerCase() === 'email' || tag.includes('email')) && EMAIL_RE.test(val)) {
+      if (
+        email === null &&
+        (f.type.toLowerCase() === 'email' || tag.includes('email')) &&
+        EMAIL_RE.test(val)
+      ) {
         email = val
       }
       if (name === null && tag.includes('name')) {

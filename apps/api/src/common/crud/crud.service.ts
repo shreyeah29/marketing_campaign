@@ -1,7 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 
 import { buildPage, decodeCursor, type Paginated } from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient, type TenantTransactionClient } from '@vsp/database'
+import {
+  withTenantTransaction,
+  type DatabaseClient,
+  type TenantTransactionClient,
+} from '@vsp/database'
 
 import type { Principal } from '../auth/principal.js'
 
@@ -97,7 +101,9 @@ export class CrudService {
     const search =
       opts.search && opts.searchFields && opts.searchFields.length > 0
         ? {
-            OR: opts.searchFields.map((f) => ({ [f]: { contains: opts.search, mode: 'insensitive' } })),
+            OR: opts.searchFields.map((f) => ({
+              [f]: { contains: opts.search, mode: 'insensitive' },
+            })),
           }
         : {}
 
@@ -121,7 +127,9 @@ export class CrudService {
                 ],
               }),
         },
-        orderBy: opts.orderBy ? [opts.orderBy, { id: 'desc' }] : [{ createdAt: 'desc' }, { id: 'desc' }],
+        orderBy: opts.orderBy
+          ? [opts.orderBy, { id: 'desc' }]
+          : [{ createdAt: 'desc' }, { id: 'desc' }],
         take: opts.limit + 1,
       }),
     )) as T[]
@@ -150,14 +158,17 @@ export class CrudService {
     const ownership: Record<string, unknown> = {}
     if (own && principal.type === 'user') {
       for (const f of own.createdBy ?? []) ownership[f] = principal.id
-      for (const f of own.defaultToUser ?? []) if (data[f] === undefined) ownership[f] = principal.id
+      for (const f of own.defaultToUser ?? [])
+        if (data[f] === undefined) ownership[f] = principal.id
     }
 
     return withTenantTransaction(this.db, async (tx) => {
       const row = await delegate(tx, model).create({
         data: { ...data, ...ownership, organizationId: principal.organizationId },
       })
-      await this.audit(tx, principal, `${action}.created`, model, String(row['id']), { after: data })
+      await this.audit(tx, principal, `${action}.created`, model, String(row['id']), {
+        after: data,
+      })
       return row as T
     })
   }
@@ -183,7 +194,12 @@ export class CrudService {
     })
   }
 
-  async remove(model: string, principal: Principal, id: string, action: string): Promise<{ ok: true }> {
+  async remove(
+    model: string,
+    principal: Principal,
+    id: string,
+    action: string,
+  ): Promise<{ ok: true }> {
     await withTenantTransaction(this.db, async (tx) => {
       const before = await delegate(tx, model).findFirst({ where: { id, deletedAt: null } })
       if (!before) throw new NotFoundException(`No ${model} with id ${id}`)

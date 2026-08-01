@@ -29,13 +29,20 @@ export class WorkflowEngineService {
     @Inject(LOGGER) private readonly logger: AppLogger,
   ) {
     const env = loadEnv()
-    this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null, enableReadyCheck: false })
+    this.connection = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    })
     // Same queue name the worker consumes.
     this.queue = new Queue('workflow-execution', { connection: this.connection })
   }
 
   /** Saves a new version of a workflow's graph and points the workflow at it. */
-  async saveGraph(principal: Principal, workflowId: string, graph: unknown): Promise<{ version: number }> {
+  async saveGraph(
+    principal: Principal,
+    workflowId: string,
+    graph: unknown,
+  ): Promise<{ version: number }> {
     return withTenantTransaction(this.db, async (tx) => {
       const wf = await tx.workflow.findFirst({ where: { id: workflowId, deletedAt: null } })
       if (!wf) throw new NotFoundException('Workflow not found')
@@ -94,7 +101,11 @@ export class WorkflowEngineService {
       return run.id
     })
 
-    await this.enqueue(principal.organizationId, runId, principal.type === 'user' ? principal.id : undefined)
+    await this.enqueue(
+      principal.organizationId,
+      runId,
+      principal.type === 'user' ? principal.id : undefined,
+    )
     return { runId }
   }
 
@@ -193,14 +204,27 @@ export class WorkflowEngineService {
         orderBy: { position: 'asc' },
         select: { nodeId: true },
       })
-      await tx.workflowRun.updateMany({ where: { id: runId }, data: { status: 'PENDING', error: null } })
+      await tx.workflowRun.updateMany({
+        where: { id: runId },
+        data: { status: 'PENDING', error: null },
+      })
       return failed?.nodeId
     })
-    await this.enqueue(principal.organizationId, runId, principal.type === 'user' ? principal.id : undefined, resumeNodeId ?? undefined)
+    await this.enqueue(
+      principal.organizationId,
+      runId,
+      principal.type === 'user' ? principal.id : undefined,
+      resumeNodeId ?? undefined,
+    )
     return { ok: true }
   }
 
-  private async enqueue(organizationId: string, runId: string, userId?: string, resumeNodeId?: string): Promise<void> {
+  private async enqueue(
+    organizationId: string,
+    runId: string,
+    userId?: string,
+    resumeNodeId?: string,
+  ): Promise<void> {
     await this.queue.add('run', {
       organizationId,
       runId,

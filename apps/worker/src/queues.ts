@@ -155,7 +155,7 @@ export const QUEUE_POLICIES: readonly QueuePolicy[] = [
     name: QUEUES.WEBHOOK_DELIVERY,
     concurrency: 10,
     jobOptions: { ...RETAIN, attempts: 5, backoff: backoff(10_000) },
-    rationale: "Customer endpoints are frequently flaky; patience is expected of a webhook sender.",
+    rationale: 'Customer endpoints are frequently flaky; patience is expected of a webhook sender.',
   },
   {
     name: QUEUES.WORKFLOW_EXECUTION,
@@ -165,7 +165,7 @@ export const QUEUE_POLICIES: readonly QueuePolicy[] = [
     // than repeating side effects. Exhaustion dead-letters the run.
     jobOptions: { ...RETAIN, attempts: 3, backoff: backoff(4_000) },
     rationale:
-      'Orchestration. Each node is idempotent via the run\'s completed-node set, so retries do not ' +
+      "Orchestration. Each node is idempotent via the run's completed-node set, so retries do not " +
       'duplicate actions; delays re-enqueue with a BullMQ delay rather than blocking a worker.',
   },
 ]

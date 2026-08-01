@@ -103,7 +103,10 @@ export class LandingPagesController {
   @Post()
   @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
   @ApiOperation({ summary: 'Create a landing page' })
-  async create(@Body() rawBody: unknown, @CurrentPrincipal() principal: Principal): Promise<LandingPageRecord> {
+  async create(
+    @Body() rawBody: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<LandingPageRecord> {
     const parsed = createPageSchema.safeParse(rawBody)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
     const input = parsed.data

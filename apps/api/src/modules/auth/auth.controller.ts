@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Inject,
-  Post,
-} from '@nestjs/common'
+import { Body, Controller, ForbiddenException, Get, Inject, Post } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -135,11 +128,17 @@ export class AuthController {
 
     const result = await this.identity.acceptInvitation(identity.userId, identity.email, token)
     if ('error' in result) {
-      throw new ForbiddenException(INVITE_ERROR_MESSAGES[result.error] ?? 'Invitation could not be accepted')
+      throw new ForbiddenException(
+        INVITE_ERROR_MESSAGES[result.error] ?? 'Invitation could not be accepted',
+      )
     }
 
     // Drop the user straight into the org they just joined.
-    await this.identity.setActiveOrganization(identity.userId, identity.sessionId, result.organizationId)
+    await this.identity.setActiveOrganization(
+      identity.userId,
+      identity.sessionId,
+      result.organizationId,
+    )
 
     return { ok: true, organizationId: result.organizationId, role: result.role }
   }

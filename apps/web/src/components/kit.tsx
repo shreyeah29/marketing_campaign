@@ -53,9 +53,7 @@ export function EmptyState({
 }) {
   return (
     <div className="state">
-      <div className="state-badge">
-        {isIconName(icon) ? <Icon name={icon} size={22} /> : icon}
-      </div>
+      <div className="state-badge">{isIconName(icon) ? <Icon name={icon} size={22} /> : icon}</div>
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
       {action ? <div className="mt">{action}</div> : null}
@@ -66,7 +64,10 @@ export function EmptyState({
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div className="state">
-      <div className="state-badge" style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}>
+      <div
+        className="state-badge"
+        style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}
+      >
         <Icon name="alert-triangle" size={22} />
       </div>
       <h3>Something went wrong</h3>
@@ -131,7 +132,9 @@ export function SearchInput({
 }) {
   return (
     <div className="search">
-      <span className="ico"><Icon name="search" size={15} /></span>
+      <span className="ico">
+        <Icon name="search" size={15} />
+      </span>
       <input
         className="input"
         value={value}
@@ -355,7 +358,9 @@ interface Toast {
   kind: 'success' | 'error' | 'info'
   message: string
 }
-const ToastCtx = createContext<{ push: (kind: Toast['kind'], message: string) => void } | null>(null)
+const ToastCtx = createContext<{ push: (kind: Toast['kind'], message: string) => void } | null>(
+  null,
+)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])

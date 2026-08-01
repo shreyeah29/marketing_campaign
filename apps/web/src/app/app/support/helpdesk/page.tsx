@@ -17,43 +17,37 @@ const ARTICLES: Article[] = [
     id: 'ai-generation',
     title: 'How AI generation works',
     category: 'AI',
-    body:
-      'Describe what you want in plain language and the assistant drafts it for you — campaign copy, social posts, replies and more. Every generation is a draft: nothing is published or sent until you review and approve it. If a provider is not yet configured, add one under Settings → Providers. You can regenerate any draft as many times as you like, and edits you make are always preserved over the model output.',
+    body: 'Describe what you want in plain language and the assistant drafts it for you — campaign copy, social posts, replies and more. Every generation is a draft: nothing is published or sent until you review and approve it. If a provider is not yet configured, add one under Settings → Providers. You can regenerate any draft as many times as you like, and edits you make are always preserved over the model output.',
   },
   {
     id: 'lead-capture-form',
     title: 'Creating a lead capture form',
     category: 'CRM',
-    body:
-      'Open Marketing → Forms and start a new form. Add the fields you need (name, email, phone, custom questions), then set where submissions should land — new contacts are created automatically and tagged by source. Embed the form on your site with the generated snippet, or share the hosted link. Consent checkboxes are opt-in by default so you stay compliant.',
+    body: 'Open Marketing → Forms and start a new form. Add the fields you need (name, email, phone, custom questions), then set where submissions should land — new contacts are created automatically and tagged by source. Embed the form on your site with the generated snippet, or share the hosted link. Consent checkboxes are opt-in by default so you stay compliant.',
   },
   {
     id: 'workflow-automation',
     title: 'Building a workflow automation',
     category: 'Automation',
-    body:
-      'Automations run a sequence of steps when a trigger fires — a new lead, a form submission, a schedule. Go to Automation → Workflows, pick a trigger, then chain actions such as sending an email, adding a tag, or notifying a teammate. Save it as a draft to test, and activate it when you are ready. Activated workflows require the "activate" permission, so drafts are safe to experiment with.',
+    body: 'Automations run a sequence of steps when a trigger fires — a new lead, a form submission, a schedule. Go to Automation → Workflows, pick a trigger, then chain actions such as sending an email, adding a tag, or notifying a teammate. Save it as a draft to test, and activate it when you are ready. Activated workflows require the "activate" permission, so drafts are safe to experiment with.',
   },
   {
     id: 'connect-social',
     title: 'Connecting a social account',
     category: 'Channels',
-    body:
-      'Head to Settings → Providers and choose the network you want to connect (Instagram, Facebook, LinkedIn, X and more). Authorise access in the popup and the account appears as a publishing target. Once connected, approved campaign assets can be scheduled or published directly. Reconnect if a token expires — the banner on the Providers page will tell you when action is needed.',
+    body: 'Head to Settings → Providers and choose the network you want to connect (Instagram, Facebook, LinkedIn, X and more). Authorise access in the popup and the account appears as a publishing target. Once connected, approved campaign assets can be scheduled or published directly. Reconnect if a token expires — the banner on the Providers page will tell you when action is needed.',
   },
   {
     id: 'roles-permissions',
     title: 'Understanding roles & permissions',
     category: 'Admin',
-    body:
-      'Every teammate has a role: Viewer, Member, Manager, Admin or Owner. Roles are cumulative — each includes everything the one below it can do, plus more. Members can draft and create; Managers can publish, send and approve; Admins run the workspace; Owners have full control. Need a one-off exception? Grant a single extra permission instead of promoting someone to a higher role.',
+    body: 'Every teammate has a role: Viewer, Member, Manager, Admin or Owner. Roles are cumulative — each includes everything the one below it can do, plus more. Members can draft and create; Managers can publish, send and approve; Admins run the workspace; Owners have full control. Need a one-off exception? Grant a single extra permission instead of promoting someone to a higher role.',
   },
   {
     id: 'support-tickets',
     title: 'Managing support tickets',
     category: 'Support',
-    body:
-      'Support → Tickets is your shared queue. Open a ticket for any customer request, set its priority, and assign it to a teammate. Reply in the conversation thread, or add an internal note that the requester never sees by ticking "Internal note". Move a ticket to Resolved or Closed when you are done — reopening it to Open clears the resolution timestamp automatically.',
+    body: 'Support → Tickets is your shared queue. Open a ticket for any customer request, set its priority, and assign it to a teammate. Reply in the conversation thread, or add an internal note that the requester never sees by ticking "Internal note". Move a ticket to Resolved or Closed when you are done — reopening it to Open clears the resolution timestamp automatically.',
   },
 ]
 
@@ -82,7 +76,9 @@ export default function HelpdeskPage() {
 
       {results.length === 0 ? (
         <div className="state">
-          <div className="state-badge"><Icon name="search" size={22} /></div>
+          <div className="state-badge">
+            <Icon name="search" size={22} />
+          </div>
           <h3>No articles match “{query}”</h3>
           <p>Try a different search, or open a ticket and we will help directly.</p>
         </div>
@@ -114,7 +110,10 @@ export default function HelpdeskPage() {
                   </span>
                 </button>
                 {open ? (
-                  <div style={{ padding: '0 16px 16px', fontSize: 14, lineHeight: 1.6 }} className="dim">
+                  <div
+                    style={{ padding: '0 16px 16px', fontSize: 14, lineHeight: 1.6 }}
+                    className="dim"
+                  >
                     {a.body}
                   </div>
                 ) : null}

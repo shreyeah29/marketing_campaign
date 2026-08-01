@@ -131,7 +131,11 @@ export class MetaConnectService {
    * Handle the OAuth redirect: verify state, exchange the code for a long-lived
    * token, discover the client's assets, and persist an encrypted connection.
    */
-  async handleCallback(principal: Principal, code: string, state: string): Promise<MetaConnectionView> {
+  async handleCallback(
+    principal: Principal,
+    code: string,
+    state: string,
+  ): Promise<MetaConnectionView> {
     const cfg = this.config()
     if (!this.verifyState(state, principal.organizationId)) {
       throw new ServiceUnavailableException('Invalid OAuth state')
@@ -140,7 +144,11 @@ export class MetaConnectService {
     const shortToken = await this.exchangeCode(cfg, code)
     const { accessToken, expiresIn } = await this.exchangeForLongLived(cfg, shortToken)
 
-    const graph = new MetaGraphClient({ accessToken, version: cfg.version, appSecret: cfg.appSecret })
+    const graph = new MetaGraphClient({
+      accessToken,
+      version: cfg.version,
+      appSecret: cfg.appSecret,
+    })
     const [adAccounts, pages, businessId] = await Promise.all([
       this.discoverAdAccounts(graph),
       this.discoverPages(graph),
@@ -276,7 +284,9 @@ export class MetaConnectService {
       })
       if (!conn) return
       if (conn.credentialId) {
-        await tx.providerCredential.delete({ where: { id: conn.credentialId } }).catch(() => undefined)
+        await tx.providerCredential
+          .delete({ where: { id: conn.credentialId } })
+          .catch(() => undefined)
       }
       await tx.metaConnection.update({
         where: { organizationId: principal.organizationId },
@@ -313,7 +323,8 @@ export class MetaConnectService {
     } catch {
       return null
     }
-    const accessToken = typeof opened['accessToken'] === 'string' ? (opened['accessToken'] as string) : ''
+    const accessToken =
+      typeof opened['accessToken'] === 'string' ? (opened['accessToken'] as string) : ''
     if (!accessToken) return null
 
     return {
@@ -374,7 +385,10 @@ export class MetaConnectService {
       })
       .catch(() => ({ data: [] as { account_id?: string; id?: string; name?: string }[] }))
     return (res.data ?? [])
-      .map((a) => ({ id: a.id ?? (a.account_id ? `act_${a.account_id}` : ''), name: a.name ?? 'Ad account' }))
+      .map((a) => ({
+        id: a.id ?? (a.account_id ? `act_${a.account_id}` : ''),
+        name: a.name ?? 'Ad account',
+      }))
       .filter((a) => a.id.length > 0)
   }
 
@@ -382,11 +396,12 @@ export class MetaConnectService {
     graph: MetaGraphClient,
   ): Promise<(MetaAssetOption & { igUserId: string | null })[]> {
     const res = await graph
-      .get<{ data?: { id?: string; name?: string; instagram_business_account?: { id?: string } }[] }>(
-        'me/accounts',
-        { fields: 'id,name,instagram_business_account', limit: 100 },
-      )
-      .catch(() => ({ data: [] as { id?: string; name?: string; instagram_business_account?: { id?: string } }[] }))
+      .get<{
+        data?: { id?: string; name?: string; instagram_business_account?: { id?: string } }[]
+      }>('me/accounts', { fields: 'id,name,instagram_business_account', limit: 100 })
+      .catch(() => ({
+        data: [] as { id?: string; name?: string; instagram_business_account?: { id?: string } }[],
+      }))
     return (res.data ?? [])
       .filter((p) => typeof p.id === 'string')
       .map((p) => ({

@@ -96,7 +96,10 @@ export class LeadFormsController {
   @Post()
   @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
   @ApiOperation({ summary: 'Create a lead form' })
-  async create(@Body() rawBody: unknown, @CurrentPrincipal() principal: Principal): Promise<unknown> {
+  async create(
+    @Body() rawBody: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<unknown> {
     const parsed = createFormSchema.safeParse(rawBody)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
     const input = parsed.data
@@ -210,7 +213,10 @@ export class LeadFormsController {
   @ApiOperation({ summary: 'List submissions for a form, newest first' })
   async submissions(@Param('id') id: string): Promise<unknown> {
     return withTenantTransaction(this.db, async (tx) => {
-      const form = await tx.leadForm.findFirst({ where: { id, deletedAt: null }, select: { id: true } })
+      const form = await tx.leadForm.findFirst({
+        where: { id, deletedAt: null },
+        select: { id: true },
+      })
       if (!form) throw new NotFoundException(`No lead form with id ${id}`)
       return tx.formSubmission.findMany({
         where: { formId: id },

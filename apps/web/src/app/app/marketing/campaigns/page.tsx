@@ -43,28 +43,69 @@ interface CampaignPlan {
 }
 
 const CHIPS = [
-  'Social Media Campaign', 'Meta Ads', 'Google Ads', 'LinkedIn Campaign', 'Email Marketing',
-  'Content Calendar', 'Product Launch', 'Brand Awareness', 'Lead Generation', 'Seasonal Campaign',
-  'Website Content', 'Landing Page', 'Blog Articles', 'Marketing Strategy', 'Complete 360° Campaign',
+  'Social Media Campaign',
+  'Meta Ads',
+  'Google Ads',
+  'LinkedIn Campaign',
+  'Email Marketing',
+  'Content Calendar',
+  'Product Launch',
+  'Brand Awareness',
+  'Lead Generation',
+  'Seasonal Campaign',
+  'Website Content',
+  'Landing Page',
+  'Blog Articles',
+  'Marketing Strategy',
+  'Complete 360° Campaign',
 ]
 
-const SECTIONS: { id: string; label: string; icon: IconName; kinds?: string[]; statuses?: string[]; scheduled?: boolean }[] = [
+const SECTIONS: {
+  id: string
+  label: string
+  icon: IconName
+  kinds?: string[]
+  statuses?: string[]
+  scheduled?: boolean
+}[] = [
   { id: 'overview', label: 'Overview', icon: 'layout' },
   { id: 'strategy', label: 'Strategy', icon: 'target' },
   { id: 'calendar', label: 'Content Calendar', icon: 'calendar', scheduled: true },
-  { id: 'social', label: 'Social Posts', icon: 'megaphone', kinds: ['POST', 'CAPTION', 'STORY', 'REEL'] },
-  { id: 'ads', label: 'Advertisements', icon: 'zap', kinds: ['AD_COPY', 'AD_HEADLINE', 'AD_DESCRIPTION'] },
+  {
+    id: 'social',
+    label: 'Social Posts',
+    icon: 'megaphone',
+    kinds: ['POST', 'CAPTION', 'STORY', 'REEL'],
+  },
+  {
+    id: 'ads',
+    label: 'Advertisements',
+    icon: 'zap',
+    kinds: ['AD_COPY', 'AD_HEADLINE', 'AD_DESCRIPTION'],
+  },
   { id: 'email', label: 'Email Campaign', icon: 'mail', kinds: ['EMAIL'] },
   { id: 'landing', label: 'Landing Page', icon: 'layout', kinds: ['LANDING'] },
   { id: 'blog', label: 'Blog Content', icon: 'file-text', kinds: ['BLOG', 'ARTICLE'] },
   { id: 'media', label: 'Media Assets', icon: 'image', kinds: ['IMAGE_PROMPT', 'VIDEO_PROMPT'] },
-  { id: 'review', label: 'Review Queue', icon: 'check-square', statuses: ['GENERATED', 'NEEDS_REVIEW', 'DRAFT'] },
+  {
+    id: 'review',
+    label: 'Review Queue',
+    icon: 'check-square',
+    statuses: ['GENERATED', 'NEEDS_REVIEW', 'DRAFT'],
+  },
   { id: 'publishing', label: 'Publishing', icon: 'send', statuses: ['SCHEDULED', 'PUBLISHED'] },
   { id: 'analytics', label: 'Analytics', icon: 'bar-chart' },
 ]
 
 const PLATFORM_ICON: Record<string, string> = {
-  INSTAGRAM: '📸', FACEBOOK: '👍', LINKEDIN: '💼', X: '𝕏', GOOGLE: '🔍', YOUTUBE: '▶️', TIKTOK: '🎵', GENERIC: '✳️',
+  INSTAGRAM: '📸',
+  FACEBOOK: '👍',
+  LINKEDIN: '💼',
+  X: '𝕏',
+  GOOGLE: '🔍',
+  YOUTUBE: '▶️',
+  TIKTOK: '🎵',
+  GENERIC: '✳️',
 }
 function statusTint(s: string): string {
   if (s === 'APPROVED' || s === 'PUBLISHED') return 'ok'
@@ -90,7 +131,9 @@ export default function CampaignsPage() {
 
   const brief = useMemo(() => {
     const chips = [...selected]
-    return chips.length > 0 ? `${prompt.trim()}\n\nRequested outputs: ${chips.join(', ')}` : prompt.trim()
+    return chips.length > 0
+      ? `${prompt.trim()}\n\nRequested outputs: ${chips.join(', ')}`
+      : prompt.trim()
   }, [prompt, selected])
 
   const loadRecent = useCallback(() => {
@@ -135,7 +178,10 @@ export default function CampaignsPage() {
   async function generateAssets() {
     setGenerating(true)
     try {
-      const res = await api.post<{ campaignId: string; assetCount: number }>('/campaign-assets/generate', { brief })
+      const res = await api.post<{ campaignId: string; assetCount: number }>(
+        '/campaign-assets/generate',
+        { brief },
+      )
       toast.push('success', `${res.assetCount} assets generated`)
       await openCampaign(res.campaignId)
       loadRecent()
@@ -205,7 +251,14 @@ export default function CampaignsPage() {
 
 // ── Phase 1: Prompt workspace ────────────────────────────────────────────────
 function PromptView({
-  prompt, setPrompt, selected, toggleChip, planning, onSubmit, recent, onOpen,
+  prompt,
+  setPrompt,
+  selected,
+  toggleChip,
+  planning,
+  onSubmit,
+  recent,
+  onOpen,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -220,7 +273,9 @@ function PromptView({
     <div style={{ paddingBottom: 40 }}>
       <div className="cmp-hero">
         <h1>What would you like to create today?</h1>
-        <div className="sub">Describe your campaign and pick the outputs — your AI marketing director will plan it.</div>
+        <div className="sub">
+          Describe your campaign and pick the outputs — your AI marketing director will plan it.
+        </div>
 
         <div className="cmp-prompt">
           <textarea
@@ -234,17 +289,33 @@ function PromptView({
           />
           <div className="cmp-prompt-actions">
             <span className="dim" style={{ fontSize: 12 }}>
-              {selected.size > 0 ? `${selected.size} output${selected.size > 1 ? 's' : ''} selected` : 'Tip: ⌘⏎ to plan'}
+              {selected.size > 0
+                ? `${selected.size} output${selected.size > 1 ? 's' : ''} selected`
+                : 'Tip: ⌘⏎ to plan'}
             </span>
-            <button className="btn primary" onClick={onSubmit} disabled={planning || prompt.trim().length < 4}>
-              {planning ? <Spinner /> : (<><Icon name="sparkles" size={15} /> Create plan</>)}
+            <button
+              className="btn primary"
+              onClick={onSubmit}
+              disabled={planning || prompt.trim().length < 4}
+            >
+              {planning ? (
+                <Spinner />
+              ) : (
+                <>
+                  <Icon name="sparkles" size={15} /> Create plan
+                </>
+              )}
             </button>
           </div>
         </div>
 
         <div className="chips">
           {CHIPS.map((c) => (
-            <button key={c} className={`chip ${selected.has(c) ? 'on' : ''}`} onClick={() => toggleChip(c)}>
+            <button
+              key={c}
+              className={`chip ${selected.has(c) ? 'on' : ''}`}
+              onClick={() => toggleChip(c)}
+            >
               {selected.has(c) ? <Icon name="check" size={13} /> : null}
               {c}
             </button>
@@ -254,7 +325,15 @@ function PromptView({
 
       {recent.length > 0 ? (
         <div style={{ maxWidth: 760, margin: '48px auto 0', padding: '0 16px' }}>
-          <div className="dim" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+          <div
+            className="dim"
+            style={{
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              marginBottom: 12,
+            }}
+          >
             Recent campaigns
           </div>
           <div className="stack" style={{ gap: 8 }}>
@@ -270,7 +349,9 @@ function PromptView({
                 </div>
                 <div className="body">
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-                  <div className="dim" style={{ fontSize: 12 }}>{c.objective ?? 'Open workspace'}</div>
+                  <div className="dim" style={{ fontSize: 12 }}>
+                    {c.objective ?? 'Open workspace'}
+                  </div>
                 </div>
                 {c.status ? <Badge status={statusTint(c.status)}>{c.status}</Badge> : null}
                 <Icon name="chevron-right" size={16} className="dim" />
@@ -285,7 +366,10 @@ function PromptView({
 
 // ── Phase 2: Plan summary ────────────────────────────────────────────────────
 function PlanView({
-  plan, generating, onBack, onGenerate,
+  plan,
+  generating,
+  onBack,
+  onGenerate,
 }: {
   plan: CampaignPlan
   generating: boolean
@@ -299,21 +383,45 @@ function PlanView({
       </button>
 
       <div style={{ marginBottom: 6 }}>
-        <div className="dim" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your campaign plan</div>
-        <h1 style={{ fontSize: 28, letterSpacing: '-0.02em', marginTop: 6 }}>{plan.campaignName}</h1>
-        <p className="muted" style={{ fontSize: 15, marginTop: 8, lineHeight: 1.6 }}>{plan.objective}</p>
+        <div
+          className="dim"
+          style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}
+        >
+          Your campaign plan
+        </div>
+        <h1 style={{ fontSize: 28, letterSpacing: '-0.02em', marginTop: 6 }}>
+          {plan.campaignName}
+        </h1>
+        <p className="muted" style={{ fontSize: 15, marginTop: 8, lineHeight: 1.6 }}>
+          {plan.objective}
+        </p>
       </div>
 
       <div className="plan-grid" style={{ marginTop: 20 }}>
-        <div><div className="k">Target audience</div><div className="v">{plan.audience || '—'}</div></div>
-        <div><div className="k">Duration</div><div className="v">{plan.durationDays} days</div></div>
+        <div>
+          <div className="k">Target audience</div>
+          <div className="v">{plan.audience || '—'}</div>
+        </div>
+        <div>
+          <div className="k">Duration</div>
+          <div className="v">{plan.durationDays} days</div>
+        </div>
         <div>
           <div className="k">Platforms</div>
           <div className="v" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {plan.platforms.length ? plan.platforms.map((p) => <span key={p} className="badge">{p}</span>) : '—'}
+            {plan.platforms.length
+              ? plan.platforms.map((p) => (
+                  <span key={p} className="badge">
+                    {p}
+                  </span>
+                ))
+              : '—'}
           </div>
         </div>
-        <div><div className="k">Suggested budget</div><div className="v">${plan.suggestedBudget.toLocaleString()}</div></div>
+        <div>
+          <div className="k">Suggested budget</div>
+          <div className="v">${plan.suggestedBudget.toLocaleString()}</div>
+        </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <div className="k">Strategy</div>
           <div className="v">{plan.strategy || '—'}</div>
@@ -321,17 +429,29 @@ function PlanView({
         <div style={{ gridColumn: '1 / -1' }}>
           <div className="k">Expected deliverables — {plan.estimatedAssets} assets</div>
           <div className="v" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-            {plan.deliverables.length ? plan.deliverables.map((d) => (
-              <span key={d} className="badge" style={{ background: 'var(--bg-subtle)' }}>{d}</span>
-            )) : '—'}
+            {plan.deliverables.length
+              ? plan.deliverables.map((d) => (
+                  <span key={d} className="badge" style={{ background: 'var(--bg-subtle)' }}>
+                    {d}
+                  </span>
+                ))
+              : '—'}
           </div>
         </div>
       </div>
 
       <div className="row" style={{ justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
-        <button className="btn" onClick={onBack} disabled={generating}>Back</button>
+        <button className="btn" onClick={onBack} disabled={generating}>
+          Back
+        </button>
         <button className="btn primary" onClick={onGenerate} disabled={generating}>
-          {generating ? <Spinner /> : (<><Icon name="sparkles" size={15} /> Generate campaign assets</>)}
+          {generating ? (
+            <Spinner />
+          ) : (
+            <>
+              <Icon name="sparkles" size={15} /> Generate campaign assets
+            </>
+          )}
         </button>
       </div>
 
@@ -346,7 +466,10 @@ function PlanView({
 
 // ── Phase 3: Campaign workspace ──────────────────────────────────────────────
 function WorkspaceView({
-  campaign, assets, onReload, onNew,
+  campaign,
+  assets,
+  onReload,
+  onNew,
 }: {
   campaign: Campaign
   assets: Asset[] | null
@@ -375,9 +498,15 @@ function WorkspaceView({
             <Icon name="arrow-left" size={14} /> New campaign
           </button>
           <h1 style={{ fontSize: 26, letterSpacing: '-0.02em' }}>{campaign.name}</h1>
-          {campaign.objective ? <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>{campaign.objective}</p> : null}
+          {campaign.objective ? (
+            <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>
+              {campaign.objective}
+            </p>
+          ) : null}
         </div>
-        {campaign.status ? <Badge status={statusTint(campaign.status)}>{campaign.status}</Badge> : null}
+        {campaign.status ? (
+          <Badge status={statusTint(campaign.status)}>{campaign.status}</Badge>
+        ) : null}
       </div>
 
       <div className="cmp-ws">
@@ -388,7 +517,10 @@ function WorkspaceView({
               <button
                 key={s.id}
                 className={section === s.id ? 'on' : ''}
-                onClick={() => { setSection(s.id); setActive(null) }}
+                onClick={() => {
+                  setSection(s.id)
+                  setActive(null)
+                }}
               >
                 <Icon name={s.icon} size={16} />
                 {s.label}
@@ -403,15 +535,13 @@ function WorkspaceView({
             <AssetEditor
               asset={active}
               onBack={() => setActive(null)}
-              onChanged={() => { onReload(); setActive(null) }}
+              onChanged={() => {
+                onReload()
+                setActive(null)
+              }}
             />
           ) : (
-            <SectionView
-              section={section}
-              campaign={campaign}
-              assets={assets}
-              onOpen={setActive}
-            />
+            <SectionView section={section} campaign={campaign} assets={assets} onOpen={setActive} />
           )}
         </div>
       </div>
@@ -420,7 +550,10 @@ function WorkspaceView({
 }
 
 function SectionView({
-  section, campaign, assets, onOpen,
+  section,
+  campaign,
+  assets,
+  onOpen,
 }: {
   section: string
   campaign: Campaign
@@ -467,10 +600,14 @@ function SectionView({
 function SectionHeader({ def, count }: { def: (typeof SECTIONS)[number]; count: number }) {
   return (
     <div className="row" style={{ gap: 10, marginBottom: 16 }}>
-      <div className="avatar" style={{ background: 'var(--primary-soft)' }}><Icon name={def.icon} size={16} /></div>
+      <div className="avatar" style={{ background: 'var(--primary-soft)' }}>
+        <Icon name={def.icon} size={16} />
+      </div>
       <div>
         <h2 style={{ fontSize: 18 }}>{def.label}</h2>
-        <div className="dim" style={{ fontSize: 12 }}>{count} item{count === 1 ? '' : 's'}</div>
+        <div className="dim" style={{ fontSize: 12 }}>
+          {count} item{count === 1 ? '' : 's'}
+        </div>
       </div>
     </div>
   )
@@ -492,7 +629,10 @@ function AssetRow({ asset, onOpen }: { asset: Asset; onOpen: () => void }) {
         </div>
         {asset.hashtags && asset.hashtags.length > 0 ? (
           <div className="dim" style={{ fontSize: 12, marginTop: 6 }}>
-            {asset.hashtags.slice(0, 6).map((h) => `#${h.replace(/^#/, '')}`).join(' ')}
+            {asset.hashtags
+              .slice(0, 6)
+              .map((h) => `#${h.replace(/^#/, '')}`)
+              .join(' ')}
           </div>
         ) : null}
       </div>
@@ -507,16 +647,27 @@ function OverviewSection({ campaign, assets }: { campaign: Campaign; assets: Ass
   const byStatus = (s: string) => assets?.filter((a) => a.status === s).length ?? 0
   const stats = [
     { label: 'Total assets', value: total, icon: 'layout' as IconName },
-    { label: 'Needs review', value: byStatus('GENERATED') + byStatus('NEEDS_REVIEW'), icon: 'check-square' as IconName },
+    {
+      label: 'Needs review',
+      value: byStatus('GENERATED') + byStatus('NEEDS_REVIEW'),
+      icon: 'check-square' as IconName,
+    },
     { label: 'Approved', value: byStatus('APPROVED'), icon: 'check' as IconName },
-    { label: 'Scheduled', value: byStatus('SCHEDULED') + byStatus('PUBLISHED'), icon: 'send' as IconName },
+    {
+      label: 'Scheduled',
+      value: byStatus('SCHEDULED') + byStatus('PUBLISHED'),
+      icon: 'send' as IconName,
+    },
   ]
   return (
     <>
-      <div className="grid cols-4" style={{ marginBottom: 20 }}>
+      <div className="cols-4 grid" style={{ marginBottom: 20 }}>
         {stats.map((s) => (
           <div key={s.label} className="card" style={{ padding: 16 }}>
-            <div className="dim" style={{ fontSize: 12, display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+            <div
+              className="dim"
+              style={{ fontSize: 12, display: 'inline-flex', gap: 6, alignItems: 'center' }}
+            >
               <Icon name={s.icon} size={14} /> {s.label}
             </div>
             <div style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{s.value}</div>
@@ -525,11 +676,15 @@ function OverviewSection({ campaign, assets }: { campaign: Campaign; assets: Ass
       </div>
       <div className="card">
         <h3 style={{ marginBottom: 8 }}>Objective</h3>
-        <p className="muted" style={{ lineHeight: 1.6 }}>{campaign.objective ?? '—'}</p>
+        <p className="muted" style={{ lineHeight: 1.6 }}>
+          {campaign.objective ?? '—'}
+        </p>
         {campaign.strategy?.summary ? (
           <>
             <h3 style={{ margin: '16px 0 8px' }}>Strategy</h3>
-            <p className="muted" style={{ lineHeight: 1.6 }}>{campaign.strategy.summary}</p>
+            <p className="muted" style={{ lineHeight: 1.6 }}>
+              {campaign.strategy.summary}
+            </p>
           </>
         ) : null}
       </div>
@@ -543,11 +698,15 @@ function StrategySection({ campaign }: { campaign: Campaign }) {
     <div className="stack" style={{ gap: 16 }}>
       <div className="card">
         <h3 style={{ marginBottom: 8 }}>Approach</h3>
-        <p className="muted" style={{ lineHeight: 1.6 }}>{campaign.strategy?.summary ?? '—'}</p>
+        <p className="muted" style={{ lineHeight: 1.6 }}>
+          {campaign.strategy?.summary ?? '—'}
+        </p>
       </div>
       <div className="card">
         <h3 style={{ marginBottom: 8 }}>Target audience</h3>
-        <p className="muted" style={{ lineHeight: 1.6 }}>{campaign.targetAudience?.description ?? '—'}</p>
+        <p className="muted" style={{ lineHeight: 1.6 }}>
+          {campaign.targetAudience?.description ?? '—'}
+        </p>
       </div>
       {goals.length > 0 ? (
         <div className="card">
@@ -578,11 +737,24 @@ function AnalyticsSection({ assets }: { assets: Asset[] | null }) {
           const n = assets.filter((a) => a.platform === p).length
           return (
             <div key={p} className="row" style={{ gap: 12 }}>
-              <span style={{ width: 90, fontSize: 13 }}>{PLATFORM_ICON[p] ?? '✳️'} {p}</span>
-              <div style={{ flex: 1, height: 10, background: 'var(--bg-subtle)', borderRadius: 999 }}>
-                <div style={{ width: `${(n / max) * 100}%`, height: '100%', background: 'var(--color-primary)', borderRadius: 999 }} />
+              <span style={{ width: 90, fontSize: 13 }}>
+                {PLATFORM_ICON[p] ?? '✳️'} {p}
+              </span>
+              <div
+                style={{ flex: 1, height: 10, background: 'var(--bg-subtle)', borderRadius: 999 }}
+              >
+                <div
+                  style={{
+                    width: `${(n / max) * 100}%`,
+                    height: '100%',
+                    background: 'var(--color-primary)',
+                    borderRadius: 999,
+                  }}
+                />
               </div>
-              <span className="dim" style={{ fontSize: 13, width: 28, textAlign: 'right' }}>{n}</span>
+              <span className="dim" style={{ fontSize: 13, width: 28, textAlign: 'right' }}>
+                {n}
+              </span>
             </div>
           )
         })}
@@ -602,7 +774,15 @@ function SkeletonList() {
 }
 
 // ── Asset editor panel ───────────────────────────────────────────────────────
-function AssetEditor({ asset, onBack, onChanged }: { asset: Asset; onBack: () => void; onChanged: () => void }) {
+function AssetEditor({
+  asset,
+  onBack,
+  onChanged,
+}: {
+  asset: Asset
+  onBack: () => void
+  onChanged: () => void
+}) {
   const toast = useToast()
   const [body, setBody] = useState(asset.body)
   const [caption, setCaption] = useState(asset.caption ?? '')
@@ -651,9 +831,13 @@ function AssetEditor({ asset, onBack, onChanged }: { asset: Asset; onBack: () =>
           <div className="row" style={{ gap: 10 }}>
             <div style={{ fontSize: 22 }}>{PLATFORM_ICON[asset.platform] ?? '✳️'}</div>
             <div>
-              <div style={{ fontWeight: 650, fontSize: 15 }}>{asset.platform} · {asset.kind}</div>
+              <div style={{ fontWeight: 650, fontSize: 15 }}>
+                {asset.platform} · {asset.kind}
+              </div>
               {asset.scheduledFor ? (
-                <div className="dim" style={{ fontSize: 12 }}>Scheduled · {new Date(asset.scheduledFor).toLocaleString()}</div>
+                <div className="dim" style={{ fontSize: 12 }}>
+                  Scheduled · {new Date(asset.scheduledFor).toLocaleString()}
+                </div>
               ) : null}
             </div>
           </div>
@@ -661,7 +845,12 @@ function AssetEditor({ asset, onBack, onChanged }: { asset: Asset; onBack: () =>
         </div>
 
         <Field label="Body">
-          <textarea className="input" rows={7} value={body} onChange={(e) => setBody(e.target.value)} />
+          <textarea
+            className="input"
+            rows={7}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+          />
         </Field>
         <Field label="Caption">
           <input className="input" value={caption} onChange={(e) => setCaption(e.target.value)} />
@@ -672,28 +861,67 @@ function AssetEditor({ asset, onBack, onChanged }: { asset: Asset; onBack: () =>
 
         {asset.hashtags && asset.hashtags.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-            {asset.hashtags.map((h) => <span key={h} className="badge">#{h.replace(/^#/, '')}</span>)}
+            {asset.hashtags.map((h) => (
+              <span key={h} className="badge">
+                #{h.replace(/^#/, '')}
+              </span>
+            ))}
           </div>
         ) : null}
 
         {/* Media preview placeholder */}
-        <div style={{
-          border: '1px dashed var(--border-strong)', borderRadius: 'var(--radius)', padding: '28px 16px',
-          textAlign: 'center', color: 'var(--text-dim)', marginBottom: 16, background: 'var(--bg-subtle)',
-        }}>
+        <div
+          style={{
+            border: '1px dashed var(--border-strong)',
+            borderRadius: 'var(--radius)',
+            padding: '28px 16px',
+            textAlign: 'center',
+            color: 'var(--text-dim)',
+            marginBottom: 16,
+            background: 'var(--bg-subtle)',
+          }}
+        >
           <Icon name="image" size={22} />
           <div style={{ fontSize: 12, marginTop: 6 }}>Image preview</div>
         </div>
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-          <button className="btn" disabled={busy !== null} onClick={() => void act('Save', () => api.patch(`/campaign-assets/${asset.id}`, { body, caption, cta }), false)}>
-            {busy === 'Save' ? <Spinner /> : (<><Icon name="check" size={14} /> Save</>)}
+          <button
+            className="btn"
+            disabled={busy !== null}
+            onClick={() =>
+              void act(
+                'Save',
+                () => api.patch(`/campaign-assets/${asset.id}`, { body, caption, cta }),
+                false,
+              )
+            }
+          >
+            {busy === 'Save' ? (
+              <Spinner />
+            ) : (
+              <>
+                <Icon name="check" size={14} /> Save
+              </>
+            )}
           </button>
           <button className="btn" disabled={busy !== null} onClick={() => void regenerate()}>
-            {busy === 'Regenerate' ? <Spinner /> : (<><Icon name="refresh" size={14} /> Regenerate</>)}
+            {busy === 'Regenerate' ? (
+              <Spinner />
+            ) : (
+              <>
+                <Icon name="refresh" size={14} /> Regenerate
+              </>
+            )}
           </button>
           {canApprove ? (
-            <button className="btn primary" disabled={busy !== null} onClick={() => void act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`, {}))}>
+            <button
+              className="btn primary"
+              disabled={busy !== null}
+              onClick={() =>
+                void act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`, {}))
+              }
+            >
               <Icon name="check" size={14} /> Approve
             </button>
           ) : null}
@@ -703,16 +931,30 @@ function AssetEditor({ asset, onBack, onChanged }: { asset: Asset; onBack: () =>
               disabled={busy !== null}
               onClick={() => {
                 const when = new Date(Date.now() + 24 * 3600 * 1000).toISOString()
-                void act('Schedule', () => api.post(`/campaign-assets/${asset.id}/schedule`, { scheduledFor: when }))
+                void act('Schedule', () =>
+                  api.post(`/campaign-assets/${asset.id}/schedule`, { scheduledFor: when }),
+                )
               }}
             >
               <Icon name="calendar" size={14} /> Schedule
             </button>
           ) : null}
-          <button className="btn ghost sm" disabled={busy !== null} onClick={() => void act('Reject', () => api.post(`/campaign-assets/${asset.id}/reject`, {}))}>
+          <button
+            className="btn ghost sm"
+            disabled={busy !== null}
+            onClick={() =>
+              void act('Reject', () => api.post(`/campaign-assets/${asset.id}/reject`, {}))
+            }
+          >
             <Icon name="x" size={14} /> Reject
           </button>
-          <button className="btn ghost sm" disabled={busy !== null} onClick={() => void act('Duplicate', () => api.post(`/campaign-assets/${asset.id}/duplicate`, {}))}>
+          <button
+            className="btn ghost sm"
+            disabled={busy !== null}
+            onClick={() =>
+              void act('Duplicate', () => api.post(`/campaign-assets/${asset.id}/duplicate`, {}))
+            }
+          >
             <Icon name="copy" size={14} /> Duplicate
           </button>
           <div className="grow" />

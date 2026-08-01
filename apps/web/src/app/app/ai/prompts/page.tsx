@@ -26,7 +26,8 @@ export default function PromptsPage() {
         {
           key: 'isShared',
           header: 'Shared',
-          render: (r) => (r.isShared ? <Badge status="ok">Shared</Badge> : <span className="dim">Private</span>),
+          render: (r) =>
+            r.isShared ? <Badge status="ok">Shared</Badge> : <span className="dim">Private</span>,
           width: '110px',
         },
       ]}

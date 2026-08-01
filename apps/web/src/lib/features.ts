@@ -53,6 +53,10 @@ export function closeDependencies(seed: Iterable<string>, index: FeatureIndex): 
 }
 
 /** The enabled features (from `enabled`) that directly require `id`. */
-export function enabledDependentsOf(id: string, enabled: Set<string>, index: FeatureIndex): string[] {
+export function enabledDependentsOf(
+  id: string,
+  enabled: Set<string>,
+  index: FeatureIndex,
+): string[] {
   return (index.dependents.get(id) ?? []).filter((d) => enabled.has(d))
 }

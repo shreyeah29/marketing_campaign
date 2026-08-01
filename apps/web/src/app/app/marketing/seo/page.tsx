@@ -43,10 +43,12 @@ export default function SeoPage() {
         title="SEO"
         subtitle="A checklist of the fundamentals that help your pages rank."
       />
-      <div className="grid cols-3">
+      <div className="cols-3 grid">
         {CHECKS.map((c) => (
           <div key={c.title} className="card">
-            <div className="state-badge" style={{ margin: '0 0 8px' }}><Icon name={c.icon} size={22} /></div>
+            <div className="state-badge" style={{ margin: '0 0 8px' }}>
+              <Icon name={c.icon} size={22} />
+            </div>
             <h3 style={{ marginBottom: 8 }}>{c.title}</h3>
             <p className="muted" style={{ lineHeight: 1.5 }}>
               {c.body}

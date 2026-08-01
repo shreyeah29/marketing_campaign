@@ -90,12 +90,7 @@ export {
   type LimitUnit,
 } from './limits.js'
 
-export {
-  findPreset,
-  PRESETS,
-  resolvePreset,
-  type FeaturePreset,
-} from './presets.js'
+export { findPreset, PRESETS, resolvePreset, type FeaturePreset } from './presets.js'
 
 export {
   findProvider,

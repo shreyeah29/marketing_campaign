@@ -143,7 +143,11 @@ export default function UsersSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="users" title="No members yet" hint="Invite your first teammate to collaborate." />
+        <EmptyState
+          icon="users"
+          title="No members yet"
+          hint="Invite your first teammate to collaborate."
+        />
       ) : (
         <DataTable columns={columns} rows={rows} />
       )}
@@ -173,7 +177,11 @@ export default function UsersSettingsPage() {
           />
         </Field>
         <Field label="Role">
-          <select className="select" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+          <select
+            className="select"
+            value={inviteRole}
+            onChange={(e) => setInviteRole(e.target.value)}
+          >
             {ROLES.map((role) => (
               <option key={role} value={role}>
                 {role}

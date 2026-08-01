@@ -15,7 +15,9 @@ import { DATABASE } from '../../infrastructure/database.module.js'
 
 const createSchema = z
   .object({
-    status: z.enum(['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED']).optional(),
+    status: z
+      .enum(['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED'])
+      .optional(),
     score: z.number().int().optional(),
     source: z.string().min(1).optional(),
     medium: z.string().min(1).optional(),
@@ -28,7 +30,10 @@ const createSchema = z
 const updateSchema = createSchema.partial()
 
 function readSearch(q: unknown): string | undefined {
-  return q && typeof q === 'object' && 'search' in q && typeof (q as Record<string, unknown>).search === 'string'
+  return q &&
+    typeof q === 'object' &&
+    'search' in q &&
+    typeof (q as Record<string, unknown>).search === 'string'
     ? (q as Record<string, string>).search
     : undefined
 }

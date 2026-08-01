@@ -164,7 +164,7 @@ export default function SocialPage() {
           hint="Connect an account to start scheduling posts."
         />
       ) : (
-        <div className="grid cols-2" style={{ marginBottom: 24 }}>
+        <div className="cols-2 grid" style={{ marginBottom: 24 }}>
           {connected.map((a) => (
             <div key={a.id} className="card">
               <div className="spread">
@@ -174,7 +174,9 @@ export default function SocialPage() {
                     <div style={{ fontWeight: 600 }}>{a.displayName ?? a.handle ?? a.platform}</div>
                     <div className="dim" style={{ fontSize: 12 }}>
                       {a.handle ? `@${a.handle.replace(/^@/, '')}` : a.platform}
-                      {a.followerCount != null ? ` · ${a.followerCount.toLocaleString()} followers` : ''}
+                      {a.followerCount != null
+                        ? ` · ${a.followerCount.toLocaleString()} followers`
+                        : ''}
                     </div>
                   </div>
                 </div>
@@ -207,7 +209,12 @@ export default function SocialPage() {
       ) : (
         <div className="stack" style={{ gap: 10 }}>
           {posts.map((p) => (
-            <PostCard key={p.id} post={p} onPublishNow={() => void publishNow(p.id)} onDeleted={load} />
+            <PostCard
+              key={p.id}
+              post={p}
+              onPublishNow={() => void publishNow(p.id)}
+              onDeleted={load}
+            />
           ))}
         </div>
       )}
@@ -272,7 +279,11 @@ function ConnectDrawer({ onClose, onConnected }: { onClose: () => void; onConnec
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" disabled={busy || handle.trim().length === 0} onClick={() => void submit()}>
+          <button
+            className="btn primary"
+            disabled={busy || handle.trim().length === 0}
+            onClick={() => void submit()}
+          >
             {busy ? <Spinner /> : 'Connect'}
           </button>
         </>
@@ -350,7 +361,9 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
         body: body.trim(),
         hashtags: tags,
         accountIds: [...selected],
-        ...(mode === 'schedule' && scheduledAt ? { scheduledAt: new Date(scheduledAt).toISOString() } : {}),
+        ...(mode === 'schedule' && scheduledAt
+          ? { scheduledAt: new Date(scheduledAt).toISOString() }
+          : {}),
       })
       toast.push('success', mode === 'now' ? 'Queued to post now' : 'Post scheduled')
       setBody('')
@@ -428,18 +441,18 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
           />
         </Field>
         <div className="grow" />
-        <button
-          className="btn"
-          disabled={busy !== null}
-          onClick={() => void submit('schedule')}
-        >
-          {busy === 'schedule' ? <Spinner /> : scheduledAt ? <><Icon name="clock" size={15} /> Schedule</> : 'Schedule'}
+        <button className="btn" disabled={busy !== null} onClick={() => void submit('schedule')}>
+          {busy === 'schedule' ? (
+            <Spinner />
+          ) : scheduledAt ? (
+            <>
+              <Icon name="clock" size={15} /> Schedule
+            </>
+          ) : (
+            'Schedule'
+          )}
         </button>
-        <button
-          className="btn primary"
-          disabled={busy !== null}
-          onClick={() => void submit('now')}
-        >
+        <button className="btn primary" disabled={busy !== null} onClick={() => void submit('now')}>
           {busy === 'now' ? <Spinner /> : 'Post now'}
         </button>
       </div>
@@ -492,7 +505,11 @@ function PostCard({
               Publish now
             </button>
           ) : null}
-          <button className="btn ghost sm" onClick={() => setConfirmDelete(true)} aria-label="Delete">
+          <button
+            className="btn ghost sm"
+            onClick={() => setConfirmDelete(true)}
+            aria-label="Delete"
+          >
             <Icon name="trash" size={15} />
           </button>
         </div>
@@ -520,7 +537,12 @@ function PostCard({
             <span className="row" style={{ gap: 8 }}>
               {t.failureReason ? <span className="dim">{t.failureReason}</span> : null}
               {t.permalink ? (
-                <a href={t.permalink} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <a
+                  href={t.permalink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                >
                   View <Icon name="external-link" size={13} />
                 </a>
               ) : null}

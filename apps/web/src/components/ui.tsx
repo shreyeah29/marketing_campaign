@@ -11,7 +11,13 @@ export function Spinner() {
   return <span className="spinner" aria-label="loading" />
 }
 
-export function Banner({ kind, children }: { kind: 'error' | 'success' | 'info'; children: ReactNode }) {
+export function Banner({
+  kind,
+  children,
+}: {
+  kind: 'error' | 'success' | 'info'
+  children: ReactNode
+}) {
   return <div className={`banner ${kind}`}>{children}</div>
 }
 

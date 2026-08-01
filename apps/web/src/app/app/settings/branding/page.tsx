@@ -83,7 +83,7 @@ export default function BrandingSettingsPage() {
               placeholder="Acme Marketing"
             />
           </Field>
-          <div className="grid cols-2">
+          <div className="cols-2 grid">
             <Field label="Primary color" hint="Hex, e.g. #4f46e5">
               <input
                 className="input"

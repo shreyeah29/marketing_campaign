@@ -35,7 +35,8 @@ export interface CreativeInput {
 
 export interface CreateCampaignInput {
   readonly name: string
-  readonly objective?: 'LEAD_GENERATION' | 'CONVERSIONS' | 'TRAFFIC' | 'AWARENESS' | 'ENGAGEMENT' | undefined
+  readonly objective?:
+    'LEAD_GENERATION' | 'CONVERSIONS' | 'TRAFFIC' | 'AWARENESS' | 'ENGAGEMENT' | undefined
   readonly destination?: 'INSTANT_FORM' | 'WHATSAPP' | undefined
   readonly prompt?: string | undefined
   readonly dailyBudget?: number | undefined
@@ -87,7 +88,11 @@ export class AdCampaignService {
 
       if (input.creative) {
         await tx.adCreative.create({
-          data: { organizationId: principal.organizationId, campaignId: campaign.id, ...cleanCreative(input.creative) },
+          data: {
+            organizationId: principal.organizationId,
+            campaignId: campaign.id,
+            ...cleanCreative(input.creative),
+          },
         })
       }
 
@@ -112,7 +117,10 @@ export class AdCampaignService {
       if (input.creative) {
         const existing = await tx.adCreative.findFirst({ where: { campaignId: campaign.id } })
         if (existing) {
-          await tx.adCreative.update({ where: { id: existing.id }, data: cleanCreative(input.creative) })
+          await tx.adCreative.update({
+            where: { id: existing.id },
+            data: cleanCreative(input.creative),
+          })
         } else {
           await tx.adCreative.create({
             data: {
@@ -131,11 +139,15 @@ export class AdCampaignService {
     await withTenantTransaction(this.db, async (tx) => {
       const campaign = await this.loadEditable(tx, id)
       const creative = await tx.adCreative.findFirst({ where: { campaignId: campaign.id } })
-      if (!creative) throw new BadRequestException('Add a creative (poster + copy) before submitting.')
+      if (!creative)
+        throw new BadRequestException('Add a creative (poster + copy) before submitting.')
       if (toNum(campaign.dailyBudget) === null && toNum(campaign.lifetimeBudget) === null) {
         throw new BadRequestException('Set a daily or lifetime budget before submitting.')
       }
-      await tx.adCampaign.update({ where: { id: campaign.id }, data: { reviewStatus: 'PENDING_APPROVAL' } })
+      await tx.adCampaign.update({
+        where: { id: campaign.id },
+        data: { reviewStatus: 'PENDING_APPROVAL' },
+      })
     })
   }
 
@@ -167,7 +179,12 @@ export class AdCampaignService {
 
       await tx.adCampaign.update({
         where: { id: campaign.id },
-        data: { reviewStatus: 'APPROVED', approvedById: principal.id, approvedAt: new Date(), rejectedReason: null },
+        data: {
+          reviewStatus: 'APPROVED',
+          approvedById: principal.id,
+          approvedAt: new Date(),
+          rejectedReason: null,
+        },
       })
 
       await tx.auditLog.create({
@@ -231,7 +248,9 @@ export class AdCampaignService {
     const campaign = await tx.adCampaign.findFirst({ where: { id, deletedAt: null } })
     if (!campaign) throw new NotFoundException('Campaign not found.')
     if (campaign.reviewStatus === 'APPROVED' || campaign.reviewStatus === 'PENDING_APPROVAL') {
-      throw new ConflictException('This campaign can no longer be edited; it is in review or approved.')
+      throw new ConflictException(
+        'This campaign can no longer be edited; it is in review or approved.',
+      )
     }
     return campaign
   }

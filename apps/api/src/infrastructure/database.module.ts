@@ -1,7 +1,12 @@
 import { Global, Module, OnApplicationShutdown } from '@nestjs/common'
 import type { Redis } from 'ioredis'
 
-import { createAdminClient, createDatabaseClient, type DatabaseClient, type PrismaClient } from '@vsp/database'
+import {
+  createAdminClient,
+  createDatabaseClient,
+  type DatabaseClient,
+  type PrismaClient,
+} from '@vsp/database'
 import { createLogger, type AppLogger } from '@vsp/observability'
 
 import { loadEnv } from '../config/env.js'

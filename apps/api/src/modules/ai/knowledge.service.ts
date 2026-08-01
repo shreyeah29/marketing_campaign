@@ -42,7 +42,10 @@ export class KnowledgeService {
     @Inject(LOGGER) private readonly logger: AppLogger,
   ) {
     const env = loadEnv()
-    this.connection = new Redis(env.REDIS_URL, { maxRetriesPerRequest: null, enableReadyCheck: false })
+    this.connection = new Redis(env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    })
     // Same queue name the worker consumes (QUEUES.EMBEDDINGS = 'embeddings').
     this.queue = new Queue('embeddings', { connection: this.connection })
   }
@@ -53,7 +56,11 @@ export class KnowledgeService {
   }
 
   /** Enqueue (re)indexing of one document. The job carries its tenant. */
-  async enqueueIndex(organizationId: string, knowledgeBaseId: string, documentId: string): Promise<void> {
+  async enqueueIndex(
+    organizationId: string,
+    knowledgeBaseId: string,
+    documentId: string,
+  ): Promise<void> {
     await this.queue.add('index-document', { organizationId, knowledgeBaseId, documentId })
   }
 
@@ -133,7 +140,10 @@ export class KnowledgeService {
         { organizationId },
       )
     } catch (err) {
-      this.logger.warn({ err, organizationId }, 'knowledge retrieval failed; continuing without context')
+      this.logger.warn(
+        { err, organizationId },
+        'knowledge retrieval failed; continuing without context',
+      )
       return []
     }
   }

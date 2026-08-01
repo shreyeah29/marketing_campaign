@@ -60,7 +60,12 @@ function RegisterInner() {
         {error ? <Banner kind="error">{error}</Banner> : null}
         <form onSubmit={submit}>
           <Field label="Full name">
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} required />
+            <input
+              className="input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </Field>
           <Field label="Email">
             <input

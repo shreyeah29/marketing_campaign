@@ -64,8 +64,14 @@ export const provisionOrganizationSchema = z.object({
       displayName: z.string().max(200).optional(),
       logoUrl: z.string().url().optional(),
       faviconUrl: z.string().url().optional(),
-      primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
-      accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+      primaryColor: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional(),
+      accentColor: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/)
+        .optional(),
       aiPersonality: z.string().max(2000).optional(),
       loginTagline: z.string().max(200).optional(),
       customDomain: z.string().max(253).optional(),

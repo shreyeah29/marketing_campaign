@@ -66,10 +66,7 @@ export class ApiKeysController {
   @Post()
   @RequirePermissions(PERMISSIONS.API_KEYS_MANAGE)
   @ApiOperation({ summary: 'Create an API key' })
-  async create(
-    @Body() body: unknown,
-    @CurrentPrincipal() principal: Principal,
-  ): Promise<unknown> {
+  async create(@Body() body: unknown, @CurrentPrincipal() principal: Principal): Promise<unknown> {
     const input = zodBody(createKeySchema, body)
 
     // Public prefix is safe to store and show; the secret is hashed and never

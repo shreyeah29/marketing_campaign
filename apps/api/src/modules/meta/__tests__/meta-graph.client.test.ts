@@ -12,7 +12,10 @@ function mockFetch(handler: (url: URL, init: RequestInit) => Response | Promise<
 }
 
 function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  })
 }
 
 afterEach(() => {
@@ -41,7 +44,11 @@ describe('MetaGraphClient', () => {
       seen = url
       return json({ ok: true })
     })
-    const client = new MetaGraphClient({ accessToken: 'tok', version: 'v21.0', appSecret: 's3cr3t' })
+    const client = new MetaGraphClient({
+      accessToken: 'tok',
+      version: 'v21.0',
+      appSecret: 's3cr3t',
+    })
     await client.get('me')
 
     const proof = seen!.searchParams.get('appsecret_proof')
@@ -65,7 +72,14 @@ describe('MetaGraphClient', () => {
   it('maps a Graph error envelope to MetaApiError', async () => {
     mockFetch(() =>
       json(
-        { error: { message: 'Invalid OAuth token', code: 190, error_subcode: 460, fbtrace_id: 'abc' } },
+        {
+          error: {
+            message: 'Invalid OAuth token',
+            code: 190,
+            error_subcode: 460,
+            fbtrace_id: 'abc',
+          },
+        },
         401,
       ),
     )

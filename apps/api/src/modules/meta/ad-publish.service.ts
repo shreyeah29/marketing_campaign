@@ -39,7 +39,10 @@ export class AdPublishService {
   async publish(principal: Principal, campaignId: string): Promise<{ metaCampaignId: string }> {
     // 1. Load + guard (read-only).
     const campaign = await withTenantTransaction(this.db, (tx) =>
-      tx.adCampaign.findFirst({ where: { id: campaignId, deletedAt: null }, include: { creatives: true } }),
+      tx.adCampaign.findFirst({
+        where: { id: campaignId, deletedAt: null },
+        include: { creatives: true },
+      }),
     )
     if (!campaign) throw new NotFoundException('Campaign not found.')
     if (campaign.reviewStatus !== 'APPROVED') {
@@ -73,7 +76,10 @@ export class AdPublishService {
 
     // 4. Create the Meta object chain.
     const metaCampaign = await graph.post<{ id: string }>(`${conn.adAccountId}/campaigns`, {
-      params: buildCampaignPayload({ name: campaign.name, objective: campaign.objective as AdObjective }),
+      params: buildCampaignPayload({
+        name: campaign.name,
+        objective: campaign.objective as AdObjective,
+      }),
     })
 
     const metaAdSet = await graph.post<{ id: string }>(`${conn.adAccountId}/adsets`, {
@@ -124,11 +130,18 @@ export class AdPublishService {
           campaignId: campaign.id,
           name: `${campaign.name} — set`,
           metaAdSetId: metaAdSet.id,
-          ...(toNum(campaign.dailyBudget) !== null ? { dailyBudget: toNum(campaign.dailyBudget)! } : {}),
-          ...(toNum(campaign.lifetimeBudget) !== null ? { lifetimeBudget: toNum(campaign.lifetimeBudget)! } : {}),
+          ...(toNum(campaign.dailyBudget) !== null
+            ? { dailyBudget: toNum(campaign.dailyBudget)! }
+            : {}),
+          ...(toNum(campaign.lifetimeBudget) !== null
+            ? { lifetimeBudget: toNum(campaign.lifetimeBudget)! }
+            : {}),
         },
       })
-      await tx.adCreative.update({ where: { id: creative.id }, data: { metaCreativeId: metaCreative.id } })
+      await tx.adCreative.update({
+        where: { id: creative.id },
+        data: { metaCreativeId: metaCreative.id },
+      })
       await tx.ad.create({
         data: {
           organizationId: principal.organizationId,
@@ -146,12 +159,20 @@ export class AdPublishService {
   }
 
   /** Flip a published campaign live on Meta (this is what starts real spend). */
-  async setStatus(principal: Principal, campaignId: string, status: 'ACTIVE' | 'PAUSED'): Promise<void> {
+  async setStatus(
+    principal: Principal,
+    campaignId: string,
+    status: 'ACTIVE' | 'PAUSED',
+  ): Promise<void> {
     const campaign = await withTenantTransaction(this.db, (tx) =>
-      tx.adCampaign.findFirst({ where: { id: campaignId, deletedAt: null }, include: { ads: true } }),
+      tx.adCampaign.findFirst({
+        where: { id: campaignId, deletedAt: null },
+        include: { ads: true },
+      }),
     )
     if (!campaign) throw new NotFoundException('Campaign not found.')
-    if (!campaign.metaCampaignId) throw new ConflictException('Publish the campaign before changing its status.')
+    if (!campaign.metaCampaignId)
+      throw new ConflictException('Publish the campaign before changing its status.')
 
     const conn = await this.connect.resolve(principal)
     if (!conn) throw new BadRequestException('Meta is not connected for this organisation.')
@@ -169,8 +190,14 @@ export class AdPublishService {
 
     const delivery = status === 'ACTIVE' ? 'PENDING_META_REVIEW' : 'PAUSED'
     await withTenantTransaction(this.db, async (tx) => {
-      await tx.adCampaign.update({ where: { id: campaign.id }, data: { deliveryStatus: delivery as never } })
-      await tx.ad.updateMany({ where: { campaignId: campaign.id }, data: { deliveryStatus: delivery as never } })
+      await tx.adCampaign.update({
+        where: { id: campaign.id },
+        data: { deliveryStatus: delivery as never },
+      })
+      await tx.ad.updateMany({
+        where: { campaignId: campaign.id },
+        data: { deliveryStatus: delivery as never },
+      })
       await tx.auditLog.create({
         data: {
           organizationId: principal.organizationId,
@@ -207,7 +234,10 @@ export class AdPublishService {
     const created = await graph.post<{ id: string }>(`${conn.pageId}/leadgen_forms`, {
       json: {
         name: form.name,
-        questions: questions.length > 0 ? questions : [{ type: 'FULL_NAME' }, { type: 'EMAIL' }, { type: 'PHONE' }],
+        questions:
+          questions.length > 0
+            ? questions
+            : [{ type: 'FULL_NAME' }, { type: 'EMAIL' }, { type: 'PHONE' }],
         ...(form.privacyPolicyUrl ? { privacy_policy: { url: form.privacyPolicyUrl } } : {}),
       },
     })

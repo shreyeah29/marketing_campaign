@@ -27,7 +27,10 @@ const createSchema = z
 const updateSchema = createSchema.partial()
 
 function readSearch(q: unknown): string | undefined {
-  return q && typeof q === 'object' && 'search' in q && typeof (q as Record<string, unknown>).search === 'string'
+  return q &&
+    typeof q === 'object' &&
+    'search' in q &&
+    typeof (q as Record<string, unknown>).search === 'string'
     ? (q as Record<string, string>).search
     : undefined
 }
@@ -46,7 +49,12 @@ export class CompaniesController {
   @ApiOperation({ summary: 'List companies, newest first' })
   list(@Query() q: unknown): Promise<Paginated<unknown>> {
     const { cursor, limit } = cursorPaginationSchema.parse(q)
-    return this.crud.list('company', { search: readSearch(q), searchFields: ['name', 'domain'], cursor, limit })
+    return this.crud.list('company', {
+      search: readSearch(q),
+      searchFields: ['name', 'domain'],
+      cursor,
+      limit,
+    })
   }
 
   @Get(':id')

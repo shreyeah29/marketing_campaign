@@ -11,7 +11,9 @@ const BASE: PublishInput = {
   handle: 'acme',
 }
 
-function mockFetch(handler: (url: string, init?: RequestInit) => Response | Promise<Response>): void {
+function mockFetch(
+  handler: (url: string, init?: RequestInit) => Response | Promise<Response>,
+): void {
   vi.stubGlobal('fetch', vi.fn(handler as unknown as typeof fetch))
 }
 
@@ -104,7 +106,9 @@ describe('Facebook publisher', () => {
 
 describe('media-required platforms', () => {
   it('Instagram rejects a post with no media', async () => {
-    await expect(getPublisher('INSTAGRAM')!.publish(BASE)).rejects.toBeInstanceOf(SocialPublishError)
+    await expect(getPublisher('INSTAGRAM')!.publish(BASE)).rejects.toBeInstanceOf(
+      SocialPublishError,
+    )
   })
   it('TikTok rejects a post with no video', async () => {
     await expect(getPublisher('TIKTOK')!.publish(BASE)).rejects.toBeInstanceOf(SocialPublishError)

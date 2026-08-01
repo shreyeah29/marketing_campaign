@@ -171,7 +171,12 @@ export default function LandingPageBuilder() {
   }
 
   if (error) return <ErrorState message={error} onRetry={load} />
-  if (!page) return <div className="state"><Spinner /></div>
+  if (!page)
+    return (
+      <div className="state">
+        <Spinner />
+      </div>
+    )
 
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const publicUrl = `${origin}/p/${page.slug}`
@@ -195,9 +200,20 @@ export default function LandingPageBuilder() {
 
       <div className="row" style={{ gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <Badge status={STATUS_TINT[page.status]}>{page.status}</Badge>
-        <span className="dim" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="eye" size={13} /> {page.visitCount} visits</span>
+        <span
+          className="dim"
+          style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+        >
+          <Icon name="eye" size={13} /> {page.visitCount} visits
+        </span>
         {page.status === 'PUBLISHED' ? (
-          <a href={publicUrl} target="_blank" rel="noreferrer" className="dim" style={{ fontSize: 12 }}>
+          <a
+            href={publicUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="dim"
+            style={{ fontSize: 12 }}
+          >
             {publicUrl}
           </a>
         ) : null}
@@ -206,7 +222,9 @@ export default function LandingPageBuilder() {
           <button
             className="btn sm"
             disabled={busy !== null}
-            onClick={() => void act('Unpublish', () => api.post<LandingPage>(`/landing-pages/${id}/unpublish`))}
+            onClick={() =>
+              void act('Unpublish', () => api.post<LandingPage>(`/landing-pages/${id}/unpublish`))
+            }
           >
             {busy === 'Unpublish' ? <Spinner /> : 'Unpublish'}
           </button>
@@ -214,9 +232,17 @@ export default function LandingPageBuilder() {
           <button
             className="btn primary sm"
             disabled={busy !== null}
-            onClick={() => void act('Publish', () => api.post<LandingPage>(`/landing-pages/${id}/publish`))}
+            onClick={() =>
+              void act('Publish', () => api.post<LandingPage>(`/landing-pages/${id}/publish`))
+            }
           >
-            {busy === 'Publish' ? <Spinner /> : <><Icon name="rocket" size={14} /> Publish</>}
+            {busy === 'Publish' ? (
+              <Spinner />
+            ) : (
+              <>
+                <Icon name="rocket" size={14} /> Publish
+              </>
+            )}
           </button>
         )}
         <button className="btn ghost sm" onClick={() => setConfirmDelete(true)}>
@@ -224,7 +250,15 @@ export default function LandingPageBuilder() {
         </button>
       </div>
 
-      <div className="split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 18, alignItems: 'start' }}>
+      <div
+        className="split"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 18,
+          alignItems: 'start',
+        }}
+      >
         {/* Editor */}
         <div className="stack" style={{ gap: 14 }}>
           <div className="card">
@@ -236,7 +270,11 @@ export default function LandingPageBuilder() {
               <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} />
             </Field>
             <Field label="SEO title">
-              <input className="input" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
+              <input
+                className="input"
+                value={seoTitle}
+                onChange={(e) => setSeoTitle(e.target.value)}
+              />
             </Field>
             <Field label="SEO description">
               <textarea
@@ -255,7 +293,12 @@ export default function LandingPageBuilder() {
                   {BLOCK_LABEL[block.type as BlockType] ?? block.type}
                 </span>
                 <div className="row" style={{ gap: 4 }}>
-                  <button className="btn ghost sm" disabled={i === 0} onClick={() => moveBlock(i, -1)} aria-label="Move up">
+                  <button
+                    className="btn ghost sm"
+                    disabled={i === 0}
+                    onClick={() => moveBlock(i, -1)}
+                    aria-label="Move up"
+                  >
                     <Icon name="arrow-up" size={15} />
                   </button>
                   <button
@@ -266,7 +309,11 @@ export default function LandingPageBuilder() {
                   >
                     <Icon name="arrow-down" size={15} />
                   </button>
-                  <button className="btn ghost sm" onClick={() => removeBlock(i)} aria-label="Remove">
+                  <button
+                    className="btn ghost sm"
+                    onClick={() => removeBlock(i)}
+                    aria-label="Remove"
+                  >
                     <Icon name="x" size={15} />
                   </button>
                 </div>
@@ -282,7 +329,12 @@ export default function LandingPageBuilder() {
             {addOpen ? (
               <div className="stack" style={{ gap: 6, marginTop: 10 }}>
                 {(Object.keys(BLOCK_LABEL) as BlockType[]).map((t) => (
-                  <button key={t} className="btn ghost sm" style={{ justifyContent: 'flex-start' }} onClick={() => addBlock(t)}>
+                  <button
+                    key={t}
+                    className="btn ghost sm"
+                    style={{ justifyContent: 'flex-start' }}
+                    onClick={() => addBlock(t)}
+                  >
                     {BLOCK_LABEL[t]}
                   </button>
                 ))}
@@ -293,7 +345,14 @@ export default function LandingPageBuilder() {
 
         {/* Live preview */}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="dim" style={{ fontSize: 11, padding: '8px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+          <div
+            className="dim"
+            style={{
+              fontSize: 11,
+              padding: '8px 12px',
+              borderBottom: '1px solid rgba(0,0,0,0.08)',
+            }}
+          >
             Live preview
           </div>
           <div style={{ background: '#fff', color: '#111', overflowX: 'auto' }}>
@@ -326,27 +385,54 @@ function str(block: Block, key: string): string {
   return typeof v === 'string' ? v : ''
 }
 
-function BlockEditor({ block, onChange }: { block: Block; onChange: (patch: Record<string, unknown>) => void }) {
+function BlockEditor({
+  block,
+  onChange,
+}: {
+  block: Block
+  onChange: (patch: Record<string, unknown>) => void
+}) {
   switch (block.type) {
     case 'hero':
       return (
         <>
           <Field label="Heading">
-            <input className="input" value={str(block, 'heading')} onChange={(e) => onChange({ heading: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'heading')}
+              onChange={(e) => onChange({ heading: e.target.value })}
+            />
           </Field>
           <Field label="Subheading">
-            <textarea className="input" rows={2} value={str(block, 'subheading')} onChange={(e) => onChange({ subheading: e.target.value })} />
+            <textarea
+              className="input"
+              rows={2}
+              value={str(block, 'subheading')}
+              onChange={(e) => onChange({ subheading: e.target.value })}
+            />
           </Field>
           <div className="row" style={{ gap: 10 }}>
             <Field label="Button label">
-              <input className="input" value={str(block, 'ctaLabel')} onChange={(e) => onChange({ ctaLabel: e.target.value })} />
+              <input
+                className="input"
+                value={str(block, 'ctaLabel')}
+                onChange={(e) => onChange({ ctaLabel: e.target.value })}
+              />
             </Field>
             <Field label="Button URL">
-              <input className="input" value={str(block, 'ctaUrl')} onChange={(e) => onChange({ ctaUrl: e.target.value })} />
+              <input
+                className="input"
+                value={str(block, 'ctaUrl')}
+                onChange={(e) => onChange({ ctaUrl: e.target.value })}
+              />
             </Field>
           </div>
           <Field label="Image URL" hint="Optional">
-            <input className="input" value={str(block, 'imageUrl')} onChange={(e) => onChange({ imageUrl: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'imageUrl')}
+              onChange={(e) => onChange({ imageUrl: e.target.value })}
+            />
           </Field>
         </>
       )
@@ -356,10 +442,19 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (patch: Reco
       return (
         <>
           <Field label="Heading" hint="Optional">
-            <input className="input" value={str(block, 'heading')} onChange={(e) => onChange({ heading: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'heading')}
+              onChange={(e) => onChange({ heading: e.target.value })}
+            />
           </Field>
           <Field label="Body">
-            <textarea className="input" rows={4} value={str(block, 'body')} onChange={(e) => onChange({ body: e.target.value })} />
+            <textarea
+              className="input"
+              rows={4}
+              value={str(block, 'body')}
+              onChange={(e) => onChange({ body: e.target.value })}
+            />
           </Field>
         </>
       )
@@ -367,14 +462,26 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (patch: Reco
       return (
         <>
           <Field label="Heading">
-            <input className="input" value={str(block, 'heading')} onChange={(e) => onChange({ heading: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'heading')}
+              onChange={(e) => onChange({ heading: e.target.value })}
+            />
           </Field>
           <div className="row" style={{ gap: 10 }}>
             <Field label="Button label">
-              <input className="input" value={str(block, 'buttonLabel')} onChange={(e) => onChange({ buttonLabel: e.target.value })} />
+              <input
+                className="input"
+                value={str(block, 'buttonLabel')}
+                onChange={(e) => onChange({ buttonLabel: e.target.value })}
+              />
             </Field>
             <Field label="Button URL">
-              <input className="input" value={str(block, 'buttonUrl')} onChange={(e) => onChange({ buttonUrl: e.target.value })} />
+              <input
+                className="input"
+                value={str(block, 'buttonUrl')}
+                onChange={(e) => onChange({ buttonUrl: e.target.value })}
+              />
             </Field>
           </div>
         </>
@@ -383,10 +490,18 @@ function BlockEditor({ block, onChange }: { block: Block; onChange: (patch: Reco
       return (
         <>
           <Field label="Image URL">
-            <input className="input" value={str(block, 'url')} onChange={(e) => onChange({ url: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'url')}
+              onChange={(e) => onChange({ url: e.target.value })}
+            />
           </Field>
           <Field label="Alt text" hint="Optional">
-            <input className="input" value={str(block, 'alt')} onChange={(e) => onChange({ alt: e.target.value })} />
+            <input
+              className="input"
+              value={str(block, 'alt')}
+              onChange={(e) => onChange({ alt: e.target.value })}
+            />
           </Field>
         </>
       )
@@ -400,12 +515,21 @@ interface FeatureItem {
   body: string
 }
 
-function FeaturesEditor({ block, onChange }: { block: Block; onChange: (patch: Record<string, unknown>) => void }) {
+function FeaturesEditor({
+  block,
+  onChange,
+}: {
+  block: Block
+  onChange: (patch: Record<string, unknown>) => void
+}) {
   const raw = block['items']
   const list: FeatureItem[] = Array.isArray(raw)
     ? raw.map((it) => {
         const o = (it && typeof it === 'object' ? it : {}) as Record<string, unknown>
-        return { title: typeof o['title'] === 'string' ? o['title'] : '', body: typeof o['body'] === 'string' ? o['body'] : '' }
+        return {
+          title: typeof o['title'] === 'string' ? o['title'] : '',
+          body: typeof o['body'] === 'string' ? o['body'] : '',
+        }
       })
     : []
 
@@ -416,32 +540,48 @@ function FeaturesEditor({ block, onChange }: { block: Block; onChange: (patch: R
   return (
     <>
       <Field label="Heading">
-        <input className="input" value={str(block, 'heading')} onChange={(e) => onChange({ heading: e.target.value })} />
+        <input
+          className="input"
+          value={str(block, 'heading')}
+          onChange={(e) => onChange({ heading: e.target.value })}
+        />
       </Field>
       <div className="stack" style={{ gap: 8 }}>
         {list.map((it, i) => (
           <div key={i} className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-            <div className="grow stack" style={{ gap: 6 }}>
+            <div className="stack grow" style={{ gap: 6 }}>
               <input
                 className="input"
                 placeholder="Title"
                 value={it.title}
-                onChange={(e) => setItems(list.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                onChange={(e) =>
+                  setItems(list.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))
+                }
               />
               <input
                 className="input"
                 placeholder="Description"
                 value={it.body}
-                onChange={(e) => setItems(list.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
+                onChange={(e) =>
+                  setItems(list.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))
+                }
               />
             </div>
-            <button className="btn ghost sm" onClick={() => setItems(list.filter((_, j) => j !== i))} aria-label="Remove item">
+            <button
+              className="btn ghost sm"
+              onClick={() => setItems(list.filter((_, j) => j !== i))}
+              aria-label="Remove item"
+            >
               <Icon name="x" size={15} />
             </button>
           </div>
         ))}
       </div>
-      <button className="btn ghost sm" style={{ marginTop: 8 }} onClick={() => setItems([...list, { title: '', body: '' }])}>
+      <button
+        className="btn ghost sm"
+        style={{ marginTop: 8 }}
+        onClick={() => setItems([...list, { title: '', body: '' }])}
+      >
         <Icon name="plus" size={15} /> Add feature
       </button>
     </>

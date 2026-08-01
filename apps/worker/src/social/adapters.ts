@@ -193,13 +193,19 @@ const tiktok: SocialPublisher = {
       }),
     })
     if (!res.ok) throw await publishError(res, 'TIKTOK')
-    const body = (await res.json()) as { data?: { publish_id?: string }; error?: { message?: string } }
+    const body = (await res.json()) as {
+      data?: { publish_id?: string }
+      error?: { message?: string }
+    }
     const id = body.data?.publish_id
-    if (!id) throw new SocialPublishError(body.error?.message ?? 'TIKTOK returned no publish id', 'TIKTOK')
+    if (!id)
+      throw new SocialPublishError(body.error?.message ?? 'TIKTOK returned no publish id', 'TIKTOK')
     // TikTok has no post URL until processing completes; link to the profile.
     return {
       externalPostId: id,
-      permalink: input.handle ? `https://www.tiktok.com/@${input.handle}` : 'https://www.tiktok.com',
+      permalink: input.handle
+        ? `https://www.tiktok.com/@${input.handle}`
+        : 'https://www.tiktok.com',
     }
   },
 }
@@ -214,7 +220,8 @@ const youtube: SocialPublisher = {
     // Fetch the asset bytes, then upload as a single multipart request (adequate for
     // short marketing clips; large videos would want a resumable session).
     const asset = await fetch(video.url)
-    if (!asset.ok) throw new SocialPublishError('YOUTUBE could not fetch the video asset', 'YOUTUBE')
+    if (!asset.ok)
+      throw new SocialPublishError('YOUTUBE could not fetch the video asset', 'YOUTUBE')
     const bytes = Buffer.from(await asset.arrayBuffer())
 
     const metadata = {

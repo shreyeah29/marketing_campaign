@@ -8,7 +8,8 @@
  */
 
 const API_BASE = (
-  (typeof process !== 'undefined' && process.env['NEXT_PUBLIC_API_URL']) || 'http://localhost:4000'
+  (typeof process !== 'undefined' && process.env['NEXT_PUBLIC_API_URL']) ||
+  'http://localhost:4000'
 ).replace(/\/+$/, '')
 
 const PLATFORM_TOKEN_KEY = 'vsp.platform.token'

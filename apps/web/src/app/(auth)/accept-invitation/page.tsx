@@ -58,7 +58,10 @@ function AcceptInvitationInner() {
       setState({ kind: 'accepted' })
       setTimeout(() => router.replace('/app'), 900)
     } catch (err) {
-      setState({ kind: 'error', message: (err as AuthError).message || 'Could not accept the invitation.' })
+      setState({
+        kind: 'error',
+        message: (err as AuthError).message || 'Could not accept the invitation.',
+      })
       setBusy(false)
     }
   }, [token, router])
@@ -97,7 +100,8 @@ function AcceptInvitationInner() {
         {state.kind === 'ready' && (
           <>
             <p className="page-sub" style={{ marginBottom: 18 }}>
-              Signed in as <strong>{state.session.user.email}</strong>. Accept to join the workspace.
+              Signed in as <strong>{state.session.user.email}</strong>. Accept to join the
+              workspace.
             </p>
             <button
               className="btn primary"
@@ -110,7 +114,9 @@ function AcceptInvitationInner() {
           </>
         )}
 
-        {state.kind === 'accepted' && <Banner kind="success">You're in — taking you to your workspace…</Banner>}
+        {state.kind === 'accepted' && (
+          <Banner kind="success">You're in — taking you to your workspace…</Banner>
+        )}
 
         {state.kind === 'error' && (
           <>

@@ -3,7 +3,15 @@
 import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
-import { DataTable, EmptyState, ErrorState, PageHeader, StatCard, TableSkeleton, type Column } from '@/components/kit'
+import {
+  DataTable,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  StatCard,
+  TableSkeleton,
+  type Column,
+} from '@/components/kit'
 
 interface ProviderUsage {
   id: string
@@ -57,7 +65,11 @@ export default function AiUsagePage() {
     { key: 'provider', header: 'Provider', render: (r) => r.provider ?? '—' },
     { key: 'cost', header: 'Cost', render: (r) => money(r.costUsd) },
     { key: 'input', header: 'Input tokens', render: (r) => (r.inputTokens ?? 0).toLocaleString() },
-    { key: 'output', header: 'Output tokens', render: (r) => (r.outputTokens ?? 0).toLocaleString() },
+    {
+      key: 'output',
+      header: 'Output tokens',
+      render: (r) => (r.outputTokens ?? 0).toLocaleString(),
+    },
   ]
 
   return (
@@ -69,17 +81,28 @@ export default function AiUsagePage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : !data ? (
-        <EmptyState icon="bot" title="No AI usage yet" hint="Usage appears once agents start running." />
+        <EmptyState
+          icon="bot"
+          title="No AI usage yet"
+          hint="Usage appears once agents start running."
+        />
       ) : (
         <>
-          <div className="grid cols-4" style={{ marginBottom: 22 }}>
+          <div className="cols-4 grid" style={{ marginBottom: 22 }}>
             <StatCard label="Total cost" value={money(data.totalCostUsd)} />
             <StatCard label="Total calls" value={(data.totalCalls ?? 0).toLocaleString()} />
             <StatCard label="Input tokens" value={(data.totalInputTokens ?? 0).toLocaleString()} />
-            <StatCard label="Output tokens" value={(data.totalOutputTokens ?? 0).toLocaleString()} />
+            <StatCard
+              label="Output tokens"
+              value={(data.totalOutputTokens ?? 0).toLocaleString()}
+            />
           </div>
           {rows.length === 0 ? (
-            <EmptyState icon="bot" title="No provider breakdown yet" hint="Per-provider usage appears as agents run." />
+            <EmptyState
+              icon="bot"
+              title="No provider breakdown yet"
+              hint="Per-provider usage appears as agents run."
+            />
           ) : (
             <DataTable columns={columns} rows={rows} />
           )}

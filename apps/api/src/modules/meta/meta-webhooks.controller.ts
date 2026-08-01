@@ -60,7 +60,14 @@ export class MetaWebhooksController {
 
     const raw = req.rawBody
     const signature = req.headers['x-hub-signature-256']
-    if (!raw || !verifySignature(raw, typeof signature === 'string' ? signature : undefined, env.META_APP_SECRET)) {
+    if (
+      !raw ||
+      !verifySignature(
+        raw,
+        typeof signature === 'string' ? signature : undefined,
+        env.META_APP_SECRET,
+      )
+    ) {
       throw new BadRequestException('Invalid signature')
     }
 
@@ -82,7 +89,12 @@ export class MetaWebhooksController {
   }
 
   /** Idempotent insert keyed by a natural event id; a duplicate is a no-op. */
-  private async record(externalId: string, object: string, field: string, payload: unknown): Promise<void> {
+  private async record(
+    externalId: string,
+    object: string,
+    field: string,
+    payload: unknown,
+  ): Promise<void> {
     try {
       await this.db.metaWebhookEvent.create({
         data: { externalId, object, field, payload: payload as never, status: 'RECEIVED' },
@@ -103,8 +115,11 @@ function isUniqueViolation(err: unknown): boolean {
 
 /** A stable-ish dedupe key for a WhatsApp payload, from the first message id. */
 function messageDedupeKey(payload: unknown): string {
-  const entry = (payload as { entry?: { id?: string; changes?: { value?: { messages?: { id?: string }[] } }[] }[] })
-    .entry?.[0]
+  const entry = (
+    payload as {
+      entry?: { id?: string; changes?: { value?: { messages?: { id?: string }[] } }[] }[]
+    }
+  ).entry?.[0]
   const msgId = entry?.changes?.[0]?.value?.messages?.[0]?.id
   return msgId ? `wa:${msgId}` : `wa:${entry?.id ?? 'unknown'}:${String(Date.now())}`
 }

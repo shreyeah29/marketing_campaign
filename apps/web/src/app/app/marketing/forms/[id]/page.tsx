@@ -219,9 +219,13 @@ function BuilderTab({
   return (
     <div style={{ marginTop: 16 }}>
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div className="grid cols-2">
+        <div className="cols-2 grid">
           <Field label="Name">
-            <input className="input" value={form.name} onChange={(e) => set('name', e.target.value)} />
+            <input
+              className="input"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+            />
           </Field>
           <Field label="Accent color" hint="Used for the submit button">
             <input
@@ -233,7 +237,11 @@ function BuilderTab({
           </Field>
         </div>
         <Field label="Headline">
-          <input className="input" value={form.headline ?? ''} onChange={(e) => set('headline', e.target.value)} />
+          <input
+            className="input"
+            value={form.headline ?? ''}
+            onChange={(e) => set('headline', e.target.value)}
+          />
         </Field>
         <Field label="Description">
           <textarea
@@ -243,7 +251,7 @@ function BuilderTab({
             onChange={(e) => set('description', e.target.value)}
           />
         </Field>
-        <div className="grid cols-2">
+        <div className="cols-2 grid">
           <Field label="Submit button label">
             <input
               className="input"
@@ -280,7 +288,9 @@ function BuilderTab({
         </div>
 
         {form.fields.length === 0 ? (
-          <div className="dim" style={{ fontSize: 13 }}>No fields yet. Add one to collect data.</div>
+          <div className="dim" style={{ fontSize: 13 }}>
+            No fields yet. Add one to collect data.
+          </div>
         ) : (
           <div className="stack" style={{ gap: 10 }}>
             {form.fields.map((f, i) => (
@@ -322,7 +332,12 @@ function BuilderTab({
                     Required
                   </label>
                   <div className="row" style={{ gap: 4, paddingBottom: 4 }}>
-                    <button className="btn ghost sm" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">
+                    <button
+                      className="btn ghost sm"
+                      onClick={() => move(i, -1)}
+                      disabled={i === 0}
+                      aria-label="Move up"
+                    >
                       <Icon name="arrow-up" size={15} />
                     </button>
                     <button
@@ -333,7 +348,11 @@ function BuilderTab({
                     >
                       <Icon name="arrow-down" size={15} />
                     </button>
-                    <button className="btn danger sm" onClick={() => removeField(i)} aria-label="Remove">
+                    <button
+                      className="btn danger sm"
+                      onClick={() => removeField(i)}
+                      aria-label="Remove"
+                    >
                       <Icon name="x" size={15} />
                     </button>
                   </div>
@@ -394,7 +413,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
   return (
     <div style={{ marginTop: 16 }}>
       {stats ? (
-        <div className="grid cols-2" style={{ marginBottom: 16 }}>
+        <div className="cols-2 grid" style={{ marginBottom: 16 }}>
           <StatCard label="Total submissions" value={stats.submitCount} />
           <StatCard label="Last 7 days" value={stats.last7Days} />
         </div>
@@ -412,25 +431,52 @@ function SubmissionsTab({ formId }: { formId: string }) {
             <thead>
               <tr>
                 {columns.map((c) => (
-                  <th key={c} style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid var(--border, #333)' }}>
+                  <th
+                    key={c}
+                    style={{
+                      textAlign: 'left',
+                      padding: 10,
+                      borderBottom: '1px solid var(--border, #333)',
+                    }}
+                  >
                     {c}
                   </th>
                 ))}
-                <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid var(--border, #333)' }}>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: 10,
+                    borderBottom: '1px solid var(--border, #333)',
+                  }}
+                >
                   Received
                 </th>
-                <th style={{ textAlign: 'left', padding: 10, borderBottom: '1px solid var(--border, #333)' }}>Lead</th>
+                <th
+                  style={{
+                    textAlign: 'left',
+                    padding: 10,
+                    borderBottom: '1px solid var(--border, #333)',
+                  }}
+                >
+                  Lead
+                </th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
                   {columns.map((c) => (
-                    <td key={c} style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}>
+                    <td
+                      key={c}
+                      style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}
+                    >
                       {formatValue(r.data[c])}
                     </td>
                   ))}
-                  <td className="dim" style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}>
+                  <td
+                    className="dim"
+                    style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}
+                  >
                     {new Date(r.createdAt).toLocaleString()}
                   </td>
                   <td style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}>

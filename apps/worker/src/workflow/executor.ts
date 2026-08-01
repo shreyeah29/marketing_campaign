@@ -25,7 +25,11 @@ export interface WfNode {
   readonly action?: string
   readonly config?: Record<string, unknown>
   readonly delayMs?: number
-  readonly condition?: { left: string; op: 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'truthy'; right?: unknown }
+  readonly condition?: {
+    left: string
+    op: 'eq' | 'ne' | 'gt' | 'lt' | 'contains' | 'truthy'
+    right?: unknown
+  }
   readonly next?: string | null
   readonly onTrue?: string | null
   readonly onFalse?: string | null
@@ -109,7 +113,11 @@ export function createWorkflowHandler(queue: Queue) {
 
     while (nodeId) {
       if (++steps > maxSteps) {
-        await this_fail(db, runId, 'Workflow exceeded its step limit — the graph likely contains a cycle')
+        await this_fail(
+          db,
+          runId,
+          'Workflow exceeded its step limit — the graph likely contains a cycle',
+        )
         logger.warn({ runId, maxSteps }, 'workflow aborted: step limit exceeded (cycle?)')
         return
       }
@@ -148,7 +156,10 @@ export function createWorkflowHandler(queue: Queue) {
             } satisfies WorkflowJobData,
             { delay: delayMs },
           )
-          logger.info({ runId, nodeId: node.id, delayMs }, 'workflow waiting (delayed continuation enqueued)')
+          logger.info(
+            { runId, nodeId: node.id, delayMs },
+            'workflow waiting (delayed continuation enqueued)',
+          )
           return
         }
 
@@ -205,7 +216,11 @@ export function createWorkflowHandler(queue: Queue) {
     await withTenantTransaction(db, async (tx) => {
       await tx.workflowRun.updateMany({
         where: { id: runId },
-        data: { status: 'SUCCEEDED', completedAt: new Date(), durationMs: Date.now() - startedAtMs },
+        data: {
+          status: 'SUCCEEDED',
+          completedAt: new Date(),
+          durationMs: Date.now() - startedAtMs,
+        },
       })
       await tx.workflow.updateMany({
         where: { id: loaded.workflowId },
@@ -238,7 +253,9 @@ const ACTIONS: Record<string, ActionFn> = {
         data: {
           organizationId: ctx.organizationId,
           ...(ctx.userId ? { userId: ctx.userId } : {}),
-          level: (['INFO', 'SUCCESS', 'WARNING', 'ERROR'].includes(str(config['level'])) ? config['level'] : 'INFO') as never,
+          level: (['INFO', 'SUCCESS', 'WARNING', 'ERROR'].includes(str(config['level']))
+            ? config['level']
+            : 'INFO') as never,
           title,
           body: str(config['body']) || null,
         },
@@ -263,7 +280,8 @@ const ACTIONS: Record<string, ActionFn> = {
   },
 
   /** Alias used by review workflows. */
-  create_review_task: async (config, ctx) => ACTIONS['create_task']!({ title: 'Review generated assets', ...config }, ctx),
+  create_review_task: async (config, ctx) =>
+    ACTIONS['create_task']!({ title: 'Review generated assets', ...config }, ctx),
 
   /** POST the run context (or a configured body) to an external URL. */
   send_webhook: async (config, ctx) => {
@@ -293,7 +311,11 @@ const ACTIONS: Record<string, ActionFn> = {
   /** Email is delivered by the API's EmailPort; the worker records intent as a notification. */
   send_email: async (config, ctx) =>
     ACTIONS['send_notification']!(
-      { title: `Email: ${str(config['subject'], 'Message')}`, body: str(config['body']), level: 'INFO' },
+      {
+        title: `Email: ${str(config['subject'], 'Message')}`,
+        body: str(config['body']),
+        level: 'INFO',
+      },
       ctx,
     ),
 
@@ -314,7 +336,8 @@ function parseGraph(raw: unknown): WfGraph | null {
 }
 
 function defaultNext(node: WfNode, context: RunContext): string | null | undefined {
-  if (node.type === 'condition') return evalCondition(node.condition, context) ? node.onTrue : node.onFalse
+  if (node.type === 'condition')
+    return evalCondition(node.condition, context) ? node.onTrue : node.onFalse
   return node.next
 }
 
@@ -367,7 +390,10 @@ async function this_fail(db: DatabaseClient, runId: string, error: string): Prom
       data: { status: 'FAILED', error, completedAt: new Date() },
     })
     if (run) {
-      await tx.workflow.updateMany({ where: { id: run.workflowId }, data: { failureCount: { increment: 1 } } })
+      await tx.workflow.updateMany({
+        where: { id: run.workflowId },
+        data: { failureCount: { increment: 1 } },
+      })
       // Module 9: a failed workflow raises a notification for the team.
       await tx.notification.create({
         data: {

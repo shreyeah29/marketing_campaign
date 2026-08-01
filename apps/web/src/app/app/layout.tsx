@@ -39,7 +39,9 @@ function readShellCache(): { workspace: Workspace; session: AuthSession } | null
     const raw = window.sessionStorage.getItem(SHELL_CACHE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as { workspace?: Workspace; session?: AuthSession }
-    return parsed.workspace && parsed.session ? { workspace: parsed.workspace, session: parsed.session } : null
+    return parsed.workspace && parsed.session
+      ? { workspace: parsed.workspace, session: parsed.session }
+      : null
   } catch {
     return null
   }
@@ -139,7 +141,10 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
         return
       }
       if (!cached) {
-        setStatus({ kind: 'error', message: err instanceof ApiError ? err.message : 'Failed to load workspace' })
+        setStatus({
+          kind: 'error',
+          message: err instanceof ApiError ? err.message : 'Failed to load workspace',
+        })
       }
     }
   }, [router])
@@ -154,7 +159,11 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
       <div className="center-screen">
         <div className="card auth-card" style={{ textAlign: 'center' }}>
           <Banner kind="error">{status.message}</Banner>
-          <button className="btn primary" style={{ width: '100%', marginTop: 14 }} onClick={() => void load()}>
+          <button
+            className="btn primary"
+            style={{ width: '100%', marginTop: 14 }}
+            onClick={() => void load()}
+          >
             Try again
           </button>
         </div>
@@ -168,76 +177,93 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   return (
     <WorkspaceContext.Provider value={status.data}>
       <ToastProvider>
-      <div className="shell">
-        {/* Mobile top bar — only shown below the sidebar breakpoint. */}
-        <header className="mobile-topbar">
-          <button
-            className="hamburger"
-            onClick={() => setNavOpen(true)}
-            aria-label="Open navigation menu"
-            aria-expanded={navOpen}
-          >
-            ☰
-          </button>
-          <div className="brand" style={{ padding: 0 }}>
-            <span className="dot" />
-            <span>{brandName}</span>
-          </div>
-        </header>
-
-        {/* Backdrop behind the off-canvas sidebar on mobile. */}
-        {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
-
-        <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
-          <div className="brand">
-            <span className="dot" />
-            <span>{brandName}</span>
+        <div className="shell">
+          {/* Mobile top bar — only shown below the sidebar breakpoint. */}
+          <header className="mobile-topbar">
             <button
-              className="sidebar-close"
-              onClick={() => setNavOpen(false)}
-              aria-label="Close navigation menu"
+              className="hamburger"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open navigation menu"
+              aria-expanded={navOpen}
             >
-              <Icon name="x" size={16} />
+              ☰
             </button>
-          </div>
-
-          <OrgSwitcher session={session} activeId={ws.organization?.id ?? null} onSwitched={() => void load()} />
-
-          {/* Dynamic navigation — sections and items straight from the API. */}
-          {ws.navigation.map((group) => (
-            <div key={group.section} className="nav-section">
-              <div className="label">{group.section}</div>
-              {group.items.map((item) => {
-                const href = `/app${item.path}`
-                const active = pathname === href
-                return (
-                  <Link key={item.path} href={href} className={`nav-item ${active ? 'active' : ''}`}>
-                    <Icon name={item.icon ?? 'dot'} size={17} style={{ opacity: 0.9 }} />
-                    {item.label}
-                  </Link>
-                )
-              })}
+            <div className="brand" style={{ padding: 0 }}>
+              <span className="dot" />
+              <span>{brandName}</span>
             </div>
-          ))}
+          </header>
 
-          <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-            <div className="nav-item" style={{ cursor: 'default' }}>
-              <span className="avatar">{(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}</span>
-              <span style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {ws.user.name || ws.user.email}
-                </div>
-                <div className="dim" style={{ fontSize: 11 }}>
-                  {ws.user.role}
-                </div>
-              </span>
+          {/* Backdrop behind the off-canvas sidebar on mobile. */}
+          {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
+
+          <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
+            <div className="brand">
+              <span className="dot" />
+              <span>{brandName}</span>
+              <button
+                className="sidebar-close"
+                onClick={() => setNavOpen(false)}
+                aria-label="Close navigation menu"
+              >
+                <Icon name="x" size={16} />
+              </button>
             </div>
-            <ThemeToggle />
-            <SignOutButton />
-          </div>
-        </aside>
-        <main className="main">{children}</main>
-      </div>
+
+            <OrgSwitcher
+              session={session}
+              activeId={ws.organization?.id ?? null}
+              onSwitched={() => void load()}
+            />
+
+            {/* Dynamic navigation — sections and items straight from the API. */}
+            {ws.navigation.map((group) => (
+              <div key={group.section} className="nav-section">
+                <div className="label">{group.section}</div>
+                {group.items.map((item) => {
+                  const href = `/app${item.path}`
+                  const active = pathname === href
+                  return (
+                    <Link
+                      key={item.path}
+                      href={href}
+                      className={`nav-item ${active ? 'active' : ''}`}
+                    >
+                      <Icon name={item.icon ?? 'dot'} size={17} style={{ opacity: 0.9 }} />
+                      {item.label}
+                    </Link>
+                  )
+                })}
+              </div>
+            ))}
+
+            <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              <div className="nav-item" style={{ cursor: 'default' }}>
+                <span className="avatar">
+                  {(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}
+                </span>
+                <span style={{ minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {ws.user.name || ws.user.email}
+                  </div>
+                  <div className="dim" style={{ fontSize: 11 }}>
+                    {ws.user.role}
+                  </div>
+                </span>
+              </div>
+              <ThemeToggle />
+              <SignOutButton />
+            </div>
+          </aside>
+          <main className="main">{children}</main>
+        </div>
       </ToastProvider>
     </WorkspaceContext.Provider>
   )
@@ -292,7 +318,15 @@ function OrgSwitcher({
       {open && (
         <div
           className="card"
-          style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, padding: 6, marginTop: 4 }}
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            padding: 6,
+            marginTop: 4,
+          }}
         >
           {session.organizations.map((o) => (
             <button
@@ -302,7 +336,11 @@ function OrgSwitcher({
               disabled={!o.isActive}
               onClick={() => void pick(o.organizationId)}
             >
-              <Icon name={o.organizationId === activeId ? 'check' : 'dot'} size={15} className="dim" />
+              <Icon
+                name={o.organizationId === activeId ? 'check' : 'dot'}
+                size={15}
+                className="dim"
+              />
               <span>
                 <div style={{ fontSize: 13 }}>{o.name}</div>
                 <div className="dim" style={{ fontSize: 11 }}>
@@ -411,8 +449,8 @@ function ShellBooting() {
         <Spinner />
         {slow ? (
           <p className="muted" style={{ fontSize: 13, marginTop: 16, lineHeight: 1.5 }}>
-            Waking up the server… the first request after a period of inactivity can take up to a minute on the
-            current hosting tier. It stays fast after that.
+            Waking up the server… the first request after a period of inactivity can take up to a
+            minute on the current hosting tier. It stays fast after that.
           </p>
         ) : null}
       </div>

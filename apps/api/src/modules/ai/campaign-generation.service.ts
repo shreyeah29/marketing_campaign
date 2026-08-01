@@ -108,7 +108,10 @@ export class CampaignGenerationService {
         model,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Marketing brief: ${brief}\n\nReturn ONLY the JSON object described.` },
+          {
+            role: 'user',
+            content: `Marketing brief: ${brief}\n\nReturn ONLY the JSON object described.`,
+          },
         ],
         // A full multi-platform campaign is a large JSON document, and reasoning
         // models spend part of the budget on hidden reasoning tokens — the old
@@ -288,7 +291,11 @@ const PLAN_PROMPT = `You are an expert marketing strategist acting as a Marketin
 Be concrete and realistic for the brief. Return valid JSON only.`
 
 function parseCampaignPlan(raw: string): CampaignPlan {
-  const text = raw.trim().replace(/^\`\`\`(?:json)?/i, '').replace(/\`\`\`$/, '').trim()
+  const text = raw
+    .trim()
+    .replace(/^\`\`\`(?:json)?/i, '')
+    .replace(/\`\`\`$/, '')
+    .trim()
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   const json = start >= 0 && end > start ? text.slice(start, end + 1) : text
@@ -325,7 +332,11 @@ Produce at least one POST per platform (Instagram, Facebook, LinkedIn, X, Google
 
 function parsePlan(raw: string): GeneratedPlan {
   // Models sometimes wrap JSON in prose or code fences — extract the object.
-  const text = raw.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
+  const text = raw
+    .trim()
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/, '')
+    .trim()
   const start = text.indexOf('{')
   const end = text.lastIndexOf('}')
   const json = start >= 0 && end > start ? text.slice(start, end + 1) : text
@@ -349,6 +360,16 @@ function normalizePlatform(p: string): string {
 
 function normalizeKind(k: string): string {
   const up = String(k ?? '').toUpperCase()
-  const valid = ['POST', 'STORY', 'REEL', 'CAPTION', 'AD_COPY', 'AD_HEADLINE', 'AD_DESCRIPTION', 'IMAGE_PROMPT', 'VIDEO_PROMPT']
+  const valid = [
+    'POST',
+    'STORY',
+    'REEL',
+    'CAPTION',
+    'AD_COPY',
+    'AD_HEADLINE',
+    'AD_DESCRIPTION',
+    'IMAGE_PROMPT',
+    'VIDEO_PROMPT',
+  ]
   return valid.includes(up) ? up : 'POST'
 }

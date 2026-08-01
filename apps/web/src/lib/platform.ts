@@ -32,7 +32,8 @@ export const platform = {
 
   catalog: () => api.get<Catalog>('/platform/catalog', { platformAuth: true }),
 
-  listOrganizations: () => api.get<OrgListItem[]>('/platform/organizations', { platformAuth: true }),
+  listOrganizations: () =>
+    api.get<OrgListItem[]>('/platform/organizations', { platformAuth: true }),
 
   organizationDetail: (id: string) =>
     api.get<OrgDetail>(`/platform/organizations/${id}`, { platformAuth: true }),
@@ -48,13 +49,13 @@ export const platform = {
     ),
 
   changePlan: (id: string, plan: string) =>
-    api.patch<{ ok: true }>(
-      `/platform/organizations/${id}/plan`,
-      { plan },
-      { platformAuth: true },
-    ),
+    api.patch<{ ok: true }>(`/platform/organizations/${id}/plan`, { plan }, { platformAuth: true }),
 
-  setFeatures: (id: string, features: string[], featureConfig?: Record<string, Record<string, unknown>>) =>
+  setFeatures: (
+    id: string,
+    features: string[],
+    featureConfig?: Record<string, Record<string, unknown>>,
+  ) =>
     api.put<{ ok: true; enabled: number }>(
       `/platform/organizations/${id}/features`,
       { features, ...(featureConfig ? { featureConfig } : {}) },

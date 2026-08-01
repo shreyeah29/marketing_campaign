@@ -22,7 +22,10 @@ const createSchema = z
 const updateSchema = createSchema.partial()
 
 function readSearch(q: unknown): string | undefined {
-  return q && typeof q === 'object' && 'search' in q && typeof (q as Record<string, unknown>).search === 'string'
+  return q &&
+    typeof q === 'object' &&
+    'search' in q &&
+    typeof (q as Record<string, unknown>).search === 'string'
     ? (q as Record<string, string>).search
     : undefined
 }

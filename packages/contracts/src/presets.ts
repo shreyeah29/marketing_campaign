@@ -94,7 +94,8 @@ export const PRESETS: readonly FeaturePreset[] = [
       'ai.voice_calling': { identifyAsAi: true, monthlyMinuteLimit: 300 },
       'ai.chat': { effort: 'high' },
     },
-    brandVoice: 'Professional, precise, reassuring. Plain language over legalese. Never give legal advice.',
+    brandVoice:
+      'Professional, precise, reassuring. Plain language over legalese. Never give legal advice.',
   }),
   preset({
     id: 'medical_clinic',
@@ -120,7 +121,8 @@ export const PRESETS: readonly FeaturePreset[] = [
       'ai.voice_receptionist': { greeting: 'Thank you for calling. This is an AI assistant.' },
       'ai.voice_calling': { identifyAsAi: true },
     },
-    brandVoice: 'Warm, careful, clear. Never diagnose or give medical advice; direct to a clinician.',
+    brandVoice:
+      'Warm, careful, clear. Never diagnose or give medical advice; direct to a clinician.',
   }),
   preset({
     id: 'ecommerce',
@@ -173,7 +175,13 @@ export const PRESETS: readonly FeaturePreset[] = [
     industry: 'General',
     description: 'A lean CRM with email — the smallest sensible starting point.',
     recommendedPlan: 'starter',
-    featureIds: ['crm.contacts', 'crm.companies', 'crm.leads', 'marketing.email', 'analytics.dashboard'],
+    featureIds: [
+      'crm.contacts',
+      'crm.companies',
+      'crm.leads',
+      'marketing.email',
+      'analytics.dashboard',
+    ],
     brandVoice: 'Clear and professional.',
   }),
 ]

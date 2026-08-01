@@ -86,7 +86,7 @@ export default function RevenuePage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="stack" style={{ gap: 22 }}>
-          <div className="grid cols-4">
+          <div className="cols-4 grid">
             <StatCard label="Revenue (metrics)" value={money(kpis?.revenue)} />
             <StatCard label="Spend" value={money(kpis?.spend)} />
             <StatCard label="Net profit" value={profit === undefined ? '—' : money(profit)} />

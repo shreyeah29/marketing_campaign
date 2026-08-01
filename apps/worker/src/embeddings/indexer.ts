@@ -46,7 +46,10 @@ export function createEmbeddingsHandler(env: WorkerEnv) {
         select: { id: true, content: true },
       })
       if (!found) return null
-      await tx.knowledgeDocument.updateMany({ where: { id: documentId }, data: { status: 'PROCESSING' } })
+      await tx.knowledgeDocument.updateMany({
+        where: { id: documentId },
+        data: { status: 'PROCESSING' },
+      })
       return found
     })
     if (!doc) {
@@ -111,7 +114,12 @@ export function createEmbeddingsHandler(env: WorkerEnv) {
         }
         await tx.knowledgeDocument.updateMany({
           where: { id: documentId },
-          data: { status: 'READY', chunkCount: chunks.length, indexedAt: new Date(), failureReason: null },
+          data: {
+            status: 'READY',
+            chunkCount: chunks.length,
+            indexedAt: new Date(),
+            failureReason: null,
+          },
         })
         // Recompute the KB chunk total from its documents so counts stay honest.
         const agg = await tx.knowledgeDocument.aggregate({
@@ -136,7 +144,10 @@ export function createEmbeddingsHandler(env: WorkerEnv) {
 function chunkText(text: string): string[] {
   const clean = text.replace(/\r\n/g, '\n').trim()
   if (!clean) return []
-  const paragraphs = clean.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean)
+  const paragraphs = clean
+    .split(/\n{2,}/)
+    .map((p) => p.trim())
+    .filter(Boolean)
 
   const chunks: string[] = []
   let current = ''

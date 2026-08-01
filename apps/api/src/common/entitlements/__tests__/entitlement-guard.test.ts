@@ -13,7 +13,14 @@
  * guard, and the problem+json shape together.
  */
 
-import { Controller, Get, Injectable, Module, type CanActivate, type ExecutionContext } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Injectable,
+  Module,
+  type CanActivate,
+  type ExecutionContext,
+} from '@nestjs/common'
 import { APP_GUARD, Reflector } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'

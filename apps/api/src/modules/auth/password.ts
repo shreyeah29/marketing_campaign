@@ -1,4 +1,7 @@
-import { hashPassword as betterAuthHash, verifyPassword as betterAuthVerify } from 'better-auth/crypto'
+import {
+  hashPassword as betterAuthHash,
+  verifyPassword as betterAuthVerify,
+} from 'better-auth/crypto'
 
 /**
  * Password hashing, shared between Better Auth and the provisioning path.

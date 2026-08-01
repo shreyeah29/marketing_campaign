@@ -71,11 +71,14 @@ export function LineChart({
   const x = (i: number) => padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW)
   const y = (v: number) => padT + plotH - (v / max) * plotH
 
-  const line = data.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)},${y(d.value).toFixed(2)}`).join(' ')
+  const line = data
+    .map((d, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)},${y(d.value).toFixed(2)}`)
+    .join(' ')
   const area = `${line} L${x(n - 1).toFixed(2)},${(padT + plotH).toFixed(2)} L${x(0).toFixed(2)},${(padT + plotH).toFixed(2)} Z`
 
   const gridLines = [0, 0.25, 0.5, 0.75, 1]
-  const fmt = valueFormat ?? ((v: number) => (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1)))
+  const fmt =
+    valueFormat ?? ((v: number) => (Number.isInteger(v) ? v.toLocaleString() : v.toFixed(1)))
   const last = data[n - 1]
   const gradId = `lc-grad-${Math.round(max)}-${n}`
 
@@ -84,7 +87,13 @@ export function LineChart({
 
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={height} role="img" preserveAspectRatio="xMidYMid meet">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={height}
+        role="img"
+        preserveAspectRatio="xMidYMid meet"
+      >
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.28} />
@@ -105,12 +114,26 @@ export function LineChart({
         })}
 
         <path d={area} fill={`url(#${gradId})`} />
-        <path d={line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+        <path
+          d={line}
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
 
         {last ? (
           <>
             <circle cx={x(n - 1)} cy={y(last.value)} r={3.5} fill={color} />
-            <text x={Math.min(x(n - 1), W - padR - 2)} y={Math.max(y(last.value) - 8, 12)} textAnchor="end" fontSize={11} fontWeight={600} fill="var(--text)">
+            <text
+              x={Math.min(x(n - 1), W - padR - 2)}
+              y={Math.max(y(last.value) - 8, 12)}
+              textAnchor="end"
+              fontSize={11}
+              fontWeight={600}
+              fill="var(--text)"
+            >
               {fmt(last.value)}
             </text>
           </>
@@ -118,7 +141,14 @@ export function LineChart({
 
         {data.map((d, i) =>
           i % labelEvery === 0 || i === n - 1 ? (
-            <text key={d.label + String(i)} x={x(i)} y={H - 8} textAnchor="middle" fontSize={10} fill={MUTED}>
+            <text
+              key={d.label + String(i)}
+              x={x(i)}
+              y={H - 8}
+              textAnchor="middle"
+              fontSize={10}
+              fill={MUTED}
+            >
               {d.label}
             </text>
           ) : null,
@@ -157,7 +187,13 @@ export function BarChart({
 
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={height} role="img" preserveAspectRatio="xMidYMid meet">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={height}
+        role="img"
+        preserveAspectRatio="xMidYMid meet"
+      >
         {[0, 0.5, 1].map((g) => {
           const gy = padT + plotH - g * plotH
           return (
@@ -169,16 +205,38 @@ export function BarChart({
             </g>
           )
         })}
-        <line x1={padL} y1={padT + plotH} x2={W - padR} y2={padT + plotH} stroke={AXIS} strokeWidth={1} />
+        <line
+          x1={padL}
+          y1={padT + plotH}
+          x2={W - padR}
+          y2={padT + plotH}
+          stroke={AXIS}
+          strokeWidth={1}
+        />
 
         {data.map((d, i) => {
           const cx = padL + slot * i + slot / 2
           const bh = Math.max(0, padT + plotH - y(d.value))
           return (
             <g key={d.label + String(i)}>
-              <rect x={cx - barW / 2} y={y(d.value)} width={barW} height={bh} rx={4} fill={color} opacity={0.9} />
+              <rect
+                x={cx - barW / 2}
+                y={y(d.value)}
+                width={barW}
+                height={bh}
+                rx={4}
+                fill={color}
+                opacity={0.9}
+              />
               {d.value > 0 ? (
-                <text x={cx} y={y(d.value) - 5} textAnchor="middle" fontSize={10} fontWeight={600} fill="var(--text)">
+                <text
+                  x={cx}
+                  y={y(d.value) - 5}
+                  textAnchor="middle"
+                  fontSize={10}
+                  fontWeight={600}
+                  fill="var(--text)"
+                >
                   {d.value.toLocaleString()}
                 </text>
               ) : null}
@@ -214,10 +272,27 @@ export function Sparkline({
   const n = values.length
   const x = (i: number) => (n === 1 ? W / 2 : (i / (n - 1)) * W)
   const y = (v: number) => H - 3 - ((v - min) / range) * (H - 6)
-  const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)},${y(v).toFixed(2)}`).join(' ')
+  const line = values
+    .map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)},${y(v).toFixed(2)}`)
+    .join(' ')
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={width} height={height} preserveAspectRatio="none" role="img" style={{ display: 'block' }}>
-      <path d={line} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width={width}
+      height={height}
+      preserveAspectRatio="none"
+      role="img"
+      style={{ display: 'block' }}
+    >
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
 }

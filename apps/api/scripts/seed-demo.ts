@@ -54,7 +54,15 @@ function pick<T>(arr: readonly T[], i: number): T {
 
 // Slugs that look like automated test fixtures — never seed these.
 const SKIP_SLUG_FRAGMENTS = [
-  'test', 'fixture', 'isolation', 'relay', 'cred', '-mp', '-ent', 'aaa', 'bbb',
+  'test',
+  'fixture',
+  'isolation',
+  'relay',
+  'cred',
+  '-mp',
+  '-ent',
+  'aaa',
+  'bbb',
 ]
 
 function looksLikeFixture(slug: string, id: string): boolean {
@@ -66,22 +74,131 @@ function looksLikeFixture(slug: string, id: string): boolean {
 // ─── sample content (marketing-agency themed; varied, not lorem) ──────────────
 
 const COMPANIES = [
-  { name: 'Aurelia Fine Jewellery', domain: 'aurelia-jewels.example.com', industry: 'Jewellery & Accessories', size: '51-200' },
-  { name: 'NestPoint Smart Home', domain: 'nestpoint.example.com', industry: 'Consumer Electronics', size: '201-500' },
-  { name: 'Lumiere Skincare', domain: 'lumiereskin.example.com', industry: 'Beauty & Personal Care', size: '11-50' },
-  { name: 'Verdant Interiors', domain: 'verdantinteriors.example.com', industry: 'Home & Furniture', size: '11-50' },
-  { name: 'Peak & Pine Outdoors', domain: 'peakandpine.example.com', industry: 'Retail', size: '51-200' },
-  { name: 'Saffron Table', domain: 'saffrontable.example.com', industry: 'Food & Beverage', size: '11-50' },
-  { name: 'Cobalt Fitness', domain: 'cobaltfitness.example.com', industry: 'Health & Fitness', size: '51-200' },
-  { name: 'Harbor & Co Realty', domain: 'harborcorealty.example.com', industry: 'Real Estate', size: '11-50' },
+  {
+    name: 'Aurelia Fine Jewellery',
+    domain: 'aurelia-jewels.example.com',
+    industry: 'Jewellery & Accessories',
+    size: '51-200',
+  },
+  {
+    name: 'NestPoint Smart Home',
+    domain: 'nestpoint.example.com',
+    industry: 'Consumer Electronics',
+    size: '201-500',
+  },
+  {
+    name: 'Lumiere Skincare',
+    domain: 'lumiereskin.example.com',
+    industry: 'Beauty & Personal Care',
+    size: '11-50',
+  },
+  {
+    name: 'Verdant Interiors',
+    domain: 'verdantinteriors.example.com',
+    industry: 'Home & Furniture',
+    size: '11-50',
+  },
+  {
+    name: 'Peak & Pine Outdoors',
+    domain: 'peakandpine.example.com',
+    industry: 'Retail',
+    size: '51-200',
+  },
+  {
+    name: 'Saffron Table',
+    domain: 'saffrontable.example.com',
+    industry: 'Food & Beverage',
+    size: '11-50',
+  },
+  {
+    name: 'Cobalt Fitness',
+    domain: 'cobaltfitness.example.com',
+    industry: 'Health & Fitness',
+    size: '51-200',
+  },
+  {
+    name: 'Harbor & Co Realty',
+    domain: 'harborcorealty.example.com',
+    industry: 'Real Estate',
+    size: '11-50',
+  },
 ]
 
-const FIRST_NAMES = ['Aanya', 'Rohan', 'Priya', 'Marcus', 'Elena', 'Dev', 'Sofia', 'Kabir', 'Nadia', 'Liam', 'Meera', 'Julian', 'Isha', 'Owen', 'Farah', 'Noah', 'Tara', 'Ethan', 'Zoya', 'Caleb']
-const LAST_NAMES = ['Kapoor', 'Mehta', 'Sharma', 'Reyes', 'Novak', 'Patel', 'Rossi', 'Khan', 'Haddad', 'Walsh', 'Iyer', 'Brooks', 'Nair', 'Fischer', 'Aziz', 'Bennett', 'Sen', 'Clarke', 'Malik', 'Turner']
-const JOB_TITLES = ['Marketing Director', 'Founder', 'Head of Growth', 'Brand Manager', 'CMO', 'E-commerce Lead', 'Social Media Manager', 'VP Marketing', 'Content Lead', 'Performance Marketer']
-const CONTACT_TAGS = [['vip'], ['newsletter'], ['webinar', 'warm'], ['event-lead'], ['partner'], ['high-intent'], ['re-engage'], []]
+const FIRST_NAMES = [
+  'Aanya',
+  'Rohan',
+  'Priya',
+  'Marcus',
+  'Elena',
+  'Dev',
+  'Sofia',
+  'Kabir',
+  'Nadia',
+  'Liam',
+  'Meera',
+  'Julian',
+  'Isha',
+  'Owen',
+  'Farah',
+  'Noah',
+  'Tara',
+  'Ethan',
+  'Zoya',
+  'Caleb',
+]
+const LAST_NAMES = [
+  'Kapoor',
+  'Mehta',
+  'Sharma',
+  'Reyes',
+  'Novak',
+  'Patel',
+  'Rossi',
+  'Khan',
+  'Haddad',
+  'Walsh',
+  'Iyer',
+  'Brooks',
+  'Nair',
+  'Fischer',
+  'Aziz',
+  'Bennett',
+  'Sen',
+  'Clarke',
+  'Malik',
+  'Turner',
+]
+const JOB_TITLES = [
+  'Marketing Director',
+  'Founder',
+  'Head of Growth',
+  'Brand Manager',
+  'CMO',
+  'E-commerce Lead',
+  'Social Media Manager',
+  'VP Marketing',
+  'Content Lead',
+  'Performance Marketer',
+]
+const CONTACT_TAGS = [
+  ['vip'],
+  ['newsletter'],
+  ['webinar', 'warm'],
+  ['event-lead'],
+  ['partner'],
+  ['high-intent'],
+  ['re-engage'],
+  [],
+]
 
-const LEAD_STATUSES = ['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED'] as const
+const LEAD_STATUSES = [
+  'NEW',
+  'CONTACTED',
+  'QUALIFIED',
+  'NURTURING',
+  'UNQUALIFIED',
+  'CONVERTED',
+] as const
 const LEAD_SOURCES = ['FORM', 'ADS', 'REFERRAL', 'ORGANIC', 'EVENT', 'OUTBOUND']
 const LEAD_MEDIUMS = ['instagram', 'google-cpc', 'word-of-mouth', 'seo', 'trade-show', 'cold-email']
 
@@ -97,8 +214,30 @@ const TASK_TITLES = [
   'Book photoshoot for jewellery lookbook',
   'Send contract to Cobalt Fitness',
 ]
-const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'TODO', 'IN_PROGRESS', 'DONE', 'TODO', 'CANCELED', 'IN_PROGRESS'] as const
-const TASK_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'URGENT', 'MEDIUM', 'HIGH', 'MEDIUM', 'LOW', 'HIGH', 'URGENT'] as const
+const TASK_STATUSES = [
+  'TODO',
+  'IN_PROGRESS',
+  'BLOCKED',
+  'DONE',
+  'TODO',
+  'IN_PROGRESS',
+  'DONE',
+  'TODO',
+  'CANCELED',
+  'IN_PROGRESS',
+] as const
+const TASK_PRIORITIES = [
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'URGENT',
+  'MEDIUM',
+  'HIGH',
+  'MEDIUM',
+  'LOW',
+  'HIGH',
+  'URGENT',
+] as const
 
 const NOTE_BODIES = [
   'Prefers WhatsApp over email for quick approvals. Very responsive after 4pm.',
@@ -111,7 +250,18 @@ const NOTE_BODIES = [
   'Referred us to a sister brand in the same group. Warm intro incoming.',
 ]
 
-const ACTIVITY_TYPES = ['CALL', 'EMAIL', 'MEETING', 'NOTE', 'MESSAGE', 'STATUS_CHANGE', 'AI_ACTION', 'CALL', 'EMAIL', 'MEETING'] as const
+const ACTIVITY_TYPES = [
+  'CALL',
+  'EMAIL',
+  'MEETING',
+  'NOTE',
+  'MESSAGE',
+  'STATUS_CHANGE',
+  'AI_ACTION',
+  'CALL',
+  'EMAIL',
+  'MEETING',
+] as const
 const ACTIVITY_SUMMARIES = [
   'Discovery call — scoped festive campaign goals',
   'Sent proposal and media plan',
@@ -143,9 +293,20 @@ const BRAND_PACKS: BrandPack[] = [
   {
     campaignName: 'Diwali Jewellery Launch',
     objective: 'Drive festive-season sales of the Aurelia 22k gold collection',
-    description: 'A three-week festive push around Diwali built on lookbook imagery, gifting bundles and a countdown to the last shipping date.',
-    audience: { ageRange: '28-45', interests: ['fine jewellery', 'festive gifting', 'luxury'], regions: ['IN', 'AE', 'UK'], segments: ['returning buyers', 'high-AOV'] },
-    strategy: { pillars: ['Heritage craftsmanship', 'Festive gifting', 'Limited edition'], channels: ['instagram', 'meta-ads', 'email'], cadence: 'daily', kpis: { roas: 4.0, revenue: 500000 } },
+    description:
+      'A three-week festive push around Diwali built on lookbook imagery, gifting bundles and a countdown to the last shipping date.',
+    audience: {
+      ageRange: '28-45',
+      interests: ['fine jewellery', 'festive gifting', 'luxury'],
+      regions: ['IN', 'AE', 'UK'],
+      segments: ['returning buyers', 'high-AOV'],
+    },
+    strategy: {
+      pillars: ['Heritage craftsmanship', 'Festive gifting', 'Limited edition'],
+      channels: ['instagram', 'meta-ads', 'email'],
+      cadence: 'daily',
+      kpis: { roas: 4.0, revenue: 500000 },
+    },
     budget: 45000,
     hashtags: ['#Diwali', '#AureliaGold', '#FestiveGifting', '#FineJewellery', '#22kGold'],
     ctas: ['Shop the festive edit', 'Reserve yours before Diwali', 'Book a styling appointment'],
@@ -177,9 +338,20 @@ const BRAND_PACKS: BrandPack[] = [
   {
     campaignName: 'Smart Home Spring Sale',
     objective: 'Grow NestPoint installs with a spring bundle promotion and free setup',
-    description: 'A performance-led spring sale bundling the hub, sensors and cameras with free professional installation, optimised for paid search and social retargeting.',
-    audience: { ageRange: '30-55', interests: ['smart home', 'home security', 'energy saving'], regions: ['US', 'CA', 'UK'], segments: ['homeowners', 'cart-abandoners'] },
-    strategy: { pillars: ['Convenience', 'Security', 'Energy savings'], channels: ['google-ads', 'meta-ads', 'email'], cadence: 'twice-weekly', kpis: { cpa: 38, installs: 1200 } },
+    description:
+      'A performance-led spring sale bundling the hub, sensors and cameras with free professional installation, optimised for paid search and social retargeting.',
+    audience: {
+      ageRange: '30-55',
+      interests: ['smart home', 'home security', 'energy saving'],
+      regions: ['US', 'CA', 'UK'],
+      segments: ['homeowners', 'cart-abandoners'],
+    },
+    strategy: {
+      pillars: ['Convenience', 'Security', 'Energy savings'],
+      channels: ['google-ads', 'meta-ads', 'email'],
+      cadence: 'twice-weekly',
+      kpis: { cpa: 38, installs: 1200 },
+    },
     budget: 60000,
     hashtags: ['#SmartHome', '#NestPoint', '#SpringSale', '#HomeAutomation', '#SmartSecurity'],
     ctas: ['Claim free installation', 'Build your bundle', 'See the spring deal'],
@@ -210,10 +382,22 @@ const BRAND_PACKS: BrandPack[] = [
   },
   {
     campaignName: 'Skincare Brand Awareness',
-    objective: 'Build awareness for Lumiere’s new barrier-repair range with dermatologist-led content',
-    description: 'An always-on awareness play led by education, UGC and dermatologist collaborations to seed the new barrier-repair serum ahead of a retail launch.',
-    audience: { ageRange: '20-40', interests: ['skincare', 'clean beauty', 'wellness'], regions: ['US', 'IN', 'SG'], segments: ['skincare-curious', 'sensitive-skin'] },
-    strategy: { pillars: ['Science-backed', 'Gentle & clean', 'Real results'], channels: ['instagram', 'tiktok', 'seo'], cadence: 'daily', kpis: { reach: 2000000, followers: 25000 } },
+    objective:
+      'Build awareness for Lumiere’s new barrier-repair range with dermatologist-led content',
+    description:
+      'An always-on awareness play led by education, UGC and dermatologist collaborations to seed the new barrier-repair serum ahead of a retail launch.',
+    audience: {
+      ageRange: '20-40',
+      interests: ['skincare', 'clean beauty', 'wellness'],
+      regions: ['US', 'IN', 'SG'],
+      segments: ['skincare-curious', 'sensitive-skin'],
+    },
+    strategy: {
+      pillars: ['Science-backed', 'Gentle & clean', 'Real results'],
+      channels: ['instagram', 'tiktok', 'seo'],
+      cadence: 'daily',
+      kpis: { reach: 2000000, followers: 25000 },
+    },
     budget: 30000,
     hashtags: ['#Lumiere', '#SkinBarrier', '#CleanBeauty', '#SensitiveSkin', '#SkincareRoutine'],
     ctas: ['Learn your skin type', 'Join the waitlist', 'Read the science'],
@@ -302,27 +486,139 @@ const TICKET_STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED', 'OPEN', 'PENDI
 const TICKET_PRIORITIES = ['HIGH', 'MEDIUM', 'LOW', 'URGENT', 'MEDIUM', 'HIGH'] as const
 
 const NOTIFICATIONS = [
-  { level: 'SUCCESS', title: 'Campaign published', body: 'Diwali Jewellery Launch is now live across Instagram and Meta.' },
-  { level: 'INFO', title: 'New lead captured', body: 'A form submission from the Spring Sale landing page created a new lead.' },
-  { level: 'WARNING', title: 'Budget pacing high', body: 'Smart Home Spring Sale has spent 82% of its budget with 9 days left.' },
-  { level: 'SUCCESS', title: 'Assets approved', body: '4 assets moved to Approved and are ready to schedule.' },
-  { level: 'INFO', title: 'Weekly report ready', body: 'Your performance summary for last week is available.' },
-  { level: 'ERROR', title: 'Publish failed', body: 'One LinkedIn post failed to publish — token may have expired.' },
-  { level: 'INFO', title: 'New support ticket', body: 'A customer opened a ticket about the landing page form.' },
-  { level: 'SUCCESS', title: 'Deal won', body: 'The Aurelia festive retainer moved to Won. Nice work!' },
+  {
+    level: 'SUCCESS',
+    title: 'Campaign published',
+    body: 'Diwali Jewellery Launch is now live across Instagram and Meta.',
+  },
+  {
+    level: 'INFO',
+    title: 'New lead captured',
+    body: 'A form submission from the Spring Sale landing page created a new lead.',
+  },
+  {
+    level: 'WARNING',
+    title: 'Budget pacing high',
+    body: 'Smart Home Spring Sale has spent 82% of its budget with 9 days left.',
+  },
+  {
+    level: 'SUCCESS',
+    title: 'Assets approved',
+    body: '4 assets moved to Approved and are ready to schedule.',
+  },
+  {
+    level: 'INFO',
+    title: 'Weekly report ready',
+    body: 'Your performance summary for last week is available.',
+  },
+  {
+    level: 'ERROR',
+    title: 'Publish failed',
+    body: 'One LinkedIn post failed to publish — token may have expired.',
+  },
+  {
+    level: 'INFO',
+    title: 'New support ticket',
+    body: 'A customer opened a ticket about the landing page form.',
+  },
+  {
+    level: 'SUCCESS',
+    title: 'Deal won',
+    body: 'The Aurelia festive retainer moved to Won. Nice work!',
+  },
 ] as const
 
 const AI_OPERATIONS = [
-  { operation: 'campaign.strategy', kind: 'LLM', provider: 'ANTHROPIC', model: 'claude-sonnet-4-5', inTok: 4200, outTok: 1800, cost: 0.031 },
-  { operation: 'content.generate', kind: 'LLM', provider: 'ANTHROPIC', model: 'claude-sonnet-4-5', inTok: 2100, outTok: 900, cost: 0.016 },
-  { operation: 'content.generate', kind: 'LLM', provider: 'OPENAI', model: 'gpt-4o', inTok: 1800, outTok: 1200, cost: 0.019 },
-  { operation: 'email.draft', kind: 'LLM', provider: 'ANTHROPIC', model: 'claude-haiku-4-5', inTok: 1500, outTok: 700, cost: 0.004 },
-  { operation: 'lead.score', kind: 'LLM', provider: 'OPENAI', model: 'gpt-4o-mini', inTok: 900, outTok: 120, cost: 0.001 },
-  { operation: 'image.generate', kind: 'IMAGE', provider: 'IDEOGRAM', model: 'ideogram-v2', inTok: 0, outTok: 0, cost: 0.08 },
-  { operation: 'image.generate', kind: 'IMAGE', provider: 'STABILITY', model: 'sd3-large', inTok: 0, outTok: 0, cost: 0.06 },
-  { operation: 'chat.reply', kind: 'LLM', provider: 'ANTHROPIC', model: 'claude-sonnet-4-5', inTok: 3200, outTok: 640, cost: 0.014 },
-  { operation: 'seo.brief', kind: 'LLM', provider: 'GOOGLE', model: 'gemini-2.0-flash', inTok: 2600, outTok: 1100, cost: 0.008 },
-  { operation: 'transcription', kind: 'TRANSCRIPTION', provider: 'DEEPGRAM', model: 'nova-2', inTok: 0, outTok: 0, cost: 0.012 },
+  {
+    operation: 'campaign.strategy',
+    kind: 'LLM',
+    provider: 'ANTHROPIC',
+    model: 'claude-sonnet-4-5',
+    inTok: 4200,
+    outTok: 1800,
+    cost: 0.031,
+  },
+  {
+    operation: 'content.generate',
+    kind: 'LLM',
+    provider: 'ANTHROPIC',
+    model: 'claude-sonnet-4-5',
+    inTok: 2100,
+    outTok: 900,
+    cost: 0.016,
+  },
+  {
+    operation: 'content.generate',
+    kind: 'LLM',
+    provider: 'OPENAI',
+    model: 'gpt-4o',
+    inTok: 1800,
+    outTok: 1200,
+    cost: 0.019,
+  },
+  {
+    operation: 'email.draft',
+    kind: 'LLM',
+    provider: 'ANTHROPIC',
+    model: 'claude-haiku-4-5',
+    inTok: 1500,
+    outTok: 700,
+    cost: 0.004,
+  },
+  {
+    operation: 'lead.score',
+    kind: 'LLM',
+    provider: 'OPENAI',
+    model: 'gpt-4o-mini',
+    inTok: 900,
+    outTok: 120,
+    cost: 0.001,
+  },
+  {
+    operation: 'image.generate',
+    kind: 'IMAGE',
+    provider: 'IDEOGRAM',
+    model: 'ideogram-v2',
+    inTok: 0,
+    outTok: 0,
+    cost: 0.08,
+  },
+  {
+    operation: 'image.generate',
+    kind: 'IMAGE',
+    provider: 'STABILITY',
+    model: 'sd3-large',
+    inTok: 0,
+    outTok: 0,
+    cost: 0.06,
+  },
+  {
+    operation: 'chat.reply',
+    kind: 'LLM',
+    provider: 'ANTHROPIC',
+    model: 'claude-sonnet-4-5',
+    inTok: 3200,
+    outTok: 640,
+    cost: 0.014,
+  },
+  {
+    operation: 'seo.brief',
+    kind: 'LLM',
+    provider: 'GOOGLE',
+    model: 'gemini-2.0-flash',
+    inTok: 2600,
+    outTok: 1100,
+    cost: 0.008,
+  },
+  {
+    operation: 'transcription',
+    kind: 'TRANSCRIPTION',
+    provider: 'DEEPGRAM',
+    model: 'nova-2',
+    inTok: 0,
+    outTok: 0,
+    cost: 0.012,
+  },
 ] as const
 
 // ─── seeding ──────────────────────────────────────────────────────────────────
@@ -332,10 +628,18 @@ async function main(): Promise<void> {
   if (!url) throw new Error('Set DATABASE_URL or DIRECT_DATABASE_URL')
   const db = createAdminClient(url)
 
-  const summary: { org: string; counts?: Record<string, number>; skipped?: string; error?: string }[] = []
+  const summary: {
+    org: string
+    counts?: Record<string, number>
+    skipped?: string
+    error?: string
+  }[] = []
 
   try {
-    const orgs = await db.organization.findMany({ where: { deletedAt: null }, select: { id: true, name: true, slug: true } })
+    const orgs = await db.organization.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true, slug: true },
+    })
     console.log(`Found ${String(orgs.length)} organisation(s).`)
 
     for (const org of orgs) {
@@ -384,7 +688,10 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
   const counts: Record<string, number> = {}
 
   // A member user to attribute ownership/authorship to (all such FKs are optional).
-  const member = await db.membership.findFirst({ where: { organizationId }, select: { userId: true } })
+  const member = await db.membership.findFirst({
+    where: { organizationId },
+    select: { userId: true },
+  })
   const userId: string | null = member?.userId ?? null
 
   // ── Companies ──────────────────────────────────────────────────────────────
@@ -443,7 +750,8 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
         source: pick(LEAD_SOURCES, i),
         medium: pick(LEAD_MEDIUMS, i),
         value: 2000 + i * 850,
-        qualificationReason: status === 'QUALIFIED' ? 'Budget confirmed and timeline within the quarter.' : null,
+        qualificationReason:
+          status === 'QUALIFIED' ? 'Budget confirmed and timeline within the quarter.' : null,
         scoredAt: daysAgo(i),
         lastContactedAt: daysAgo(i % 6),
         convertedAt: status === 'CONVERTED' ? daysAgo(i) : null,
@@ -462,9 +770,15 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
   if (pipeline && pipeline.stages.length > 0) {
     const DEAL_N = 10
     const DEAL_TITLES = [
-      'Aurelia festive retainer', 'NestPoint spring performance', 'Lumiere launch campaign',
-      'Verdant brand refresh', 'Peak & Pine paid social', 'Saffron Table local SEO',
-      'Cobalt Fitness membership drive', 'Harbor & Co listings ads', 'Aurelia lookbook production',
+      'Aurelia festive retainer',
+      'NestPoint spring performance',
+      'Lumiere launch campaign',
+      'Verdant brand refresh',
+      'Peak & Pine paid social',
+      'Saffron Table local SEO',
+      'Cobalt Fitness membership drive',
+      'Harbor & Co listings ads',
+      'Aurelia lookbook production',
       'NestPoint always-on retainer',
     ]
     await db.deal.createMany({
@@ -555,7 +869,16 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
       return {
         id: randomUUID(),
         organizationId,
-        title: pick(['Discovery call', 'Creative review', 'Quarterly business review', 'Kickoff meeting', 'Strategy workshop'], i),
+        title: pick(
+          [
+            'Discovery call',
+            'Creative review',
+            'Quarterly business review',
+            'Kickoff meeting',
+            'Strategy workshop',
+          ],
+          i,
+        ),
         description: 'Demo appointment.',
         status: pick(APPT_STATUSES, i),
         startsAt: start,
@@ -626,10 +949,34 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
 
   // ── Email campaigns ──────────────────────────────────────────────────────────
   const EMAIL_CAMPAIGNS = [
-    { name: 'Diwali Early Access', subject: 'Your festive edit is here ✨', preheader: 'First look at the 22k gold collection', status: 'COMPLETED', recip: 8400 },
-    { name: 'Spring Sale — Free Install', subject: 'Free installation ends Sunday', preheader: 'Bundle three devices, we set it all up', status: 'ACTIVE', recip: 12600 },
-    { name: 'Skincare Waitlist Invite', subject: 'You’re on the list — perks inside', preheader: 'Launch price + a mini cleanser on us', status: 'SCHEDULED', recip: 5200 },
-    { name: 'Monthly Newsletter — July', subject: 'What we shipped this month', preheader: 'New features, case studies and tips', status: 'DRAFT', recip: 0 },
+    {
+      name: 'Diwali Early Access',
+      subject: 'Your festive edit is here ✨',
+      preheader: 'First look at the 22k gold collection',
+      status: 'COMPLETED',
+      recip: 8400,
+    },
+    {
+      name: 'Spring Sale — Free Install',
+      subject: 'Free installation ends Sunday',
+      preheader: 'Bundle three devices, we set it all up',
+      status: 'ACTIVE',
+      recip: 12600,
+    },
+    {
+      name: 'Skincare Waitlist Invite',
+      subject: 'You’re on the list — perks inside',
+      preheader: 'Launch price + a mini cleanser on us',
+      status: 'SCHEDULED',
+      recip: 5200,
+    },
+    {
+      name: 'Monthly Newsletter — July',
+      subject: 'What we shipped this month',
+      preheader: 'New features, case studies and tips',
+      status: 'DRAFT',
+      recip: 0,
+    },
   ] as const
   await db.emailCampaign.createMany({
     data: EMAIL_CAMPAIGNS.map((e, i) => {
@@ -666,7 +1013,10 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
   const socialAccountIds = SOCIAL_PLATFORMS.map(() => randomUUID())
   await db.socialAccount.createMany({
     data: SOCIAL_PLATFORMS.map((platform, i) => {
-      const handle = pick(['aurelia.jewels', 'nestpoint.home', 'lumiere.skin', 'thegrowthagency'], i)
+      const handle = pick(
+        ['aurelia.jewels', 'nestpoint.home', 'lumiere.skin', 'thegrowthagency'],
+        i,
+      )
       return {
         id: socialAccountIds[i],
         organizationId,
@@ -674,7 +1024,15 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
         status: 'CONNECTED',
         externalId: `demo:${platform}:${handle}`,
         handle,
-        displayName: pick(['Aurelia Fine Jewellery', 'NestPoint Smart Home', 'Lumiere Skincare', 'The Growth Agency'], i),
+        displayName: pick(
+          [
+            'Aurelia Fine Jewellery',
+            'NestPoint Smart Home',
+            'Lumiere Skincare',
+            'The Growth Agency',
+          ],
+          i,
+        ),
         followerCount: 8000 + i * 4200,
         lastSyncedAt: hoursAgo(i + 1),
       }
@@ -682,7 +1040,13 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
   })
   counts['socialAccounts'] = SOCIAL_PLATFORMS.length
 
-  const SOCIAL_POST_STATUSES = ['PUBLISHED', 'SCHEDULED', 'DRAFT', 'PUBLISHED', 'PUBLISHING'] as const
+  const SOCIAL_POST_STATUSES = [
+    'PUBLISHED',
+    'SCHEDULED',
+    'DRAFT',
+    'PUBLISHED',
+    'PUBLISHING',
+  ] as const
   let socialTargetCount = 0
   for (let i = 0; i < 5; i++) {
     const status = pick(SOCIAL_POST_STATUSES, i)
@@ -733,9 +1097,27 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
     { key: 'message', label: 'How can we help?', type: 'textarea', required: false },
   ]
   const FORMS = [
-    { name: 'Festive Gifting Enquiry', slug: 'festive-gifting', status: 'PUBLISHED', headline: 'Book a styling appointment', submit: 32 },
-    { name: 'Spring Sale — Get a Quote', slug: 'spring-sale-quote', status: 'DRAFT', headline: 'Build your smart home bundle', submit: 0 },
-    { name: 'Skincare Waitlist', slug: 'skincare-waitlist', status: 'PUBLISHED', headline: 'Join the barrier-repair waitlist', submit: 61 },
+    {
+      name: 'Festive Gifting Enquiry',
+      slug: 'festive-gifting',
+      status: 'PUBLISHED',
+      headline: 'Book a styling appointment',
+      submit: 32,
+    },
+    {
+      name: 'Spring Sale — Get a Quote',
+      slug: 'spring-sale-quote',
+      status: 'DRAFT',
+      headline: 'Build your smart home bundle',
+      submit: 0,
+    },
+    {
+      name: 'Skincare Waitlist',
+      slug: 'skincare-waitlist',
+      status: 'PUBLISHED',
+      headline: 'Join the barrier-repair waitlist',
+      submit: 61,
+    },
   ] as const
   await db.leadForm.createMany({
     data: FORMS.map((f, i) => ({
@@ -746,7 +1128,8 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
       status: f.status,
       fields: FORM_FIELDS,
       headline: f.headline,
-      description: 'Tell us a little about what you are looking for and we will be in touch within one business day.',
+      description:
+        'Tell us a little about what you are looking for and we will be in touch within one business day.',
       submitLabel: 'Send',
       successMessage: 'Thanks! We will be in touch shortly.',
       accentColor: pick(['#B8860B', '#2563EB', '#EC4899'], i),
@@ -769,12 +1152,15 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
           name: `${first} ${pick(LAST_NAMES, i + 3)}`,
           email: `${first.toLowerCase()}${String(i)}@example.com`,
           phone: `+1415555${String(2000 + i).padStart(4, '0')}`,
-          message: pick([
-            'Interested in a festive gifting appointment for two necklaces.',
-            'Please add me to the skincare waitlist.',
-            'Want a quote for a 3-room smart home setup.',
-            'Do you ship internationally before Diwali?',
-          ], i),
+          message: pick(
+            [
+              'Interested in a festive gifting appointment for two necklaces.',
+              'Please add me to the skincare waitlist.',
+              'Want a quote for a 3-room smart home setup.',
+              'Do you ship internationally before Diwali?',
+            ],
+            i,
+          ),
         },
         contactId: i % 3 === 0 ? contactIds[i % contactIds.length] : null,
         ipAddress: '203.0.113.' + String(10 + i),
@@ -788,9 +1174,27 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
 
   // ── Landing pages ────────────────────────────────────────────────────────────
   const LANDING = [
-    { name: 'Diwali Festive Edit', slug: 'diwali-festive-edit', status: 'PUBLISHED', title: 'The Aurelia Festive Edit', visits: 4820 },
-    { name: 'Smart Home Spring Sale', slug: 'smart-home-spring', status: 'PUBLISHED', title: 'Spring Sale — Free Installation', visits: 9130 },
-    { name: 'Lumiere Waitlist', slug: 'lumiere-waitlist', status: 'DRAFT', title: 'Barrier Repair Serum — Waitlist', visits: 0 },
+    {
+      name: 'Diwali Festive Edit',
+      slug: 'diwali-festive-edit',
+      status: 'PUBLISHED',
+      title: 'The Aurelia Festive Edit',
+      visits: 4820,
+    },
+    {
+      name: 'Smart Home Spring Sale',
+      slug: 'smart-home-spring',
+      status: 'PUBLISHED',
+      title: 'Spring Sale — Free Installation',
+      visits: 9130,
+    },
+    {
+      name: 'Lumiere Waitlist',
+      slug: 'lumiere-waitlist',
+      status: 'DRAFT',
+      title: 'Barrier Repair Serum — Waitlist',
+      visits: 0,
+    },
   ] as const
   await db.landingPage.createMany({
     data: LANDING.map((l, i) => ({
@@ -801,8 +1205,16 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
       status: l.status,
       title: l.title,
       blocks: [
-        { type: 'hero', headline: l.title, subhead: pick(BRAND_PACKS, i).objective, cta: pick(pick(BRAND_PACKS, i).ctas, 0) },
-        { type: 'features', items: ['Handpicked selection', 'Fast, tracked delivery', 'Dedicated support'] },
+        {
+          type: 'hero',
+          headline: l.title,
+          subhead: pick(BRAND_PACKS, i).objective,
+          cta: pick(pick(BRAND_PACKS, i).ctas, 0),
+        },
+        {
+          type: 'features',
+          items: ['Handpicked selection', 'Fast, tracked delivery', 'Dedicated support'],
+        },
         { type: 'cta', label: pick(pick(BRAND_PACKS, i).ctas, 1) },
       ],
       seoTitle: l.title,
@@ -816,9 +1228,21 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
 
   // ── Workflows (+ version, runs, run steps) ───────────────────────────────────
   const WORKFLOWS = [
-    { name: 'New lead welcome', trigger: 'lead.created', desc: 'Tag, score and send a welcome email when a lead is captured.' },
-    { name: 'Abandoned enquiry nudge', trigger: 'form.submitted', desc: 'Wait a day, then follow up on unconverted form submissions.' },
-    { name: 'Weekly performance digest', trigger: 'schedule.weekly', desc: 'Compile channel metrics and email a summary every Monday.' },
+    {
+      name: 'New lead welcome',
+      trigger: 'lead.created',
+      desc: 'Tag, score and send a welcome email when a lead is captured.',
+    },
+    {
+      name: 'Abandoned enquiry nudge',
+      trigger: 'form.submitted',
+      desc: 'Wait a day, then follow up on unconverted form submissions.',
+    },
+    {
+      name: 'Weekly performance digest',
+      trigger: 'schedule.weekly',
+      desc: 'Compile channel metrics and email a summary every Monday.',
+    },
   ]
   let runCount = 0
   let stepCount = 0
@@ -877,12 +1301,24 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
           durationMs: 12000,
           steps: {
             create: [
-              { id: randomUUID(), nodeId: 'action-1', position: 0, status: 'SUCCEEDED', startedAt: started, completedAt: started, durationMs: 400 },
               {
-                id: randomUUID(), nodeId: 'action-2', position: 1,
+                id: randomUUID(),
+                nodeId: 'action-1',
+                position: 0,
+                status: 'SUCCEEDED',
+                startedAt: started,
+                completedAt: started,
+                durationMs: 400,
+              },
+              {
+                id: randomUUID(),
+                nodeId: 'action-2',
+                position: 1,
                 status: status === 'FAILED' ? 'FAILED' : 'SUCCEEDED',
                 error: status === 'FAILED' ? 'Email provider timed out.' : null,
-                startedAt: started, completedAt: completed, durationMs: 11600,
+                startedAt: started,
+                completedAt: completed,
+                durationMs: 11600,
               },
             ],
           },
@@ -959,8 +1395,22 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
     if (i < 2) {
       await db.supportTicketComment.createMany({
         data: [
-          { id: randomUUID(), organizationId, ticketId, authorId: userId, body: 'Thanks for flagging — taking a look now.', internal: false },
-          { id: randomUUID(), organizationId, ticketId, authorId: userId, body: 'Root cause identified, deploying a fix shortly.', internal: true },
+          {
+            id: randomUUID(),
+            organizationId,
+            ticketId,
+            authorId: userId,
+            body: 'Thanks for flagging — taking a look now.',
+            internal: false,
+          },
+          {
+            id: randomUUID(),
+            organizationId,
+            ticketId,
+            authorId: userId,
+            body: 'Root cause identified, deploying a fix shortly.',
+            internal: true,
+          },
         ],
       })
       commentCount += 2
@@ -997,9 +1447,21 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
     },
   })
   const KB_DOCS = [
-    { title: 'Brand Voice Guidelines', content: 'Our tone is warm, confident and specific. We avoid hype and jargon. We lead with the customer benefit, back claims with proof, and keep sentences short. Never use exclamation stacks or all-caps.' },
-    { title: 'Festive Campaign Playbook', content: 'Festive pushes run for three weeks. Week one builds desire with lookbook content, week two drives gifting bundles, week three creates urgency with the last-shipping-date countdown. Always include free resizing and keepsake packaging.' },
-    { title: 'Paid Social Best Practices', content: 'Hook in the first three seconds. Show the product in use, not just on white. Caption for sound-off. Test three creatives per ad set and cut the bottom performer after 48 hours or 1,000 impressions.' },
+    {
+      title: 'Brand Voice Guidelines',
+      content:
+        'Our tone is warm, confident and specific. We avoid hype and jargon. We lead with the customer benefit, back claims with proof, and keep sentences short. Never use exclamation stacks or all-caps.',
+    },
+    {
+      title: 'Festive Campaign Playbook',
+      content:
+        'Festive pushes run for three weeks. Week one builds desire with lookbook content, week two drives gifting bundles, week three creates urgency with the last-shipping-date countdown. Always include free resizing and keepsake packaging.',
+    },
+    {
+      title: 'Paid Social Best Practices',
+      content:
+        'Hook in the first three seconds. Show the product in use, not just on white. Caption for sound-off. Test three creatives per ad set and cut the bottom performer after 48 hours or 1,000 impressions.',
+    },
   ]
   await db.knowledgeDocument.createMany({
     data: KB_DOCS.map((d) => ({
@@ -1021,7 +1483,7 @@ async function seedOrg(db: Db, organizationId: string): Promise<Record<string, n
     data: Array.from({ length: 30 }, (_, k) => {
       // k = 0 is 29 days ago, k = 29 is today; values trend up over time.
       const t = k
-      const wobble = (k % 7 === 5 || k % 7 === 6) ? 0.85 : 1 // weekends dip a little
+      const wobble = k % 7 === 5 || k % 7 === 6 ? 0.85 : 1 // weekends dip a little
       const impressions = Math.round((4000 + t * 190) * wobble)
       const clicks = Math.round(impressions * 0.032)
       const sessions = Math.round(clicks * 0.9)

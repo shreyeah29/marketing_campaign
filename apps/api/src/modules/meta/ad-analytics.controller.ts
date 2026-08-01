@@ -20,7 +20,10 @@ export class AdAnalyticsController {
   @Get('summary')
   @RequirePermissions(PERMISSIONS.ORG_READ)
   @ApiOperation({ summary: 'Headline reach, spend, leads, CTR and CPL' })
-  async summary(@CurrentPrincipal() p: Principal, @Query() q: DateRange): Promise<Record<string, number>> {
+  async summary(
+    @CurrentPrincipal() p: Principal,
+    @Query() q: DateRange,
+  ): Promise<Record<string, number>> {
     return this.analytics.summary(p, q)
   }
 

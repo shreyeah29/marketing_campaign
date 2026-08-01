@@ -56,7 +56,10 @@ export class EntitlementService {
         return this.deserialize(cached)
       }
     } catch (error) {
-      this.logger.warn({ err: error, organizationId }, 'entitlement cache read failed; resolving fresh')
+      this.logger.warn(
+        { err: error, organizationId },
+        'entitlement cache read failed; resolving fresh',
+      )
     }
 
     // Open the tenant context explicitly. This resolves during the *guard* phase

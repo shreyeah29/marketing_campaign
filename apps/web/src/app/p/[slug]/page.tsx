@@ -80,7 +80,9 @@ export default function PublicLandingPage() {
       >
         <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
         <h1 style={{ fontSize: 24, margin: 0 }}>This page is not available</h1>
-        <p style={{ color: '#666', marginTop: 8 }}>The page you are looking for may have been unpublished or removed.</p>
+        <p style={{ color: '#666', marginTop: 8 }}>
+          The page you are looking for may have been unpublished or removed.
+        </p>
       </main>
     )
   }
@@ -103,10 +105,20 @@ export default function PublicLandingPage() {
       >
         <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
         <h1 style={{ fontSize: 24, margin: 0 }}>Couldn&apos;t load this page</h1>
-        <p style={{ color: '#666', margin: '8px 0 16px' }}>Please check your connection and try again.</p>
+        <p style={{ color: '#666', margin: '8px 0 16px' }}>
+          Please check your connection and try again.
+        </p>
         <button
           onClick={load}
-          style={{ padding: '10px 20px', borderRadius: 8, border: 'none', background: '#4f46e5', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: 'none',
+            background: '#4f46e5',
+            color: '#fff',
+            cursor: 'pointer',
+            fontWeight: 600,
+          }}
         >
           Retry
         </button>

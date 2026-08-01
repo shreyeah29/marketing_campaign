@@ -80,7 +80,7 @@ export class AiController {
   @Post('chat')
   @RequiresFeature('ai.chat')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
-  @ApiOperation({ summary: 'Chat with the org\'s configured LLM' })
+  @ApiOperation({ summary: "Chat with the org's configured LLM" })
   async chat(
     @Body() body: unknown,
     @CurrentPrincipal() principal: Principal,
@@ -107,7 +107,11 @@ export class AiController {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')
     if (!lastUser?.content) return [...messages]
 
-    const chunks = await this.knowledge.retrieveForOrg(principal.organizationId, lastUser.content, 6)
+    const chunks = await this.knowledge.retrieveForOrg(
+      principal.organizationId,
+      lastUser.content,
+      6,
+    )
     if (chunks.length === 0) return [...messages]
 
     const context = chunks
@@ -116,7 +120,7 @@ export class AiController {
     const system: AdapterMessage = {
       role: 'system',
       content:
-        'Use the following context from the organisation\'s knowledge base to answer when relevant. ' +
+        "Use the following context from the organisation's knowledge base to answer when relevant. " +
         'If the answer is not in the context, say so and answer from general knowledge.\n\n' +
         context,
     }

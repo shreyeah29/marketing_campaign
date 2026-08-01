@@ -27,7 +27,10 @@ const createCampaignSchema = z
   .object({
     name: z.string().min(1).max(200),
     objective: z.string().max(500).optional(),
-    budgetTotal: z.string().regex(/^\d+(\.\d{1,2})?$/).optional(),
+    budgetTotal: z
+      .string()
+      .regex(/^\d+(\.\d{1,2})?$/)
+      .optional(),
   })
   .strict()
 

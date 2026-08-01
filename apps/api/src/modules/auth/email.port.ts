@@ -100,7 +100,10 @@ function renderAuthEmail(email: AuthEmail): string {
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c)
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c,
+  )
 }
 function escapeAttr(s: string): string {
   return escapeHtml(s)
@@ -114,6 +117,8 @@ function escapeAttr(s: string): string {
 export const emailTransportProvider = {
   provide: EMAIL_PORT,
   useFactory: (mailer: MailerService, logger: AppLogger): EmailPort =>
-    loadEnv().RESEND_API_KEY ? new MailerEmailTransport(mailer, logger) : new LogEmailTransport(logger),
+    loadEnv().RESEND_API_KEY
+      ? new MailerEmailTransport(mailer, logger)
+      : new LogEmailTransport(logger),
   inject: [MailerService, LOGGER],
 }

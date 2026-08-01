@@ -25,7 +25,9 @@ const creativeSchema = z
 
 const createSchema = z.object({
   name: z.string().min(1).max(200),
-  objective: z.enum(['LEAD_GENERATION', 'CONVERSIONS', 'TRAFFIC', 'AWARENESS', 'ENGAGEMENT']).optional(),
+  objective: z
+    .enum(['LEAD_GENERATION', 'CONVERSIONS', 'TRAFFIC', 'AWARENESS', 'ENGAGEMENT'])
+    .optional(),
   destination: z.enum(['INSTANT_FORM', 'WHATSAPP']).optional(),
   prompt: z.string().max(4000).optional(),
   dailyBudget: z.number().positive().optional(),
@@ -60,7 +62,10 @@ export class MetaAdsController {
   @Post()
   @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
   @ApiOperation({ summary: 'Create a draft ad campaign' })
-  async create(@Body() body: unknown, @CurrentPrincipal() principal: Principal): Promise<{ id: string }> {
+  async create(
+    @Body() body: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ id: string }> {
     return this.campaigns.create(principal, zodBody(createSchema, body))
   }
 
@@ -93,7 +98,10 @@ export class MetaAdsController {
   @Post(':id/submit')
   @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
   @ApiOperation({ summary: 'Submit a draft for approval' })
-  async submit(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+  async submit(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ ok: true }> {
     await this.campaigns.submitForApproval(principal, id)
     return { ok: true }
   }
@@ -101,7 +109,10 @@ export class MetaAdsController {
   @Post(':id/approve')
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)
   @ApiOperation({ summary: 'Approve a campaign within the budget cap (money-safety gate)' })
-  async approve(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+  async approve(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ ok: true }> {
     await this.campaigns.approve(principal, id)
     return { ok: true }
   }
@@ -132,7 +143,10 @@ export class MetaAdsController {
   @Post(':id/activate')
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)
   @ApiOperation({ summary: 'Set a published campaign live (this starts real spend)' })
-  async activate(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+  async activate(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ ok: true }> {
     await this.publisher.setStatus(principal, id, 'ACTIVE')
     return { ok: true }
   }
@@ -140,7 +154,10 @@ export class MetaAdsController {
   @Post(':id/pause')
   @RequirePermissions(PERMISSIONS.SOCIAL_PUBLISH)
   @ApiOperation({ summary: 'Pause a live campaign' })
-  async pause(@Param('id') id: string, @CurrentPrincipal() principal: Principal): Promise<{ ok: true }> {
+  async pause(
+    @Param('id') id: string,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ ok: true }> {
     await this.publisher.setStatus(principal, id, 'PAUSED')
     return { ok: true }
   }

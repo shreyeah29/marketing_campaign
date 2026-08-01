@@ -121,7 +121,7 @@ export default function TicketsPage() {
         }
       />
 
-      <div className="grid cols-4" style={{ gap: 12, marginBottom: 18 }}>
+      <div className="cols-4 grid" style={{ gap: 12, marginBottom: 18 }}>
         <StatCard label="Open" value={summary?.open ?? '—'} />
         <StatCard label="Pending" value={summary?.pending ?? '—'} />
         <StatCard label="Resolved" value={summary?.resolved ?? '—'} />
@@ -207,11 +207,7 @@ export default function TicketsPage() {
       ) : null}
 
       {activeId ? (
-        <TicketDrawer
-          ticketId={activeId}
-          onClose={() => setActiveId(null)}
-          onChanged={load}
-        />
+        <TicketDrawer ticketId={activeId} onClose={() => setActiveId(null)} onChanged={load} />
       ) : null}
     </>
   )
@@ -288,7 +284,11 @@ function CreateTicketDrawer({
         />
       </Field>
       <Field label="Priority">
-        <select className="select" value={priority} onChange={(e) => setPriority(e.target.value as Priority)}>
+        <select
+          className="select"
+          value={priority}
+          onChange={(e) => setPriority(e.target.value as Priority)}
+        >
           {PRIORITIES.map((p) => (
             <option key={p} value={p}>
               {p}
@@ -330,7 +330,9 @@ function TicketDrawer({
     api
       .get<TicketDetail>(`/support/tickets/${ticketId}`)
       .then(setTicket)
-      .catch((e: unknown) => setLoadError(e instanceof ApiError ? e.message : 'Failed to load ticket'))
+      .catch((e: unknown) =>
+        setLoadError(e instanceof ApiError ? e.message : 'Failed to load ticket'),
+      )
   }, [ticketId])
   useEffect(refresh, [refresh])
 
@@ -400,7 +402,11 @@ function TicketDrawer({
           <button className="btn" onClick={onClose}>
             Close
           </button>
-          <button className="btn danger" disabled={busy !== null} onClick={() => setConfirmDelete(true)}>
+          <button
+            className="btn danger"
+            disabled={busy !== null}
+            onClick={() => setConfirmDelete(true)}
+          >
             <Icon name="trash" size={15} /> Delete
           </button>
         </>
@@ -418,17 +424,27 @@ function TicketDrawer({
             <Badge status={STATUS_TINT[ticket.status]}>{ticket.status}</Badge>
             <Badge status={PRIORITY_TINT[ticket.priority]}>{ticket.priority}</Badge>
             {ticket.resolvedAt ? (
-              <span className="dim" style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                <Icon name="check" size={13} /> Resolved {new Date(ticket.resolvedAt).toLocaleString()}
+              <span
+                className="dim"
+                style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                <Icon name="check" size={13} /> Resolved{' '}
+                {new Date(ticket.resolvedAt).toLocaleString()}
               </span>
             ) : null}
           </div>
 
-          <div className="card" style={{ padding: 12, marginBottom: 16, whiteSpace: 'pre-wrap', fontSize: 14 }}>
+          <div
+            className="card"
+            style={{ padding: 12, marginBottom: 16, whiteSpace: 'pre-wrap', fontSize: 14 }}
+          >
             {ticket.body}
           </div>
 
-          <div className="grid cols-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}>
+          <div
+            className="cols-2 grid"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 8 }}
+          >
             <Field label="Status">
               <select
                 className="select"
@@ -466,13 +482,18 @@ function TicketDrawer({
           <h3 style={{ fontSize: 13, margin: '8px 0' }}>Conversation</h3>
           <div className="stack" style={{ gap: 8, marginBottom: 12 }}>
             {ticket.comments.length === 0 ? (
-              <div className="dim" style={{ fontSize: 12 }}>No comments yet.</div>
+              <div className="dim" style={{ fontSize: 12 }}>
+                No comments yet.
+              </div>
             ) : (
               ticket.comments.map((c) => (
                 <div
                   key={c.id}
                   className="card"
-                  style={{ padding: '8px 10px', borderLeft: c.internal ? '3px solid var(--color-warn, #d9822b)' : undefined }}
+                  style={{
+                    padding: '8px 10px',
+                    borderLeft: c.internal ? '3px solid var(--color-warn, #d9822b)' : undefined,
+                  }}
                 >
                   <div className="spread" style={{ marginBottom: 4 }}>
                     <span className="dim" style={{ fontSize: 11 }}>
@@ -496,7 +517,11 @@ function TicketDrawer({
             />
             <div className="spread">
               <label className="row" style={{ gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                <input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={internal}
+                  onChange={(e) => setInternal(e.target.checked)}
+                />
                 Internal note
               </label>
               <button

@@ -136,7 +136,7 @@ export default function DashboardPage() {
       ) : (
         <div className="stack" style={{ gap: 22 }}>
           {/* KPI row */}
-          <div className="grid cols-4">
+          <div className="cols-4 grid">
             <StatCard label="Contacts" value={num(overview?.contacts)} />
             <StatCard label="Leads" value={num(overview?.leads)} />
             <StatCard label="Qualified leads" value={num(overview?.qualifiedLeads)} />
@@ -148,12 +148,17 @@ export default function DashboardPage() {
           </div>
 
           {/* Trend + funnel */}
-          <div className="grid cols-2 split" style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'stretch' }}>
+          <div
+            className="cols-2 split grid"
+            style={{ gridTemplateColumns: '1.6fr 1fr', alignItems: 'stretch' }}
+          >
             <div className="card">
               <div className="spread" style={{ marginBottom: 8 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>Trend</div>
-                  <div className="dim" style={{ fontSize: 12 }}>Last 30 days</div>
+                  <div className="dim" style={{ fontSize: 12 }}>
+                    Last 30 days
+                  </div>
                 </div>
                 <div className="tabs">
                   <button
@@ -186,7 +191,10 @@ export default function DashboardPage() {
               {funnelSegments.length > 0 ? (
                 <DonutChart segments={funnelSegments} centerLabel="Leads" />
               ) : (
-                <div className="dim" style={{ padding: '40px 0', textAlign: 'center', fontSize: 13 }}>
+                <div
+                  className="dim"
+                  style={{ padding: '40px 0', textAlign: 'center', fontSize: 13 }}
+                >
                   No leads yet
                 </div>
               )}
@@ -196,19 +204,25 @@ export default function DashboardPage() {
           {/* Channel performance */}
           <div className="card">
             <div style={{ fontWeight: 600, marginBottom: 14 }}>Channel performance</div>
-            <div className="grid cols-2" style={{ gap: 20 }}>
+            <div className="cols-2 grid" style={{ gap: 20 }}>
               <div className="stack" style={{ gap: 10 }}>
-                <div className="dim" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <div
+                  className="dim"
+                  style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}
+                >
                   Email
                 </div>
-                <div className="grid cols-3" style={{ gap: 12 }}>
+                <div className="cols-3 grid" style={{ gap: 12 }}>
                   <StatCard label="Sent" value={num(channels?.email.sent)} />
                   <StatCard label="Open rate" value={`${emailOpenRate}%`} />
                   <StatCard label="Click rate" value={`${emailClickRate}%`} />
                 </div>
               </div>
               <div className="stack" style={{ gap: 10 }}>
-                <div className="dim" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                <div
+                  className="dim"
+                  style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 }}
+                >
                   Social assets by platform
                 </div>
                 {channels && channels.social.length > 0 ? (
@@ -218,7 +232,15 @@ export default function DashboardPage() {
                       return (
                         <div key={s.platform} className="spread" style={{ gap: 12, fontSize: 13 }}>
                           <span style={{ width: 96, color: 'var(--text)' }}>{s.platform}</span>
-                          <span style={{ flex: 1, height: 8, background: 'var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+                          <span
+                            style={{
+                              flex: 1,
+                              height: 8,
+                              background: 'var(--border)',
+                              borderRadius: 6,
+                              overflow: 'hidden',
+                            }}
+                          >
                             <span
                               style={{
                                 display: 'block',
@@ -229,13 +251,17 @@ export default function DashboardPage() {
                               }}
                             />
                           </span>
-                          <span className="dim" style={{ width: 32, textAlign: 'right' }}>{s.assets}</span>
+                          <span className="dim" style={{ width: 32, textAlign: 'right' }}>
+                            {s.assets}
+                          </span>
                         </div>
                       )
                     })}
                   </div>
                 ) : (
-                  <div className="dim" style={{ fontSize: 13 }}>No social assets yet</div>
+                  <div className="dim" style={{ fontSize: 13 }}>
+                    No social assets yet
+                  </div>
                 )}
               </div>
             </div>

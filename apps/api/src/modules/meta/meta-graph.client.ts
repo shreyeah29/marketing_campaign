@@ -55,7 +55,8 @@ export class MetaApiError extends Error {
     if (opts.code !== undefined) this.code = opts.code
     if (opts.subcode !== undefined) this.subcode = opts.subcode
     if (opts.fbtraceId !== undefined) this.fbtraceId = opts.fbtraceId
-    this.isRateLimit = opts.status === 429 || (opts.code !== undefined && RATE_LIMIT_CODES.has(opts.code))
+    this.isRateLimit =
+      opts.status === 429 || (opts.code !== undefined && RATE_LIMIT_CODES.has(opts.code))
   }
 }
 
@@ -121,9 +122,7 @@ export class MetaGraphClient {
 }
 
 /** Drop undefined values and stringify the rest, for query/form encoding. */
-function stringify(
-  params: MetaRequest['params'],
-): Record<string, string> {
+function stringify(params: MetaRequest['params']): Record<string, string> {
   const out: Record<string, string> = {}
   if (!params) return out
   for (const [k, v] of Object.entries(params)) {

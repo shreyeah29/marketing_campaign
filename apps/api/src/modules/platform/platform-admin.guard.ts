@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, Inject, Injectable, UnauthorizedException } from '@nestjs/common'
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common'
 
 import { PlatformAuthService, type PlatformPrincipal } from './platform-auth.service.js'
 
@@ -21,9 +27,10 @@ export class PlatformAdminGuard implements CanActivate {
   constructor(@Inject(PlatformAuthService) private readonly auth: PlatformAuthService) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const request = context
-      .switchToHttp()
-      .getRequest<{ headers: Record<string, string | string[] | undefined>; platformAdmin?: PlatformPrincipal }>()
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>
+      platformAdmin?: PlatformPrincipal
+    }>()
 
     const header = request.headers['authorization']
     const raw = Array.isArray(header) ? header[0] : header

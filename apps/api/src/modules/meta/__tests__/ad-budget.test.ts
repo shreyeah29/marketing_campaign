@@ -5,7 +5,9 @@ import { assertWithinCap, BudgetError } from '../ad-budget.js'
 describe('assertWithinCap — the money-safety gate', () => {
   it('rejects an approval with no budget at all', () => {
     expect(() => assertWithinCap({})).toThrow(BudgetError)
-    expect(() => assertWithinCap({ dailyBudget: 0, lifetimeBudget: 0 })).toThrow(/budget is required/i)
+    expect(() => assertWithinCap({ dailyBudget: 0, lifetimeBudget: 0 })).toThrow(
+      /budget is required/i,
+    )
   })
 
   it('rejects a negative budget', () => {

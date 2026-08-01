@@ -24,10 +24,19 @@ export const architectureBoundaries = {
           },
           {
             group: ['../../../apps/*', '@vsp/web', '@vsp/api', '@vsp/worker'],
-            message: 'A package must never import from an application. Dependencies point inward only.',
+            message:
+              'A package must never import from an application. Dependencies point inward only.',
           },
           {
-            group: ['openai', '@anthropic-ai/*', '@google/*', 'twilio', 'stripe', 'resend', '@aws-sdk/*'],
+            group: [
+              'openai',
+              '@anthropic-ai/*',
+              '@google/*',
+              'twilio',
+              'stripe',
+              'resend',
+              '@aws-sdk/*',
+            ],
             message:
               'Vendor SDKs belong in packages/providers behind a port. Business logic must stay provider-agnostic.',
           },

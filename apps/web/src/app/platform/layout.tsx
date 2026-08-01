@@ -42,7 +42,12 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
   if (!ready) return null
 
   const nav = [
-    { href: '/platform', label: 'Organizations', icon: '▦', match: (p: string) => p === '/platform' },
+    {
+      href: '/platform',
+      label: 'Organizations',
+      icon: '▦',
+      match: (p: string) => p === '/platform',
+    },
     {
       href: '/platform/organizations/new',
       label: 'New organization',
@@ -74,7 +79,11 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         <div className="brand">
           <span className="dot" />
           <span>VSP Platform</span>
-          <button className="sidebar-close" onClick={() => setNavOpen(false)} aria-label="Close navigation menu">
+          <button
+            className="sidebar-close"
+            onClick={() => setNavOpen(false)}
+            aria-label="Close navigation menu"
+          >
             ✕
           </button>
         </div>

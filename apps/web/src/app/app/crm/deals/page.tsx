@@ -40,7 +40,9 @@ export default function DealsPage() {
     api
       .get<Pipeline[] | { data: Pipeline[] }>('/pipelines/options')
       .then((r) => setPipelines(Array.isArray(r) ? r : (r.data ?? [])))
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Failed to load pipelines'))
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : 'Failed to load pipelines'),
+      )
   }
   useEffect(loadPipelines, [])
 
@@ -57,7 +59,10 @@ export default function DealsPage() {
       type: 'select',
       required: true,
       placeholder: 'Select a pipeline…',
-      options: pipelines.map((p) => ({ value: p.id, label: p.isDefault ? `${p.name} (default)` : p.name })),
+      options: pipelines.map((p) => ({
+        value: p.id,
+        label: p.isDefault ? `${p.name} (default)` : p.name,
+      })),
       resetOnChange: ['stageId'],
     },
     {

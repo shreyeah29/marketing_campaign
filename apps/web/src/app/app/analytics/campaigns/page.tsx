@@ -100,7 +100,9 @@ export default function CampaignInsightsPage() {
         setTrend(t.data)
         setFunnel(Array.isArray(f) ? f : [])
       })
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Failed to load insights'))
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : 'Failed to load insights'),
+      )
       .finally(() => setLoading(false))
   }
 
@@ -109,7 +111,8 @@ export default function CampaignInsightsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days])
 
-  const hasAudience = (demo?.age.length ?? 0) > 0 || (demo?.gender.length ?? 0) > 0 || geo.length > 0
+  const hasAudience =
+    (demo?.age.length ?? 0) > 0 || (demo?.gender.length ?? 0) > 0 || geo.length > 0
 
   return (
     <>
@@ -141,14 +144,14 @@ export default function CampaignInsightsPage() {
           {!hasAudience && (
             <div className="banner info">
               <span>
-                Audience insights — age, gender and location of the people your ads reach — appear here
-                automatically once your campaigns are live.
+                Audience insights — age, gender and location of the people your ads reach — appear
+                here automatically once your campaigns are live.
               </span>
             </div>
           )}
 
           {/* Headline metrics */}
-          <section className="grid cols-4" style={{ gap: 14 }}>
+          <section className="cols-4 grid" style={{ gap: 14 }}>
             <StatCard label="Reach" value={num(summary?.reach)} />
             <StatCard label="Impressions" value={num(summary?.impressions)} />
             <StatCard label="Clicks" value={num(summary?.clicks)} />
@@ -169,21 +172,26 @@ export default function CampaignInsightsPage() {
           </section>
 
           {/* Audience */}
-          <section className="grid cols-2" style={{ gap: 16, alignItems: 'stretch' }}>
+          <section className="cols-2 grid" style={{ gap: 16, alignItems: 'stretch' }}>
             <div className="card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Who sees your ads — by age</h3>
-              <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>Reach by age band</p>
+              <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>
+                Reach by age band
+              </p>
               <BarChart data={(demo?.age ?? []).map((b) => ({ label: b.value, value: b.reach }))} />
             </div>
             <div className="card" style={{ padding: 20 }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>By gender</h3>
-              <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>Share of reach</p>
+              <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>
+                Share of reach
+              </p>
               <DonutChart
                 centerLabel="Reach"
                 segments={(demo?.gender ?? []).map((b) => ({
                   label: titleCase(b.value),
                   value: b.reach,
-                  color: GENDER_COLORS[b.value.toLowerCase()] ?? 'var(--color-neutral-500, #6b7680)',
+                  color:
+                    GENDER_COLORS[b.value.toLowerCase()] ?? 'var(--color-neutral-500, #6b7680)',
                 }))}
               />
             </div>
@@ -192,7 +200,9 @@ export default function CampaignInsightsPage() {
           {/* Geography */}
           <section className="card" style={{ padding: 20 }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Where your audience is</h3>
-            <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>Top regions by reach</p>
+            <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>
+              Top regions by reach
+            </p>
             <BarChart data={geo.map((b) => ({ label: b.value, value: b.reach }))} />
           </section>
 
@@ -202,7 +212,12 @@ export default function CampaignInsightsPage() {
             <p className="muted" style={{ margin: '0 0 14px', fontSize: 13 }}>
               How leads progress from first contact to won
             </p>
-            <BarChart data={funnel.map((s) => ({ label: titleCase(s.stage.toLowerCase()), value: s.count }))} />
+            <BarChart
+              data={funnel.map((s) => ({
+                label: titleCase(s.stage.toLowerCase()),
+                value: s.count,
+              }))}
+            />
           </section>
         </div>
       )}

@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
-import { Drawer, EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import {
+  Drawer,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+  useToast,
+} from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -46,7 +53,9 @@ function unwrap<T>(r: T[] | { data: T[] }): T[] {
 function timeLabel(iso?: string | null): string {
   if (!iso) return ''
   const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
 }
 
 export default function InboxPage() {
@@ -230,7 +239,7 @@ export default function InboxPage() {
         <TableSkeleton cols={2} />
       ) : (
         <div
-          className="grid split"
+          className="split grid"
           style={{
             gridTemplateColumns: '300px 1fr',
             gap: 0,
@@ -241,7 +250,9 @@ export default function InboxPage() {
           }}
         >
           {/* ── Left: conversation list ─────────────────────────────────────── */}
-          <div style={{ borderRight: '1px solid var(--border)', overflowY: 'auto', maxHeight: 640 }}>
+          <div
+            style={{ borderRight: '1px solid var(--border)', overflowY: 'auto', maxHeight: 640 }}
+          >
             {rows.length === 0 ? (
               <div style={{ padding: 20 }}>
                 <EmptyState
@@ -257,15 +268,25 @@ export default function InboxPage() {
                   <button
                     key={c.id}
                     className={`nav-item ${activeId === c.id ? 'active' : ''}`}
-                    style={{ width: '100%', borderRadius: 0, textAlign: 'left', padding: '12px 14px' }}
+                    style={{
+                      width: '100%',
+                      borderRadius: 0,
+                      textAlign: 'left',
+                      padding: '12px 14px',
+                    }}
                     onClick={() => setActiveId(c.id)}
                   >
                     <span style={{ width: '100%' }}>
                       <span className="spread" style={{ gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 550 }}>{c.subject || 'Conversation'}</span>
+                        <span style={{ fontSize: 13, fontWeight: 550 }}>
+                          {c.subject || 'Conversation'}
+                        </span>
                         {unread > 0 ? <Badge status="info">{unread}</Badge> : null}
                       </span>
-                      <span className="dim" style={{ display: 'block', fontSize: 11, marginTop: 2 }}>
+                      <span
+                        className="dim"
+                        style={{ display: 'block', fontSize: 11, marginTop: 2 }}
+                      >
                         {(c.channel ?? 'chat').toLowerCase()} ·{' '}
                         {c.lastMessageAt ? timeLabel(c.lastMessageAt) : 'no messages'}
                       </span>
@@ -284,10 +305,15 @@ export default function InboxPage() {
               </div>
             ) : (
               <>
-                <div className="spread" style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+                <div
+                  className="spread"
+                  style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}
+                >
                   <div>
                     <h3 style={{ margin: 0 }}>{active.subject || 'Conversation'}</h3>
-                    <span className="dim" style={{ fontSize: 12 }}>{(active.channel ?? 'chat').toLowerCase()}</span>
+                    <span className="dim" style={{ fontSize: 12 }}>
+                      {(active.channel ?? 'chat').toLowerCase()}
+                    </span>
                   </div>
                   {active.isOpen ? <Badge status="success">Open</Badge> : <Badge>Closed</Badge>}
                 </div>
@@ -311,7 +337,11 @@ export default function InboxPage() {
                     <>
                       {nextCursor ? (
                         <div className="row" style={{ justifyContent: 'center', marginBottom: 4 }}>
-                          <button className="btn ghost sm" onClick={() => void loadOlder()} disabled={loadingOlder}>
+                          <button
+                            className="btn ghost sm"
+                            onClick={() => void loadOlder()}
+                            disabled={loadingOlder}
+                          >
                             {loadingOlder ? 'Loading…' : 'Load older'}
                           </button>
                         </div>
@@ -332,10 +362,23 @@ export default function InboxPage() {
                               border: '1px solid var(--border)',
                             }}
                           >
-                            <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            <div
+                              style={{
+                                fontSize: 13,
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              }}
+                            >
                               {m.body}
                             </div>
-                            <div className="dim" style={{ fontSize: 10.5, marginTop: 4, textAlign: outbound ? 'right' : 'left' }}>
+                            <div
+                              className="dim"
+                              style={{
+                                fontSize: 10.5,
+                                marginTop: 4,
+                                textAlign: outbound ? 'right' : 'left',
+                              }}
+                            >
                               {timeLabel(m.createdAt)}
                               {outbound ? ` · ${m.status.toLowerCase()}` : ''}
                             </div>
@@ -348,7 +391,12 @@ export default function InboxPage() {
 
                 <div
                   className="composer row"
-                  style={{ padding: 12, borderTop: '1px solid var(--border)', gap: 8, alignItems: 'flex-end' }}
+                  style={{
+                    padding: 12,
+                    borderTop: '1px solid var(--border)',
+                    gap: 8,
+                    alignItems: 'flex-end',
+                  }}
                 >
                   <textarea
                     className="input grow"
@@ -382,7 +430,11 @@ export default function InboxPage() {
             <button className="btn ghost" onClick={() => setDrawerOpen(false)}>
               Cancel
             </button>
-            <button className="btn primary" onClick={() => void createConversation()} disabled={creating}>
+            <button
+              className="btn primary"
+              onClick={() => void createConversation()}
+              disabled={creating}
+            >
               {creating ? 'Creating…' : 'Create'}
             </button>
           </>

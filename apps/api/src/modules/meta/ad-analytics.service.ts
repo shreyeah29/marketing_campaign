@@ -95,7 +95,10 @@ export class AdAnalyticsService {
   }
 
   /** Daily ad performance for the trend charts. */
-  async timeseries(_principal: Principal, input: DateRange): Promise<
+  async timeseries(
+    _principal: Principal,
+    input: DateRange,
+  ): Promise<
     { date: string; impressions: number; clicks: number; leads: number; spend: number }[]
   > {
     const { gte, lte } = this.range(input)
@@ -116,7 +119,11 @@ export class AdAnalyticsService {
     }))
   }
 
-  private async buckets(dimension: 'AGE' | 'GENDER' | 'REGION', gte: Date, lte: Date): Promise<Bucket[]> {
+  private async buckets(
+    dimension: 'AGE' | 'GENDER' | 'REGION',
+    gte: Date,
+    lte: Date,
+  ): Promise<Bucket[]> {
     const rows = await withTenantTransaction(this.db, (tx) =>
       tx.adInsightBreakdown.groupBy({
         by: ['value'],

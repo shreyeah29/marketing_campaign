@@ -77,94 +77,96 @@ function createBetterAuthInstance(owner: PrismaClient, email: EmailPort) {
   const verifyRequired = requireEmailVerification(env)
 
   return betterAuth({
-      appName: 'VSP AI Marketing OS',
-      secret: env.BETTER_AUTH_SECRET,
-      baseURL: env.BETTER_AUTH_URL ?? `http://${env.API_HOST === '0.0.0.0' ? 'localhost' : env.API_HOST}:${String(env.API_PORT)}`,
-      basePath: '/api/auth',
-      // CSRF: state-changing requests are accepted only from these origins. The
-      // same list the API's CORS uses, so there is one answer to "who may call us".
-      trustedOrigins: corsOrigins(env),
-      database: prismaAdapter(owner, { provider: 'postgresql' }),
+    appName: 'VSP AI Marketing OS',
+    secret: env.BETTER_AUTH_SECRET,
+    baseURL:
+      env.BETTER_AUTH_URL ??
+      `http://${env.API_HOST === '0.0.0.0' ? 'localhost' : env.API_HOST}:${String(env.API_PORT)}`,
+    basePath: '/api/auth',
+    // CSRF: state-changing requests are accepted only from these origins. The
+    // same list the API's CORS uses, so there is one answer to "who may call us".
+    trustedOrigins: corsOrigins(env),
+    database: prismaAdapter(owner, { provider: 'postgresql' }),
 
-      emailAndPassword: {
-        enabled: true,
-        minPasswordLength: 8,
-        maxPasswordLength: 200,
-        // Verification is required in production; in dev the link is only logged,
-        // so requiring it would make login impossible without a mail provider.
-        requireEmailVerification: verifyRequired,
-        autoSignIn: true,
-        resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
-        sendResetPassword: async ({ user, url }) => {
-          await email.send({
-            to: user.email,
-            subject: 'Reset your password',
-            heading: 'Reset your password',
-            body: 'We received a request to reset your password. This link expires in one hour. If you did not request it, you can ignore this email.',
-            actionUrl: appLink(appUrl, url),
-            actionLabel: 'Reset password',
-          })
-        },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      maxPasswordLength: 200,
+      // Verification is required in production; in dev the link is only logged,
+      // so requiring it would make login impossible without a mail provider.
+      requireEmailVerification: verifyRequired,
+      autoSignIn: true,
+      resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
+      sendResetPassword: async ({ user, url }) => {
+        await email.send({
+          to: user.email,
+          subject: 'Reset your password',
+          heading: 'Reset your password',
+          body: 'We received a request to reset your password. This link expires in one hour. If you did not request it, you can ignore this email.',
+          actionUrl: appLink(appUrl, url),
+          actionLabel: 'Reset password',
+        })
       },
+    },
 
-      emailVerification: {
-        sendOnSignUp: true,
-        autoSignInAfterVerification: true,
-        expiresIn: 60 * 60,
-        sendVerificationEmail: async ({ user, url }) => {
-          await email.send({
-            to: user.email,
-            subject: 'Verify your email',
-            heading: 'Confirm your email address',
-            body: 'Confirm your email to finish setting up your account. This link expires in one hour.',
-            actionUrl: appLink(appUrl, url),
-            actionLabel: 'Verify email',
-          })
-        },
+    emailVerification: {
+      sendOnSignUp: true,
+      autoSignInAfterVerification: true,
+      expiresIn: 60 * 60,
+      sendVerificationEmail: async ({ user, url }) => {
+        await email.send({
+          to: user.email,
+          subject: 'Verify your email',
+          heading: 'Confirm your email address',
+          body: 'Confirm your email to finish setting up your account. This link expires in one hour.',
+          actionUrl: appLink(appUrl, url),
+          actionLabel: 'Verify email',
+        })
       },
+    },
 
-      session: {
-        expiresIn: 60 * 60 * 24 * 7, // 7 days
-        // Sliding refresh: a session older than a day is rotated on the next use,
-        // so an active user is never logged out mid-work while an idle one expires.
-        updateAge: 60 * 60 * 24,
-        // "Remember me" is the client sending rememberMe:false to opt into a
-        // session that dies with the browser; the default is the persistent 7-day.
-        // DB is the source of truth for the active org, so no cookie cache.
-        cookieCache: { enabled: false },
-      },
+    session: {
+      expiresIn: 60 * 60 * 24 * 7, // 7 days
+      // Sliding refresh: a session older than a day is rotated on the next use,
+      // so an active user is never logged out mid-work while an idle one expires.
+      updateAge: 60 * 60 * 24,
+      // "Remember me" is the client sending rememberMe:false to opt into a
+      // session that dies with the browser; the default is the persistent 7-day.
+      // DB is the source of truth for the active org, so no cookie cache.
+      cookieCache: { enabled: false },
+    },
 
-      // Built-in throttle in front of the credential endpoints. Account lockout
-      // (Redis, per-identifier) is layered on top in the security slice.
-      rateLimit: {
-        enabled: true,
-        window: 60,
-        max: 100,
-        customRules: {
-          '/sign-in/email': { window: 60, max: 10 },
-          '/sign-up/email': { window: 60 * 60, max: 30 },
-          '/forget-password': { window: 60 * 60, max: 5 },
-          '/reset-password': { window: 60 * 60, max: 10 },
-        },
+    // Built-in throttle in front of the credential endpoints. Account lockout
+    // (Redis, per-identifier) is layered on top in the security slice.
+    rateLimit: {
+      enabled: true,
+      window: 60,
+      max: 100,
+      customRules: {
+        '/sign-in/email': { window: 60, max: 10 },
+        '/sign-up/email': { window: 60 * 60, max: 30 },
+        '/forget-password': { window: 60 * 60, max: 5 },
+        '/reset-password': { window: 60 * 60, max: 10 },
       },
+    },
 
-      advanced: {
-        cookiePrefix: 'vsp',
-        useSecureCookies: env.NODE_ENV === 'production',
-        // HttpOnly always. In production the frontend (e.g. a *.vercel.app domain)
-        // and this API are different origins, so the session cookie must be
-        // SameSite=None + Secure to be sent on cross-site fetches — Lax would be
-        // dropped and auth would silently fail. In development everything is
-        // localhost (same-site), where Lax over http is correct and Secure is off.
-        // CSRF is still enforced by the trusted-origin allowlist, not by SameSite.
-        defaultCookieAttributes: {
-          httpOnly: true,
-          sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
-          secure: env.NODE_ENV === 'production',
-          path: '/',
-        },
+    advanced: {
+      cookiePrefix: 'vsp',
+      useSecureCookies: env.NODE_ENV === 'production',
+      // HttpOnly always. In production the frontend (e.g. a *.vercel.app domain)
+      // and this API are different origins, so the session cookie must be
+      // SameSite=None + Secure to be sent on cross-site fetches — Lax would be
+      // dropped and auth would silently fail. In development everything is
+      // localhost (same-site), where Lax over http is correct and Secure is off.
+      // CSRF is still enforced by the trusted-origin allowlist, not by SameSite.
+      defaultCookieAttributes: {
+        httpOnly: true,
+        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: env.NODE_ENV === 'production',
+        path: '/',
       },
-    })
+    },
+  })
 }
 
 /**

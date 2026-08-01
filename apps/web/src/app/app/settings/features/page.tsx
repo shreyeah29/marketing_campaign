@@ -43,7 +43,11 @@ export default function FeaturesPage() {
         subtitle={`${ws.enabledFeatures.length} modules enabled for your workspace`}
       />
       {ws.enabledFeatures.length === 0 ? (
-        <EmptyState icon="layout" title="No modules enabled" hint="Ask your platform administrator to enable modules." />
+        <EmptyState
+          icon="layout"
+          title="No modules enabled"
+          hint="Ask your platform administrator to enable modules."
+        />
       ) : (
         <div className="stack">
           {[...groups.entries()].map(([cat, features]) => (
@@ -61,7 +65,8 @@ export default function FeaturesPage() {
         </div>
       )}
       <p className="dim" style={{ fontSize: 12, marginTop: 16 }}>
-        Modules are provisioned for your workspace by your account manager. To enable more modules, get in touch.
+        Modules are provisioned for your workspace by your account manager. To enable more modules,
+        get in touch.
       </p>
     </>
   )

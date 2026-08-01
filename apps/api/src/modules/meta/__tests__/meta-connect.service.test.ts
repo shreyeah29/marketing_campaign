@@ -59,13 +59,17 @@ describe('OAuth state (CSRF protection)', () => {
     // A valid state for `other`, replayed against `principal` — must be refused
     // before any token exchange happens.
     const stolen = new URL(svc.authUrl(other)).searchParams.get('state')!
-    await expect(svc.handleCallback(principal, 'code_xyz', stolen)).rejects.toThrow(/invalid oauth state/i)
+    await expect(svc.handleCallback(principal, 'code_xyz', stolen)).rejects.toThrow(
+      /invalid oauth state/i,
+    )
   })
 
   it('rejects a tampered state', async () => {
     const svc = makeService()
     const good = new URL(svc.authUrl(principal)).searchParams.get('state')!
     const tampered = good.slice(0, -1) + (good.endsWith('a') ? 'b' : 'a')
-    await expect(svc.handleCallback(principal, 'code_xyz', tampered)).rejects.toThrow(/invalid oauth state/i)
+    await expect(svc.handleCallback(principal, 'code_xyz', tampered)).rejects.toThrow(
+      /invalid oauth state/i,
+    )
   })
 })

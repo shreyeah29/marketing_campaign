@@ -45,7 +45,9 @@ export class ChatbotService {
           name: input.name,
           questions: input.questions as never,
           isActive: input.isActive ?? true,
-          ...(input.completionMessage !== undefined ? { completionMessage: input.completionMessage } : {}),
+          ...(input.completionMessage !== undefined
+            ? { completionMessage: input.completionMessage }
+            : {}),
         },
       }),
     )
@@ -67,7 +69,9 @@ export class ChatbotService {
         data: {
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.questions !== undefined ? { questions: input.questions as never } : {}),
-          ...(input.completionMessage !== undefined ? { completionMessage: input.completionMessage } : {}),
+          ...(input.completionMessage !== undefined
+            ? { completionMessage: input.completionMessage }
+            : {}),
           ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
         },
       })
@@ -78,7 +82,10 @@ export class ChatbotService {
     await withTenantTransaction(this.db, async (tx) => {
       const existing = await tx.chatbotFlow.findFirst({ where: { id, deletedAt: null } })
       if (!existing) throw new NotFoundException('Chatbot flow not found.')
-      await tx.chatbotFlow.update({ where: { id: existing.id }, data: { deletedAt: new Date(), isActive: false } })
+      await tx.chatbotFlow.update({
+        where: { id: existing.id },
+        data: { deletedAt: new Date(), isActive: false },
+      })
     })
   }
 }

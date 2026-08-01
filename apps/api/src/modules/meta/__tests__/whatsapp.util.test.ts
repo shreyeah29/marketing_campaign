@@ -27,7 +27,9 @@ describe('parseInboundMessages', () => {
               value: {
                 metadata: { phone_number_id: 'pn_1' },
                 contacts: [{ profile: { name: 'Asha' }, wa_id: '9199' }],
-                messages: [{ from: '9199', id: 'wamid.1', type: 'text', text: { body: 'Pricing?' } }],
+                messages: [
+                  { from: '9199', id: 'wamid.1', type: 'text', text: { body: 'Pricing?' } },
+                ],
               },
             },
           ],
@@ -47,7 +49,13 @@ describe('parseInboundMessages', () => {
 
   it('skips non-text messages and empty payloads', () => {
     const imageOnly = parseInboundMessages({
-      entry: [{ changes: [{ field: 'messages', value: { messages: [{ from: 'x', id: '1', type: 'image' }] } }] }],
+      entry: [
+        {
+          changes: [
+            { field: 'messages', value: { messages: [{ from: 'x', id: '1', type: 'image' }] } },
+          ],
+        },
+      ],
     })
     expect(imageOnly).toHaveLength(0)
     expect(parseInboundMessages({})).toHaveLength(0)

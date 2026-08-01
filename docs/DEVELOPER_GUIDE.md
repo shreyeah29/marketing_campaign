@@ -68,13 +68,13 @@ Three deployable applications share a set of internal packages:
      policy keyed on a transaction-local `app.organization_id` set by
      `withTenantTransaction`. Even a bug in layers 1–2 cannot cross tenants.
 - **Fail-closed**: a query with no tenant context returns zero rows (RLS), never a
-  cross-tenant read. The API refuses to boot if its DB role is *not* subject to RLS.
+  cross-tenant read. The API refuses to boot if its DB role is _not_ subject to RLS.
 - **Two database roles**: the app connects as `vsp_app` (RLS-subject) via
   `DATABASE_URL`; migrations, seeds, the outbox dispatcher and the embeddings/
   schedule pollers use the owner role via `DIRECT_DATABASE_URL` (they must read
   across tenants by design).
-- **Modular platform**: what a feature *is* lives in code (`packages/contracts`);
-  whether an org *has* it is data (`FeatureAssignment`). Entitlement = plan ∪ grants
+- **Modular platform**: what a feature _is_ lives in code (`packages/contracts`);
+  whether an org _has_ it is data (`FeatureAssignment`). Entitlement = plan ∪ grants
   − revokes. Registries are synced into DB tables at API boot (`syncRegistries`).
 - **Transactional outbox**: domain events are written in the same transaction as
   the state change (`outbox_event`) and relayed to queues by a polling dispatcher —
@@ -84,15 +84,15 @@ Three deployable applications share a set of internal packages:
 
 ### Tech stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js (App Router), React, hand-rolled CSS design system |
-| API | NestJS on Fastify, Zod validation, Swagger, Better Auth |
-| Worker | BullMQ on Redis/Valkey, `tsx` runtime |
-| Database | PostgreSQL 16, Prisma ORM, pgvector, citext, pg_trgm, RLS |
-| Auth | Better Auth (tenant realm) + a separate platform-admin token realm |
-| Monorepo | pnpm workspaces + Turborepo, TypeScript (ESM) |
-| Errors | RFC 9457 `application/problem+json` |
+| Layer    | Technology                                                         |
+| -------- | ------------------------------------------------------------------ |
+| Frontend | Next.js (App Router), React, hand-rolled CSS design system         |
+| API      | NestJS on Fastify, Zod validation, Swagger, Better Auth            |
+| Worker   | BullMQ on Redis/Valkey, `tsx` runtime                              |
+| Database | PostgreSQL 16, Prisma ORM, pgvector, citext, pg_trgm, RLS          |
+| Auth     | Better Auth (tenant realm) + a separate platform-admin token realm |
+| Monorepo | pnpm workspaces + Turborepo, TypeScript (ESM)                      |
+| Errors   | RFC 9457 `application/problem+json`                                |
 
 ---
 
@@ -161,29 +161,29 @@ marketing/
 
 ### Model groups
 
-| Group | Key models |
-|---|---|
-| Identity (global) | `User`, `Session`, `Account`, `Verification`, `Organization` |
-| Tenancy / platform | `Membership`, `Invitation`, `OrganizationSettings`, `Subscription`, `Plan`, `Feature`, `FeatureAssignment`, `PlanFeature`, `OrganizationLimit`, `Branding`, `ProviderConfiguration`, `PlatformAdmin` |
-| CRM | `Company`, `Contact`, `Lead`, `Pipeline`, `PipelineStage`, `Deal`, `Activity`, `Task`, `Appointment`, `Note` |
-| Marketing | `Campaign`, `CampaignChannel`, `CampaignAsset`, `CampaignAssetComment`, `LeadForm`, `FormSubmission`, `LandingPage`, `EmailCampaign`, `EmailSequence`, `EmailSend`, `SocialAccount`, `SocialPost`, `SocialPostTarget`, `MessageTemplate` |
-| Comms | `Conversation`, `Message`, `PhoneNumber`, `Call` |
-| AI / RAG | `Prompt`, `PromptVersion`, `KnowledgeBase`, `KnowledgeDocument`, `KnowledgeChunk` (pgvector), `AiUsage`, `AgentRun`, `AgentRunStep`, `ToolCall`, `CustomAgent`, `AgentAssignment` |
-| Automation | `Workflow`, `WorkflowVersion`, `WorkflowRun`, `WorkflowRunStep`, `Webhook`, `WebhookDelivery` |
-| Analytics | `MetricDaily`, `AttributionTouch`, `UsageRecord` |
-| Support | `SupportTicket`, `SupportTicketComment` |
-| Platform infra | `OutboxEvent`, `AuditLog`, `PlatformAuditLog`, `Notification`, `IdempotencyKey`, `ApiKey`, `Template`, `TemplateInstall`, `IntegrationConnection`, `ProviderCredential` |
+| Group              | Key models                                                                                                                                                                                                                               |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity (global)  | `User`, `Session`, `Account`, `Verification`, `Organization`                                                                                                                                                                             |
+| Tenancy / platform | `Membership`, `Invitation`, `OrganizationSettings`, `Subscription`, `Plan`, `Feature`, `FeatureAssignment`, `PlanFeature`, `OrganizationLimit`, `Branding`, `ProviderConfiguration`, `PlatformAdmin`                                     |
+| CRM                | `Company`, `Contact`, `Lead`, `Pipeline`, `PipelineStage`, `Deal`, `Activity`, `Task`, `Appointment`, `Note`                                                                                                                             |
+| Marketing          | `Campaign`, `CampaignChannel`, `CampaignAsset`, `CampaignAssetComment`, `LeadForm`, `FormSubmission`, `LandingPage`, `EmailCampaign`, `EmailSequence`, `EmailSend`, `SocialAccount`, `SocialPost`, `SocialPostTarget`, `MessageTemplate` |
+| Comms              | `Conversation`, `Message`, `PhoneNumber`, `Call`                                                                                                                                                                                         |
+| AI / RAG           | `Prompt`, `PromptVersion`, `KnowledgeBase`, `KnowledgeDocument`, `KnowledgeChunk` (pgvector), `AiUsage`, `AgentRun`, `AgentRunStep`, `ToolCall`, `CustomAgent`, `AgentAssignment`                                                        |
+| Automation         | `Workflow`, `WorkflowVersion`, `WorkflowRun`, `WorkflowRunStep`, `Webhook`, `WebhookDelivery`                                                                                                                                            |
+| Analytics          | `MetricDaily`, `AttributionTouch`, `UsageRecord`                                                                                                                                                                                         |
+| Support            | `SupportTicket`, `SupportTicketComment`                                                                                                                                                                                                  |
+| Platform infra     | `OutboxEvent`, `AuditLog`, `PlatformAuditLog`, `Notification`, `IdempotencyKey`, `ApiKey`, `Template`, `TemplateInstall`, `IntegrationConnection`, `ProviderCredential`                                                                  |
 
 ### Migrations (`packages/database/prisma/migrations/`)
 
-| Migration | Contents |
-|---|---|
-| `…_init` | Base schema + extensions (citext, pg_trgm, vector) + all core tables |
-| `…_row_level_security` | `app.current_organization_id()` + `tenant_isolation` policies |
-| `…_modular_platform` | Feature/Plan/limit tables |
-| `…_campaign_assets` | AI review-queue tables |
-| `…_lead_forms_landing_pages_support` | LeadForm, FormSubmission, LandingPage, SupportTicket(+Comment) |
-| `…_email_send_claim` | `EmailSend.SENDING` status + `attempts` (worker claim/retry) |
+| Migration                            | Contents                                                             |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `…_init`                             | Base schema + extensions (citext, pg_trgm, vector) + all core tables |
+| `…_row_level_security`               | `app.current_organization_id()` + `tenant_isolation` policies        |
+| `…_modular_platform`                 | Feature/Plan/limit tables                                            |
+| `…_campaign_assets`                  | AI review-queue tables                                               |
+| `…_lead_forms_landing_pages_support` | LeadForm, FormSubmission, LandingPage, SupportTicket(+Comment)       |
+| `…_email_send_claim`                 | `EmailSend.SENDING` status + `attempts` (worker claim/retry)         |
 
 RLS blocks are **hand-appended** to each migration (Prisma does not generate them).
 Migrations run as the **owner** role via `DIRECT_DATABASE_URL`.
@@ -204,29 +204,29 @@ API feature modules (`apps/api/src/modules/*`). Each is a set of controllers +
 optional services; cross-cutting concerns (auth, entitlements, permissions,
 logging, tenant context) are applied globally.
 
-| Module | Responsibility |
-|---|---|
-| `auth` | Better Auth mount, `AuthGuard` (session → Principal), identity, lockout, email port |
-| `organizations` | Org profile + settings |
-| `members` | Members, roles, invitations |
-| `crm` | Contacts, Companies, Leads, Deals, Pipelines, Tasks, Notes |
-| `marketing` | Email campaigns, message templates, social posts, **review queue** (AI assets), **lead forms** (+ public), campaign generation |
-| `content` | Landing pages (+ public render) |
-| `social` | Social account connections + composer/scheduler |
-| `ai` | Chat, copywriter, image, voice, history; `AiService`, `CampaignGenerationService`, `KnowledgeService`; prompts; knowledge bases + documents + search |
-| `automation` | Workflows, versioned graphs, runs, webhooks; `WorkflowEngineService` |
-| `analytics` | Overview, timeseries, funnel, channel performance, AI usage, audit logs |
-| `comms` | Conversations + messages (Inbox) |
-| `campaigns` | Campaign records + launch |
-| `agents` | Agent runs |
-| `notifications` | In-app notifications |
-| `support` | Support tickets |
-| `settings` | API keys, provider config |
-| `config` | Provider/branding/agent configuration surface |
-| `workspace` | `/me/workspace` bootstrap (nav, branding, plan, user) |
-| `platform` | Operator console realm (provisioning, org management) — separate auth |
-| `realtime` | WebSocket gateway |
-| `health` | Liveness/readiness |
+| Module          | Responsibility                                                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth`          | Better Auth mount, `AuthGuard` (session → Principal), identity, lockout, email port                                                                  |
+| `organizations` | Org profile + settings                                                                                                                               |
+| `members`       | Members, roles, invitations                                                                                                                          |
+| `crm`           | Contacts, Companies, Leads, Deals, Pipelines, Tasks, Notes                                                                                           |
+| `marketing`     | Email campaigns, message templates, social posts, **review queue** (AI assets), **lead forms** (+ public), campaign generation                       |
+| `content`       | Landing pages (+ public render)                                                                                                                      |
+| `social`        | Social account connections + composer/scheduler                                                                                                      |
+| `ai`            | Chat, copywriter, image, voice, history; `AiService`, `CampaignGenerationService`, `KnowledgeService`; prompts; knowledge bases + documents + search |
+| `automation`    | Workflows, versioned graphs, runs, webhooks; `WorkflowEngineService`                                                                                 |
+| `analytics`     | Overview, timeseries, funnel, channel performance, AI usage, audit logs                                                                              |
+| `comms`         | Conversations + messages (Inbox)                                                                                                                     |
+| `campaigns`     | Campaign records + launch                                                                                                                            |
+| `agents`        | Agent runs                                                                                                                                           |
+| `notifications` | In-app notifications                                                                                                                                 |
+| `support`       | Support tickets                                                                                                                                      |
+| `settings`      | API keys, provider config                                                                                                                            |
+| `config`        | Provider/branding/agent configuration surface                                                                                                        |
+| `workspace`     | `/me/workspace` bootstrap (nav, branding, plan, user)                                                                                                |
+| `platform`      | Operator console realm (provisioning, org management) — separate auth                                                                                |
+| `realtime`      | WebSocket gateway                                                                                                                                    |
+| `health`        | Liveness/readiness                                                                                                                                   |
 
 Frontend mirrors these under `apps/web/src/app/app/*`. Most list/CRUD pages are
 generated from the shared `ResourcePage` component (search + cursor pagination +
@@ -276,12 +276,14 @@ Health         /health                                            (@Public)
 ### Representative endpoints (recently completed)
 
 **Inbox** (`/conversations`)
+
 - `POST /conversations` — create a conversation (`channel` default `WEB_CHAT`).
 - `GET /conversations/:id/messages?cursor&limit` — paginated history (newest-first).
 - `POST /conversations/:id/messages` — send/record `{ body, direction? }` (OUTBOUND default).
 - `POST /conversations/:id/read` — clear unread + mark inbound READ.
 
 **Knowledge / RAG** (`/knowledge-bases`)
+
 - CRUD on knowledge bases (list/create/update/delete).
 - `GET /:id/documents` — list documents (+ `indexingAvailable`).
 - `POST /:id/documents` — add extracted text `{ title, content, mimeType?, sourceType? }` → enqueues indexing.
@@ -290,6 +292,7 @@ Health         /health                                            (@Public)
 - `POST /:id/search` — semantic search `{ query, k? }` → `{ results: [{ documentTitle, content, score }] }`.
 
 **Deals selectors** (`/pipelines`)
+
 - `GET /pipelines/options` — pipelines with nested stages, for dependent dropdowns.
 
 ---
@@ -298,51 +301,51 @@ Health         /health                                            (@Public)
 
 ### API (`apps/api/src/config/env.ts`) — Zod-validated; the API refuses to boot if invalid
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `NODE_ENV` | no | `development` | Runtime mode |
-| `LOG_LEVEL` | no | `info` | Pino level |
-| `API_PORT` | no | `4000` | Listen port |
-| `API_HOST` | no | `0.0.0.0` | Listen host |
-| `DATABASE_URL` | **yes** | — | App role (`vsp_app`), RLS-subject |
-| `DIRECT_DATABASE_URL` | no* | — | Owner role — migrations, public slug lookups (SYSTEM_DB) |
-| `REDIS_URL` | **yes** | — | BullMQ / cache |
-| `CORS_ALLOWED_ORIGINS` | no | `http://localhost:3000` | Comma-separated origins |
-| `BETTER_AUTH_SECRET` | **yes** | — | Session signing (≥32 chars) |
-| `BETTER_AUTH_URL` | no | — | API base for auth links |
-| `APP_URL` | no | `http://localhost:3000` | Frontend base for email links |
-| `EMAIL_FROM` | no | `VSP <no-reply@vsp.local>` | Mail From |
-| `RESEND_API_KEY` | no | — | Email delivery (Resend REST); unset → mailer logs |
-| `REQUIRE_EMAIL_VERIFICATION` | no | prod=on | Gate first login on verified email |
-| `ENCRYPTION_MASTER_KEY` | **yes** | — | Envelope encryption of provider creds (≥32 chars) |
-| `OPENAI_API_KEY` | no | — | Platform AI (chat/copywriter/image/voice/embeddings query) |
-| `OPENAI_MODEL` | no | — | LLM model id (e.g. `gpt-5.4-mini`) |
-| `SWAGGER_ENABLED` | no | — | Expose `/docs` |
-| `SENTRY_DSN` | no | — | Error reporting |
+| Variable                     | Required | Default                    | Purpose                                                    |
+| ---------------------------- | -------- | -------------------------- | ---------------------------------------------------------- |
+| `NODE_ENV`                   | no       | `development`              | Runtime mode                                               |
+| `LOG_LEVEL`                  | no       | `info`                     | Pino level                                                 |
+| `API_PORT`                   | no       | `4000`                     | Listen port                                                |
+| `API_HOST`                   | no       | `0.0.0.0`                  | Listen host                                                |
+| `DATABASE_URL`               | **yes**  | —                          | App role (`vsp_app`), RLS-subject                          |
+| `DIRECT_DATABASE_URL`        | no*      | —                          | Owner role — migrations, public slug lookups (SYSTEM_DB)   |
+| `REDIS_URL`                  | **yes**  | —                          | BullMQ / cache                                             |
+| `CORS_ALLOWED_ORIGINS`       | no       | `http://localhost:3000`    | Comma-separated origins                                    |
+| `BETTER_AUTH_SECRET`         | **yes**  | —                          | Session signing (≥32 chars)                                |
+| `BETTER_AUTH_URL`            | no       | —                          | API base for auth links                                    |
+| `APP_URL`                    | no       | `http://localhost:3000`    | Frontend base for email links                              |
+| `EMAIL_FROM`                 | no       | `VSP <no-reply@vsp.local>` | Mail From                                                  |
+| `RESEND_API_KEY`             | no       | —                          | Email delivery (Resend REST); unset → mailer logs          |
+| `REQUIRE_EMAIL_VERIFICATION` | no       | prod=on                    | Gate first login on verified email                         |
+| `ENCRYPTION_MASTER_KEY`      | **yes**  | —                          | Envelope encryption of provider creds (≥32 chars)          |
+| `OPENAI_API_KEY`             | no       | —                          | Platform AI (chat/copywriter/image/voice/embeddings query) |
+| `OPENAI_MODEL`               | no       | —                          | LLM model id (e.g. `gpt-5.4-mini`)                         |
+| `SWAGGER_ENABLED`            | no       | —                          | Expose `/docs`                                             |
+| `SENTRY_DSN`                 | no       | —                          | Error reporting                                            |
 
 \* Strongly recommended in production; required for public form/page resolution
 (`SYSTEM_DB`) and for running migrations.
 
 ### Worker (`apps/worker/src/config.ts`)
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `NODE_ENV`, `LOG_LEVEL` | no | Runtime/logging |
-| `DATABASE_URL` | **yes** | App role (RLS applies to job handlers) |
-| `DIRECT_DATABASE_URL` | **yes** | Owner — outbox dispatcher + schedule poller + embeddings (cross-tenant) |
-| `REDIS_URL` | **yes** | BullMQ |
-| `ENCRYPTION_MASTER_KEY` | **yes** | Decrypt provider credentials |
-| `RESEND_API_KEY` | no | Email delivery (schedule poller) |
-| `EMAIL_FROM` | no | Mail From |
-| `OPENAI_API_KEY` | no | **Embeddings** — required for RAG indexing to run |
+| Variable                | Required | Purpose                                                                 |
+| ----------------------- | -------- | ----------------------------------------------------------------------- |
+| `NODE_ENV`, `LOG_LEVEL` | no       | Runtime/logging                                                         |
+| `DATABASE_URL`          | **yes**  | App role (RLS applies to job handlers)                                  |
+| `DIRECT_DATABASE_URL`   | **yes**  | Owner — outbox dispatcher + schedule poller + embeddings (cross-tenant) |
+| `REDIS_URL`             | **yes**  | BullMQ                                                                  |
+| `ENCRYPTION_MASTER_KEY` | **yes**  | Decrypt provider credentials                                            |
+| `RESEND_API_KEY`        | no       | Email delivery (schedule poller)                                        |
+| `EMAIL_FROM`            | no       | Mail From                                                               |
+| `OPENAI_API_KEY`        | no       | **Embeddings** — required for RAG indexing to run                       |
 
 > **Important:** the API and worker are separate services with separate env. RAG
 > indexing runs in the worker, so `OPENAI_API_KEY` must be set on **both**.
 
 ### Frontend (`apps/web`)
 
-| Variable | Purpose |
-|---|---|
+| Variable              | Purpose                                        |
+| --------------------- | ---------------------------------------------- |
 | `NEXT_PUBLIC_API_URL` | API base (defaults to `http://localhost:4000`) |
 
 Never hard-code secrets; see `.env.example`.
@@ -383,21 +386,21 @@ Queues + policies live in `apps/worker/src/queues.ts`. Every queue uses exponent
 backoff (only the ceiling differs) and retains completed/failed jobs for
 inspection; exhausted jobs dead-letter.
 
-| Queue (`name`) | Concurrency | Attempts | Handler / notes |
-|---|---:|---:|---|
-| `workflow-execution` | 5 | 3 | **Workflow executor** (real) |
-| `embeddings` | 8 | 4 | **RAG indexer** (real) |
-| `outbox-dispatch` | 5 | 5 | (dispatcher relay) |
-| `email-send` | 10 | 5 | routed; delivery via schedule poller |
-| `social-publish` | 3 | 2 | publish; duplicate is publicly visible → low attempts |
-| `whatsapp-send` | 10 | 3 | gated on provider |
-| `telephony` | 5 | 1 | no auto-retry (side-effecting calls) |
-| `agent-runs` | 3 | 2 | agent pipeline |
-| `content-generation` | 5 | 3 | content jobs |
-| `media-generation` | 2 | 2 | media jobs |
-| `analytics-rollup` | 2 | 3 | metric aggregation |
-| `scheduled-triggers` | 5 | 3 | time/event triggers |
-| `webhook-delivery` | 10 | 5 | outbound webhooks |
+| Queue (`name`)       | Concurrency | Attempts | Handler / notes                                       |
+| -------------------- | ----------: | -------: | ----------------------------------------------------- |
+| `workflow-execution` |           5 |        3 | **Workflow executor** (real)                          |
+| `embeddings`         |           8 |        4 | **RAG indexer** (real)                                |
+| `outbox-dispatch`    |           5 |        5 | (dispatcher relay)                                    |
+| `email-send`         |          10 |        5 | routed; delivery via schedule poller                  |
+| `social-publish`     |           3 |        2 | publish; duplicate is publicly visible → low attempts |
+| `whatsapp-send`      |          10 |        3 | gated on provider                                     |
+| `telephony`          |           5 |        1 | no auto-retry (side-effecting calls)                  |
+| `agent-runs`         |           3 |        2 | agent pipeline                                        |
+| `content-generation` |           5 |        3 | content jobs                                          |
+| `media-generation`   |           2 |        2 | media jobs                                            |
+| `analytics-rollup`   |           2 |        3 | metric aggregation                                    |
+| `scheduled-triggers` |           5 |        3 | time/event triggers                                   |
+| `webhook-delivery`   |          10 |        5 | outbound webhooks                                     |
 
 **Dead-letter queues**: each queue has a `<name>` DLQ; exhausted jobs land there with
 the original payload and failure reason, retained and never auto-retried.
@@ -409,12 +412,15 @@ the original payload and failure reason, retained and never auto-retried.
 Four kinds of background work run in the worker:
 
 ### a) Outbox dispatcher (`outbox-dispatcher.ts`)
+
 Polls `outbox_event` (owner connection, cross-tenant) every ~500ms, turns committed
 events into BullMQ jobs, then marks them dispatched. At-least-once; consumers
 dedupe by event id. `EVENT_ROUTES` maps event names → queues.
 
 ### b) Schedule poller (`schedule-poller.ts`)
+
 Time-driven delivery on the owner connection. Each tick:
+
 - **Reclaim stale claims**: rows stuck in an intermediate state >5 min (a worker
   died mid-delivery) are returned to the queue.
 - **Email**: atomically **claims** each `EmailSend` (`QUEUED → SENDING`, so multiple
@@ -424,6 +430,7 @@ Time-driven delivery on the owner connection. Each tick:
   publishes each target, records permalinks, sets `PUBLISHED` / `FAILED`, notifies.
 
 ### c) Workflow executor (`workflow/executor.ts`)
+
 Consumes `workflow-execution`. Walks a versioned node graph (`action`/`condition`/
 `delay`), runs each node's real side effect, writes a `WorkflowRunStep` per node,
 and tracks a completed-node set so a BullMQ retry resumes at the failed node.
@@ -432,6 +439,7 @@ and tracks a completed-node set so a BullMQ retry resumes at the failed node.
 final attempt.
 
 ### d) Embeddings indexer (`embeddings/indexer.ts`)
+
 Consumes `embeddings`. See §12.
 
 ---
@@ -546,6 +554,7 @@ top-k chunks with scores
 ## 13. Local development setup
 
 ### Prerequisites
+
 - Node ≥ 20, pnpm, Docker (or local PostgreSQL 16 + Redis), `psql`.
 - PostgreSQL must have the `vector`, `citext`, `pg_trgm` extensions available.
 
@@ -591,20 +600,20 @@ Useful root scripts: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:studi
 `pnpm db:migrate` (dev), `pnpm db:reset`.
 
 > Two roles matter locally too: `DATABASE_URL` = `vsp_app` (RLS applies),
-> `DIRECT_DATABASE_URL` = owner (migrations/seeds). If the API says *"the database
-> role is not subject to row-level security"*, `DATABASE_URL` is pointing at the owner.
+> `DIRECT_DATABASE_URL` = owner (migrations/seeds). If the API says _"the database
+> role is not subject to row-level security"_, `DATABASE_URL` is pointing at the owner.
 
 ---
 
 ## 14. Deployment guide
 
-| Component | Host | Notes |
-|---|---|---|
-| `apps/web` | **Vercel** | Set `NEXT_PUBLIC_API_URL` to the API URL. Runs `next build`. |
-| `apps/api` | **Render** (Web Service) | Runs via `tsx src/main.ts` (not a `tsc` build). |
-| `apps/worker` | **Render** (Background Worker) | Runs via `tsx src/main.ts`. |
-| PostgreSQL | **Render** Postgres 16 | pgvector enabled; two roles (owner + `vsp_app`). |
-| Redis / Valkey | **Render** Key-Value | `maxmemory-policy noeviction` recommended for queues. |
+| Component      | Host                           | Notes                                                        |
+| -------------- | ------------------------------ | ------------------------------------------------------------ |
+| `apps/web`     | **Vercel**                     | Set `NEXT_PUBLIC_API_URL` to the API URL. Runs `next build`. |
+| `apps/api`     | **Render** (Web Service)       | Runs via `tsx src/main.ts` (not a `tsc` build).              |
+| `apps/worker`  | **Render** (Background Worker) | Runs via `tsx src/main.ts`.                                  |
+| PostgreSQL     | **Render** Postgres 16         | pgvector enabled; two roles (owner + `vsp_app`).             |
+| Redis / Valkey | **Render** Key-Value           | `maxmemory-policy noeviction` recommended for queues.        |
 
 ### Deploy checklist
 
@@ -625,6 +634,7 @@ Useful root scripts: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:studi
    tier to remove cold starts in production.
 
 ### Ops scripts (`apps/api/scripts/`)
+
 - `grant-features.ts` — idempotently grant a curated feature set to every org.
 - `ensure-default-pipeline.ts` — seed a "Sales Pipeline" per org (Deals needs one).
 
@@ -632,29 +642,30 @@ Useful root scripts: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:studi
 
 ## 15. Troubleshooting guide
 
-| Symptom | Likely cause / fix |
-|---|---|
-| API won't boot: *"role is not subject to row-level security"* | `DATABASE_URL` points at the owner. Point it at `vsp_app` (run `provision-app-role.sql`); keep the owner in `DIRECT_DATABASE_URL`. |
-| API won't boot: *"Invalid environment configuration"* | A required env var is missing/short. Check `BETTER_AUTH_SECRET` and `ENCRYPTION_MASTER_KEY` are ≥32 chars; `DATABASE_URL`/`REDIS_URL` set. |
-| Queries return **empty** where data exists | The read ran outside a tenant transaction. All handler DB access must be inside `withTenantTransaction` (or `CrudService`); RLS hides everything otherwise. |
-| AI returns `503 "AI is temporarily unavailable"` | Check the API logs for the real OpenAI error. Usually `OPENAI_API_KEY` unset or `OPENAI_MODEL` not a model your account serves. |
-| Newer OpenAI model 400s | The adapter self-heals `max_tokens`/`temperature`; if it still fails, the model id is wrong for the account — check `platform.openai.com` Models. |
-| Knowledge docs stick at `FAILED` "no embedding provider" | `OPENAI_API_KEY` not set **on the worker** service. Set it and reprocess. |
-| Knowledge search / chat grounding returns nothing | Docs not `READY` yet (poll status), or the API lacks `OPENAI_API_KEY` for the query embedding. |
-| Uploaded file rejected | Only text-based files (≤400 KB) are supported (no server-side PDF/docx extractor). Paste text or convert first. |
-| Deals create shows "No pipelines yet" | Run `ensure-default-pipeline.ts` for the org (or add a pipeline). |
-| A page 403s / missing from nav | The org lacks the feature. Grant it (`grant-features.ts`) or add to the preset. Nav is server-driven from entitlements. |
-| Emails not delivered (logged only) | `RESEND_API_KEY` unset on the API (transactional) and/or worker (campaigns). Set it on both. |
-| Duplicate emails / social posts | Should be impossible — pollers claim rows atomically (`SENDING`/`PUBLISHING`). If seen, check for a stale-claim reclaim window or a manual DB edit. |
-| Workflow run flaps FAILED then succeeds | Expected on retryable node errors; the run is only marked FAILED + notified on the final attempt. |
-| Mobile: no navigation | Fixed — the shell has an off-canvas drawer + hamburger below 900px. Hard-refresh if cached. |
-| Cold start / first request slow | Free-tier Render service spinning up (~30–60s). Upgrade the tier. |
-| A queued job "did nothing" (logged *handler not implemented*) | That queue has no real handler yet (scaffolding). Real handlers: `workflow-execution`, `embeddings`; delivery via the schedule poller. |
-| Jobs stuck / exhausted | Inspect the `<queue>` DLQ for the payload + failure reason; fix and replay. |
+| Symptom                                                       | Likely cause / fix                                                                                                                                          |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API won't boot: _"role is not subject to row-level security"_ | `DATABASE_URL` points at the owner. Point it at `vsp_app` (run `provision-app-role.sql`); keep the owner in `DIRECT_DATABASE_URL`.                          |
+| API won't boot: _"Invalid environment configuration"_         | A required env var is missing/short. Check `BETTER_AUTH_SECRET` and `ENCRYPTION_MASTER_KEY` are ≥32 chars; `DATABASE_URL`/`REDIS_URL` set.                  |
+| Queries return **empty** where data exists                    | The read ran outside a tenant transaction. All handler DB access must be inside `withTenantTransaction` (or `CrudService`); RLS hides everything otherwise. |
+| AI returns `503 "AI is temporarily unavailable"`              | Check the API logs for the real OpenAI error. Usually `OPENAI_API_KEY` unset or `OPENAI_MODEL` not a model your account serves.                             |
+| Newer OpenAI model 400s                                       | The adapter self-heals `max_tokens`/`temperature`; if it still fails, the model id is wrong for the account — check `platform.openai.com` Models.           |
+| Knowledge docs stick at `FAILED` "no embedding provider"      | `OPENAI_API_KEY` not set **on the worker** service. Set it and reprocess.                                                                                   |
+| Knowledge search / chat grounding returns nothing             | Docs not `READY` yet (poll status), or the API lacks `OPENAI_API_KEY` for the query embedding.                                                              |
+| Uploaded file rejected                                        | Only text-based files (≤400 KB) are supported (no server-side PDF/docx extractor). Paste text or convert first.                                             |
+| Deals create shows "No pipelines yet"                         | Run `ensure-default-pipeline.ts` for the org (or add a pipeline).                                                                                           |
+| A page 403s / missing from nav                                | The org lacks the feature. Grant it (`grant-features.ts`) or add to the preset. Nav is server-driven from entitlements.                                     |
+| Emails not delivered (logged only)                            | `RESEND_API_KEY` unset on the API (transactional) and/or worker (campaigns). Set it on both.                                                                |
+| Duplicate emails / social posts                               | Should be impossible — pollers claim rows atomically (`SENDING`/`PUBLISHING`). If seen, check for a stale-claim reclaim window or a manual DB edit.         |
+| Workflow run flaps FAILED then succeeds                       | Expected on retryable node errors; the run is only marked FAILED + notified on the final attempt.                                                           |
+| Mobile: no navigation                                         | Fixed — the shell has an off-canvas drawer + hamburger below 900px. Hard-refresh if cached.                                                                 |
+| Cold start / first request slow                               | Free-tier Render service spinning up (~30–60s). Upgrade the tier.                                                                                           |
+| A queued job "did nothing" (logged _handler not implemented_) | That queue has no real handler yet (scaffolding). Real handlers: `workflow-execution`, `embeddings`; delivery via the schedule poller.                      |
+| Jobs stuck / exhausted                                        | Inspect the `<queue>` DLQ for the payload + failure reason; fix and replay.                                                                                 |
 
 ---
 
 ### Related docs
+
 - `docs/ARCHITECTURE.md` — deeper architecture narrative.
 - `docs/AUTHENTICATION.md` — Better Auth + platform realm.
 - `docs/SECURITY.md` — tenant isolation, RLS, encryption, threat model.

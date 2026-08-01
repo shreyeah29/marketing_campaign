@@ -66,7 +66,11 @@ export class IdentityService {
    */
   async pickDefaultOrganizationId(userId: string): Promise<string | null> {
     const membership = await this.owner.membership.findFirst({
-      where: { userId, deletedAt: null, organization: { deletedAt: null, status: { not: 'DELETED' } } },
+      where: {
+        userId,
+        deletedAt: null,
+        organization: { deletedAt: null, status: { not: 'DELETED' } },
+      },
       orderBy: { createdAt: 'asc' },
       select: { organizationId: true },
     })
@@ -169,9 +173,17 @@ export class IdentityService {
         where: { userId, activeOrganizationId: organizationId },
         data: { activeOrganizationId: null },
       })
-      await this.writeAudit(tx, organizationId, userId, 'member.left', 'membership', membership.id, {
-        role: membership.role,
-      })
+      await this.writeAudit(
+        tx,
+        organizationId,
+        userId,
+        'member.left',
+        'membership',
+        membership.id,
+        {
+          role: membership.role,
+        },
+      )
     })
 
     return { ok: true }
@@ -248,11 +260,18 @@ export class IdentityService {
     if (!invitation) return { error: 'not_found' }
     if (invitation.status !== 'PENDING') return { error: 'not_pending' }
     if (invitation.expiresAt.getTime() < Date.now()) {
-      await this.owner.invitation.updateMany({ where: { id: invitation.id }, data: { status: 'EXPIRED' } })
+      await this.owner.invitation.updateMany({
+        where: { id: invitation.id },
+        data: { status: 'EXPIRED' },
+      })
       return { error: 'expired' }
     }
-    if (invitation.email.toLowerCase() !== userEmail.toLowerCase()) return { error: 'email_mismatch' }
-    if (invitation.organization.deletedAt !== null || invitation.organization.status === 'DELETED') {
+    if (invitation.email.toLowerCase() !== userEmail.toLowerCase())
+      return { error: 'email_mismatch' }
+    if (
+      invitation.organization.deletedAt !== null ||
+      invitation.organization.status === 'DELETED'
+    ) {
       return { error: 'org_unavailable' }
     }
 

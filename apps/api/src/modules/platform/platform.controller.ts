@@ -130,7 +130,10 @@ export class PlatformController {
   @UseGuards(PlatformAdminGuard)
   @Post('organizations')
   @ApiOperation({ summary: 'Provision a fully-configured organisation (the wizard)' })
-  async provision(@Body() body: unknown, @PlatformActor() actor: PlatformPrincipal): Promise<unknown> {
+  async provision(
+    @Body() body: unknown,
+    @PlatformActor() actor: PlatformPrincipal,
+  ): Promise<unknown> {
     const input = zodBody(provisionOrganizationSchema, body)
     const result = await this.provisioning.provision(input as never, actor.id)
     return {
@@ -175,7 +178,10 @@ export class PlatformController {
       include: {
         subscription: { include: { plan: true } },
         branding: true,
-        featureAssignments: { where: { enabled: true }, select: { featureKey: true, source: true } },
+        featureAssignments: {
+          where: { enabled: true },
+          select: { featureKey: true, source: true },
+        },
         organizationLimits: true,
         _count: { select: { memberships: true, contacts: true, campaigns: true, agentRuns: true } },
       },
@@ -200,7 +206,10 @@ export class PlatformController {
       },
       features: org.featureAssignments.map((f) => ({ key: f.featureKey, source: f.source })),
       limits: org.organizationLimits.map((l) => ({ metric: l.metric, limit: l.limitValue })),
-      branding: org.branding && { displayName: org.branding.displayName, primaryColor: org.branding.primaryColor },
+      branding: org.branding && {
+        displayName: org.branding.displayName,
+        primaryColor: org.branding.primaryColor,
+      },
       usage: {
         members: org._count.memberships,
         contacts: org._count.contacts,
@@ -269,7 +278,10 @@ export class PlatformController {
       if (!org) throw new NotFoundException('Organisation not found')
 
       const planRow = await tx.plan.findFirstOrThrow({ where: { key: plan } })
-      await tx.subscription.updateMany({ where: { organizationId: id }, data: { planId: planRow.id } })
+      await tx.subscription.updateMany({
+        where: { organizationId: id },
+        data: { planId: planRow.id },
+      })
 
       // Re-sync the plan's features as PLAN-sourced assignments. Grants and custom
       // assignments are untouched; only the plan-derived set is replaced.
@@ -318,7 +330,10 @@ export class PlatformController {
 
     for (const [featureId, config] of Object.entries(input.featureConfig ?? {})) {
       const result = validateFeatureConfig(featureId, config)
-      if (!result.ok) throw new BadRequestException(`Invalid config for ${featureId}: ${result.issues.join(', ')}`)
+      if (!result.ok)
+        throw new BadRequestException(
+          `Invalid config for ${featureId}: ${result.issues.join(', ')}`,
+        )
     }
 
     await this.owner.$transaction(async (tx) => {

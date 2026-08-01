@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Inject,
-  NotFoundException,
-  Param,
-  Post,
-  Put,
-} from '@nestjs/common'
+import { Body, Controller, Get, Inject, NotFoundException, Param, Post, Put } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -33,7 +24,11 @@ const nodeSchema = z.object({
   config: z.record(z.unknown()).optional(),
   delayMs: z.number().int().nonnegative().optional(),
   condition: z
-    .object({ left: z.string(), op: z.enum(['eq', 'ne', 'gt', 'lt', 'contains', 'truthy']), right: z.unknown().optional() })
+    .object({
+      left: z.string(),
+      op: z.enum(['eq', 'ne', 'gt', 'lt', 'contains', 'truthy']),
+      right: z.unknown().optional(),
+    })
     .optional(),
   next: z.string().nullish(),
   onTrue: z.string().nullish(),
@@ -58,15 +53,30 @@ export class WorkflowEngineController {
     return withTenantTransaction(this.db, async (tx) => {
       const wf = await tx.workflow.findFirst({ where: { id, deletedAt: null } })
       if (!wf) throw new NotFoundException('Workflow not found')
-      const version = await tx.workflowVersion.findFirst({ where: { workflowId: id, version: wf.activeVersion } })
-      return { workflow: { id: wf.id, name: wf.name, status: wf.status, triggerType: wf.triggerType, activeVersion: wf.activeVersion }, graph: version?.graph ?? { start: '', nodes: [] } }
+      const version = await tx.workflowVersion.findFirst({
+        where: { workflowId: id, version: wf.activeVersion },
+      })
+      return {
+        workflow: {
+          id: wf.id,
+          name: wf.name,
+          status: wf.status,
+          triggerType: wf.triggerType,
+          activeVersion: wf.activeVersion,
+        },
+        graph: version?.graph ?? { start: '', nodes: [] },
+      }
     })
   }
 
   @Put(':id/graph')
   @RequirePermissions(PERMISSIONS.AUTOMATION_WRITE)
   @ApiOperation({ summary: 'Save a new version of the workflow graph' })
-  async saveGraph(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async saveGraph(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const graph = zodBody(graphSchema, body)
     return this.engine.saveGraph(p, id, graph)
   }
@@ -74,7 +84,11 @@ export class WorkflowEngineController {
   @Post(':id/run')
   @RequirePermissions(PERMISSIONS.AUTOMATION_ACTIVATE)
   @ApiOperation({ summary: 'Trigger a workflow run now' })
-  async run(@Param('id') id: string, @Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async run(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
     const { payload } = zodBody(runSchema, body)
     return this.engine.trigger(p, id, payload ?? {})
   }
@@ -100,7 +114,16 @@ export class WorkflowEngineController {
         where: { workflowId: id },
         orderBy: { createdAt: 'desc' },
         take: 100,
-        select: { id: true, status: true, triggeredBy: true, error: true, startedAt: true, completedAt: true, durationMs: true, createdAt: true },
+        select: {
+          id: true,
+          status: true,
+          triggeredBy: true,
+          error: true,
+          startedAt: true,
+          completedAt: true,
+          durationMs: true,
+          createdAt: true,
+        },
       }),
     )
     return { data: rows }
@@ -108,7 +131,10 @@ export class WorkflowEngineController {
 
   private async setStatus(id: string, status: string, p: Principal): Promise<{ ok: true }> {
     await withTenantTransaction(this.db, async (tx) => {
-      const wf = await tx.workflow.findFirst({ where: { id, deletedAt: null }, select: { id: true } })
+      const wf = await tx.workflow.findFirst({
+        where: { id, deletedAt: null },
+        select: { id: true },
+      })
       if (!wf) throw new NotFoundException('Workflow not found')
       await tx.workflow.updateMany({ where: { id }, data: { status: status as never } })
       await tx.auditLog.create({

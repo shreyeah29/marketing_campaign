@@ -36,7 +36,10 @@ export default function RolesSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Roles & Permissions" subtitle="What each role can do (read-only reference)" />
+      <PageHeader
+        title="Roles & Permissions"
+        subtitle="What each role can do (read-only reference)"
+      />
 
       {loading ? (
         <TableSkeleton cols={2} />

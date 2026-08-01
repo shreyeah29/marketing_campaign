@@ -46,7 +46,7 @@ export default function OrganizationsPage() {
         </Link>
       </div>
 
-      <div className="grid cols-4" style={{ marginBottom: 22 }}>
+      <div className="cols-4 grid" style={{ marginBottom: 22 }}>
         <Stat label="Total" value={orgs.length} />
         <Stat label="Active" value={active} />
         <Stat label="Trial" value={trial} />
@@ -63,39 +63,45 @@ export default function OrganizationsPage() {
           </div>
         ) : (
           <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Organization</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Members</th>
-                <th>Features</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orgs.map((org) => (
-                <tr
-                  key={org.id}
-                  className="row-link"
-                  onClick={() => router.push(`/platform/organizations/${org.id}`)}
-                >
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{org.name}</div>
-                    <div className="dim mono">{org.slug}</div>
-                  </td>
-                  <td>{org.plan ? <span className="badge">{org.plan}</span> : <span className="dim">—</span>}</td>
-                  <td>
-                    <Badge status={org.status}>{org.status}</Badge>
-                  </td>
-                  <td>{org.members}</td>
-                  <td>{org.enabledFeatures}</td>
-                  <td className="dim">{new Date(org.createdAt).toLocaleDateString()}</td>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Organization</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Members</th>
+                  <th>Features</th>
+                  <th>Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {orgs.map((org) => (
+                  <tr
+                    key={org.id}
+                    className="row-link"
+                    onClick={() => router.push(`/platform/organizations/${org.id}`)}
+                  >
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{org.name}</div>
+                      <div className="dim mono">{org.slug}</div>
+                    </td>
+                    <td>
+                      {org.plan ? (
+                        <span className="badge">{org.plan}</span>
+                      ) : (
+                        <span className="dim">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <Badge status={org.status}>{org.status}</Badge>
+                    </td>
+                    <td>{org.members}</td>
+                    <td>{org.enabledFeatures}</td>
+                    <td className="dim">{new Date(org.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

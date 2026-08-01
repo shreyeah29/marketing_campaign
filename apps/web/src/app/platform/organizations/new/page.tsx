@@ -111,7 +111,9 @@ export default function NewOrganizationPage() {
 
   const step1Valid = name.trim().length > 0 && /^[a-z0-9-]{2,63}$/.test(effectiveSlug)
   const step2Valid =
-    adminName.trim().length > 0 && /^[^@]+@[^@]+\.[^@]+$/.test(adminEmail) && adminPassword.length >= 8
+    adminName.trim().length > 0 &&
+    /^[^@]+@[^@]+\.[^@]+$/.test(adminEmail) &&
+    adminPassword.length >= 8
 
   async function submit() {
     if (!step1Valid || !step2Valid) return
@@ -141,8 +143,8 @@ export default function NewOrganizationPage() {
         <div>
           <h1 className="page-title">New organization</h1>
           <p className="page-sub">
-            One wizard provisions a fully-configured client — company, admin, plan, modules — with no
-            code.
+            One wizard provisions a fully-configured client — company, admin, plan, modules — with
+            no code.
           </p>
         </div>
         <Link href="/platform" className="btn ghost">
@@ -208,7 +210,11 @@ export default function NewOrganizationPage() {
             usable the moment they sign in.
           </p>
           <Field label="Full name">
-            <input className="input" value={adminName} onChange={(e) => setAdminName(e.target.value)} />
+            <input
+              className="input"
+              value={adminName}
+              onChange={(e) => setAdminName(e.target.value)}
+            />
           </Field>
           <Field label="Email">
             <input
@@ -218,7 +224,10 @@ export default function NewOrganizationPage() {
               onChange={(e) => setAdminEmail(e.target.value)}
             />
           </Field>
-          <Field label="Temporary password" hint="At least 8 characters. Stored hashed, never in plaintext.">
+          <Field
+            label="Temporary password"
+            hint="At least 8 characters. Stored hashed, never in plaintext."
+          >
             <input
               className="input"
               type="password"
@@ -246,7 +255,7 @@ export default function NewOrganizationPage() {
             <p className="dim" style={{ marginBottom: 14, fontSize: 12 }}>
               Optional. Pre-selects a tuned module set and recommended plan — then tweak below.
             </p>
-            <div className="grid cols-3">
+            <div className="cols-3 grid">
               {catalog.presets.map((p) => (
                 <button
                   key={p.id}
@@ -271,7 +280,7 @@ export default function NewOrganizationPage() {
           {/* Plan */}
           <div className="card">
             <h3 style={{ marginBottom: 12 }}>Plan</h3>
-            <div className="grid cols-4">
+            <div className="cols-4 grid">
               {catalog.plans.map((p) => (
                 <button
                   key={p.id}
@@ -339,12 +348,14 @@ export default function NewOrganizationPage() {
                             <div className="fdesc">{f.description}</div>
                             {f.dependencies.length > 0 && (
                               <div className="dim" style={{ fontSize: 11, marginTop: 2 }}>
-                                needs: {f.dependencies.map((d) => index.names.get(d) ?? d).join(', ')}
+                                needs:{' '}
+                                {f.dependencies.map((d) => index.names.get(d) ?? d).join(', ')}
                               </div>
                             )}
                             {locked && (
                               <div className="dep-note">
-                                required by {blockers.map((b) => index.names.get(b) ?? b).join(', ')}
+                                required by{' '}
+                                {blockers.map((b) => index.names.get(b) ?? b).join(', ')}
                               </div>
                             )}
                           </span>

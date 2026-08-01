@@ -12,8 +12,8 @@ describes the code model that data points at.
 
 ## The rule
 
-> A feature's code must exist. What is configuration is *who gets it*, on *what
-> plan*, at *what limit*, with *what per-feature settings*. Onboarding a client
+> A feature's code must exist. What is configuration is _who gets it_, on _what
+> plan_, at _what limit_, with _what per-feature settings_. Onboarding a client
 > with any combination of existing features is code-free. A genuinely new module
 > is one plugin manifest registered here, after which it is assignable like any
 > other — the core never changes.
@@ -22,21 +22,21 @@ describes the code model that data points at.
 
 ```ts
 interface FeatureManifest {
-  id: string                 // '<category>.<name>', never renamed once shipped
+  id: string // '<category>.<name>', never renamed once shipped
   name: string
   description: string
-  category: FeatureCategory  // CRM | Marketing | AI | Automation | Analytics
-                             // | Communication | Commerce | Support | Documents
+  category: FeatureCategory // CRM | Marketing | AI | Automation | Analytics
+  // | Communication | Commerce | Support | Documents
   version: number
-  dependencies: string[]     // enforced: enabling a feature pulls its closure
+  dependencies: string[] // enforced: enabling a feature pulls its closure
   defaultEnabled: boolean
   billingCategory: 'included' | 'seat' | 'usage' | 'addon' | 'enterprise'
-  navEntry?: NavEntry        // sidebar entry when enabled; omitted = invisible
-  requiredPermissions: string[]  // RBAC gate (also drives UI affordance hiding)
-  apiRoutes: string[]        // route prefixes the feature guard attaches to
-  frontendRoutes: string[]   // routes the frontend router gates
-  backendModule: string      // the code module that implements it
-  custom?: boolean           // true for single-client plugin modules
+  navEntry?: NavEntry // sidebar entry when enabled; omitted = invisible
+  requiredPermissions: string[] // RBAC gate (also drives UI affordance hiding)
+  apiRoutes: string[] // route prefixes the feature guard attaches to
+  frontendRoutes: string[] // routes the frontend router gates
+  backendModule: string // the code module that implements it
+  custom?: boolean // true for single-client plugin modules
 }
 ```
 

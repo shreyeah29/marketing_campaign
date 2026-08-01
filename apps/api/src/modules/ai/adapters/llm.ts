@@ -160,7 +160,12 @@ function openAiCompatAdapter(cfg: OpenAiCompatConfig): LlmAdapter {
         }
         // Requested output cap exceeds the model's per-request limit → halve it and
         // retry, so a generous cap never hard-fails on a smaller-limit model.
-        const tokenKey = 'max_completion_tokens' in body ? 'max_completion_tokens' : 'max_tokens' in body ? 'max_tokens' : null
+        const tokenKey =
+          'max_completion_tokens' in body
+            ? 'max_completion_tokens'
+            : 'max_tokens' in body
+              ? 'max_tokens'
+              : null
         if (
           isParamError &&
           tokenKey !== null &&
@@ -177,7 +182,11 @@ function openAiCompatAdapter(cfg: OpenAiCompatConfig): LlmAdapter {
         throw err
       }
       // Exhausted retries without a rejection we know how to fix.
-      throw new AdapterError(`${cfg.providerId} rejected the request parameters`, cfg.providerId, 400)
+      throw new AdapterError(
+        `${cfg.providerId} rejected the request parameters`,
+        cfg.providerId,
+        400,
+      )
     },
   }
 }

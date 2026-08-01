@@ -11,7 +11,7 @@ Isolation is defence in depth — any one layer failing does not expose data.
    authenticated principal, never from a request parameter. Opened once, in the
    `TenantInterceptor`, after authentication.
 2. **Prisma query extension** — injects `organizationId` into every tenant-scoped
-   query and *throws* if no context is present. A forgotten `where` clause cannot
+   query and _throws_ if no context is present. A forgotten `where` clause cannot
    leak; it fails closed.
 3. **Postgres row-level security** — every tenant table has a policy keyed on
    `app.organization_id`, set transaction-locally by `withTenantTransaction`. The
@@ -27,18 +27,18 @@ through `membership`.
 See [AUTHENTICATION.md](./AUTHENTICATION.md) for the full flow. Security-relevant
 properties:
 
-| Control | Implementation |
-| --- | --- |
-| Password storage | scrypt (Better Auth), shared with provisioning — never plaintext |
-| Sessions | database-backed, HttpOnly cookie, 7-day expiry, sliding 1-day rotation |
-| Cookie flags | `HttpOnly`, `SameSite=Lax`, `Secure` in production, `vsp` prefix |
-| CSRF | state-changing requests accepted only from the trusted-origin allowlist |
-| Session revocation | `list-sessions`, `revoke-session`, `revoke-other-sessions` |
-| Rate limiting | per-IP (anon) / per-org global limiter + per-endpoint limits on credentials |
-| Account lockout | Redis, 5 failed logins → 15-min cooldown, per-identifier |
-| Brute-force | rate limit (velocity) + lockout (per-account) together |
-| 2FA | schema-ready (`user.two_factor_enabled`); enable via Better Auth's twoFactor plugin |
-| Auth auditing | every auth event logged; org-scoped events in the tenant `AuditLog` |
+| Control            | Implementation                                                                      |
+| ------------------ | ----------------------------------------------------------------------------------- |
+| Password storage   | scrypt (Better Auth), shared with provisioning — never plaintext                    |
+| Sessions           | database-backed, HttpOnly cookie, 7-day expiry, sliding 1-day rotation              |
+| Cookie flags       | `HttpOnly`, `SameSite=Lax`, `Secure` in production, `vsp` prefix                    |
+| CSRF               | state-changing requests accepted only from the trusted-origin allowlist             |
+| Session revocation | `list-sessions`, `revoke-session`, `revoke-other-sessions`                          |
+| Rate limiting      | per-IP (anon) / per-org global limiter + per-endpoint limits on credentials         |
+| Account lockout    | Redis, 5 failed logins → 15-min cooldown, per-identifier                            |
+| Brute-force        | rate limit (velocity) + lockout (per-account) together                              |
+| 2FA                | schema-ready (`user.two_factor_enabled`); enable via Better Auth's twoFactor plugin |
+| Auth auditing      | every auth event logged; org-scoped events in the tenant `AuditLog`                 |
 
 ### Privilege changes take effect immediately
 

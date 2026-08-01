@@ -52,10 +52,7 @@ export class SocialPublishError extends Error {
 }
 
 /** Read an error body into a `SocialPublishError`, tolerating non-JSON. */
-export async function publishError(
-  res: Response,
-  platform: string,
-): Promise<SocialPublishError> {
+export async function publishError(res: Response, platform: string): Promise<SocialPublishError> {
   let detail = `${platform} publish failed (${String(res.status)})`
   try {
     const body = (await res.json()) as {

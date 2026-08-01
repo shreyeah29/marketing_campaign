@@ -82,7 +82,7 @@ export default function OrganizationSettingsPage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="card" style={{ maxWidth: 640 }}>
-          <div className="grid cols-2" style={{ marginBottom: 18 }}>
+          <div className="cols-2 grid" style={{ marginBottom: 18 }}>
             <Field label="Name">
               <input className="input" value={org?.name ?? ''} disabled />
             </Field>

@@ -110,7 +110,10 @@ export class SchedulePoller {
       }),
     ])
     if (emails.count > 0 || posts.count > 0) {
-      this.logger.warn({ emails: emails.count, posts: posts.count }, 'reclaimed stale delivery claims')
+      this.logger.warn(
+        { emails: emails.count, posts: posts.count },
+        'reclaimed stale delivery claims',
+      )
     }
   }
 
@@ -135,7 +138,10 @@ export class SchedulePoller {
       })
       if (claim.count !== 1) continue
 
-      const send = await this.db.emailSend.findUnique({ where: { id }, include: { emailCampaign: true } })
+      const send = await this.db.emailSend.findUnique({
+        where: { id },
+        include: { emailCampaign: true },
+      })
       if (!send) continue
       processed++
 
@@ -162,7 +168,11 @@ export class SchedulePoller {
         if (result.delivered) {
           await this.db.emailSend.update({
             where: { id },
-            data: { status: 'SENT', sentAt: new Date(), ...(result.id ? { providerMessageId: result.id } : {}) },
+            data: {
+              status: 'SENT',
+              sentAt: new Date(),
+              ...(result.id ? { providerMessageId: result.id } : {}),
+            },
           })
           if (send.emailCampaignId) {
             await this.db.emailCampaign.update({
@@ -191,7 +201,10 @@ export class SchedulePoller {
           .catch(() => undefined)
         if (giveUp && send.emailCampaignId) {
           await this.db.emailCampaign
-            .update({ where: { id: send.emailCampaignId }, data: { bounceCount: { increment: 1 } } })
+            .update({
+              where: { id: send.emailCampaignId },
+              data: { bounceCount: { increment: 1 } },
+            })
             .catch(() => undefined)
         }
       }

@@ -57,7 +57,8 @@ describe('LockoutService', () => {
   })
 
   it('is keyed per identifier, case-insensitively', async () => {
-    for (let i = 0; i < LockoutService.maxAttempts; i += 1) await lockout.recordFailure('Victim@Example.com')
+    for (let i = 0; i < LockoutService.maxAttempts; i += 1)
+      await lockout.recordFailure('Victim@Example.com')
     expect(await lockout.isLocked('victim@example.com')).toBe(true)
     // A different account is unaffected.
     expect(await lockout.isLocked('someone-else@example.com')).toBe(false)

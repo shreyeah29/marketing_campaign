@@ -25,7 +25,9 @@ export interface SealedSecret {
 function deriveMasterKey(source: string): Buffer {
   // Identical derivation to the API: same salt label and info, so a token sealed
   // by the API opens here. Diverging any argument would silently break decryption.
-  return Buffer.from(hkdfSync('sha256', Buffer.from(source), 'vsp-credential-wrap', 'master-key', 32))
+  return Buffer.from(
+    hkdfSync('sha256', Buffer.from(source), 'vsp-credential-wrap', 'master-key', 32),
+  )
 }
 
 /** Opens a sealed credential object. Throws on a tampered or mismatched key. */

@@ -54,7 +54,12 @@ export default function ForgotPasswordPage() {
                   required
                 />
               </Field>
-              <button className="btn primary" style={{ width: '100%' }} disabled={busy} type="submit">
+              <button
+                className="btn primary"
+                style={{ width: '100%' }}
+                disabled={busy}
+                type="submit"
+              >
                 {busy ? <Spinner /> : 'Send reset link'}
               </button>
             </form>

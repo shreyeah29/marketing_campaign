@@ -29,7 +29,10 @@ export function ModuleIntro({
   return (
     <>
       <PageHeader title={title} subtitle={subtitle} />
-      <div className="banner info" style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+      <div
+        className="banner info"
+        style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}
+      >
         <span className="state-badge" style={{ margin: 0, width: 40, height: 40, fontSize: 18 }}>
           {isIconName(icon) ? <Icon name={icon} size={20} /> : icon}
         </span>
@@ -37,7 +40,7 @@ export function ModuleIntro({
           <strong>Coming soon.</strong> {requires}
         </span>
       </div>
-      <div className="grid cols-3">
+      <div className="cols-3 grid">
         {capabilities.map((c) => (
           <div key={c.title} className="card">
             <h3 style={{ fontSize: 15, marginBottom: 6 }}>{c.title}</h3>

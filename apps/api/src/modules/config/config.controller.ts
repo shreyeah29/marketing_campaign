@@ -2,10 +2,7 @@ import { Body, Controller, Get, Inject, NotFoundException, Put } from '@nestjs/c
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import {
-  AGENT_MANIFESTS,
-  isAgentId,
-} from '@vsp/ai-core'
+import { AGENT_MANIFESTS, isAgentId } from '@vsp/ai-core'
 import {
   findProvider,
   PROVIDER_CAPABILITIES,
@@ -38,7 +35,9 @@ const CAPABILITY_MAP: Record<ProviderCapability, string> = {
 }
 
 const setProviderSchema = z.object({
-  capability: z.enum(PROVIDER_CAPABILITIES as unknown as readonly [ProviderCapability, ...ProviderCapability[]]),
+  capability: z.enum(
+    PROVIDER_CAPABILITIES as unknown as readonly [ProviderCapability, ...ProviderCapability[]],
+  ),
   provider: z.string().min(1),
   // The credential fields, e.g. { apiKey: '...' } or { accountSid, authToken }.
   // Sealed before it ever reaches a row; the plaintext leaves memory immediately.
@@ -56,9 +55,18 @@ const brandingSchema = z
     displayName: z.string().max(200).nullish(),
     logoUrl: z.string().url().nullish(),
     faviconUrl: z.string().url().nullish(),
-    primaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
-    secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
-    accentColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+    primaryColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullish(),
+    secondaryColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullish(),
+    accentColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .nullish(),
     headingFont: z.string().max(100).nullish(),
     bodyFont: z.string().max(100).nullish(),
     aiPersonality: z.string().max(2000).nullish(),
@@ -100,7 +108,9 @@ export class ConfigController {
         select: { capability: true, provider: true, isActive: true, credentialId: true },
       }),
     )
-    const byCapability = new Map<string, (typeof configured)[number]>(configured.map((c) => [String(c.capability), c]))
+    const byCapability = new Map<string, (typeof configured)[number]>(
+      configured.map((c) => [String(c.capability), c]),
+    )
 
     return PROVIDER_CAPABILITIES.map((capability) => {
       const current = byCapability.get(CAPABILITY_MAP[capability])
@@ -139,9 +149,7 @@ export class ConfigController {
     // Seal the whole credential object. The plaintext exists only here, in memory.
     const sealed = this.encryption.seal(input.credential)
     // A hint from the primary field for the UI, never the secret itself.
-    const primaryValue = String(
-      input.credential[provider.credentialFields[0] ?? 'apiKey'] ?? '',
-    )
+    const primaryValue = String(input.credential[provider.credentialFields[0] ?? 'apiKey'] ?? '')
     const maskedHint = this.encryption.maskHint(primaryValue)
     const dbCapability = CAPABILITY_MAP[input.capability]
 
@@ -202,7 +210,7 @@ export class ConfigController {
 
   @Get('agents')
   @RequirePermissions(PERMISSIONS.ORG_READ)
-  @ApiOperation({ summary: 'Built-in agents and this org\'s enablement' })
+  @ApiOperation({ summary: "Built-in agents and this org's enablement" })
   async agents(): Promise<unknown> {
     const assignments = await withTenantTransaction(this.db, (tx) =>
       tx.agentAssignment.findMany({
@@ -261,7 +269,7 @@ export class ConfigController {
 
   @Get('branding')
   @RequirePermissions(PERMISSIONS.ORG_READ)
-  @ApiOperation({ summary: 'This organisation\'s branding' })
+  @ApiOperation({ summary: "This organisation's branding" })
   async getBranding(): Promise<unknown> {
     const branding = await withTenantTransaction(this.db, (tx) => tx.branding.findFirst())
     return branding ?? {}

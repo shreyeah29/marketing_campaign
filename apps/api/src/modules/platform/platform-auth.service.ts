@@ -58,15 +58,17 @@ export class PlatformAuthService {
    * Uniform failure: an unknown email and a wrong password produce the same
    * `Unauthorized`, so the endpoint cannot be used to enumerate platform admins.
    */
-  async login(email: string, password: string): Promise<{ token: string; principal: PlatformPrincipal }> {
+  async login(
+    email: string,
+    password: string,
+  ): Promise<{ token: string; principal: PlatformPrincipal }> {
     const admin = await this.owner.platformAdmin.findFirst({
       where: { email: email.trim().toLowerCase() },
     })
 
     // Verify even when the admin is missing, so a missing account and a wrong
     // password take the same time and give the same answer.
-    const ok =
-      admin !== null && admin.isActive && verifyPassword(password, admin.passwordHash)
+    const ok = admin !== null && admin.isActive && verifyPassword(password, admin.passwordHash)
 
     if (!admin || !ok) {
       throw new UnauthorizedException('Invalid email or password')

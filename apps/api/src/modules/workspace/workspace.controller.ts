@@ -143,18 +143,22 @@ export class WorkspaceController {
       bySection.set(entry.section, list)
     }
 
-    return [...bySection.entries()]
-      .map(([section, items]) => ({
-        section,
-        items: items.sort((a, b) => a.order - b.order),
-      }))
-      // Explicit section order (marketing-led workspace): Overview, then the
-      // creative/marketing surfaces, then analytics, with CRM below it. Unknown
-      // sections fall to the end, tie-broken by their lowest item order.
-      .sort((a, b) => {
-        const rank = (s: string): number => SECTION_ORDER[s] ?? 90
-        return rank(a.section) - rank(b.section) || (a.items[0]?.order ?? 0) - (b.items[0]?.order ?? 0)
-      })
+    return (
+      [...bySection.entries()]
+        .map(([section, items]) => ({
+          section,
+          items: items.sort((a, b) => a.order - b.order),
+        }))
+        // Explicit section order (marketing-led workspace): Overview, then the
+        // creative/marketing surfaces, then analytics, with CRM below it. Unknown
+        // sections fall to the end, tie-broken by their lowest item order.
+        .sort((a, b) => {
+          const rank = (s: string): number => SECTION_ORDER[s] ?? 90
+          return (
+            rank(a.section) - rank(b.section) || (a.items[0]?.order ?? 0) - (b.items[0]?.order ?? 0)
+          )
+        })
+    )
   }
 
   /**

@@ -7,7 +7,14 @@ import { Field } from '@/components/ui'
 import { ApiError, api } from '@/lib/api'
 
 const TONES = ['Professional', 'Friendly', 'Playful', 'Persuasive', 'Bold', 'Empathetic']
-const FORMATS = ['Email', 'Landing page', 'Social post', 'Ad copy', 'Product description', 'Blog intro']
+const FORMATS = [
+  'Email',
+  'Landing page',
+  'Social post',
+  'Ad copy',
+  'Product description',
+  'Blog intro',
+]
 
 /**
  * AI copywriter.
@@ -47,8 +54,7 @@ export default function CopywriterPage() {
     <>
       <PageHeader title="AI Copywriter" subtitle="Generate on-brand marketing copy" />
 
-
-      <div className="grid cols-2" style={{ gap: 22, marginTop: 14 }}>
+      <div className="cols-2 grid" style={{ gap: 22, marginTop: 14 }}>
         <div className="card">
           <Field label="What do you need written?">
             <textarea
@@ -61,7 +67,12 @@ export default function CopywriterPage() {
             />
           </Field>
           <Field label="Tone">
-            <select className="select" value={tone} disabled={loading} onChange={(e) => setTone(e.target.value)}>
+            <select
+              className="select"
+              value={tone}
+              disabled={loading}
+              onChange={(e) => setTone(e.target.value)}
+            >
               {TONES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -70,7 +81,12 @@ export default function CopywriterPage() {
             </select>
           </Field>
           <Field label="Format">
-            <select className="select" value={format} disabled={loading} onChange={(e) => setFormat(e.target.value)}>
+            <select
+              className="select"
+              value={format}
+              disabled={loading}
+              onChange={(e) => setFormat(e.target.value)}
+            >
               {FORMATS.map((f) => (
                 <option key={f} value={f}>
                   {f}

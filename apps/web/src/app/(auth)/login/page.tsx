@@ -58,8 +58,12 @@ function LoginInner() {
         <p className="page-sub" style={{ marginBottom: 20 }}>
           Welcome back. Sign in to your workspace.
         </p>
-        {justRegistered ? <Banner kind="success">Account created — sign in to continue.</Banner> : null}
-        {justReset ? <Banner kind="success">Password updated — sign in with your new password.</Banner> : null}
+        {justRegistered ? (
+          <Banner kind="success">Account created — sign in to continue.</Banner>
+        ) : null}
+        {justReset ? (
+          <Banner kind="success">Password updated — sign in with your new password.</Banner>
+        ) : null}
         {error ? <Banner kind="error">{error}</Banner> : null}
         <form onSubmit={submit}>
           <Field label="Email">

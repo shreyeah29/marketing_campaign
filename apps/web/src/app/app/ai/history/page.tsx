@@ -36,7 +36,11 @@ export default function AiHistoryPage() {
       ) : rows === null ? (
         <TableSkeleton cols={5} />
       ) : rows.length === 0 ? (
-        <EmptyState icon="receipt" title="No AI usage yet" hint="Runs from AI Chat and the Copywriter appear here." />
+        <EmptyState
+          icon="receipt"
+          title="No AI usage yet"
+          hint="Runs from AI Chat and the Copywriter appear here."
+        />
       ) : (
         <DataTable<UsageRow>
           columns={[

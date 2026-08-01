@@ -173,7 +173,9 @@ export class EmailCampaignsController {
         select: { id: true, email: true },
         take: 1000,
       })
-      const recipients = contacts.filter((c): c is { id: string; email: string } => Boolean(c.email))
+      const recipients = contacts.filter((c): c is { id: string; email: string } =>
+        Boolean(c.email),
+      )
 
       if (recipients.length > 0) {
         await tx.emailSend.createMany({

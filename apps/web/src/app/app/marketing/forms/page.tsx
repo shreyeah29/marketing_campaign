@@ -5,7 +5,14 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
-import { Drawer, EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import {
+  Drawer,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+  useToast,
+} from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 
 interface LeadForm {
@@ -81,7 +88,14 @@ export default function FormsPage() {
               <div className="spread" style={{ alignItems: 'flex-start' }}>
                 <button
                   className="stack"
-                  style={{ gap: 4, textAlign: 'left', cursor: 'pointer', background: 'none', border: 0, padding: 0 }}
+                  style={{
+                    gap: 4,
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    background: 'none',
+                    border: 0,
+                    padding: 0,
+                  }}
                   onClick={() => router.push(`/app/marketing/forms/${f.id}`)}
                 >
                   <div className="row" style={{ gap: 8 }}>
@@ -99,11 +113,21 @@ export default function FormsPage() {
 
               {f.status === 'PUBLISHED' ? (
                 <div className="row" style={{ gap: 8, marginTop: 10, alignItems: 'center' }}>
-                  <input className="input grow" readOnly value={publicUrl(f.slug)} style={{ fontSize: 12 }} />
+                  <input
+                    className="input grow"
+                    readOnly
+                    value={publicUrl(f.slug)}
+                    style={{ fontSize: 12 }}
+                  />
                   <button className="btn sm" onClick={() => void copyLink(f.slug)}>
                     Copy link
                   </button>
-                  <a className="btn ghost sm" href={publicUrl(f.slug)} target="_blank" rel="noreferrer">
+                  <a
+                    className="btn ghost sm"
+                    href={publicUrl(f.slug)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     Open
                   </a>
                 </div>
@@ -168,20 +192,39 @@ function CreateFormDrawer({
           <button className="btn" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn primary" disabled={busy || saving || name.trim().length === 0} onClick={() => void submit()}>
+          <button
+            className="btn primary"
+            disabled={busy || saving || name.trim().length === 0}
+            onClick={() => void submit()}
+          >
             {saving ? <Spinner /> : 'Create form'}
           </button>
         </>
       }
     >
       <Field label="Name">
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Contact us" />
+        <input
+          className="input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Contact us"
+        />
       </Field>
       <Field label="Headline" hint="Shown at the top of the hosted form">
-        <input className="input" value={headline} onChange={(e) => setHeadline(e.target.value)} placeholder="Get in touch" />
+        <input
+          className="input"
+          value={headline}
+          onChange={(e) => setHeadline(e.target.value)}
+          placeholder="Get in touch"
+        />
       </Field>
       <Field label="Description">
-        <textarea className="input" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea
+          className="input"
+          rows={4}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
       </Field>
     </Drawer>
   )

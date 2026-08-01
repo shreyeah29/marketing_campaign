@@ -6,16 +6,16 @@ not asserted.
 
 ## Phase summary
 
-| Phase | Scope | State |
-| ----- | ----- | ----- |
-| 1 | Architecture | ✅ complete |
-| 2 | Workspace & tooling | ✅ complete |
-| 3 | Database, migrations, RLS | ✅ complete — tenant isolation verified (10-case suite) |
-| 4 | Backend core | ✅ complete |
-| 4.5 | **Modular platform refactor** | ✅ complete — all 5 slices verified |
-| 5 | Frontend foundation (consumes `/me/workspace` + platform portal) | ✅ complete (with 4.5 slice 5) |
-| 6 | **Auth, organisations, RBAC** | ✅ complete — all 6 slices verified, see below |
-| 7 | Dashboard + first orchestrator slice | pending |
+| Phase | Scope                                                            | State                                                   |
+| ----- | ---------------------------------------------------------------- | ------------------------------------------------------- |
+| 1     | Architecture                                                     | ✅ complete                                             |
+| 2     | Workspace & tooling                                              | ✅ complete                                             |
+| 3     | Database, migrations, RLS                                        | ✅ complete — tenant isolation verified (10-case suite) |
+| 4     | Backend core                                                     | ✅ complete                                             |
+| 4.5   | **Modular platform refactor**                                    | ✅ complete — all 5 slices verified                     |
+| 5     | Frontend foundation (consumes `/me/workspace` + platform portal) | ✅ complete (with 4.5 slice 5)                          |
+| 6     | **Auth, organisations, RBAC**                                    | ✅ complete — all 6 slices verified, see below          |
+| 7     | Dashboard + first orchestrator slice                             | pending                                                 |
 
 ## Phase 6 — Authentication & Identity
 
@@ -24,15 +24,15 @@ invitations and security hardening. Completely separate from the platform-admin
 realm. Full design in [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) and
 [docs/SECURITY.md](docs/SECURITY.md).
 
-| Slice | Scope | State |
-| ----- | ----- | ----- |
-| A | Better Auth core, shared hashing, principal-resolving guard | ✅ done — verified |
-| — | Read-path RLS fix (handler reads run in tenant transactions) | ✅ done — verified |
-| B | Org-awareness: session, list/switch/leave/transfer | ✅ done — verified |
-| C | Invitations lifecycle, role templates, custom permissions | ✅ done — verified |
-| D | Lockout, auth-event audit, session revocation, restriction 403s | ✅ done — verified |
-| E | Frontend auth: login/register/reset/accept, org switcher, session shell | ✅ done — verified |
-| F | Auth tests (33 pass) + docs (AUTHENTICATION/SECURITY/API_STATUS) | ✅ done |
+| Slice | Scope                                                                   | State              |
+| ----- | ----------------------------------------------------------------------- | ------------------ |
+| A     | Better Auth core, shared hashing, principal-resolving guard             | ✅ done — verified |
+| —     | Read-path RLS fix (handler reads run in tenant transactions)            | ✅ done — verified |
+| B     | Org-awareness: session, list/switch/leave/transfer                      | ✅ done — verified |
+| C     | Invitations lifecycle, role templates, custom permissions               | ✅ done — verified |
+| D     | Lockout, auth-event audit, session revocation, restriction 403s         | ✅ done — verified |
+| E     | Frontend auth: login/register/reset/accept, org switcher, session shell | ✅ done — verified |
+| F     | Auth tests (33 pass) + docs (AUTHENTICATION/SECURITY/API_STATUS)        | ✅ done            |
 
 **Acceptance — all verified end-to-end against Postgres 17 + Redis:** a user can
 register, log in, belong to one or more organisations, switch between them
@@ -44,6 +44,7 @@ next request. Lockout freezes after 5 failures; suspended org → 403; unauthent
 → 401. Full browser-simulated flow (cookie jar) green.
 
 Key architectural decisions:
+
 - Identity (`user`/`session`/`account`/`verification`) is global; org/role lives in
   the RLS-protected `membership`, resolved on the **owner connection** because
   identity spans tenants — the same audited pattern the platform plane uses.
@@ -60,13 +61,13 @@ combination of modules, agents, providers, limits, branding and integrations,
 onboarded without code. Approved direction: code manifests synced to DB;
 super-admin as an isolated route group.
 
-| Slice | Scope | State |
-| ----- | ----- | ----- |
-| 1 | Registries + schema + entitlement engine | ✅ done — verified |
-| 2 | Request guards (Subscription/Feature/Limit) + `/me/workspace` | ✅ done — verified |
-| 3 | Platform plane: admin auth, `provisionOrganization` wizard, org lifecycle | ✅ done — verified |
-| 4 | Provider/agent/branding config + credential encryption | ✅ done — verified |
-| 5 | Frontend: dynamic nav, platform portal, onboarding wizard | ✅ done — verified |
+| Slice | Scope                                                                     | State              |
+| ----- | ------------------------------------------------------------------------- | ------------------ |
+| 1     | Registries + schema + entitlement engine                                  | ✅ done — verified |
+| 2     | Request guards (Subscription/Feature/Limit) + `/me/workspace`             | ✅ done — verified |
+| 3     | Platform plane: admin auth, `provisionOrganization` wizard, org lifecycle | ✅ done — verified |
+| 4     | Provider/agent/branding config + credential encryption                    | ✅ done — verified |
+| 5     | Frontend: dynamic nav, platform portal, onboarding wizard                 | ✅ done — verified |
 
 ### Slice 5 — verified
 
@@ -134,9 +135,9 @@ The core goal is proven working end-to-end against real Postgres/Redis:
 
 - **Platform-admin realm**, fully isolated from tenants: `PlatformAdmin` table,
   its own login (`POST /v1/platform/auth/login`), HMAC tokens signed with a key
-  *derived* from the app secret + a platform salt so a platform token is
+  _derived_ from the app secret + a platform salt so a platform token is
   cryptographically distinct from any tenant token. `PlatformAdminGuard` on every
-  portal route; the routes are `@Public()` only to skip the *tenant* guards. A
+  portal route; the routes are `@Public()` only to skip the _tenant_ guards. A
   no-token and a bad-token request both 401 — **tenants cannot enter the plane.**
 - **`provisionOrganization`** — the wizard as one atomic transaction on the owner
   connection: company + owner + subscription + feature assignments (with
@@ -175,7 +176,7 @@ exit). The `/v1/platform` prefix sits under the `v1` global prefix; the design's
   (60s TTL, explicit invalidation for the platform plane), fails open on a Redis
   outage so a cache blip is not an outage.
 - **`@RequiresFeature('crm.contacts')`** decorator; a disabled feature → `403
-  feature_not_enabled` with the feature id and `upgradeable: true` (an upgrade
+feature_not_enabled` with the feature id and `upgradeable: true` (an upgrade
   prompt, not a dead end). Suspended org → `403 subscription_inactive` before any
   feature check. Retrofitted onto contacts, companies, leads, deals, agent-runs.
 - **`LimitService.assertWithinLimit`**: `429 limit_exceeded` before the consuming
@@ -227,43 +228,43 @@ here so it is closed in Phase 6, not discovered in production.
 
 ## Phase 4 — backend, item by item
 
-| Item | State | How verified |
-| ---- | ----- | ------------ |
-| NestJS + Fastify bootstrap | ✅ | Boots; 5 preflight guards pass before the port binds |
-| Env validation (fail-fast) | ✅ | Invalid env refuses to start with aggregated errors |
-| RLS boot assertion | ✅ | Confirmed "Row-level security is enforced" on boot |
-| Tenant registry check | ✅ | "Tenant registry matches the schema (48 models)" on boot |
-| Multi-tenancy (request → `withTenant`) | ✅ | Interceptor opens context from the principal |
-| RBAC (roles → permissions matrix) | ✅ | Matrix validated at boot; guard denies by default |
-| Global permissions guard (deny-by-default) | ✅ | Unauthenticated routes return 401, not open |
-| Problem+JSON exception filter | ✅ | 401/429/500 all return RFC 9457 with `code` + `traceId` |
-| Tenant + logging interceptors | ✅ | One structured log line per request, tenant-bound |
-| Rate limiting (Redis, per-IP + per-tenant) | ✅ | 60 → 401, 61+ → 429 `rate_limited` with `retry-after` |
-| Idempotency-Key middleware | ✅ | Replay + concurrent-duplicate handling; typechecks |
-| WebSocket gateway (Socket.IO, tenant rooms) | ✅ | Fail-closed handshake; rooms derived from principal |
-| Queue workers (12 queues, per-queue retry) | ✅ | Boots all 12 + DLQs; tenant context opened per job |
-| Outbox dispatcher | ✅ | **End-to-end**: PENDING row → routed BullMQ job → handler ran |
-| Dead-letter queues | ✅ | Unknown event backed off; exhausted jobs → `.dlq` |
-| Helmet / security headers | ✅ | CSP `default-src 'none'`, `X-Frame-Options` present |
-| CORS allowlist (no wildcard) | ✅ | Explicit origins only |
-| OpenAPI / Swagger | ✅ | 27 routes generated; served at `/docs` |
-| Zod validation everywhere | ✅ | Bodies + queries; field-level issues in problem+json |
-| Organizations module | ✅ | GET org, PATCH settings — 401 without auth (correct) |
-| Members module | ✅ | List, invite (hashed token), role change |
-| CRM (contacts, companies, leads, deals) | ✅ | Keyset list, scoped read, transactional write + events |
-| Campaigns module | ✅ | List, create, launch (publish permission) |
-| Agent-runs (AI orchestration API) | ✅ | List, get with ledger, start (async via outbox), approve |
-| Analytics module | ✅ | KPIs/channels/AI-usage — real aggregates, honest zeros |
-| Audit log (read-only) | ✅ | Append-only; `audit:read` gated |
+| Item                                        | State | How verified                                                  |
+| ------------------------------------------- | ----- | ------------------------------------------------------------- |
+| NestJS + Fastify bootstrap                  | ✅    | Boots; 5 preflight guards pass before the port binds          |
+| Env validation (fail-fast)                  | ✅    | Invalid env refuses to start with aggregated errors           |
+| RLS boot assertion                          | ✅    | Confirmed "Row-level security is enforced" on boot            |
+| Tenant registry check                       | ✅    | "Tenant registry matches the schema (48 models)" on boot      |
+| Multi-tenancy (request → `withTenant`)      | ✅    | Interceptor opens context from the principal                  |
+| RBAC (roles → permissions matrix)           | ✅    | Matrix validated at boot; guard denies by default             |
+| Global permissions guard (deny-by-default)  | ✅    | Unauthenticated routes return 401, not open                   |
+| Problem+JSON exception filter               | ✅    | 401/429/500 all return RFC 9457 with `code` + `traceId`       |
+| Tenant + logging interceptors               | ✅    | One structured log line per request, tenant-bound             |
+| Rate limiting (Redis, per-IP + per-tenant)  | ✅    | 60 → 401, 61+ → 429 `rate_limited` with `retry-after`         |
+| Idempotency-Key middleware                  | ✅    | Replay + concurrent-duplicate handling; typechecks            |
+| WebSocket gateway (Socket.IO, tenant rooms) | ✅    | Fail-closed handshake; rooms derived from principal           |
+| Queue workers (12 queues, per-queue retry)  | ✅    | Boots all 12 + DLQs; tenant context opened per job            |
+| Outbox dispatcher                           | ✅    | **End-to-end**: PENDING row → routed BullMQ job → handler ran |
+| Dead-letter queues                          | ✅    | Unknown event backed off; exhausted jobs → `.dlq`             |
+| Helmet / security headers                   | ✅    | CSP `default-src 'none'`, `X-Frame-Options` present           |
+| CORS allowlist (no wildcard)                | ✅    | Explicit origins only                                         |
+| OpenAPI / Swagger                           | ✅    | 27 routes generated; served at `/docs`                        |
+| Zod validation everywhere                   | ✅    | Bodies + queries; field-level issues in problem+json          |
+| Organizations module                        | ✅    | GET org, PATCH settings — 401 without auth (correct)          |
+| Members module                              | ✅    | List, invite (hashed token), role change                      |
+| CRM (contacts, companies, leads, deals)     | ✅    | Keyset list, scoped read, transactional write + events        |
+| Campaigns module                            | ✅    | List, create, launch (publish permission)                     |
+| Agent-runs (AI orchestration API)           | ✅    | List, get with ledger, start (async via outbox), approve      |
+| Analytics module                            | ✅    | KPIs/channels/AI-usage — real aggregates, honest zeros        |
+| Audit log (read-only)                       | ✅    | Append-only; `audit:read` gated                               |
 
 ### Bugs found by running the app (and fixed)
 
 1. **Outbox dispatcher claimed zero rows silently.** It ran as the application
    role with `app.organization_id = 'system'`, so RLS correctly hid every
    tenant's rows — the isolation layer working as designed. Fixed by giving the
-   dispatcher (and *only* the dispatcher) the owner connection via
+   dispatcher (and _only_ the dispatcher) the owner connection via
    `DIRECT_DATABASE_URL`, with the blast radius documented.
-2. **Rate-limit hits returned 500, not 429.** `@fastify/rate-limit` *throws* the
+2. **Rate-limit hits returned 500, not 429.** `@fastify/rate-limit` _throws_ the
    `errorResponseBuilder` return value (index.js:333), so a plain object landed
    in the exception filter's generic-500 branch. Fixed by returning an
    `HttpException(429)`, which the filter maps to a `rate_limited` problem+json.
@@ -288,12 +289,12 @@ here so it is closed in Phase 6, not discovered in production.
 
 ## Local infrastructure (developer machine)
 
-| Service | Version | Notes |
-| ------- | ------- | ----- |
-| PostgreSQL | 17.10 | + pgvector 0.8.6; roles `postgres` (owner), `vsp_app` (RLS-subject) |
-| Redis | 7.x | on :6379 |
-| Node | 22.17 | |
-| pnpm | 10.11 | |
+| Service    | Version | Notes                                                               |
+| ---------- | ------- | ------------------------------------------------------------------- |
+| PostgreSQL | 17.10   | + pgvector 0.8.6; roles `postgres` (owner), `vsp_app` (RLS-subject) |
+| Redis      | 7.x     | on :6379                                                            |
+| Node       | 22.17   |                                                                     |
+| pnpm       | 10.11   |                                                                     |
 
 Boot the stack locally:
 

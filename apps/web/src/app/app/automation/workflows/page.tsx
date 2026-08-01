@@ -4,7 +4,14 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
-import { Drawer, EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import {
+  Drawer,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+  useToast,
+} from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -103,13 +110,22 @@ export default function WorkflowsPage() {
               {rows.map((w) => (
                 <tr key={w.id} className="row-link">
                   <td>
-                    <Link href={`/app/automation/workflows/${w.id}`} style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                    <Link
+                      href={`/app/automation/workflows/${w.id}`}
+                      style={{ fontWeight: 600, color: 'var(--color-primary)' }}
+                    >
                       {w.name}
                     </Link>
                   </td>
                   <td className="mono dim">{w.triggerType}</td>
                   <td>
-                    <Badge status={w.status === 'ACTIVE' ? 'ok' : w.status === 'PAUSED' ? 'warn' : 'info'}>{w.status}</Badge>
+                    <Badge
+                      status={
+                        w.status === 'ACTIVE' ? 'ok' : w.status === 'PAUSED' ? 'warn' : 'info'
+                      }
+                    >
+                      {w.status}
+                    </Badge>
                   </td>
                   <td>{w.runCount ?? 0}</td>
                   <td className="dim">
@@ -138,7 +154,12 @@ export default function WorkflowsPage() {
         }
       >
         <Field label="Name">
-          <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Auto-schedule approved posts" />
+          <input
+            className="input"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Auto-schedule approved posts"
+          />
         </Field>
         <Field label="Trigger" hint="What starts this workflow.">
           <select className="select" value={trigger} onChange={(e) => setTrigger(e.target.value)}>

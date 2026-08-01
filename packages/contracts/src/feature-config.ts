@@ -21,10 +21,7 @@ import { z } from 'zod'
  * choice, never a secret.
  */
 const providerChoice = (capability: string) =>
-  z
-    .string()
-    .min(1)
-    .describe(`Provider selected for the ${capability} capability of this feature`)
+  z.string().min(1).describe(`Provider selected for the ${capability} capability of this feature`)
 
 /**
  * Per-feature limit overrides. A feature can carry its own caps that sit under
@@ -42,7 +39,10 @@ const featureLimit = z.number().int().nonnegative().optional()
  */
 export const FEATURE_CONFIG: Record<
   string,
-  { readonly schema: z.ZodType<Record<string, unknown>>; readonly defaults: Record<string, unknown> }
+  {
+    readonly schema: z.ZodType<Record<string, unknown>>
+    readonly defaults: Record<string, unknown>
+  }
 > = {
   'marketing.email': {
     schema: z.object({
@@ -113,7 +113,10 @@ export const FEATURE_CONFIG: Record<
     schema: z.object({
       provider: providerChoice('telephony').default('vapi'),
       greeting: z.string().max(500).optional(),
-      handoffNumber: z.string().regex(/^\+[1-9]\d{7,14}$/).optional(),
+      handoffNumber: z
+        .string()
+        .regex(/^\+[1-9]\d{7,14}$/)
+        .optional(),
     }),
     defaults: { provider: 'vapi' },
   },
@@ -169,7 +172,9 @@ export function defaultFeatureConfig(featureId: string): Record<string, unknown>
 export function validateFeatureConfig(
   featureId: string,
   config: unknown,
-): { readonly ok: true; readonly config: Record<string, unknown> } | { readonly ok: false; readonly issues: readonly string[] } {
+):
+  | { readonly ok: true; readonly config: Record<string, unknown> }
+  | { readonly ok: false; readonly issues: readonly string[] } {
   const entry = FEATURE_CONFIG[featureId]
   if (!entry) {
     if (config === undefined || config === null || Object.keys(config as object).length === 0) {
@@ -180,7 +185,10 @@ export function validateFeatureConfig(
 
   const result = entry.schema.safeParse(config ?? {})
   if (!result.success) {
-    return { ok: false, issues: result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) }
+    return {
+      ok: false,
+      issues: result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`),
+    }
   }
   return { ok: true, config: result.data }
 }

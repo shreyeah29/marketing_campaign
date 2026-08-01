@@ -53,7 +53,10 @@ const createDocSchema = z.object({
   mimeType: z.string().max(160).optional(),
   sourceType: z.enum(['UPLOAD', 'TEXT', 'URL']).optional(),
 })
-const searchSchema = z.object({ query: z.string().min(1).max(2000), k: z.number().int().min(1).max(20).optional() })
+const searchSchema = z.object({
+  query: z.string().min(1).max(2000),
+  k: z.number().int().min(1).max(20).optional(),
+})
 
 interface KnowledgeBaseRow {
   id: string
@@ -193,7 +196,8 @@ export class KnowledgeController {
         where: { knowledgeBaseId: id, contentHash, deletedAt: null },
         select: { id: true },
       })
-      if (dupe) throw new BadRequestException('This document has already been added to the knowledge base')
+      if (dupe)
+        throw new BadRequestException('This document has already been added to the knowledge base')
 
       const created = await tx.knowledgeDocument.create({
         data: {
@@ -250,7 +254,10 @@ export class KnowledgeController {
   @Delete(':id/documents/:docId')
   @RequirePermissions(PERMISSIONS.KNOWLEDGE_WRITE)
   @ApiOperation({ summary: 'Delete a document and its chunks' })
-  async deleteDocument(@Param('id') id: string, @Param('docId') docId: string): Promise<{ ok: true }> {
+  async deleteDocument(
+    @Param('id') id: string,
+    @Param('docId') docId: string,
+  ): Promise<{ ok: true }> {
     await withTenantTransaction(this.db, async (tx) => {
       const doc = await tx.knowledgeDocument.findFirst({
         where: { id: docId, knowledgeBaseId: id, deletedAt: null },
@@ -279,7 +286,12 @@ export class KnowledgeController {
   ): Promise<unknown> {
     const parsed = searchSchema.safeParse(rawBody)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-    const results = await this.knowledge.search(principal.organizationId, id, parsed.data.query, parsed.data.k ?? 8)
+    const results = await this.knowledge.search(
+      principal.organizationId,
+      id,
+      parsed.data.query,
+      parsed.data.k ?? 8,
+    )
     return { results }
   }
 }

@@ -137,16 +137,13 @@ export async function registerRateLimit(
   })
 
   if (env.NODE_ENV !== 'test') {
-    app
-      .getHttpAdapter()
-      .getInstance()
-      .log.info(
-        {
-          tenantMax: options.tenantMax,
-          anonymousMax: options.anonymousMax,
-          windowMs: options.windowMs,
-        },
-        'rate limiting enabled (redis-backed)',
-      )
+    app.getHttpAdapter().getInstance().log.info(
+      {
+        tenantMax: options.tenantMax,
+        anonymousMax: options.anonymousMax,
+        windowMs: options.windowMs,
+      },
+      'rate limiting enabled (redis-backed)',
+    )
   }
 }

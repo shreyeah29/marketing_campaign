@@ -23,19 +23,20 @@ export default function TenantDashboard() {
             {ws.branding?.displayName ?? ws.organization?.name ?? 'Workspace'}
           </h1>
           <p className="page-sub">
-            {ws.plan ? `${ws.plan.name} plan` : 'No plan'} · {ws.enabledFeatures.length} modules enabled
+            {ws.plan ? `${ws.plan.name} plan` : 'No plan'} · {ws.enabledFeatures.length} modules
+            enabled
           </p>
         </div>
         <Badge status={ws.organization?.status}>{ws.organization?.status ?? 'UNKNOWN'}</Badge>
       </div>
 
-      <div className="grid cols-3" style={{ marginBottom: 22 }}>
+      <div className="cols-3 grid" style={{ marginBottom: 22 }}>
         <Stat label="Enabled modules" value={ws.enabledFeatures.length} />
         <Stat label="Your role" value={ws.user.role} />
         <Stat label="Limits tracked" value={ws.limits.length} />
       </div>
 
-      <div className="grid cols-2">
+      <div className="cols-2 grid">
         <div className="card">
           <h3 style={{ marginBottom: 14 }}>Limits</h3>
           {ws.limits.length === 0 ? (

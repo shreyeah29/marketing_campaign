@@ -49,8 +49,7 @@ export class AnalyticsController {
     // Infinity, which a chart renders as a nonsense spike.
     const roi =
       Number(spend) > 0 ? Math.round(((Number(revenue) - Number(spend)) / Number(spend)) * 100) : 0
-    const conversionRate =
-      clicks > 0 ? Math.round((conversions / clicks) * 1000) / 10 : 0
+    const conversionRate = clicks > 0 ? Math.round((conversions / clicks) * 1000) / 10 : 0
 
     return {
       kpis: {
@@ -186,7 +185,14 @@ export class AnalyticsController {
   async leadsFunnel(): Promise<{ stage: string; count: number }[]> {
     // The canonical funnel order. Every stage is emitted even when empty so the
     // chart shows a complete funnel, not just the stages that happen to have rows.
-    const ORDER = ['NEW', 'CONTACTED', 'QUALIFIED', 'NURTURING', 'UNQUALIFIED', 'CONVERTED'] as const
+    const ORDER = [
+      'NEW',
+      'CONTACTED',
+      'QUALIFIED',
+      'NURTURING',
+      'UNQUALIFIED',
+      'CONVERTED',
+    ] as const
 
     const grouped = await withTenantTransaction(this.db, (tx) =>
       tx.lead.groupBy({ by: ['status'], _count: { _all: true }, where: { deletedAt: null } }),

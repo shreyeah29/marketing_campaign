@@ -97,7 +97,10 @@ export default function PublicFormPage() {
   }, [slug])
   useEffect(load, [load])
 
-  const accent = form?.accentColor && /^#?[0-9a-fA-F]{3,8}$/.test(form.accentColor) ? form.accentColor : '#4f46e5'
+  const accent =
+    form?.accentColor && /^#?[0-9a-fA-F]{3,8}$/.test(form.accentColor)
+      ? form.accentColor
+      : '#4f46e5'
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -132,8 +135,21 @@ export default function PublicFormPage() {
         <div style={{ ...cardStyle, textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
           <h1 style={{ fontSize: 18, margin: 0 }}>Couldn&apos;t load this form</h1>
-          <p style={{ opacity: 0.7, fontSize: 14, margin: '8px 0 16px' }}>Please check your connection and try again.</p>
-          <button onClick={load} style={{ padding: '10px 18px', borderRadius: 8, border: 'none', background: accent, color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+          <p style={{ opacity: 0.7, fontSize: 14, margin: '8px 0 16px' }}>
+            Please check your connection and try again.
+          </p>
+          <button
+            onClick={load}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 8,
+              border: 'none',
+              background: accent,
+              color: '#fff',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
             Retry
           </button>
         </div>
@@ -171,7 +187,9 @@ export default function PublicFormPage() {
       <form style={cardStyle} onSubmit={(e) => void submit(e)}>
         <h1 style={{ fontSize: 22, margin: '0 0 4px' }}>{form.headline || form.name}</h1>
         {form.description ? (
-          <p style={{ opacity: 0.7, fontSize: 14, marginTop: 0, marginBottom: 20 }}>{form.description}</p>
+          <p style={{ opacity: 0.7, fontSize: 14, marginTop: 0, marginBottom: 20 }}>
+            {form.description}
+          </p>
         ) : (
           <div style={{ height: 12 }} />
         )}
@@ -240,7 +258,7 @@ export default function PublicFormPage() {
             opacity: submitting ? 0.7 : 1,
           }}
         >
-          {submitting ? 'Submitting…' : (form.submitLabel || 'Submit')}
+          {submitting ? 'Submitting…' : form.submitLabel || 'Submit'}
         </button>
       </form>
     </div>

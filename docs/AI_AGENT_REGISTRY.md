@@ -24,11 +24,11 @@ interface AgentDefinition {
   id: AgentId
   role: string
   purpose: string
-  prompt: PromptTemplate       // system prompt + declared {{variables}}
-  tools: AnyToolDefinition[]   // the ONLY way an agent affects the world
-  requirements: ModelRequirements  // capability, not a hardcoded model
-  delegatesTo: AgentId[]       // one level deep — only the CMO fans out
-  budget: BudgetPolicy         // enforced before dispatch
+  prompt: PromptTemplate // system prompt + declared {{variables}}
+  tools: AnyToolDefinition[] // the ONLY way an agent affects the world
+  requirements: ModelRequirements // capability, not a hardcoded model
+  delegatesTo: AgentId[] // one level deep — only the CMO fans out
+  budget: BudgetPolicy // enforced before dispatch
   producesCustomerFacingOutput: boolean
 }
 ```
@@ -38,7 +38,7 @@ interface AgentDefinition {
 - **Every action is a tool → a CQRS command → the same auth + audit path as a
   human action.** No agent writes to the database directly.
 - **An agent never exceeds the permissions of the user who started its run.**
-  Tool permission is checked against the *initiator*, not the agent.
+  Tool permission is checked against the _initiator_, not the agent.
 - **Cost is metered before dispatch** against the org's AI budget and limits.
 - **Delegation is one level deep** — enforced, so run cost stays predictable.
 

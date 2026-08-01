@@ -47,53 +47,237 @@ const p = (m: ProviderManifest): ProviderManifest => m
 
 export const PROVIDERS: readonly ProviderManifest[] = [
   // ── LLM ──────────────────────────────────────────────────────────────────────
-  p({ id: 'anthropic', name: 'Anthropic (Claude)', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'openai', name: 'OpenAI', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'google', name: 'Google Gemini', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'xai', name: 'xAI (Grok)', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'deepseek', name: 'DeepSeek', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'mistral', name: 'Mistral', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'openrouter', name: 'OpenRouter', capability: 'llm', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'anthropic',
+    name: 'Anthropic (Claude)',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'openai',
+    name: 'OpenAI',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'google',
+    name: 'Google Gemini',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'xai',
+    name: 'xAI (Grok)',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'deepseek',
+    name: 'DeepSeek',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'mistral',
+    name: 'Mistral',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'openrouter',
+    name: 'OpenRouter',
+    capability: 'llm',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Voice ────────────────────────────────────────────────────────────────────
-  p({ id: 'elevenlabs', name: 'ElevenLabs', capability: 'voice', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'cartesia', name: 'Cartesia', capability: 'voice', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    capability: 'voice',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'cartesia',
+    name: 'Cartesia',
+    capability: 'voice',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Transcription ────────────────────────────────────────────────────────────
-  p({ id: 'deepgram', name: 'Deepgram', capability: 'transcription', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
+  p({
+    id: 'deepgram',
+    name: 'Deepgram',
+    capability: 'transcription',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
 
   // ── Telephony ────────────────────────────────────────────────────────────────
-  p({ id: 'twilio', name: 'Twilio', capability: 'telephony', needsCredential: true, credentialFields: ['accountSid', 'authToken'], recommended: true }),
-  p({ id: 'vapi', name: 'Vapi', capability: 'telephony', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'retell', name: 'Retell', capability: 'telephony', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'twilio',
+    name: 'Twilio',
+    capability: 'telephony',
+    needsCredential: true,
+    credentialFields: ['accountSid', 'authToken'],
+    recommended: true,
+  }),
+  p({
+    id: 'vapi',
+    name: 'Vapi',
+    capability: 'telephony',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'retell',
+    name: 'Retell',
+    capability: 'telephony',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Image ────────────────────────────────────────────────────────────────────
-  p({ id: 'ideogram', name: 'Ideogram', capability: 'image', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'flux', name: 'Flux (fal.ai)', capability: 'image', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'dalle', name: 'DALL·E (OpenAI)', capability: 'image', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'ideogram',
+    name: 'Ideogram',
+    capability: 'image',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'flux',
+    name: 'Flux (fal.ai)',
+    capability: 'image',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'dalle',
+    name: 'DALL·E (OpenAI)',
+    capability: 'image',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Video ────────────────────────────────────────────────────────────────────
-  p({ id: 'runway', name: 'Runway', capability: 'video', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'luma', name: 'Luma', capability: 'video', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'pika', name: 'Pika', capability: 'video', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'runway',
+    name: 'Runway',
+    capability: 'video',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'luma',
+    name: 'Luma',
+    capability: 'video',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'pika',
+    name: 'Pika',
+    capability: 'video',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Embedding ────────────────────────────────────────────────────────────────
-  p({ id: 'openai_embed', name: 'OpenAI Embeddings', capability: 'embedding', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'voyage', name: 'Voyage', capability: 'embedding', needsCredential: true, credentialFields: ['apiKey'] }),
+  p({
+    id: 'openai_embed',
+    name: 'OpenAI Embeddings',
+    capability: 'embedding',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'voyage',
+    name: 'Voyage',
+    capability: 'embedding',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
 
   // ── Storage ──────────────────────────────────────────────────────────────────
-  p({ id: 'r2', name: 'Cloudflare R2', capability: 'storage', needsCredential: true, credentialFields: ['accountId', 'accessKeyId', 'secretAccessKey', 'bucket'], recommended: true }),
-  p({ id: 's3', name: 'AWS S3', capability: 'storage', needsCredential: true, credentialFields: ['accessKeyId', 'secretAccessKey', 'region', 'bucket'] }),
-  p({ id: 'supabase', name: 'Supabase Storage', capability: 'storage', needsCredential: true, credentialFields: ['url', 'serviceKey', 'bucket'] }),
+  p({
+    id: 'r2',
+    name: 'Cloudflare R2',
+    capability: 'storage',
+    needsCredential: true,
+    credentialFields: ['accountId', 'accessKeyId', 'secretAccessKey', 'bucket'],
+    recommended: true,
+  }),
+  p({
+    id: 's3',
+    name: 'AWS S3',
+    capability: 'storage',
+    needsCredential: true,
+    credentialFields: ['accessKeyId', 'secretAccessKey', 'region', 'bucket'],
+  }),
+  p({
+    id: 'supabase',
+    name: 'Supabase Storage',
+    capability: 'storage',
+    needsCredential: true,
+    credentialFields: ['url', 'serviceKey', 'bucket'],
+  }),
 
   // ── Email ────────────────────────────────────────────────────────────────────
-  p({ id: 'resend', name: 'Resend', capability: 'email', needsCredential: true, credentialFields: ['apiKey'], recommended: true }),
-  p({ id: 'sendgrid', name: 'SendGrid', capability: 'email', needsCredential: true, credentialFields: ['apiKey'] }),
-  p({ id: 'ses', name: 'Amazon SES', capability: 'email', needsCredential: true, credentialFields: ['accessKeyId', 'secretAccessKey', 'region'] }),
+  p({
+    id: 'resend',
+    name: 'Resend',
+    capability: 'email',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+    recommended: true,
+  }),
+  p({
+    id: 'sendgrid',
+    name: 'SendGrid',
+    capability: 'email',
+    needsCredential: true,
+    credentialFields: ['apiKey'],
+  }),
+  p({
+    id: 'ses',
+    name: 'Amazon SES',
+    capability: 'email',
+    needsCredential: true,
+    credentialFields: ['accessKeyId', 'secretAccessKey', 'region'],
+  }),
 
   // ── Payments ─────────────────────────────────────────────────────────────────
-  p({ id: 'stripe', name: 'Stripe', capability: 'payment', needsCredential: true, credentialFields: ['secretKey', 'webhookSecret'], recommended: true }),
-  p({ id: 'razorpay', name: 'Razorpay', capability: 'payment', needsCredential: true, credentialFields: ['keyId', 'keySecret'] }),
+  p({
+    id: 'stripe',
+    name: 'Stripe',
+    capability: 'payment',
+    needsCredential: true,
+    credentialFields: ['secretKey', 'webhookSecret'],
+    recommended: true,
+  }),
+  p({
+    id: 'razorpay',
+    name: 'Razorpay',
+    capability: 'payment',
+    needsCredential: true,
+    credentialFields: ['keyId', 'keySecret'],
+  }),
 ]
 
 const PROVIDERS_BY_ID = new Map(PROVIDERS.map((provider) => [provider.id, provider]))
@@ -139,7 +323,10 @@ export function validateProviderCredential(
     (field) => typeof credential[field] !== 'string' || (credential[field] as string).length === 0,
   )
   if (missing.length > 0) {
-    return { ok: false, reason: `Missing credential fields for ${providerId}: ${missing.join(', ')}` }
+    return {
+      ok: false,
+      reason: `Missing credential fields for ${providerId}: ${missing.join(', ')}`,
+    }
   }
   return { ok: true }
 }

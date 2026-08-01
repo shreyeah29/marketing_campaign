@@ -1,4 +1,8 @@
-import { createParamDecorator, ExecutionContext, InternalServerErrorException } from '@nestjs/common'
+import {
+  createParamDecorator,
+  ExecutionContext,
+  InternalServerErrorException,
+} from '@nestjs/common'
 
 import type { EntitlementSnapshot } from '@vsp/database'
 

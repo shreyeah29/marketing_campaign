@@ -73,12 +73,18 @@ export default function ReportsPage() {
   const qualified = funnel.find((f) => f.stage === 'QUALIFIED')?.count ?? 0
   const conversionRate = totalLeads > 0 ? Math.round((converted / totalLeads) * 1000) / 10 : 0
 
-  const funnelBars = funnel.map((f) => ({ label: STAGE_LABELS[f.stage] ?? f.stage, value: f.count }))
+  const funnelBars = funnel.map((f) => ({
+    label: STAGE_LABELS[f.stage] ?? f.stage,
+    value: f.count,
+  }))
   const leadsLine = series.map((p) => ({ label: shortDate(p.date), value: p.leads }))
 
   return (
     <>
-      <PageHeader title="Reports" subtitle="Lead funnel, acquisition trend and channel performance" />
+      <PageHeader
+        title="Reports"
+        subtitle="Lead funnel, acquisition trend and channel performance"
+      />
 
       {loading ? (
         <TableSkeleton cols={6} />
@@ -86,7 +92,7 @@ export default function ReportsPage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="stack" style={{ gap: 22 }}>
-          <div className="grid cols-4">
+          <div className="cols-4 grid">
             <StatCard label="Total leads" value={totalLeads.toLocaleString()} />
             <StatCard label="Qualified" value={qualified.toLocaleString()} />
             <StatCard label="Converted" value={converted.toLocaleString()} />

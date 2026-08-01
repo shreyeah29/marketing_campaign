@@ -21,22 +21,22 @@ moment it is assigned to an organisation.
 
 ## What the core provides the plugin for free
 
-| Concern | Mechanism |
-| ------- | --------- |
-| Navigation | `FeatureManifest.navEntry` → dynamic sidebar |
-| Access control | `requiredPermissions` (RBAC) + feature guard |
-| Billing | `billingCategory` + plan/assignment |
-| Audit | every mutating command writes the append-only audit log |
-| Limits | `LimitDefinition` + `OrganizationLimit` |
-| Multi-tenancy | tenant-scoped client + RLS, automatically |
-| API surface | `@RequiresFeature` + the standard controller shape |
+| Concern        | Mechanism                                               |
+| -------------- | ------------------------------------------------------- |
+| Navigation     | `FeatureManifest.navEntry` → dynamic sidebar            |
+| Access control | `requiredPermissions` (RBAC) + feature guard            |
+| Billing        | `billingCategory` + plan/assignment                     |
+| Audit          | every mutating command writes the append-only audit log |
+| Limits         | `LimitDefinition` + `OrganizationLimit`                 |
+| Multi-tenancy  | tenant-scoped client + RLS, automatically               |
+| API surface    | `@RequiresFeature` + the standard controller shape      |
 
 ## Example — a single-client custom module
 
 `AI Legal Assistant` for one law firm:
 
 1. Plugin package declares `{ id: 'custom.legal_assistant', category: 'AI',
-   custom: true, ... }` and its controller/tools.
+custom: true, ... }` and its controller/tools.
 2. Registered at boot; synced to the `feature` table (`is_custom = true`).
 3. Assigned to that one organisation via the admin portal (`source: CUSTOM`).
 4. It now appears in that firm's sidebar, respects its permissions and limits,

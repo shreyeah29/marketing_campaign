@@ -89,6 +89,9 @@ async function resolveMedia(db: PrismaClient, mediaIds: string[]): Promise<Publi
     select: { url: true, type: true },
   })
   return assets
-    .filter((a): a is { url: string; type: (typeof a)['type'] } => typeof a.url === 'string' && a.url.length > 0)
+    .filter(
+      (a): a is { url: string; type: (typeof a)['type'] } =>
+        typeof a.url === 'string' && a.url.length > 0,
+    )
     .map((a) => ({ url: a.url, kind: a.type === 'VIDEO' ? 'VIDEO' : 'IMAGE' }))
 }

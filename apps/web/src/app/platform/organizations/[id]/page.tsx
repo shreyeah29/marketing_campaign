@@ -48,7 +48,10 @@ export default function OrganizationDetailPage() {
 
   useEffect(() => {
     load()
-    platform.catalog().then(setCatalog).catch(() => setCatalog(null))
+    platform
+      .catalog()
+      .then(setCatalog)
+      .catch(() => setCatalog(null))
   }, [load])
 
   async function act(fn: () => Promise<unknown>, ok: string) {
@@ -87,14 +90,14 @@ export default function OrganizationDetailPage() {
       {notice ? <Banner kind="success">{notice}</Banner> : null}
       {error ? <Banner kind="error">{error}</Banner> : null}
 
-      <div className="grid cols-4" style={{ marginBottom: 22 }}>
+      <div className="cols-4 grid" style={{ marginBottom: 22 }}>
         <Stat label="Members" value={org.usage.members} />
         <Stat label="Contacts" value={org.usage.contacts} />
         <Stat label="Campaigns" value={org.usage.campaigns} />
         <Stat label="Agent runs" value={org.usage.agentRuns} />
       </div>
 
-      <div className="grid cols-2">
+      <div className="cols-2 grid">
         {/* Subscription + lifecycle */}
         <div className="card">
           <h3 style={{ marginBottom: 14 }}>Subscription</h3>
@@ -126,7 +129,10 @@ export default function OrganizationDetailPage() {
                 className="btn sm"
                 disabled={acting}
                 onClick={() =>
-                  act(() => platform.setStatus(id, a.status), `Organization ${a.label.toLowerCase()}d.`)
+                  act(
+                    () => platform.setStatus(id, a.status),
+                    `Organization ${a.label.toLowerCase()}d.`,
+                  )
                 }
               >
                 {acting ? <Spinner /> : a.label}
@@ -137,7 +143,8 @@ export default function OrganizationDetailPage() {
                 className="btn sm danger"
                 disabled={acting}
                 onClick={() => {
-                  if (!window.confirm(`Delete ${org.name}? This locks the org out immediately.`)) return
+                  if (!window.confirm(`Delete ${org.name}? This locks the org out immediately.`))
+                    return
                   act(() => platform.setStatus(id, 'DELETED'), 'Organization deleted.')
                 }}
               >

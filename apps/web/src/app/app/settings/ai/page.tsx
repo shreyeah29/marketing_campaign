@@ -45,7 +45,10 @@ export default function AiSettingsPage() {
       await api.put('/config/agents', { agentKey: agent.id, enabled: next })
       toast.push('success', `${agent.role} ${next ? 'enabled' : 'disabled'}`)
     } catch (err) {
-      setAgents((prev) => prev?.map((a) => (a.id === agent.id ? { ...a, enabled: agent.enabled } : a)) ?? prev)
+      setAgents(
+        (prev) =>
+          prev?.map((a) => (a.id === agent.id ? { ...a, enabled: agent.enabled } : a)) ?? prev,
+      )
       toast.push('error', err instanceof ApiError ? err.message : 'Update failed')
     } finally {
       setBusy(null)

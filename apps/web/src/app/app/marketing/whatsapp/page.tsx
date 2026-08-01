@@ -10,7 +10,10 @@ export default function WhatsAppCampaignsPage() {
       icon="message-square"
       requires="Connect a WhatsApp Business provider to send template messages to your contacts."
       capabilities={[
-        { title: 'Template messages', body: 'Send approved WhatsApp templates to opted-in contacts.' },
+        {
+          title: 'Template messages',
+          body: 'Send approved WhatsApp templates to opted-in contacts.',
+        },
         { title: 'Conversations', body: 'Continue threads in the unified inbox.' },
         { title: 'Delivery & read receipts', body: 'Track sent, delivered and read per message.' },
       ]}

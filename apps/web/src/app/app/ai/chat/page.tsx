@@ -67,7 +67,9 @@ export default function AiChatPage() {
       <div className="chat">
         <div className="stream" ref={streamRef}>
           {messages.length === 0 ? (
-            <div className="msg assistant">Ask me anything — I can help with your marketing, copy and ideas.</div>
+            <div className="msg assistant">
+              Ask me anything — I can help with your marketing, copy and ideas.
+            </div>
           ) : null}
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role}`}>
@@ -90,7 +92,11 @@ export default function AiChatPage() {
             onKeyDown={onKeyDown}
             disabled={sending}
           />
-          <button className="btn primary" onClick={() => void send()} disabled={sending || !input.trim()}>
+          <button
+            className="btn primary"
+            onClick={() => void send()}
+            disabled={sending || !input.trim()}
+          >
             Send
           </button>
         </div>

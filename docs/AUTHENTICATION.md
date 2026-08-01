@@ -7,13 +7,13 @@ tenant realm stays completely separate from the platform-admin realm.
 
 ## Two realms, never crossed
 
-| | Tenant realm | Platform-admin realm |
-| --- | --- | --- |
-| Who | A customer's users | The platform operator |
-| Store | `user` / `session` / `account` / `verification` | `platform_admin` |
-| Credential | Better Auth (scrypt), cookie session | Salted hash, HMAC bearer token |
-| Cookie | `vsp.session_token` (HttpOnly) | none — `Authorization: Bearer` |
-| Entry | `/api/auth/*`, `/v1/auth/*` | `/v1/platform/*` |
+|            | Tenant realm                                    | Platform-admin realm           |
+| ---------- | ----------------------------------------------- | ------------------------------ |
+| Who        | A customer's users                              | The platform operator          |
+| Store      | `user` / `session` / `account` / `verification` | `platform_admin`               |
+| Credential | Better Auth (scrypt), cookie session            | Salted hash, HMAC bearer token |
+| Cookie     | `vsp.session_token` (HttpOnly)                  | none — `Authorization: Bearer` |
+| Entry      | `/api/auth/*`, `/v1/auth/*`                     | `/v1/platform/*`               |
 
 There is **no shared session table, no shared login, no shared cookie**. Nothing
 in the tenant realm can grant platform access, and nothing in the platform realm
@@ -25,19 +25,19 @@ transports.
 Mounted on the raw Fastify instance at `/api/auth/*`, outside the Nest pipeline —
 reaching them cannot require a session, since they are how one is obtained.
 
-| Action | Endpoint |
-| --- | --- |
-| Register | `POST /api/auth/sign-up/email` |
-| Login | `POST /api/auth/sign-in/email` |
-| Logout | `POST /api/auth/sign-out` |
-| Current session | `GET /api/auth/get-session` |
+| Action            | Endpoint                                 |
+| ----------------- | ---------------------------------------- |
+| Register          | `POST /api/auth/sign-up/email`           |
+| Login             | `POST /api/auth/sign-in/email`           |
+| Logout            | `POST /api/auth/sign-out`                |
+| Current session   | `GET /api/auth/get-session`              |
 | Send verification | `POST /api/auth/send-verification-email` |
-| Verify email | `GET /api/auth/verify-email?token=…` |
-| Request reset | `POST /api/auth/forget-password` |
-| Reset password | `POST /api/auth/reset-password` |
-| List sessions | `GET /api/auth/list-sessions` |
-| Revoke a session | `POST /api/auth/revoke-session` |
-| Revoke others | `POST /api/auth/revoke-other-sessions` |
+| Verify email      | `GET /api/auth/verify-email?token=…`     |
+| Request reset     | `POST /api/auth/forget-password`         |
+| Reset password    | `POST /api/auth/reset-password`          |
+| List sessions     | `GET /api/auth/list-sessions`            |
+| Revoke a session  | `POST /api/auth/revoke-session`          |
+| Revoke others     | `POST /api/auth/revoke-other-sessions`   |
 
 - **Password hashing** is Better Auth's scrypt, exported through
   `modules/auth/password.ts` and shared with provisioning, so a provisioned owner
@@ -92,24 +92,24 @@ tenant-scoped or RLS-protected query:
 
 The `TenantInterceptor` opens the ALS context, but only `withTenantTransaction`
 sets the SQL variable. So every handler DB access — reads included — runs inside
-`withTenantTransaction`. Entitlement resolution runs in the *guard* phase, before
+`withTenantTransaction`. Entitlement resolution runs in the _guard_ phase, before
 the interceptor, so `EntitlementService.resolve` opens its own `withTenant`.
 
 ## Organisation awareness (`/v1/auth/*`)
 
-Better Auth answers *who*; these answer *which organisation, and which others*.
+Better Auth answers _who_; these answer _which organisation, and which others_.
 They are identity routes (`@Public()` to skip the org-permission guard,
 authenticated by `@CurrentIdentity()`), so a user with no org, or choosing between
 several, can call them.
 
-| Route | Purpose |
-| --- | --- |
-| `GET /v1/auth/session` | Identity + every org it can act in + the active one |
-| `GET /v1/auth/organizations` | Organisations the user belongs to (the switcher) |
-| `POST /v1/auth/switch-organization` | Set the active org for this session |
-| `POST /v1/auth/leave-organization` | Leave an org (refused for a sole owner) |
-| `POST /v1/auth/transfer-ownership` | Owner-only; new owner promoted, old → ADMIN |
-| `GET /v1/me/workspace` | The full render payload once an org is active |
+| Route                               | Purpose                                             |
+| ----------------------------------- | --------------------------------------------------- |
+| `GET /v1/auth/session`              | Identity + every org it can act in + the active one |
+| `GET /v1/auth/organizations`        | Organisations the user belongs to (the switcher)    |
+| `POST /v1/auth/switch-organization` | Set the active org for this session                 |
+| `POST /v1/auth/leave-organization`  | Leave an org (refused for a sole owner)             |
+| `POST /v1/auth/transfer-ownership`  | Owner-only; new owner promoted, old → ADMIN         |
+| `GET /v1/me/workspace`              | The full render payload once an org is active       |
 
 A user may belong to **many organisations**; switching rewrites
 `session.activeOrganizationId`, and the next request resolves the new org's role

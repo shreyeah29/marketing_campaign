@@ -72,7 +72,9 @@ export class ProvisioningService {
     for (const [featureId, config] of Object.entries(featureConfig)) {
       const result = validateFeatureConfig(featureId, config)
       if (!result.ok) {
-        throw new BadRequestException(`Invalid config for ${featureId}: ${result.issues.join(', ')}`)
+        throw new BadRequestException(
+          `Invalid config for ${featureId}: ${result.issues.join(', ')}`,
+        )
       }
     }
 

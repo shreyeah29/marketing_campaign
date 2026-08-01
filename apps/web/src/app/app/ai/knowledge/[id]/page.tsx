@@ -53,7 +53,21 @@ interface Uploading {
 
 // Text-based files we can extract and index. Binary formats (pdf/docx) would need
 // a server-side extractor, so we accept only what we can honestly read as text.
-const TEXT_EXT = ['txt', 'md', 'markdown', 'csv', 'tsv', 'json', 'log', 'html', 'htm', 'xml', 'yaml', 'yml', 'rtf']
+const TEXT_EXT = [
+  'txt',
+  'md',
+  'markdown',
+  'csv',
+  'tsv',
+  'json',
+  'log',
+  'html',
+  'htm',
+  'xml',
+  'yaml',
+  'yml',
+  'rtf',
+]
 const MAX_BYTES = 400_000
 
 function isTextFile(f: File): boolean {
@@ -102,12 +116,16 @@ export default function KnowledgeBaseDetailPage() {
 
   const loadDocs = useCallback(() => {
     api
-      .get<{ data: KbDocument[]; indexingAvailable?: boolean }>(`/knowledge-bases/${kbId}/documents`)
+      .get<{ data: KbDocument[]; indexingAvailable?: boolean }>(
+        `/knowledge-bases/${kbId}/documents`,
+      )
       .then((r) => {
         setDocs(r.data)
         if (typeof r.indexingAvailable === 'boolean') setIndexingAvailable(r.indexingAvailable)
       })
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Failed to load documents'))
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : 'Failed to load documents'),
+      )
   }, [kbId])
 
   const loadKb = useCallback(() => {
@@ -115,7 +133,9 @@ export default function KnowledgeBaseDetailPage() {
     api
       .get<KnowledgeBase>(`/knowledge-bases/${kbId}`)
       .then(setKb)
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Failed to load knowledge base'))
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : 'Failed to load knowledge base'),
+      )
   }, [kbId])
 
   useEffect(() => {
@@ -163,7 +183,10 @@ export default function KnowledgeBaseDetailPage() {
           })
           setStatus(file.name, { status: 'done' })
         } catch (e) {
-          setStatus(file.name, { status: 'error', error: e instanceof ApiError ? e.message : (e as Error).message })
+          setStatus(file.name, {
+            status: 'error',
+            error: e instanceof ApiError ? e.message : (e as Error).message,
+          })
         }
       }
       loadDocs()
@@ -230,7 +253,9 @@ export default function KnowledgeBaseDetailPage() {
     setSearching(true)
     setResults(null)
     try {
-      const r = await api.post<{ results: SearchHit[] }>(`/knowledge-bases/${kbId}/search`, { query: query.trim() })
+      const r = await api.post<{ results: SearchHit[] }>(`/knowledge-bases/${kbId}/search`, {
+        query: query.trim(),
+      })
       setResults(r.results)
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Search failed')
@@ -243,7 +268,13 @@ export default function KnowledgeBaseDetailPage() {
     return (
       <>
         <PageHeader title="Knowledge base" subtitle="Documents and indexing" />
-        <ErrorState message={error} onRetry={() => { loadKb(); loadDocs() }} />
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            loadKb()
+            loadDocs()
+          }}
+        />
       </>
     )
   }
@@ -251,7 +282,9 @@ export default function KnowledgeBaseDetailPage() {
   return (
     <>
       <div className="row" style={{ marginBottom: 4 }}>
-        <Link href="/app/ai/knowledge" className="btn ghost sm"><Icon name="arrow-left" size={14} /> Knowledge bases</Link>
+        <Link href="/app/ai/knowledge" className="btn ghost sm">
+          <Icon name="arrow-left" size={14} /> Knowledge bases
+        </Link>
       </div>
       <PageHeader
         title={kb?.name ?? 'Knowledge base'}
@@ -265,15 +298,18 @@ export default function KnowledgeBaseDetailPage() {
 
       {!indexingAvailable ? (
         <div className="banner info" style={{ marginBottom: 14 }}>
-          Documents are stored, but AI indexing isn&apos;t available on this deployment yet — uploaded content won&apos;t
-          be searchable until an embedding provider is configured.
+          Documents are stored, but AI indexing isn&apos;t available on this deployment yet —
+          uploaded content won&apos;t be searchable until an embedding provider is configured.
         </div>
       ) : null}
 
       {/* Upload zone */}
       <div
         className="card"
-        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setDragging(true)
+        }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         style={{
@@ -285,7 +321,9 @@ export default function KnowledgeBaseDetailPage() {
           transition: 'border-color .15s, background .15s',
         }}
       >
-        <div style={{ marginBottom: 8, color: 'var(--color-primary)' }}><Icon name="file-text" size={26} /></div>
+        <div style={{ marginBottom: 8, color: 'var(--color-primary)' }}>
+          <Icon name="file-text" size={26} />
+        </div>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Drag &amp; drop files here</div>
         <div className="dim" style={{ fontSize: 13, marginBottom: 12 }}>
           Text files (.txt, .md, .csv, .json, .html…) up to 400 KB each — multiple at once.
@@ -299,20 +337,47 @@ export default function KnowledgeBaseDetailPage() {
           multiple
           accept=".txt,.md,.markdown,.csv,.tsv,.json,.log,.html,.htm,.xml,.yaml,.yml,.rtf,text/*"
           style={{ display: 'none' }}
-          onChange={(e) => { void uploadFiles(Array.from(e.target.files ?? [])); e.target.value = '' }}
+          onChange={(e) => {
+            void uploadFiles(Array.from(e.target.files ?? []))
+            e.target.value = ''
+          }}
         />
 
         {uploads.length > 0 ? (
-          <div className="stack" style={{ gap: 6, marginTop: 16, textAlign: 'left', maxWidth: 480, marginInline: 'auto' }}>
+          <div
+            className="stack"
+            style={{
+              gap: 6,
+              marginTop: 16,
+              textAlign: 'left',
+              maxWidth: 480,
+              marginInline: 'auto',
+            }}
+          >
             {uploads.map((u, i) => (
               <div key={`${u.name}-${String(i)}`} className="row spread" style={{ fontSize: 13 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name}</span>
+                <span
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                >
+                  {u.name}
+                </span>
                 {u.status === 'error' ? (
                   <span style={{ color: 'var(--danger)' }}>{u.error ?? 'Failed'}</span>
                 ) : u.status === 'done' ? (
-                  <span style={{ color: 'var(--ok)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>Queued <Icon name="check" size={13} /></span>
+                  <span
+                    style={{
+                      color: 'var(--ok)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    Queued <Icon name="check" size={13} />
+                  </span>
                 ) : (
-                  <span className="row" style={{ gap: 6 }}><Spinner /> {u.status === 'reading' ? 'Reading…' : 'Uploading…'}</span>
+                  <span className="row" style={{ gap: 6 }}>
+                    <Spinner /> {u.status === 'reading' ? 'Reading…' : 'Uploading…'}
+                  </span>
                 )}
               </div>
             ))}
@@ -330,13 +395,19 @@ export default function KnowledgeBaseDetailPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void runSearch()}
           />
-          <button className="btn primary" onClick={() => void runSearch()} disabled={searching || !query.trim()}>
+          <button
+            className="btn primary"
+            onClick={() => void runSearch()}
+            disabled={searching || !query.trim()}
+          >
             {searching ? <Spinner /> : 'Search'}
           </button>
         </div>
         {results !== null ? (
           results.length === 0 ? (
-            <div className="dim" style={{ fontSize: 13, marginTop: 12 }}>No matching passages found.</div>
+            <div className="dim" style={{ fontSize: 13, marginTop: 12 }}>
+              No matching passages found.
+            </div>
           ) : (
             <div className="stack" style={{ gap: 8, marginTop: 12 }}>
               {results.map((h) => (
@@ -389,7 +460,9 @@ export default function KnowledgeBaseDetailPage() {
                   <td>
                     <Badge status={statusTint(d.status)}>
                       {['PENDING', 'QUEUED', 'PROCESSING'].includes(d.status) ? (
-                        <span className="row" style={{ gap: 6 }}><Spinner /> {d.status}</span>
+                        <span className="row" style={{ gap: 6 }}>
+                          <Spinner /> {d.status}
+                        </span>
                       ) : (
                         d.status
                       )}
@@ -397,13 +470,23 @@ export default function KnowledgeBaseDetailPage() {
                   </td>
                   <td>{d.chunkCount ?? 0}</td>
                   <td className="dim">{fmtBytes(d.metadata?.sizeBytes)}</td>
-                  <td className="dim">{d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}</td>
+                  <td className="dim">
+                    {d.createdAt ? new Date(d.createdAt).toLocaleDateString() : '—'}
+                  </td>
                   <td>
                     <div className="row" style={{ gap: 6, justifyContent: 'flex-end' }}>
-                      <button className="btn ghost sm" onClick={() => void reprocess(d)} aria-label="Reprocess">
+                      <button
+                        className="btn ghost sm"
+                        onClick={() => void reprocess(d)}
+                        aria-label="Reprocess"
+                      >
                         <Icon name="refresh" size={15} />
                       </button>
-                      <button className="btn ghost sm" onClick={() => setConfirmDel(d)} aria-label="Delete">
+                      <button
+                        className="btn ghost sm"
+                        onClick={() => setConfirmDel(d)}
+                        aria-label="Delete"
+                      >
                         <Icon name="trash" size={15} />
                       </button>
                     </div>
@@ -422,19 +505,38 @@ export default function KnowledgeBaseDetailPage() {
           <div className="modal" role="dialog" aria-label="Add document text">
             <div className="head">
               <h3>Add document</h3>
-              <button className="icon-btn" onClick={() => setPasteOpen(false)} aria-label="Close"><Icon name="x" size={16} /></button>
+              <button className="icon-btn" onClick={() => setPasteOpen(false)} aria-label="Close">
+                <Icon name="x" size={16} />
+              </button>
             </div>
             <div className="body">
               <Field label="Title *">
-                <input className="input" value={pasteTitle} placeholder="e.g. Return policy" onChange={(e) => setPasteTitle(e.target.value)} />
+                <input
+                  className="input"
+                  value={pasteTitle}
+                  placeholder="e.g. Return policy"
+                  onChange={(e) => setPasteTitle(e.target.value)}
+                />
               </Field>
               <Field label="Content *">
-                <textarea className="input" rows={10} value={pasteBody} placeholder="Paste the text you want AI to learn from…" onChange={(e) => setPasteBody(e.target.value)} />
+                <textarea
+                  className="input"
+                  rows={10}
+                  value={pasteBody}
+                  placeholder="Paste the text you want AI to learn from…"
+                  onChange={(e) => setPasteBody(e.target.value)}
+                />
               </Field>
             </div>
             <div className="foot">
-              <button className="btn" onClick={() => setPasteOpen(false)}>Cancel</button>
-              <button className="btn primary" onClick={() => void addPastedText()} disabled={pasting}>
+              <button className="btn" onClick={() => setPasteOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn primary"
+                onClick={() => void addPastedText()}
+                disabled={pasting}
+              >
                 {pasting ? 'Adding…' : 'Add & index'}
               </button>
             </div>

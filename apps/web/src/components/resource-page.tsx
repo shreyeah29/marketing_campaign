@@ -248,7 +248,11 @@ export function ResourcePage<T extends { id: string }>({
       {/* Create / edit drawer */}
       <Drawer
         open={drawer !== null}
-        title={drawer?.mode === 'edit' ? `Edit ${title.replace(/s$/, '')}` : `New ${title.replace(/s$/, '')}`}
+        title={
+          drawer?.mode === 'edit'
+            ? `Edit ${title.replace(/s$/, '')}`
+            : `New ${title.replace(/s$/, '')}`
+        }
         onClose={() => setDrawer(null)}
         footer={
           <>
@@ -267,7 +271,8 @@ export function ResourcePage<T extends { id: string }>({
           </div>
         ) : null}
         {(fields ?? []).map((f) => {
-          const selectOptions = typeof f.options === 'function' ? f.options(form) : (f.options ?? [])
+          const selectOptions =
+            typeof f.options === 'function' ? f.options(form) : (f.options ?? [])
           const applySelect = (value: string): void =>
             setForm({
               ...form,
@@ -275,58 +280,71 @@ export function ResourcePage<T extends { id: string }>({
               ...(f.resetOnChange ? Object.fromEntries(f.resetOnChange.map((k) => [k, ''])) : {}),
             })
           return (
-          <Field key={f.name} label={f.label + (f.required ? ' *' : '')} hint={f.hint}>
-            {f.type === 'textarea' ? (
-              <textarea
-                className="input"
-                rows={4}
-                value={String(form[f.name] ?? '')}
-                placeholder={f.placeholder}
-                onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
-              />
-            ) : f.type === 'select' ? (
-              <select
-                className="select"
-                value={String(form[f.name] ?? '')}
-                onChange={(e) => applySelect(e.target.value)}
-              >
-                <option value="">{f.placeholder ?? 'Select…'}</option>
-                {selectOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            ) : f.type === 'checkbox' ? (
-              <label className="row" style={{ gap: 8 }}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(form[f.name])}
-                  onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+            <Field key={f.name} label={f.label + (f.required ? ' *' : '')} hint={f.hint}>
+              {f.type === 'textarea' ? (
+                <textarea
+                  className="input"
+                  rows={4}
+                  value={String(form[f.name] ?? '')}
+                  placeholder={f.placeholder}
+                  onChange={(e) => setForm({ ...form, [f.name]: e.target.value })}
                 />
-                <span className="muted">{f.placeholder ?? f.label}</span>
-              </label>
-            ) : f.type === 'tags' ? (
-              <input
-                className="input"
-                value={Array.isArray(form[f.name]) ? (form[f.name] as string[]).join(', ') : String(form[f.name] ?? '')}
-                placeholder="comma, separated, tags"
-                onChange={(e) =>
-                  setForm({ ...form, [f.name]: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })
-                }
-              />
-            ) : (
-              <input
-                className="input"
-                type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : 'text'}
-                value={String(form[f.name] ?? '')}
-                placeholder={f.placeholder}
-                onChange={(e) =>
-                  setForm({ ...form, [f.name]: f.type === 'number' ? e.target.valueAsNumber : e.target.value })
-                }
-              />
-            )}
-          </Field>
+              ) : f.type === 'select' ? (
+                <select
+                  className="select"
+                  value={String(form[f.name] ?? '')}
+                  onChange={(e) => applySelect(e.target.value)}
+                >
+                  <option value="">{f.placeholder ?? 'Select…'}</option>
+                  {selectOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              ) : f.type === 'checkbox' ? (
+                <label className="row" style={{ gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form[f.name])}
+                    onChange={(e) => setForm({ ...form, [f.name]: e.target.checked })}
+                  />
+                  <span className="muted">{f.placeholder ?? f.label}</span>
+                </label>
+              ) : f.type === 'tags' ? (
+                <input
+                  className="input"
+                  value={
+                    Array.isArray(form[f.name])
+                      ? (form[f.name] as string[]).join(', ')
+                      : String(form[f.name] ?? '')
+                  }
+                  placeholder="comma, separated, tags"
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [f.name]: e.target.value
+                        .split(',')
+                        .map((s) => s.trim())
+                        .filter(Boolean),
+                    })
+                  }
+                />
+              ) : (
+                <input
+                  className="input"
+                  type={f.type === 'number' ? 'number' : f.type === 'email' ? 'email' : 'text'}
+                  value={String(form[f.name] ?? '')}
+                  placeholder={f.placeholder}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      [f.name]: f.type === 'number' ? e.target.valueAsNumber : e.target.value,
+                    })
+                  }
+                />
+              )}
+            </Field>
           )
         })}
       </Drawer>

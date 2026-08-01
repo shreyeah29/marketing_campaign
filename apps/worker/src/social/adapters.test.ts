@@ -51,7 +51,7 @@ describe('LinkedIn publisher', () => {
     let seenAuth = ''
     mockFetch((url, init) => {
       seenUrl = url
-      seenAuth = (init?.headers as Record<string, string>).authorization
+      seenAuth = (init?.headers as Record<string, string>).authorization ?? ''
       return json({ id: 'urn:li:share:42' }, 201)
     })
     const res = await getPublisher('LINKEDIN')!.publish(BASE)

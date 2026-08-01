@@ -691,6 +691,15 @@ model Organization {
   landingPages           LandingPage[]
   supportTickets         SupportTicket[]
   supportTicketComments  SupportTicketComment[]
+  metaConnection         MetaConnection?
+  adCampaigns            AdCampaign[]
+  adSets                 AdSet[]
+  ads                    Ad[]
+  adCreatives            AdCreative[]
+  metaLeadForms          MetaLeadForm[]
+  adInsights             AdInsight[]
+  chatbotFlows           ChatbotFlow[]
+  chatbotSessions        ChatbotSession[]
 
   @@index([deletedAt])
   @@map("organization")
@@ -933,6 +942,9 @@ model Lead {
   companyId      String? @map("company_id")
   ownerId        String? @map("owner_id")
   campaignId     String? @map("campaign_id")
+  // Attribution back to the Meta ad + lead that produced this lead.
+  adId           String? @map("ad_id")
+  metaLeadId     String? @map("meta_lead_id")
 
   status LeadStatus @default(NEW)
   score  Int        @default(0)
@@ -958,6 +970,7 @@ model Lead {
   company         Company?         @relation(fields: [companyId], references: [id], onDelete: SetNull)
   owner           User?            @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   campaign        Campaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  ad              Ad?              @relation(fields: [adId], references: [id], onDelete: SetNull)
   deals           Deal[]
   activities      Activity[]
   formSubmissions FormSubmission[]
@@ -966,6 +979,7 @@ model Lead {
   @@index([organizationId, status, score])
   @@index([organizationId, campaignId])
   @@index([organizationId, ownerId])
+  @@index([organizationId, adId])
   @@map("lead")
 }
 
@@ -3065,4 +3079,371 @@ model SupportTicketComment {
 
   @@index([organizationId, ticketId])
   @@map("support_ticket_comment")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// META ADS + WHATSAPP LEAD ENGINE
+//
+// AI generates a poster + copy → a human approves a budget (the money-safety gate)
+// → ads publish to the client's Facebook/Instagram via the Marketing API → people
+// convert through Meta Instant Forms or Click-to-WhatsApp → leads land in the CRM.
+//
+// Credentials follow the platform's operator model: the Meta *App* is a Tier-1
+// env secret; a client's *token* (Tier-2) is a delegated OAuth grant stored, like
+// every other secret, as an envelope-encrypted ProviderCredential referenced by id
+// (no Prisma relation, resolved in code — mirrors IntegrationConnection).
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum MetaConnectionStatus {
+  PENDING
+  CONNECTED
+  EXPIRED
+  REVOKED
+
+  @@map("meta_connection_status")
+}
+
+enum AdObjective {
+  LEAD_GENERATION
+  CONVERSIONS
+  TRAFFIC
+  AWARENESS
+  ENGAGEMENT
+
+  @@map("ad_objective")
+}
+
+// Where a click on the ad sends the person — the two lead channels.
+enum AdDestination {
+  INSTANT_FORM
+  WHATSAPP
+
+  @@map("ad_destination")
+}
+
+// Our internal approval gate. Distinct from Meta's own ad review.
+enum AdReviewStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+
+  @@map("ad_review_status")
+}
+
+// Effective delivery state, mirroring Meta's ad status.
+enum AdDeliveryStatus {
+  PAUSED
+  ACTIVE
+  PENDING_META_REVIEW
+  DISAPPROVED
+  COMPLETED
+  ARCHIVED
+  FAILED
+
+  @@map("ad_delivery_status")
+}
+
+enum MetaWebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+
+  @@map("meta_webhook_status")
+}
+
+enum ChatbotSessionStatus {
+  ACTIVE
+  COMPLETED
+  HANDOFF
+  ABANDONED
+
+  @@map("chatbot_session_status")
+}
+
+/// One Meta connection per organisation: the client's delegated assets (ad
+/// account, Page, Instagram, WhatsApp) and the encrypted token to act on them.
+model MetaConnection {
+  id             String               @id @default(uuid(7))
+  organizationId String               @unique @map("organization_id")
+  status         MetaConnectionStatus @default(PENDING)
+
+  // Meta asset ids, filled after the OAuth connect flow completes.
+  businessId    String? @map("business_id")
+  adAccountId   String? @map("ad_account_id")
+  pageId        String? @map("page_id")
+  igUserId      String? @map("ig_user_id")
+  wabaId        String? @map("waba_id")
+  phoneNumberId String? @map("phone_number_id")
+
+  // Envelope-encrypted long-lived token (ProviderCredential id; resolved in code).
+  credentialId   String?   @map("credential_id")
+  tokenExpiresAt DateTime? @map("token_expires_at")
+
+  // Operator-only safety ceiling for what a client may spend per month.
+  monthlySpendCap Decimal? @map("monthly_spend_cap") @db.Decimal(14, 2)
+
+  connectedById String?   @map("connected_by_id")
+  lastError     String?   @map("last_error")
+  connectedAt   DateTime? @map("connected_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    AdCampaign[]
+  leadForms    MetaLeadForm[]
+
+  @@map("meta_connection")
+}
+
+/// A campaign the AI drafted and a human approved. Carries the approval gate and
+/// the budget ceiling; publishes to Meta as a Campaign object.
+model AdCampaign {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  connectionId   String @map("connection_id")
+
+  name        String
+  objective   AdObjective   @default(LEAD_GENERATION)
+  destination AdDestination @default(INSTANT_FORM)
+
+  reviewStatus   AdReviewStatus   @default(DRAFT)
+  deliveryStatus AdDeliveryStatus @default(PAUSED)
+
+  dailyBudget    Decimal? @map("daily_budget") @db.Decimal(14, 2)
+  lifetimeBudget Decimal? @map("lifetime_budget") @db.Decimal(14, 2)
+  spendCap       Decimal? @map("spend_cap") @db.Decimal(14, 2)
+
+  // AI provenance.
+  prompt      String?
+  generatedBy AgentId? @map("generated_by")
+
+  metaCampaignId String? @map("meta_campaign_id")
+
+  // Approval audit — the money-safety gate.
+  approvedById   String?   @map("approved_by_id")
+  approvedAt     DateTime? @map("approved_at")
+  rejectedReason String?   @map("rejected_reason")
+
+  startAt DateTime? @map("start_at")
+  endAt   DateTime? @map("end_at")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  adSets       AdSet[]
+  creatives    AdCreative[]
+  ads          Ad[]
+  insights     AdInsight[]
+
+  @@index([organizationId, reviewStatus])
+  @@index([organizationId, deliveryStatus])
+  @@map("ad_campaign")
+}
+
+/// Budget, schedule and audience for a subset of a campaign; a Meta Ad Set.
+model AdSet {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  campaignId     String @map("campaign_id")
+
+  name             String
+  dailyBudget      Decimal? @map("daily_budget") @db.Decimal(14, 2)
+  lifetimeBudget   Decimal? @map("lifetime_budget") @db.Decimal(14, 2)
+  targeting        Json     @default("{}")
+  optimizationGoal String?  @map("optimization_goal")
+  billingEvent     String?  @map("billing_event")
+
+  metaAdSetId String? @map("meta_ad_set_id")
+
+  startAt DateTime? @map("start_at")
+  endAt   DateTime? @map("end_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     AdCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ads          Ad[]
+
+  @@index([organizationId, campaignId])
+  @@map("ad_set")
+}
+
+/// The visual + copy of an ad: the AI poster, the text, the CTA and the lead
+/// destination (an Instant Form, or a WhatsApp link).
+model AdCreative {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  campaignId     String @map("campaign_id")
+
+  mediaAssetId String? @map("media_asset_id")
+  imageUrl     String? @map("image_url")
+
+  primaryText  String? @map("primary_text")
+  headline     String?
+  description  String?
+  callToAction String? @map("call_to_action")
+  linkUrl      String? @map("link_url")
+
+  leadFormId String? @map("lead_form_id")
+
+  metaCreativeId String? @map("meta_creative_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     AdCampaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  leadForm     MetaLeadForm? @relation(fields: [leadFormId], references: [id], onDelete: SetNull)
+  ads          Ad[]
+
+  @@index([organizationId, campaignId])
+  @@map("ad_creative")
+}
+
+/// The published unit that ties an ad set to a creative; a Meta Ad object.
+model Ad {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  campaignId     String @map("campaign_id")
+  adSetId        String @map("ad_set_id")
+  creativeId     String @map("creative_id")
+
+  name           String
+  deliveryStatus AdDeliveryStatus @default(PAUSED)
+  metaAdId       String?          @map("meta_ad_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     AdCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  adSet        AdSet        @relation(fields: [adSetId], references: [id], onDelete: Cascade)
+  creative     AdCreative   @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  insights     AdInsight[]
+  leads        Lead[]
+
+  @@index([organizationId, campaignId])
+  @@map("ad")
+}
+
+/// A Meta Instant Form: the prerequisite qualifying questions shown natively in
+/// the ad. Submissions arrive via the leadgen webhook and become CRM leads.
+model MetaLeadForm {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  connectionId   String @map("connection_id")
+
+  name             String
+  questions        Json    @default("[]")
+  privacyPolicyUrl String? @map("privacy_policy_url")
+
+  metaFormId String? @map("meta_form_id")
+
+  // Where captured leads are routed.
+  pipelineId String? @map("pipeline_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection   MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  creatives    AdCreative[]
+
+  @@index([organizationId, connectionId])
+  @@map("meta_lead_form")
+}
+
+/// A daily performance row per ad (and rolled up to its campaign): reach,
+/// impressions, clicks, leads and spend, synced from Meta's Insights API.
+model AdInsight {
+  id             String  @id @default(uuid(7))
+  organizationId String  @map("organization_id")
+  campaignId     String  @map("campaign_id")
+  adId           String? @map("ad_id")
+
+  date        DateTime @db.Date
+  impressions Int      @default(0)
+  reach       Int      @default(0)
+  clicks      Int      @default(0)
+  leads       Int      @default(0)
+  spend       Decimal  @default(0) @db.Decimal(14, 2)
+  currency    String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     AdCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ad           Ad?          @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, adId, date])
+  @@index([organizationId, date])
+  @@map("ad_insight")
+}
+
+/// Idempotency + audit log for inbound Meta webhooks (leadgen, WhatsApp messages).
+/// Not tenant-scoped at receipt — the organisation is resolved during processing.
+model MetaWebhookEvent {
+  id          String            @id @default(uuid(7))
+  externalId  String            @unique @map("external_id")
+  object      String
+  field       String?
+  status      MetaWebhookStatus @default(RECEIVED)
+  payload     Json
+  error       String?
+  receivedAt  DateTime          @default(now()) @map("received_at")
+  processedAt DateTime?         @map("processed_at")
+
+  @@index([status, receivedAt])
+  @@map("meta_webhook_event")
+}
+
+/// A reusable set of prerequisite qualifying questions the WhatsApp chatbot asks.
+model ChatbotFlow {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+
+  name              String
+  isActive          Boolean @default(true) @map("is_active")
+  questions         Json    @default("[]")
+  completionMessage String? @map("completion_message")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions     ChatbotSession[]
+
+  @@index([organizationId, isActive])
+  @@map("chatbot_flow")
+}
+
+/// One prospect's run through a chatbot flow, layered over the inbox Conversation
+/// that holds the actual WhatsApp messages.
+model ChatbotSession {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  flowId         String @map("flow_id")
+  conversationId String @map("conversation_id")
+
+  status      ChatbotSessionStatus @default(ACTIVE)
+  currentStep Int                  @default(0) @map("current_step")
+  answers     Json                 @default("{}")
+  leadId      String?              @map("lead_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  flow         ChatbotFlow  @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status])
+  @@index([conversationId])
+  @@map("chatbot_session")
 }

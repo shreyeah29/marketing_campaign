@@ -92,6 +92,25 @@ export const envSchema = z.object({
   RUNWAY_IMAGE_MODEL: z.string().optional(),
 
   /**
+   * Meta (Facebook/Instagram) ads + WhatsApp — the platform's single operator-owned
+   * Meta App. These identify the *app*; a client's per-tenant access token is a
+   * delegated OAuth grant stored encrypted per organisation, never here. All
+   * optional so the app boots without them; the Meta features simply stay dormant
+   * until the operator finishes Meta enrolment and fills these in.
+   */
+  META_APP_ID: z.string().optional(),
+  META_APP_SECRET: z.string().optional(),
+  // Graph API version, pinned so upgrades are deliberate.
+  META_GRAPH_VERSION: z.string().default('v21.0'),
+  // Where Meta redirects a client back to after they authorise the connection.
+  META_OAUTH_REDIRECT_URI: z.string().optional(),
+  // Optional Facebook Login / Embedded-Signup configuration id.
+  META_CONFIG_ID: z.string().optional(),
+  // Shared token echoed back on the webhook subscription handshake (leadgen +
+  // WhatsApp inbound). Operator sets any random string and configures it in Meta.
+  META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
+
+  /**
    * Served in non-production by default; explicit opt-in required in production.
    *
    * Kept as the raw string rather than transformed to a boolean here. A

@@ -72,6 +72,17 @@ export const TENANT_SCOPED_MODELS = [
   'LandingPage',
   'SupportTicket',
   'SupportTicketComment',
+  // Meta ads + WhatsApp lead engine.
+  'MetaConnection',
+  'AdCampaign',
+  'AdSet',
+  'AdCreative',
+  'Ad',
+  'MetaLeadForm',
+  'AdInsight',
+  'AdInsightBreakdown',
+  'ChatbotFlow',
+  'ChatbotSession',
 ] as const
 
 export type TenantScopedModel = (typeof TENANT_SCOPED_MODELS)[number]

@@ -52,3 +52,6 @@ Thumbs.db
 
 # Redis snapshots
 dump.rdb
+
+# Installed AI skills (local design toolkit)
+.claude/skills/

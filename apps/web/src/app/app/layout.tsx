@@ -238,6 +238,14 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
             ))}
 
             <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              {/* Settings is workspace furniture, not a module — always reachable. */}
+              <Link
+                href="/app/settings/organization"
+                className={`nav-item ${pathname.startsWith('/app/settings') ? 'active' : ''}`}
+              >
+                <Icon name="settings" size={17} style={{ opacity: 0.9 }} />
+                Settings
+              </Link>
               <div className="nav-item" style={{ cursor: 'default' }}>
                 <span className="avatar">
                   {(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}

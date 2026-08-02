@@ -23,8 +23,10 @@ const RETIRED_CATEGORIES = new Set(['Commerce', 'Support', 'Communication', 'Aut
 
 const SECTION_ORDER: Record<string, number> = {
   Overview: 0,
-  Marketing: 1,
-  AI: 2,
+  Create: 1,
+  Channels: 2,
+  Marketing: 3,
+  AI: 3,
   Automation: 3,
   Analytics: 4,
   CRM: 5,

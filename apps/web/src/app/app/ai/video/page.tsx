@@ -42,7 +42,7 @@ export default function AiVideoPage() {
   return (
     <>
       <PageHeader
-        title="Video Studio"
+        title="Video Generation"
         subtitle="Generate short clips on demand — and browse every video the system has made for you."
       />
 

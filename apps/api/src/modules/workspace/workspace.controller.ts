@@ -21,8 +21,12 @@ import { DATABASE } from '../../infrastructure/database.module.js'
 /** Categories retired from the product — mirrors the operator catalog. */
 const RETIRED_CATEGORIES = new Set(['Commerce', 'Support', 'Communication', 'Automation'])
 
+/** Sections that no longer render in the client sidebar (pages stay routable). */
+const HIDDEN_NAV_SECTIONS = new Set(['AI'])
+
 const SECTION_ORDER: Record<string, number> = {
   Overview: 0,
+  'AI Engine': 1,
   Create: 1,
   Channels: 2,
   Marketing: 3,
@@ -136,6 +140,9 @@ export class WorkspaceController {
       // Retired categories never render, even for orgs still holding stale
       // assignments — the product no longer offers them.
       if (RETIRED_CATEGORIES.has(feature.category)) return false
+      // The AI grab-bag section is retired from the sidebar: its useful surfaces
+      // (image/video generation) moved into the AI Engine section.
+      if (HIDDEN_NAV_SECTIONS.has(feature.navEntry.section)) return false
       if (!entitlements.features.has(feature.id)) return false
       // Every permission the feature requires must be held, or the menu item
       // would lead to a 403.

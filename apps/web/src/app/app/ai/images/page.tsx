@@ -53,7 +53,7 @@ export default function AiImagesPage() {
   return (
     <>
       <PageHeader
-        title="Image Studio"
+        title="Image Generation"
         subtitle="Generate images on demand — and browse every poster the system has made for you."
       />
 

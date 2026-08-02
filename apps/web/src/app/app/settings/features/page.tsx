@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge } from '@/components/ui'
 
 interface Workspace {
@@ -49,7 +50,7 @@ export default function FeaturesPage() {
           hint="Ask your platform administrator to enable modules."
         />
       ) : (
-        <div className="stack">
+        <FadeIn delay={0.12} className="stack">
           {[...groups.entries()].map(([cat, features]) => (
             <div key={cat} className="card">
               <h3 style={{ textTransform: 'capitalize', marginBottom: 12 }}>{cat}</h3>
@@ -62,7 +63,7 @@ export default function FeaturesPage() {
               </div>
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
       <p className="dim" style={{ fontSize: 12, marginTop: 16 }}>
         Modules are provisioned for your workspace by your account manager. To enable more modules,

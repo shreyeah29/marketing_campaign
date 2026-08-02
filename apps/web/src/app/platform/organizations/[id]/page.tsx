@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { OrgDetail, OrgStatus } from '@/lib/types'
 import { Badge, Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
 const NEXT_STATUS: Record<OrgStatus, { label: string; status: OrgStatus; danger?: boolean }[]> = {
   ACTIVE: [{ label: 'Suspend', status: 'SUSPENDED' }],
@@ -87,14 +88,22 @@ export default function OrganizationDetailPage() {
 
       <SetupTracker setup={org.setup} />
 
-      <div className="cols-4 grid" style={{ marginBottom: 22 }}>
-        <Stat label="Members" value={org.usage.members} />
-        <Stat label="Leads" value={org.usage.leads} />
-        <Stat label="Campaigns" value={org.usage.campaigns} />
-        <Stat label="Assets generated" value={org.usage.assets} />
-      </div>
+      <Stagger className="cols-4 grid" style={{ marginBottom: 22 }} interval={0.05}>
+        <StaggerItem>
+          <Stat label="Members" value={org.usage.members} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Leads" value={org.usage.leads} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Campaigns" value={org.usage.campaigns} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Assets generated" value={org.usage.assets} />
+        </StaggerItem>
+      </Stagger>
 
-      <div className="cols-2 grid">
+      <FadeIn delay={0.12} className="cols-2 grid">
         {/* Company & brand profile */}
         <div className="card">
           <div className="row" style={{ gap: 12, marginBottom: 14 }}>
@@ -234,10 +243,10 @@ export default function OrganizationDetailPage() {
             </div>
           )}
         </div>
-      </div>
+      </FadeIn>
 
       {/* Enabled modules */}
-      <div className="card mt">
+      <FadeIn delay={0.18} className="card mt">
         <div className="spread" style={{ marginBottom: 14 }}>
           <h3>Enabled modules</h3>
           <Badge status="info">{org.features.length}</Badge>
@@ -249,7 +258,7 @@ export default function OrganizationDetailPage() {
             </span>
           ))}
         </div>
-      </div>
+      </FadeIn>
     </>
   )
 }

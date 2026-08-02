@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 
 interface AgentDef {
   id: string
@@ -69,7 +70,7 @@ export default function AiSettingsPage() {
       ) : !agents || agents.length === 0 ? (
         <EmptyState icon="bot" title="No agents available" />
       ) : (
-        <div className="stack" style={{ gap: 12 }}>
+        <FadeIn delay={0.12} className="stack" style={{ gap: 12 }}>
           {agents.map((a) => (
             <div key={a.id} className="card spread" style={{ alignItems: 'center' }}>
               <div>
@@ -89,7 +90,7 @@ export default function AiSettingsPage() {
               </label>
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
     </>
   )

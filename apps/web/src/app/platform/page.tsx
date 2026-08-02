@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { OrgListItem } from '@/lib/types'
 import { Badge, Banner, LoadingScreen, Stat } from '@/components/ui'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
 export default function OrganizationsPage() {
   const router = useRouter()
@@ -46,14 +47,22 @@ export default function OrganizationsPage() {
         </Link>
       </div>
 
-      <div className="cols-4 grid" style={{ marginBottom: 22 }}>
-        <Stat label="Total" value={orgs.length} />
-        <Stat label="Active" value={active} />
-        <Stat label="Trial" value={trial} />
-        <Stat label="Suspended" value={suspended} />
-      </div>
+      <Stagger className="cols-4 grid" style={{ marginBottom: 22 }} interval={0.05}>
+        <StaggerItem>
+          <Stat label="Total" value={orgs.length} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Active" value={active} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Trial" value={trial} />
+        </StaggerItem>
+        <StaggerItem>
+          <Stat label="Suspended" value={suspended} />
+        </StaggerItem>
+      </Stagger>
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <FadeIn delay={0.12} className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {orgs.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center' }} className="muted">
             No organizations yet.{' '}
@@ -119,7 +128,7 @@ export default function OrganizationsPage() {
             </table>
           </div>
         )}
-      </div>
+      </FadeIn>
     </>
   )
 }

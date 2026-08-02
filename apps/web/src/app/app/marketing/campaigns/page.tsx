@@ -6,6 +6,7 @@ import { ApiError, api } from '@/lib/api'
 import { ConfirmDialog, EmptyState, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon, type IconName } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 import { PlatformIcon } from '@/components/platform-icon'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -264,7 +265,7 @@ function PromptView({
 }) {
   return (
     <div style={{ paddingBottom: 40 }}>
-      <div className="cmp-hero">
+      <FadeIn className="cmp-hero">
         <span
           className="pill"
           style={{
@@ -335,10 +336,10 @@ function PromptView({
         </div>
 
         <TemplatePicker onPick={(text) => setPrompt(text)} />
-      </div>
+      </FadeIn>
 
       {recent.length > 0 ? (
-        <div style={{ maxWidth: 760, margin: '48px auto 0', padding: '0 16px' }}>
+        <FadeIn delay={0.12} style={{ maxWidth: 760, margin: '48px auto 0', padding: '0 16px' }}>
           <div
             className="dim"
             style={{
@@ -372,7 +373,7 @@ function PromptView({
               </button>
             ))}
           </div>
-        </div>
+        </FadeIn>
       ) : null}
     </div>
   )
@@ -526,7 +527,7 @@ function WorkspaceView({
         </div>
       </div>
 
-      <div className="cmp-ws">
+      <FadeIn delay={0.12} className="cmp-ws">
         <nav className="cmp-ws-nav">
           {SECTIONS.map((s) => {
             const n = countFor(s)
@@ -561,7 +562,7 @@ function WorkspaceView({
             <SectionView section={section} campaign={campaign} assets={assets} onOpen={setActive} />
           )}
         </div>
-      </div>
+      </FadeIn>
     </>
   )
 }

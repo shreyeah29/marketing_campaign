@@ -13,6 +13,7 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -121,12 +122,20 @@ export default function TicketsPage() {
         }
       />
 
-      <div className="cols-4 grid" style={{ gap: 12, marginBottom: 18 }}>
-        <StatCard label="Open" value={summary?.open ?? '—'} />
-        <StatCard label="Pending" value={summary?.pending ?? '—'} />
-        <StatCard label="Resolved" value={summary?.resolved ?? '—'} />
-        <StatCard label="Total" value={summary?.total ?? '—'} />
-      </div>
+      <Stagger className="cols-4 grid" interval={0.05} style={{ gap: 12, marginBottom: 18 }}>
+        <StaggerItem>
+          <StatCard label="Open" value={summary?.open ?? '—'} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard label="Pending" value={summary?.pending ?? '—'} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard label="Resolved" value={summary?.resolved ?? '—'} />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard label="Total" value={summary?.total ?? '—'} />
+        </StaggerItem>
+      </Stagger>
 
       <div className="tabs" style={{ marginBottom: 14 }}>
         {FILTERS.map((f) => (
@@ -156,7 +165,7 @@ export default function TicketsPage() {
           }
         />
       ) : (
-        <div className="table-wrap">
+        <FadeIn delay={0.12} className="table-wrap">
           <table className="table">
             <thead>
               <tr>
@@ -192,7 +201,7 @@ export default function TicketsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FadeIn>
       )}
 
       {creating ? (

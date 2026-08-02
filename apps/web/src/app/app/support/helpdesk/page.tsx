@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 
 import { PageHeader, SearchInput } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
 
 interface Article {
@@ -70,9 +71,9 @@ export default function HelpdeskPage() {
     <>
       <PageHeader title="Help center" subtitle="Answers to common questions, built right in" />
 
-      <div className="card" style={{ marginBottom: 18 }}>
+      <FadeIn delay={0.12} className="card" style={{ marginBottom: 18 }}>
         <SearchInput value={query} onChange={setQuery} placeholder="Search help articles…" />
-      </div>
+      </FadeIn>
 
       {results.length === 0 ? (
         <div className="state">
@@ -123,7 +124,8 @@ export default function HelpdeskPage() {
         </div>
       )}
 
-      <div
+      <FadeIn
+        delay={0.18}
         className="card"
         style={{
           display: 'flex',
@@ -143,7 +145,7 @@ export default function HelpdeskPage() {
         <a className="btn primary" href="/app/support/tickets">
           Open a ticket
         </a>
-      </div>
+      </FadeIn>
     </>
   )
 }

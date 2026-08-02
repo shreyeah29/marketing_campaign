@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge } from '@/components/ui'
 
 interface Notification {
@@ -77,7 +78,7 @@ export default function NotificationsPage() {
           hint="Notifications will appear here."
         />
       ) : (
-        <div className="stack" style={{ gap: 8 }}>
+        <FadeIn delay={0.12} className="stack" style={{ gap: 8 }}>
           {rows.map((n) => (
             <div key={n.id} className="card spread" style={{ opacity: isRead(n) ? 0.6 : 1 }}>
               <div>
@@ -99,7 +100,7 @@ export default function NotificationsPage() {
               ) : null}
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
     </>
   )

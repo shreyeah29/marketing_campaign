@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { Drawer, EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge, Field, LoadingScreen, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -195,7 +196,8 @@ export default function WorkflowBuilderPage() {
         }
       />
 
-      <div
+      <FadeIn
+        delay={0.12}
         className="split grid"
         style={{ gridTemplateColumns: '1fr 320px', gap: 18, alignItems: 'start' }}
       >
@@ -428,7 +430,7 @@ export default function WorkflowBuilderPage() {
             </div>
           )}
         </div>
-      </div>
+      </FadeIn>
 
       {openRun ? (
         <Drawer

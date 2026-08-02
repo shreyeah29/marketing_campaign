@@ -13,6 +13,7 @@ import {
   useToast,
   type Column,
 } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge, Field } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -149,7 +150,9 @@ export default function UsersSettingsPage() {
           hint="Invite your first teammate to collaborate."
         />
       ) : (
-        <DataTable columns={columns} rows={rows} />
+        <FadeIn delay={0.12}>
+          <DataTable columns={columns} rows={rows} />
+        </FadeIn>
       )}
 
       <Drawer

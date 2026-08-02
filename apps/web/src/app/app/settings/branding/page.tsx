@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Field } from '@/components/ui'
 
 interface Branding {
@@ -74,7 +75,7 @@ export default function BrandingSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : (
-        <div className="card" style={{ maxWidth: 640 }}>
+        <FadeIn delay={0.12} className="card" style={{ maxWidth: 640 }}>
           <Field label="Display name">
             <input
               className="input"
@@ -122,7 +123,7 @@ export default function BrandingSettingsPage() {
               {saving ? 'Saving…' : 'Save branding'}
             </button>
           </div>
-        </div>
+        </FadeIn>
       )}
     </>
   )

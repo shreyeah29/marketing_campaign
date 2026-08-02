@@ -12,6 +12,7 @@ import {
   TableSkeleton,
   type Column,
 } from '@/components/kit'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
 interface ProviderUsage {
   id: string
@@ -88,15 +89,26 @@ export default function AiUsagePage() {
         />
       ) : (
         <>
-          <div className="cols-4 grid" style={{ marginBottom: 22 }}>
-            <StatCard label="Total cost" value={money(data.totalCostUsd)} />
-            <StatCard label="Total calls" value={(data.totalCalls ?? 0).toLocaleString()} />
-            <StatCard label="Input tokens" value={(data.totalInputTokens ?? 0).toLocaleString()} />
-            <StatCard
-              label="Output tokens"
-              value={(data.totalOutputTokens ?? 0).toLocaleString()}
-            />
-          </div>
+          <Stagger className="cols-4 grid" style={{ marginBottom: 22 }} interval={0.05}>
+            <StaggerItem>
+              <StatCard label="Total cost" value={money(data.totalCostUsd)} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Total calls" value={(data.totalCalls ?? 0).toLocaleString()} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard
+                label="Input tokens"
+                value={(data.totalInputTokens ?? 0).toLocaleString()}
+              />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard
+                label="Output tokens"
+                value={(data.totalOutputTokens ?? 0).toLocaleString()}
+              />
+            </StaggerItem>
+          </Stagger>
           {rows.length === 0 ? (
             <EmptyState
               icon="bot"
@@ -104,7 +116,9 @@ export default function AiUsagePage() {
               hint="Per-provider usage appears as agents run."
             />
           ) : (
-            <DataTable columns={columns} rows={rows} />
+            <FadeIn delay={0.12}>
+              <DataTable columns={columns} rows={rows} />
+            </FadeIn>
           )}
         </>
       )}

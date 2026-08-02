@@ -14,6 +14,7 @@ import {
   useToast,
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
+import { Stagger, StaggerItem } from '@/components/motion'
 
 interface LeadForm {
   id: string
@@ -82,9 +83,9 @@ export default function FormsPage() {
           hint="Create your first lead capture form, publish it, and share the link anywhere."
         />
       ) : (
-        <div className="stack" style={{ gap: 10 }}>
+        <Stagger className="stack" interval={0.05} style={{ gap: 10 }}>
           {forms.map((f) => (
-            <div key={f.id} className="card" style={{ padding: 14 }}>
+            <StaggerItem key={f.id} className="card" style={{ padding: 14 }}>
               <div className="spread" style={{ alignItems: 'flex-start' }}>
                 <button
                   className="stack"
@@ -132,9 +133,9 @@ export default function FormsPage() {
                   </a>
                 </div>
               ) : null}
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {creating ? (

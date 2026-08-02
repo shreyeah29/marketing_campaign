@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge } from '@/components/ui'
 
 interface RoleDef {
@@ -48,7 +49,7 @@ export default function RolesSettingsPage() {
       ) : !roles || roles.length === 0 ? (
         <EmptyState icon="shield" title="No roles defined" />
       ) : (
-        <div className="stack" style={{ gap: 16 }}>
+        <FadeIn delay={0.12} className="stack" style={{ gap: 16 }}>
           {roles.map((r) => (
             <div key={r.role} className="card">
               <div className="spread" style={{ marginBottom: 12 }}>
@@ -70,7 +71,7 @@ export default function RolesSettingsPage() {
               </div>
             </div>
           ))}
-        </div>
+        </FadeIn>
       )}
     </>
   )

@@ -14,6 +14,7 @@ import {
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { PlatformIcon } from '@/components/platform-icon'
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -232,9 +233,9 @@ export function SocialHub({ locked }: { locked?: string }) {
           hint="Connect an account to start scheduling posts."
         />
       ) : (
-        <div className="cols-2 grid" style={{ marginBottom: 24 }}>
+        <Stagger className="cols-2 grid" interval={0.05} style={{ marginBottom: 24 }}>
           {connected.map((a) => (
-            <div key={a.id} className="card">
+            <StaggerItem key={a.id} className="card">
               <div className="spread">
                 <div className="row" style={{ gap: 10 }}>
                   <PlatformIcon
@@ -259,9 +260,9 @@ export function SocialHub({ locked }: { locked?: string }) {
                   Disconnect
                 </button>
               </div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
 
       {/* ── Composer ────────────────────────────────────────────────────── */}
@@ -279,7 +280,7 @@ export function SocialHub({ locked }: { locked?: string }) {
           hint="Compose a post above — or approve a campaign creative and publish it here."
         />
       ) : (
-        <div className="stack" style={{ gap: 10 }}>
+        <FadeIn delay={0.18} className="stack" style={{ gap: 10 }}>
           {visiblePosts.map((p) => (
             <PostCard
               key={p.id}
@@ -288,7 +289,7 @@ export function SocialHub({ locked }: { locked?: string }) {
               onDeleted={load}
             />
           ))}
-        </div>
+        </FadeIn>
       )}
 
       {connectOpen ? (
@@ -461,7 +462,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
   }
 
   return (
-    <div className="card">
+    <FadeIn delay={0.12} className="card">
       <Field label="Post">
         <textarea
           className="input"
@@ -528,7 +529,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
           {busy === 'now' ? <Spinner /> : 'Post now'}
         </button>
       </div>
-    </div>
+    </FadeIn>
   )
 }
 

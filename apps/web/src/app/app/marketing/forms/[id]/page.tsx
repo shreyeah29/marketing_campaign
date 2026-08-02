@@ -8,6 +8,7 @@ import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, Tabs, TableSkeleton, useToast } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
 type FieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select'
 
@@ -218,7 +219,7 @@ function BuilderTab({
 
   return (
     <div style={{ marginTop: 16 }}>
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+      <FadeIn delay={0.12} className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="cols-2 grid">
           <Field label="Name">
             <input
@@ -277,9 +278,9 @@ function BuilderTab({
             onChange={(e) => set('successMessage', e.target.value)}
           />
         </Field>
-      </div>
+      </FadeIn>
 
-      <div className="card" style={{ padding: 16 }}>
+      <FadeIn delay={0.18} className="card" style={{ padding: 16 }}>
         <div className="spread" style={{ marginBottom: 10 }}>
           <span style={{ fontWeight: 600 }}>Fields</span>
           <button className="btn sm" onClick={addField}>
@@ -377,7 +378,7 @@ function BuilderTab({
             ))}
           </div>
         )}
-      </div>
+      </FadeIn>
 
       <div className="toolbar" style={{ marginTop: 16 }}>
         <button className="btn primary" disabled={saving} onClick={() => void save()}>
@@ -413,10 +414,14 @@ function SubmissionsTab({ formId }: { formId: string }) {
   return (
     <div style={{ marginTop: 16 }}>
       {stats ? (
-        <div className="cols-2 grid" style={{ marginBottom: 16 }}>
-          <StatCard label="Total submissions" value={stats.submitCount} />
-          <StatCard label="Last 7 days" value={stats.last7Days} />
-        </div>
+        <Stagger className="cols-2 grid" interval={0.05} style={{ marginBottom: 16 }}>
+          <StaggerItem>
+            <StatCard label="Total submissions" value={stats.submitCount} />
+          </StaggerItem>
+          <StaggerItem>
+            <StatCard label="Last 7 days" value={stats.last7Days} />
+          </StaggerItem>
+        </Stagger>
       ) : null}
 
       {!rows ? (
@@ -426,7 +431,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
           <div className="dim">No submissions yet.</div>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+        <FadeIn delay={0.12} className="card" style={{ padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
@@ -492,7 +497,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
               ))}
             </tbody>
           </table>
-        </div>
+        </FadeIn>
       )}
     </div>
   )

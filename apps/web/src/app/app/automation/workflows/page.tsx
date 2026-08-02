@@ -12,6 +12,7 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -95,7 +96,7 @@ export default function WorkflowsPage() {
           }
         />
       ) : (
-        <div className="table-wrap">
+        <FadeIn delay={0.12} className="table-wrap">
           <table className="table">
             <thead>
               <tr>
@@ -135,7 +136,7 @@ export default function WorkflowsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FadeIn>
       )}
 
       <Drawer

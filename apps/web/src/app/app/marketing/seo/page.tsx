@@ -2,6 +2,7 @@
 
 import { PageHeader } from '@/components/kit'
 import { Icon, type IconName } from '@/components/icon'
+import { Stagger, StaggerItem } from '@/components/motion'
 
 const CHECKS: { icon: IconName; title: string; body: string }[] = [
   {
@@ -43,9 +44,9 @@ export default function SeoPage() {
         title="SEO"
         subtitle="A checklist of the fundamentals that help your pages rank."
       />
-      <div className="cols-3 grid">
+      <Stagger className="cols-3 grid" interval={0.05}>
         {CHECKS.map((c) => (
-          <div key={c.title} className="card">
+          <StaggerItem key={c.title} className="card">
             <div className="state-badge" style={{ margin: '0 0 8px' }}>
               <Icon name={c.icon} size={22} />
             </div>
@@ -53,9 +54,9 @@ export default function SeoPage() {
             <p className="muted" style={{ lineHeight: 1.5 }}>
               {c.body}
             </p>
-          </div>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
     </>
   )
 }

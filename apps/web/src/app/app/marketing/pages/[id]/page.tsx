@@ -8,6 +8,7 @@ import { ConfirmDialog, ErrorState, PageHeader, useToast } from '@/components/ki
 import { Badge, Field, Spinner } from '@/components/ui'
 import { PageBlocks, type Block } from '@/components/page-blocks'
 import { Icon } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 
 interface LandingPage {
   id: string
@@ -250,7 +251,8 @@ export default function LandingPageBuilder() {
         </button>
       </div>
 
-      <div
+      <FadeIn
+        delay={0.12}
         className="split"
         style={{
           display: 'grid',
@@ -365,7 +367,7 @@ export default function LandingPageBuilder() {
             )}
           </div>
         </div>
-      </div>
+      </FadeIn>
 
       <ConfirmDialog
         open={confirmDelete}

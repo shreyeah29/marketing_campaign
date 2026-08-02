@@ -11,6 +11,7 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 
@@ -238,7 +239,8 @@ export default function InboxPage() {
       ) : rows === null ? (
         <TableSkeleton cols={2} />
       ) : (
-        <div
+        <FadeIn
+          delay={0.12}
           className="split grid"
           style={{
             gridTemplateColumns: '300px 1fr',
@@ -418,7 +420,7 @@ export default function InboxPage() {
               </>
             )}
           </div>
-        </div>
+        </FadeIn>
       )}
 
       <Drawer

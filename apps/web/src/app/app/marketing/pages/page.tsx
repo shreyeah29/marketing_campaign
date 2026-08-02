@@ -14,6 +14,7 @@ import {
 } from '@/components/kit'
 import { Badge, Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { FadeIn } from '@/components/motion'
 
 interface LandingPageRow {
   id: string
@@ -100,7 +101,7 @@ export default function LandingPagesListPage() {
           hint="Create your first page, add blocks, then publish it to a public URL."
         />
       ) : (
-        <div className="table-wrap">
+        <FadeIn delay={0.12} className="table-wrap">
           <table className="table">
             <thead>
               <tr>
@@ -152,7 +153,7 @@ export default function LandingPagesListPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </FadeIn>
       )}
 
       {creating ? (

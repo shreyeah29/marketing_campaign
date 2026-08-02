@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, TableSkeleton } from '@/components/kit'
+import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { BarChart, LineChart } from '@/components/charts'
 
 interface TimeseriesPoint {
@@ -92,24 +93,32 @@ export default function ReportsPage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="stack" style={{ gap: 22 }}>
-          <div className="cols-4 grid">
-            <StatCard label="Total leads" value={totalLeads.toLocaleString()} />
-            <StatCard label="Qualified" value={qualified.toLocaleString()} />
-            <StatCard label="Converted" value={converted.toLocaleString()} />
-            <StatCard label="Conversion rate" value={`${conversionRate}%`} />
-          </div>
+          <Stagger className="cols-4 grid" interval={0.05}>
+            <StaggerItem>
+              <StatCard label="Total leads" value={totalLeads.toLocaleString()} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Qualified" value={qualified.toLocaleString()} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Converted" value={converted.toLocaleString()} />
+            </StaggerItem>
+            <StaggerItem>
+              <StatCard label="Conversion rate" value={`${conversionRate}%`} />
+            </StaggerItem>
+          </Stagger>
 
-          <div className="card">
+          <FadeIn delay={0.12} className="card">
             <div style={{ fontWeight: 600, marginBottom: 12 }}>New leads over time</div>
             <LineChart data={leadsLine} />
-          </div>
+          </FadeIn>
 
-          <div className="card">
+          <FadeIn delay={0.18} className="card">
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Leads funnel by stage</div>
             <BarChart data={funnelBars} />
-          </div>
+          </FadeIn>
 
-          <div className="card">
+          <FadeIn delay={0.18} className="card">
             <div style={{ fontWeight: 600, marginBottom: 12 }}>Channel performance</div>
             <div className="table-wrap">
               <table className="table">
@@ -153,7 +162,7 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </FadeIn>
         </div>
       )}
     </>

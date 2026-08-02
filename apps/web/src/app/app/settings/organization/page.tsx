@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
 import { Field } from '@/components/ui'
+import { MetaConnectCard } from '@/components/meta-connect'
 
 interface OrgSettings {
   tagline?: string | null
@@ -131,6 +132,9 @@ export default function OrganizationSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* Channel connections — Meta powers ads, lead capture and insights. */}
+      <MetaConnectCard />
     </>
   )
 }

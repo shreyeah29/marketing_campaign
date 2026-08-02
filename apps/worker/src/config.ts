@@ -40,6 +40,10 @@ const schema = z.object({
   /** Platform OpenAI key — used to embed knowledge-base documents. Unset → the
    *  embeddings handler fails the document with a clear reason (never fakes it). */
   OPENAI_API_KEY: z.string().optional(),
+  /** Meta Graph API — used by the Meta poller (leadgen capture + insights sync).
+   *  Unset secret → calls go without appsecret_proof; version has a safe default. */
+  META_APP_SECRET: z.string().optional(),
+  META_GRAPH_VERSION: z.string().default('v21.0'),
 })
 
 export type WorkerEnv = z.infer<typeof schema>

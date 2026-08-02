@@ -20,6 +20,7 @@ import {
   type QueuePolicy,
   type TenantJobData,
 } from './queues.js'
+import { MetaPoller } from './meta/poller.js'
 import { SchedulePoller } from './schedule-poller.js'
 import { createWorkflowHandler } from './workflow/executor.js'
 
@@ -252,6 +253,11 @@ async function bootstrap(): Promise<void> {
   const schedulePoller = new SchedulePoller(dispatcherDb, env, logger)
   schedulePoller.start()
 
+  // Meta lead capture + insights sync. Owner connection: webhook events carry
+  // no organisation until this poller resolves it, and the sync spans tenants.
+  const metaPoller = new MetaPoller(dispatcherDb, env, logger)
+  metaPoller.start()
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'shutting down worker')
 
@@ -260,6 +266,7 @@ async function bootstrap(): Promise<void> {
     // BullMQ would only reclaim them after the stalled interval.
     await dispatcher.stop()
     await schedulePoller.stop()
+    await metaPoller.stop()
     await Promise.all(workers.map((worker) => worker.close()))
     await bullRedis.quit()
     await db.$disconnect()

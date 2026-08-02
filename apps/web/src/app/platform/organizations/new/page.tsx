@@ -135,13 +135,17 @@ export default function NewOrganizationPage() {
     setBusy(true)
     setSubmitError(null)
     const year = Number.parseInt(registeredYear, 10)
+    // The API validates website as a full URL — people type "acme.com", so add
+    // the scheme for them rather than bouncing the form.
+    const site = website.trim()
+    const normalizedSite = site && !/^https?:\/\//i.test(site) ? `https://${site}` : site
     const input: ProvisionInput = {
       company: {
         name: name.trim(),
         slug: effectiveSlug,
         ...(industry.trim() ? { industry: industry.trim() } : {}),
-        ...(website.trim() ? { website: website.trim() } : {}),
-        ...(Number.isFinite(year) ? { registeredYear: year } : {}),
+        ...(normalizedSite ? { website: normalizedSite } : {}),
+        ...(Number.isFinite(year) && year >= 1800 && year <= 2100 ? { registeredYear: year } : {}),
         ...(description.trim() ? { description: description.trim() } : {}),
       },
       profile: {

@@ -79,7 +79,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   if (!res.ok) {
     const problem = (data ?? {}) as Partial<Problem>
     throw new ApiError(
-      problem.detail ?? problem.title ?? `Request failed (${String(res.status)})`,
+      problemMessage(data, res.status),
       res.status,
       problem.code ?? 'unknown',
       data as Problem,
@@ -87,6 +87,34 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   }
 
   return data as T
+}
+
+/**
+ * The API reports errors in two shapes: an RFC-7807 problem (detail/title as
+ * strings) or a NestJS validation error whose `message` is an ARRAY of zod
+ * issues. Rendering the latter directly gives "[object Object]" — flatten it
+ * into the human sentence the user actually needs.
+ */
+function problemMessage(data: unknown, status: number): string {
+  const p = (data ?? {}) as Record<string, unknown>
+  for (const candidate of [p['detail'], p['title'], p['message']]) {
+    if (typeof candidate === 'string' && candidate.length > 0) return candidate
+    if (Array.isArray(candidate)) {
+      const parts = candidate
+        .map((issue) => {
+          if (typeof issue === 'string') return issue
+          if (issue && typeof issue === 'object' && 'message' in issue) {
+            const i = issue as { path?: unknown; message?: unknown }
+            const path = Array.isArray(i.path) && i.path.length > 0 ? `${i.path.join('.')}: ` : ''
+            return typeof i.message === 'string' ? `${path}${i.message}` : null
+          }
+          return null
+        })
+        .filter((s): s is string => s !== null)
+      if (parts.length > 0) return parts.join(' · ')
+    }
+  }
+  return `Request failed (${String(status)})`
 }
 
 export const api = {

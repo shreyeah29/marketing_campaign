@@ -12,6 +12,7 @@ import {
 
 import { Icon, isIconName } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
+import { Sparkline } from '@/components/charts'
 
 /* ────────────────────────────────────────────────────────────────────────────
  * The shared UI kit. Every feature page is built from these primitives, so the
@@ -102,6 +103,34 @@ export function TableSkeleton({ rows = 6, cols = 4 }: { rows?: number; cols?: nu
   )
 }
 
+export function CardSkeleton({ count = 3 }: { count?: number }) {
+  return (
+    <div className="cols-3 grid" style={{ gap: 'var(--space-4)' }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="skeleton-card">
+          <div className="skeleton" style={{ width: '40%', height: 10 }} />
+          <div className="skeleton" style={{ width: '90%', height: 14 }} />
+          <div className="skeleton" style={{ width: '70%', height: 14 }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function TileSkeleton({ count = 4 }: { count?: number }) {
+  return (
+    <div className="cols-4 grid" style={{ gap: 'var(--space-4)' }}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="skeleton-tile" />
+      ))}
+    </div>
+  )
+}
+
+export function ChartSkeleton({ height = 200 }: { height?: number }) {
+  return <div className="skeleton-chart" style={{ height }} />
+}
+
 // ── "Provider not configured" — the graceful AI/email degradation ──────────────
 export function ProviderNotConfigured({
   what = 'This feature',
@@ -180,6 +209,48 @@ export interface Column<T> {
   width?: string
 }
 
+const DENSITY_KEY = 'vsp:density'
+type Density = 'comfortable' | 'compact'
+
+function useDensity(): [Density, (d: Density) => void] {
+  const [density, setDensityState] = useState<Density>(() => {
+    if (typeof window === 'undefined') return 'comfortable'
+    const stored = window.localStorage.getItem(DENSITY_KEY)
+    return stored === 'compact' ? 'compact' : 'comfortable'
+  })
+  const setDensity = useCallback((d: Density) => {
+    setDensityState(d)
+    try {
+      window.localStorage.setItem(DENSITY_KEY, d)
+    } catch {
+      /* ignore quota */
+    }
+  }, [])
+  return [density, setDensity]
+}
+
+export function DensityToggle() {
+  const [density, setDensity] = useDensity()
+  return (
+    <div className="table-density-toggle" role="group" aria-label="Table density">
+      <button
+        type="button"
+        aria-pressed={density === 'comfortable'}
+        onClick={() => setDensity('comfortable')}
+      >
+        Comfortable
+      </button>
+      <button
+        type="button"
+        aria-pressed={density === 'compact'}
+        onClick={() => setDensity('compact')}
+      >
+        Compact
+      </button>
+    </div>
+  )
+}
+
 export function DataTable<T extends { id: string }>({
   columns,
   rows,
@@ -190,6 +261,7 @@ export function DataTable<T extends { id: string }>({
   actions,
   sort,
   onSort,
+  showDensityToggle,
 }: {
   columns: Column<T>[]
   rows: T[]
@@ -200,7 +272,9 @@ export function DataTable<T extends { id: string }>({
   actions?: ((row: T) => ReactNode) | undefined
   sort?: { key: string; dir: 'asc' | 'desc' } | undefined
   onSort?: ((key: string) => void) | undefined
+  showDensityToggle?: boolean | undefined
 }) {
+  const [density] = useDensity()
   const allSelected = selectable && rows.length > 0 && rows.every((r) => selected?.has(r.id))
   function toggleAll() {
     if (!onSelectionChange) return
@@ -215,57 +289,68 @@ export function DataTable<T extends { id: string }>({
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            {selectable ? (
-              <th style={{ width: 36 }}>
-                <input type="checkbox" checked={allSelected ?? false} onChange={toggleAll} />
-              </th>
-            ) : null}
-            {columns.map((c) => (
-              <th
-                key={c.key}
-                className={c.sortable ? 'sortable' : ''}
-                style={c.width ? { width: c.width } : undefined}
-                onClick={c.sortable && onSort ? () => onSort(c.key) : undefined}
-              >
-                {c.header}
-                {sort?.key === c.key ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}
-              </th>
-            ))}
-            {actions ? <th style={{ width: 80 }} /> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
-              key={row.id}
-              className={onRowClick ? 'row-link' : ''}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-            >
+    <div className="stack" style={{ gap: 'var(--space-3)' }}>
+      {showDensityToggle ? (
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <DensityToggle />
+        </div>
+      ) : null}
+      <div className="table-wrap" data-density={density}>
+        <table className="table">
+          <thead>
+            <tr>
               {selectable ? (
-                <td onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selected?.has(row.id) ?? false}
-                    onChange={() => toggle(row.id)}
-                  />
-                </td>
+                <th style={{ width: 36 }}>
+                  <input type="checkbox" checked={allSelected ?? false} onChange={toggleAll} />
+                </th>
               ) : null}
               {columns.map((c) => (
-                <td key={c.key}>{c.render(row)}</td>
+                <th
+                  key={c.key}
+                  className={c.sortable ? 'sortable' : ''}
+                  style={c.width ? { width: c.width } : undefined}
+                  onClick={c.sortable && onSort ? () => onSort(c.key) : undefined}
+                >
+                  {c.header}
+                  {sort?.key === c.key ? (
+                    <span className="sort-ind" aria-hidden>
+                      <Icon name={sort.dir === 'asc' ? 'chevron-up' : 'chevron-down'} size={12} />
+                    </span>
+                  ) : null}
+                </th>
               ))}
-              {actions ? (
-                <td className="actions" onClick={(e) => e.stopPropagation()}>
-                  {actions(row)}
-                </td>
-              ) : null}
+              {actions ? <th style={{ width: 80 }} /> : null}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr
+                key={row.id}
+                className={onRowClick ? 'row-link' : ''}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+              >
+                {selectable ? (
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selected?.has(row.id) ?? false}
+                      onChange={() => toggle(row.id)}
+                    />
+                  </td>
+                ) : null}
+                {columns.map((c) => (
+                  <td key={c.key}>{c.render(row)}</td>
+                ))}
+                {actions ? (
+                  <td className="actions" onClick={(e) => e.stopPropagation()}>
+                    {actions(row)}
+                  </td>
+                ) : null}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -395,7 +480,45 @@ export function useToast() {
   )
 }
 
-// ── Stat card ──────────────────────────────────────────────────────────────────
+// ── Metric tile (brief) — replaces Stat / StatCard ─────────────────────────────
+export function MetricTile({
+  label,
+  value,
+  delta,
+  sparkline,
+  onClick,
+}: {
+  label: string
+  value: ReactNode
+  delta?: { dir: 'up' | 'down'; text: string } | undefined
+  sparkline?: number[] | undefined
+  onClick?: (() => void) | undefined
+}) {
+  const body = (
+    <>
+      <div className="metric-tile__label">{label}</div>
+      <div className="metric-tile__value">{value}</div>
+      {delta ? (
+        <div className="metric-tile__delta" data-dir={delta.dir}>
+          {delta.text}
+        </div>
+      ) : null}
+      {sparkline && sparkline.length > 0 ? (
+        <Sparkline values={sparkline} width={96} height={28} />
+      ) : null}
+    </>
+  )
+  if (onClick) {
+    return (
+      <button type="button" className="metric-tile" data-clickable="" onClick={onClick}>
+        {body}
+      </button>
+    )
+  }
+  return <div className="metric-tile">{body}</div>
+}
+
+/** @deprecated Prefer MetricTile. */
 export function StatCard({
   label,
   value,
@@ -403,13 +526,7 @@ export function StatCard({
 }: {
   label: string
   value: ReactNode
-  delta?: { dir: 'up' | 'down'; text: string }
+  delta?: { dir: 'up' | 'down'; text: string } | undefined
 }) {
-  return (
-    <div className="card kpi">
-      <div className="k">{label}</div>
-      <div className="v">{value}</div>
-      {delta ? <div className={`delta ${delta.dir}`}>{delta.text}</div> : null}
-    </div>
-  )
+  return <MetricTile label={label} value={value} {...(delta ? { delta } : {})} />
 }

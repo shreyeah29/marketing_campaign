@@ -8,6 +8,7 @@ import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { PlatformIcon } from '@/components/platform-icon'
 import { FadeIn } from '@/components/motion'
+import { Chip } from '@/components/status'
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Content calendar — one month, every platform: what went out, what's queued,
@@ -176,7 +177,7 @@ export default function ContentCalendarPage() {
       ) : (
         <FadeIn>
           <div className="row" style={{ gap: 8, marginBottom: 12 }}>
-            <span className="badge info">{monthTotal} items this month</span>
+            <Chip>{monthTotal} items this month</Chip>
             {accounts.length === 0 ? (
               <span className="dim" style={{ fontSize: 12 }}>
                 Connect a social account (Marketing → Social) to schedule from the calendar.
@@ -256,18 +257,8 @@ export default function ContentCalendarPage() {
                                 fontSize: 11,
                                 padding: '3px 6px',
                                 borderRadius: 6,
-                                background:
-                                  item.status === 'PUBLISHED'
-                                    ? 'var(--ok-soft)'
-                                    : item.status === 'FAILED'
-                                      ? 'var(--danger-soft)'
-                                      : 'var(--info-soft)',
-                                color:
-                                  item.status === 'PUBLISHED'
-                                    ? 'var(--ok)'
-                                    : item.status === 'FAILED'
-                                      ? 'var(--danger)'
-                                      : 'var(--info)',
+                                background: 'var(--slate-100)',
+                                color: 'var(--slate-600)',
                                 overflow: 'hidden',
                                 whiteSpace: 'nowrap',
                               }}

@@ -5,10 +5,11 @@ import { useParams, useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
 import { ConfirmDialog, ErrorState, PageHeader, useToast } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { PageBlocks, type Block } from '@/components/page-blocks'
 import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface LandingPage {
   id: string
@@ -58,12 +59,6 @@ const BLOCK_LABEL: Record<BlockType, string> = {
   text: 'Text',
   cta: 'Call to action',
   image: 'Image',
-}
-
-const STATUS_TINT: Record<string, string> = {
-  DRAFT: 'info',
-  PUBLISHED: 'ok',
-  ARCHIVED: 'warn',
 }
 
 export default function LandingPageBuilder() {
@@ -200,7 +195,7 @@ export default function LandingPageBuilder() {
       />
 
       <div className="row" style={{ gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-        <Badge status={STATUS_TINT[page.status]}>{page.status}</Badge>
+        <StatusPill status={toStatus(page.status)} />
         <span
           className="dim"
           style={{ fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}

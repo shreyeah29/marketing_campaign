@@ -169,10 +169,10 @@ export default function LeadAnalyticsPage() {
                           style={{
                             color:
                               s.conversionRatePercent >= 20
-                                ? 'var(--ok)'
+                                ? 'var(--jade-600)'
                                 : s.conversionRatePercent > 0
-                                  ? 'var(--warn)'
-                                  : 'var(--text-dim)',
+                                  ? 'var(--crimson-600)'
+                                  : 'var(--text-tertiary)',
                             fontWeight: 600,
                           }}
                         >

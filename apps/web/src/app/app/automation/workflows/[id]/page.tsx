@@ -7,8 +7,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { Drawer, EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge, Field, LoadingScreen, Spinner } from '@/components/ui'
+import { Field, LoadingScreen, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 interface WfNode {
   id: string
@@ -228,16 +229,12 @@ export default function WorkflowBuilderPage() {
               <div key={n.id} className="card">
                 <div className="spread" style={{ marginBottom: 10 }}>
                   <div className="row" style={{ gap: 8 }}>
-                    <Badge
-                      status={n.type === 'action' ? 'info' : n.type === 'condition' ? 'warn' : 'ok'}
-                    >
-                      {n.type}
-                    </Badge>
+                    <Chip>{n.type}</Chip>
                     <span className="mono dim" style={{ fontSize: 11 }}>
                       {n.id}
                     </span>
                     {graph.start === n.id ? (
-                      <Badge status="ok">start</Badge>
+                      <Chip>start</Chip>
                     ) : (
                       <button
                         className="btn ghost sm"
@@ -405,19 +402,9 @@ export default function WorkflowBuilderPage() {
                   onClick={() => void openRunDetail(r.id)}
                 >
                   <div className="spread">
-                    <Badge
-                      status={
-                        r.status === 'SUCCEEDED'
-                          ? 'ok'
-                          : r.status === 'FAILED'
-                            ? 'danger'
-                            : r.status === 'WAITING'
-                              ? 'warn'
-                              : 'info'
-                      }
-                    >
-                      {r.status}
-                    </Badge>
+                    <StatusPill
+                      status={toStatus(r.status === 'SUCCEEDED' ? 'SUCCESS' : r.status)}
+                    />
                     <span className="dim" style={{ fontSize: 11 }}>
                       {r.durationMs ? `${r.durationMs}ms` : ''}
                     </span>
@@ -457,13 +444,7 @@ export default function WorkflowBuilderPage() {
                   <span className="mono" style={{ fontSize: 12 }}>
                     #{s.position} {s.nodeId}
                   </span>
-                  <Badge
-                    status={
-                      s.status === 'SUCCEEDED' ? 'ok' : s.status === 'FAILED' ? 'danger' : 'info'
-                    }
-                  >
-                    {s.status}
-                  </Badge>
+                  <StatusPill status={toStatus(s.status === 'SUCCEEDED' ? 'SUCCESS' : s.status)} />
                 </div>
                 {s.output ? (
                   <pre

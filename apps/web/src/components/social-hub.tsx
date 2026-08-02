@@ -12,10 +12,11 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { PlatformIcon } from '@/components/platform-icon'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -53,22 +54,6 @@ interface SocialPost {
 
 // ChannelType values that are offered as social destinations.
 const PLATFORMS = ['FACEBOOK', 'INSTAGRAM', 'LINKEDIN', 'X', 'TIKTOK', 'YOUTUBE'] as const
-
-function statusTint(status: string): string {
-  switch (status) {
-    case 'PUBLISHED':
-    case 'CONNECTED':
-      return 'ok'
-    case 'SCHEDULED':
-    case 'PUBLISHING':
-      return 'info'
-    case 'FAILED':
-    case 'DELETED':
-      return 'danger'
-    default:
-      return ''
-  }
-}
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -199,11 +184,9 @@ export function SocialHub({ locked }: { locked?: string }) {
 
       {hubStats ? (
         <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          <span className="badge ok">{hubStats.published} published</span>
-          <span className="badge info">{hubStats.scheduled} scheduled</span>
-          {hubStats.failed > 0 ? (
-            <span className="badge danger">{hubStats.failed} failed</span>
-          ) : null}
+          <Chip>{hubStats.published} published</Chip>
+          <Chip>{hubStats.scheduled} scheduled</Chip>
+          {hubStats.failed > 0 ? <Chip>{hubStats.failed} failed</Chip> : null}
           <span className="dim" style={{ fontSize: 12 }}>
             Reach, clicks and audience demographics appear here per post once the platform account
             is connected for insights.
@@ -238,11 +221,7 @@ export function SocialHub({ locked }: { locked?: string }) {
             <StaggerItem key={a.id} className="card">
               <div className="spread">
                 <div className="row" style={{ gap: 10 }}>
-                  <PlatformIcon
-                    platform={a.platform}
-                    size={22}
-                    style={{ color: 'var(--color-primary)' }}
-                  />
+                  <PlatformIcon platform={a.platform} size={22} />
                   <div>
                     <div style={{ fontWeight: 600 }}>{a.displayName ?? a.handle ?? a.platform}</div>
                     <div className="dim" style={{ fontSize: 12 }}>
@@ -253,7 +232,7 @@ export function SocialHub({ locked }: { locked?: string }) {
                     </div>
                   </div>
                 </div>
-                <Badge status={statusTint(a.status)}>{a.status}</Badge>
+                <Chip>{a.status === 'CONNECTED' ? 'Connected' : 'Not connected'}</Chip>
               </div>
               <div className="row" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
                 <button className="btn danger sm" onClick={() => setDisconnectId(a.id)}>
@@ -488,7 +467,7 @@ function Composer({ accounts, onCreated }: { accounts: SocialAccount[]; onCreate
             return (
               <label
                 key={a.id}
-                className={`badge ${on ? 'info' : ''}`}
+                className={`chip ${on ? 'on' : ''}`}
                 style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 <input
@@ -565,7 +544,7 @@ function PostCard({
     <div className="card">
       <div className="spread" style={{ marginBottom: 8 }}>
         <div className="row" style={{ gap: 8 }}>
-          <Badge status={statusTint(post.status)}>{post.status}</Badge>
+          <StatusPill status={toStatus(post.status)} />
           {when ? (
             <span className="dim" style={{ fontSize: 12 }}>
               {whenLabel} {new Date(when).toLocaleString()}
@@ -593,9 +572,7 @@ function PostCard({
       {post.hashtags.length > 0 ? (
         <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
           {post.hashtags.map((h) => (
-            <span key={h} className="badge">
-              #{h.replace(/^#/, '')}
-            </span>
+            <Chip key={h}>#{h.replace(/^#/, '')}</Chip>
           ))}
         </div>
       ) : null}
@@ -606,7 +583,7 @@ function PostCard({
             <span className="row" style={{ gap: 6 }}>
               <PlatformIcon platform={t.platform} size={14} />{' '}
               {t.handle ? `@${t.handle.replace(/^@/, '')}` : t.platform}
-              <Badge status={statusTint(t.status)}>{t.status}</Badge>
+              <StatusPill status={toStatus(t.status)} />
             </span>
             <span className="row" style={{ gap: 8 }}>
               {t.failureReason ? <span className="dim">{t.failureReason}</span> : null}

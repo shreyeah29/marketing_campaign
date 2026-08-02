@@ -13,8 +13,9 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 interface KnowledgeBase {
   id: string
@@ -73,13 +74,6 @@ const MAX_BYTES = 400_000
 function isTextFile(f: File): boolean {
   const ext = f.name.split('.').pop()?.toLowerCase() ?? ''
   return f.type.startsWith('text/') || TEXT_EXT.includes(ext)
-}
-
-function statusTint(s: string): string {
-  if (s === 'READY') return 'ok'
-  if (s === 'FAILED') return 'danger'
-  if (s === 'PROCESSING') return 'info'
-  return 'warn' // PENDING / QUEUED
 }
 
 function fmtBytes(n?: number): string {
@@ -414,7 +408,7 @@ export default function KnowledgeBaseDetailPage() {
                 <div key={h.id} className="card" style={{ padding: 12 }}>
                   <div className="spread" style={{ marginBottom: 4 }}>
                     <span style={{ fontSize: 12, fontWeight: 600 }}>{h.documentTitle}</span>
-                    <Badge status="info">{(h.score * 100).toFixed(0)}% match</Badge>
+                    <Chip>{(h.score * 100).toFixed(0)}% match</Chip>
                   </div>
                   <div style={{ fontSize: 13, lineHeight: 1.5 }} className="muted">
                     {h.content.length > 320 ? `${h.content.slice(0, 320)}…` : h.content}
@@ -458,15 +452,18 @@ export default function KnowledgeBaseDetailPage() {
                     ) : null}
                   </td>
                   <td>
-                    <Badge status={statusTint(d.status)}>
-                      {['PENDING', 'QUEUED', 'PROCESSING'].includes(d.status) ? (
-                        <span className="row" style={{ gap: 6 }}>
-                          <Spinner /> {d.status}
-                        </span>
-                      ) : (
-                        d.status
-                      )}
-                    </Badge>
+                    {['PENDING', 'QUEUED', 'PROCESSING'].includes(d.status) ? (
+                      <span className="row" style={{ gap: 6 }}>
+                        <Spinner />
+                        <StatusPill
+                          status={toStatus(d.status === 'PROCESSING' ? 'PUBLISHING' : d.status)}
+                        />
+                      </span>
+                    ) : (
+                      <StatusPill
+                        status={toStatus(d.status === 'READY' ? 'COMPLETED' : d.status)}
+                      />
+                    )}
                   </td>
                   <td>{d.chunkCount ?? 0}</td>
                   <td className="dim">{fmtBytes(d.metadata?.sizeBytes)}</td>

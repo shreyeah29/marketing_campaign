@@ -7,8 +7,9 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { OrgListItem } from '@/lib/types'
-import { Badge, Banner, LoadingScreen, Stat } from '@/components/ui'
+import { Banner, LoadingScreen, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 export default function OrganizationsPage() {
   const router = useRouter()
@@ -117,7 +118,7 @@ export default function OrganizationsPage() {
                     </td>
                     <td className="dim">{org.industry ?? '—'}</td>
                     <td>
-                      <Badge status={org.status}>{org.status}</Badge>
+                      <StatusPill status={toStatus(org.status)} />
                     </td>
                     <td>{org.members}</td>
                     <td>{org.enabledFeatures}</td>

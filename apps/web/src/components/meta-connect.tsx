@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { useToast } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { PlatformIcon } from '@/components/platform-icon'
+import { Chip } from '@/components/status'
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Meta connection card — the client's "Connect" button.
@@ -117,15 +118,15 @@ export function MetaConnectCard() {
     <div className="card mt">
       <div className="spread" style={{ marginBottom: 12 }}>
         <div className="row" style={{ gap: 10 }}>
-          <PlatformIcon platform="FACEBOOK" size={20} style={{ color: 'var(--color-primary)' }} />
+          <PlatformIcon platform="FACEBOOK" size={20} />
           <h3>Meta — Facebook & Instagram</h3>
         </div>
         {view === 'loading' ? (
           <Spinner />
         ) : connected ? (
-          <Badge status="ok">CONNECTED</Badge>
+          <Chip>Connected</Chip>
         ) : (
-          <Badge status="warn">NOT CONNECTED</Badge>
+          <Chip>Not connected</Chip>
         )}
       </div>
       <p className="muted" style={{ fontSize: 13, marginBottom: 14 }}>

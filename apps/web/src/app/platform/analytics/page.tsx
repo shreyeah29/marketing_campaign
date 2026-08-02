@@ -6,9 +6,10 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { PortfolioAnalytics, PortfolioOrg } from '@/lib/types'
-import { Badge, Banner, LoadingScreen } from '@/components/ui'
+import { Banner, LoadingScreen } from '@/components/ui'
 import { StatCard } from '@/components/kit'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 function money(v: string): string {
   const n = Number(v)
@@ -94,7 +95,7 @@ export default function PortfolioAnalyticsPage() {
         <FadeIn delay={0.15}>
           <div
             className="banner"
-            style={{ borderColor: 'color-mix(in srgb, var(--warn) 45%, transparent)' }}
+            style={{ borderColor: 'color-mix(in srgb, var(--slate-600) 45%, transparent)' }}
           >
             <strong>
               {dormant.length} client{dormant.length === 1 ? '' : 's'} dormant
@@ -155,7 +156,7 @@ export default function PortfolioAnalyticsPage() {
                   </div>
                 </td>
                 <td>
-                  <Badge status={org.status}>{org.status}</Badge>
+                  <StatusPill status={toStatus(org.status)} />
                 </td>
                 <td>{org.modules.length}</td>
                 <td>
@@ -187,7 +188,7 @@ export default function PortfolioAnalyticsPage() {
                 </td>
                 <td className={isDormant(org) ? '' : 'dim'}>
                   {isDormant(org) ? (
-                    <span style={{ color: 'var(--warn)', fontWeight: 600 }}>
+                    <span style={{ color: 'var(--slate-600)', fontWeight: 600 }}>
                       {ago(org.lastActivityAt)}
                     </span>
                   ) : (

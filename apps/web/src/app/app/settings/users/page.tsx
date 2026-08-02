@@ -14,8 +14,9 @@ import {
   type Column,
 } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge, Field } from '@/components/ui'
+import { Field } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { Chip } from '@/components/status'
 
 interface Member {
   membershipId: string
@@ -104,7 +105,7 @@ export default function UsersSettingsPage() {
       header: 'Role',
       render: (r) =>
         r.role === 'OWNER' ? (
-          <Badge>OWNER</Badge>
+          <Chip>Owner</Chip>
         ) : (
           <select
             className="select"

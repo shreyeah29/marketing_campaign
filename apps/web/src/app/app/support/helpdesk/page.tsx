@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 import { PageHeader, SearchInput } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
+import { Chip } from '@/components/status'
 
 interface Article {
   id: string
@@ -103,7 +104,7 @@ export default function HelpdeskPage() {
                   aria-expanded={open}
                 >
                   <span className="row" style={{ gap: 10 }}>
-                    <span className="badge">{a.category}</span>
+                    <Chip>{a.category}</Chip>
                     <span style={{ fontWeight: 600 }}>{a.title}</span>
                   </span>
                   <span className="dim" style={{ fontSize: 18 }}>

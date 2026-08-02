@@ -1,7 +1,7 @@
 'use client'
 
 import { ResourcePage } from '@/components/resource-page'
-import { Badge } from '@/components/ui'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface Webhook {
   id: string
@@ -31,11 +31,7 @@ export default function WebhooksPage() {
         {
           key: 'status',
           header: 'Status',
-          render: (r) => (
-            <Badge status={r.isActive ? 'ACTIVE' : 'PAUSED'}>
-              {r.isActive ? 'Active' : 'Inactive'}
-            </Badge>
-          ),
+          render: (r) => <StatusPill status={toStatus(r.isActive ? 'ACTIVE' : 'PAUSED')} />,
         },
       ]}
       fields={[

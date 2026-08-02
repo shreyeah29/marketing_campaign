@@ -4,17 +4,24 @@ import { motion, MotionConfig, type HTMLMotionProps } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 /* ────────────────────────────────────────────────────────────────────────────
- * Motion primitives. All entrance animation in the app goes through these so
- * every page shares the same spring physics and honours prefers-reduced-motion
- * (MotionConfig reducedMotion="user" disables transforms for those users).
+ * Motion primitives. Durations and easing match the brief (--dur-* / --ease-out).
+ * prefers-reduced-motion is honoured via MotionConfig reducedMotion="user".
  * ──────────────────────────────────────────────────────────────────────────── */
 
-/** The house spring: snappy with a hint of bounce. */
-export const spring = { type: 'spring', mass: 1, damping: 15, stiffness: 120 } as const
+const easeOut = [0.16, 1, 0.3, 1] as const
+const durFast = 0.12
+const durBase = 0.2
+const durSlow = 0.32
+
+/** Timed tween — prefer this over spring physics for product chrome. */
+export const tween = { type: 'tween', duration: durBase, ease: easeOut } as const
+
+/** @deprecated Use `tween`. Kept so existing imports compile during migration. */
+export const spring = tween
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: spring },
+  hidden: { opacity: 0, y: 3 },
+  show: { opacity: 1, y: 0, transition: tween },
 }
 
 /** Wrap a page (or any subtree) so all nested motion respects user settings. */
@@ -22,7 +29,7 @@ export function Motion({ children }: { children: ReactNode }) {
   return <MotionConfig reducedMotion="user">{children}</MotionConfig>
 }
 
-/** Fade + rise in when mounted. `delay` staggers siblings manually if needed. */
+/** Fade + slight rise (2–4px budget). `delay` staggers siblings manually. */
 export function FadeIn({
   children,
   delay = 0,
@@ -31,9 +38,9 @@ export function FadeIn({
   return (
     <MotionConfig reducedMotion="user">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 3 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ ...spring, delay }}
+        transition={{ ...tween, delay }}
         {...rest}
       >
         {children}
@@ -48,7 +55,7 @@ export function FadeIn({
  */
 export function Stagger({
   children,
-  interval = 0.07,
+  interval = 0.05,
   ...rest
 }: { children: ReactNode; interval?: number } & HTMLMotionProps<'div'>) {
   return (
@@ -76,13 +83,75 @@ export function StaggerItem({
   )
 }
 
-/** Press feedback for interactive cards/tiles (scale on tap, lift on hover). */
+/** Press feedback — 1px translate (scale is not in the allowlist). */
 export function Pressable({ children, ...rest }: { children: ReactNode } & HTMLMotionProps<'div'>) {
   return (
     <MotionConfig reducedMotion="user">
-      <motion.div whileHover={{ y: -2 }} whileTap={{ scale: 0.96 }} transition={spring} {...rest}>
+      <motion.div
+        whileHover={{ y: -1 }}
+        whileTap={{ y: 1 }}
+        transition={{ type: 'tween', duration: durFast, ease: easeOut }}
+        {...rest}
+      >
         {children}
       </motion.div>
     </MotionConfig>
+  )
+}
+
+/** Generation arrival — staggered fade-in as AI work appears. */
+export function GenerationArrival({ children }: { children: ReactNode }) {
+  return (
+    <Stagger interval={0.06} className="generation-arrival">
+      {children}
+    </Stagger>
+  )
+}
+
+/**
+ * Approval wipe — iris rail resolving to jade over --dur-slow.
+ * Parent should toggle `approved` after the human confirms.
+ */
+export function ApprovalWipe({ approved, children }: { approved: boolean; children: ReactNode }) {
+  return <div className={`approval-wipe${approved ? 'is-approved' : ''}`}>{children}</div>
+}
+
+/** Per-channel publish progress bar. */
+export function PublishProgress({
+  channels,
+}: {
+  channels: {
+    id: string
+    label: string
+    progress: number
+    state: 'pending' | 'running' | 'done' | 'failed'
+  }[]
+}) {
+  return (
+    <div className="publish-progress stack" style={{ gap: 'var(--space-3)' }}>
+      {channels.map((c) => (
+        <div key={c.id}>
+          <div className="row" style={{ justifyContent: 'space-between', marginBottom: 4 }}>
+            <span className="type-caption">{c.label}</span>
+            <span className="type-caption" data-state={c.state}>
+              {c.state === 'done'
+                ? 'Done'
+                : c.state === 'failed'
+                  ? 'Failed'
+                  : `${Math.round(c.progress * 100)}%`}
+            </span>
+          </div>
+          <div className="publish-progress__track">
+            <motion.div
+              className="publish-progress__fill"
+              data-state={c.state}
+              initial={false}
+              animate={{ width: `${Math.min(100, Math.max(0, c.progress * 100))}%` }}
+              transition={{ type: 'tween', duration: durSlow, ease: easeOut }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }

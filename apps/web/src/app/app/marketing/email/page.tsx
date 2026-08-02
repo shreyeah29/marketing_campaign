@@ -1,7 +1,7 @@
 'use client'
 
 import { ResourcePage } from '@/components/resource-page'
-import { Badge } from '@/components/ui'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface EmailCampaign {
   id: string
@@ -25,7 +25,7 @@ export default function EmailCampaignsPage() {
           {
             key: 'status',
             header: 'Status',
-            render: (r) => <Badge status={r.status}>{r.status ?? 'DRAFT'}</Badge>,
+            render: (r) => <StatusPill status={toStatus(r.status ?? 'DRAFT')} />,
           },
           {
             key: 'createdAt',

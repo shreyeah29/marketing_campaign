@@ -13,8 +13,9 @@ import {
   useToast,
 } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface Workflow {
   id: string
@@ -120,13 +121,7 @@ export default function WorkflowsPage() {
                   </td>
                   <td className="mono dim">{w.triggerType}</td>
                   <td>
-                    <Badge
-                      status={
-                        w.status === 'ACTIVE' ? 'ok' : w.status === 'PAUSED' ? 'warn' : 'info'
-                      }
-                    >
-                      {w.status}
-                    </Badge>
+                    <StatusPill status={toStatus(w.status)} />
                   </td>
                   <td>{w.runCount ?? 0}</td>
                   <td className="dim">

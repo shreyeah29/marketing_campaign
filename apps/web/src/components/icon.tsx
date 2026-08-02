@@ -53,6 +53,7 @@ export type IconName =
   | 'x'
   | 'check'
   | 'chevron-down'
+  | 'chevron-up'
   | 'chevron-right'
   | 'copy'
   | 'download'
@@ -327,6 +328,7 @@ const P: Record<string, ReactNode> = {
   ),
   check: <polyline points="20 6 9 17 4 12" />,
   'chevron-down': <polyline points="6 9 12 15 18 9" />,
+  'chevron-up': <polyline points="18 15 12 9 6 15" />,
   'chevron-right': <polyline points="9 18 15 12 9 6" />,
   copy: (
     <>

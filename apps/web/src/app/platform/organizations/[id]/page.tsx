@@ -7,8 +7,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { ApiError, setViewAsToken } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { OrgDetail, OrgStatus } from '@/lib/types'
-import { Badge, Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
+import { Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 const NEXT_STATUS: Record<OrgStatus, { label: string; status: OrgStatus; danger?: boolean }[]> = {
   ACTIVE: [{ label: 'Suspend', status: 'SUSPENDED' }],
@@ -77,7 +78,7 @@ export default function OrganizationDetailPage() {
             </Link>
             <span className="dim">/</span>
             <h1 className="page-title">{org.name}</h1>
-            <Badge status={org.status}>{org.status}</Badge>
+            <StatusPill status={toStatus(org.status)} />
           </div>
           <p className="page-sub mono">{org.slug}</p>
         </div>
@@ -272,13 +273,13 @@ export default function OrganizationDetailPage() {
       <FadeIn delay={0.18} className="card mt">
         <div className="spread" style={{ marginBottom: 14 }}>
           <h3>Enabled modules</h3>
-          <Badge status="info">{org.features.length}</Badge>
+          <Chip>{org.features.length}</Chip>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {org.features.map((f) => (
-            <span key={f.key} className="badge" title={`source: ${f.source}`}>
+            <Chip key={f.key} title={`source: ${f.source}`}>
               {f.key}
-            </span>
+            </Chip>
           ))}
         </div>
       </FadeIn>
@@ -360,20 +361,16 @@ function SetupTracker({ setup }: { setup: OrgDetail['setup'] }) {
     <div className="card" style={{ marginBottom: 18, padding: '14px 18px' }}>
       <div className="spread" style={{ marginBottom: 10 }}>
         <span style={{ fontWeight: 700, fontSize: 13 }}>Onboarding progress</span>
-        <span className="badge info">
+        <Chip>
           {done}/{STEPS.length}
-        </span>
+        </Chip>
       </div>
       <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
         {STEPS.map((s) => (
-          <span
-            key={s.key}
-            className={`badge ${setup[s.key] ? 'ok' : ''}`}
-            style={setup[s.key] ? {} : { opacity: 0.75 }}
-          >
+          <Chip key={s.key} title={setup[s.key] ? 'Done' : 'Pending'}>
             {setup[s.key] ? '✓ ' : '○ '}
             {s.label}
-          </span>
+          </Chip>
         ))}
       </div>
     </div>

@@ -14,8 +14,9 @@ import {
   useToast,
 } from '@/components/kit'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 const STATUSES = ['OPEN', 'PENDING', 'RESOLVED', 'CLOSED'] as const
 type Status = (typeof STATUSES)[number]
@@ -64,20 +65,6 @@ interface Summary {
   resolved: number
   closed: number
   total: number
-}
-
-const STATUS_TINT: Record<Status, string> = {
-  OPEN: 'info',
-  PENDING: 'warn',
-  RESOLVED: 'ok',
-  CLOSED: 'danger',
-}
-
-const PRIORITY_TINT: Record<Priority, string> = {
-  LOW: '',
-  MEDIUM: 'info',
-  HIGH: 'warn',
-  URGENT: 'danger',
 }
 
 const FILTERS: { id: string; label: string }[] = [
@@ -188,10 +175,10 @@ export default function TicketsPage() {
                     ) : null}
                   </td>
                   <td>
-                    <Badge status={STATUS_TINT[t.status]}>{t.status}</Badge>
+                    <StatusPill status={toStatus(t.status)} />
                   </td>
                   <td>
-                    <Badge status={PRIORITY_TINT[t.priority]}>{t.priority}</Badge>
+                    <StatusPill status={toStatus(t.priority)} />
                   </td>
                   <td>{t.commentCount}</td>
                   <td className="dim" style={{ fontSize: 12 }}>
@@ -430,8 +417,8 @@ function TicketDrawer({
       ) : (
         <>
           <div className="row" style={{ gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            <Badge status={STATUS_TINT[ticket.status]}>{ticket.status}</Badge>
-            <Badge status={PRIORITY_TINT[ticket.priority]}>{ticket.priority}</Badge>
+            <StatusPill status={toStatus(ticket.status)} />
+            <StatusPill status={toStatus(ticket.priority)} />
             {ticket.resolvedAt ? (
               <span
                 className="dim"
@@ -501,14 +488,14 @@ function TicketDrawer({
                   className="card"
                   style={{
                     padding: '8px 10px',
-                    borderLeft: c.internal ? '3px solid var(--color-warn, #d9822b)' : undefined,
+                    borderLeft: c.internal ? '3px solid var(--border-strong)' : undefined,
                   }}
                 >
                   <div className="spread" style={{ marginBottom: 4 }}>
                     <span className="dim" style={{ fontSize: 11 }}>
                       {c.authorId ?? 'system'} · {new Date(c.createdAt).toLocaleString()}
                     </span>
-                    {c.internal ? <Badge status="warn">internal</Badge> : null}
+                    {c.internal ? <Chip>internal</Chip> : null}
                   </div>
                   <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{c.body}</div>
                 </div>

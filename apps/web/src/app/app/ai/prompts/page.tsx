@@ -1,7 +1,7 @@
 'use client'
 
 import { ResourcePage } from '@/components/resource-page'
-import { Badge } from '@/components/ui'
+import { Chip } from '@/components/status'
 
 type Prompt = {
   id: string
@@ -26,8 +26,7 @@ export default function PromptsPage() {
         {
           key: 'isShared',
           header: 'Shared',
-          render: (r) =>
-            r.isShared ? <Badge status="ok">Shared</Badge> : <span className="dim">Private</span>,
+          render: (r) => (r.isShared ? <Chip>Shared</Chip> : <span className="dim">Private</span>),
           width: '110px',
         },
       ]}

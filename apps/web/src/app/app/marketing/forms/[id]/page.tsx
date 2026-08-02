@@ -6,9 +6,10 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, Tabs, TableSkeleton, useToast } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 type FieldType = 'text' | 'email' | 'tel' | 'textarea' | 'select'
 
@@ -105,7 +106,7 @@ export default function FormBuilderPage() {
         subtitle={form.status === 'PUBLISHED' ? publicUrl(form.slug) : 'Draft — not yet public'}
         actions={
           <div className="row" style={{ gap: 8 }}>
-            <Badge status={form.status === 'PUBLISHED' ? 'ok' : 'info'}>{form.status}</Badge>
+            <StatusPill status={toStatus(form.status)} />
             <button className="btn primary" onClick={() => void togglePublish()}>
               {form.status === 'PUBLISHED' ? 'Unpublish' : 'Publish'}
             </button>

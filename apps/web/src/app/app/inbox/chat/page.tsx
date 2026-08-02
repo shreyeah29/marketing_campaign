@@ -12,8 +12,9 @@ import {
   useToast,
 } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
+import { Chip, StatusPill, toStatus } from '@/components/status'
 
 const CHANNELS = ['WEB_CHAT', 'EMAIL', 'WHATSAPP', 'SMS', 'VOICE'] as const
 type Channel = (typeof CHANNELS)[number]
@@ -283,7 +284,7 @@ export default function InboxPage() {
                         <span style={{ fontSize: 13, fontWeight: 550 }}>
                           {c.subject || 'Conversation'}
                         </span>
-                        {unread > 0 ? <Badge status="info">{unread}</Badge> : null}
+                        {unread > 0 ? <Chip>{unread}</Chip> : null}
                       </span>
                       <span
                         className="dim"
@@ -317,7 +318,11 @@ export default function InboxPage() {
                       {(active.channel ?? 'chat').toLowerCase()}
                     </span>
                   </div>
-                  {active.isOpen ? <Badge status="success">Open</Badge> : <Badge>Closed</Badge>}
+                  {active.isOpen ? (
+                    <StatusPill status={toStatus('OPEN')} />
+                  ) : (
+                    <StatusPill status={toStatus('CLOSED')} />
+                  )}
                 </div>
 
                 <div

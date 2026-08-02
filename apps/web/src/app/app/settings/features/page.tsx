@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge } from '@/components/ui'
+import { Chip } from '@/components/status'
 
 interface Workspace {
   enabledFeatures: string[]
@@ -56,9 +56,7 @@ export default function FeaturesPage() {
               <h3 style={{ textTransform: 'capitalize', marginBottom: 12 }}>{cat}</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {features.map((f) => (
-                  <Badge key={f} status="ok">
-                    {f}
-                  </Badge>
+                  <Chip key={f}>{f}</Chip>
                 ))}
               </div>
             </div>

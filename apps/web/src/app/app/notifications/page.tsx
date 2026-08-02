@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge } from '@/components/ui'
+import { Chip } from '@/components/status'
 
 interface Notification {
   id: string
@@ -84,7 +84,11 @@ export default function NotificationsPage() {
               <div>
                 <div className="row" style={{ gap: 8 }}>
                   <strong>{n.title ?? 'Notification'}</strong>
-                  {n.level ? <Badge status="info">{n.level}</Badge> : null}
+                  {n.level ? (
+                    <Chip>
+                      {n.level.charAt(0) + n.level.slice(1).toLowerCase().replace(/_/g, ' ')}
+                    </Chip>
+                  ) : null}
                 </div>
                 <div className="muted" style={{ fontSize: 13, marginTop: 4 }}>
                   {n.body ?? n.message ?? ''}

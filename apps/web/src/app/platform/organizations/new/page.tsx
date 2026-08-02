@@ -8,9 +8,10 @@ import { ApiError } from '@/lib/api'
 import { closeDependencies, enabledDependentsOf, indexFeatures } from '@/lib/features'
 import { platform } from '@/lib/platform'
 import type { Catalog, ProvisionInput } from '@/lib/types'
-import { Badge, Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
+import { Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
+import { Chip } from '@/components/status'
 
 type Step = 1 | 2 | 3 | 4
 
@@ -399,7 +400,7 @@ export default function NewOrganizationPage() {
           <div className="card">
             <div className="spread" style={{ marginBottom: 12 }}>
               <h3>Modules</h3>
-              <Badge status="info">{features.size} enabled</Badge>
+              <Chip>{features.size} enabled</Chip>
             </div>
             <p className="dim" style={{ marginBottom: 14, fontSize: 12 }}>
               Enable exactly the modules this client should have. Dependencies are pulled in

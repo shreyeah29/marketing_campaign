@@ -12,9 +12,10 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface LandingPageRow {
   id: string
@@ -23,12 +24,6 @@ interface LandingPageRow {
   status: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   visitCount: number
   updatedAt: string
-}
-
-const STATUS_TINT: Record<string, string> = {
-  DRAFT: 'info',
-  PUBLISHED: 'ok',
-  ARCHIVED: 'warn',
 }
 
 export default function LandingPagesListPage() {
@@ -121,7 +116,7 @@ export default function LandingPagesListPage() {
                 >
                   <td style={{ fontWeight: 600 }}>{r.name}</td>
                   <td>
-                    <Badge status={STATUS_TINT[r.status]}>{r.status}</Badge>
+                    <StatusPill status={toStatus(r.status)} />
                   </td>
                   <td>{r.visitCount}</td>
                   <td onClick={(e) => e.stopPropagation()}>

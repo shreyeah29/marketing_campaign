@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, TableSkeleton } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Badge } from '@/components/ui'
+import { Chip } from '@/components/status'
 
 interface RoleDef {
   role: string
@@ -54,19 +54,13 @@ export default function RolesSettingsPage() {
             <div key={r.role} className="card">
               <div className="spread" style={{ marginBottom: 12 }}>
                 <h3 style={{ margin: 0 }}>{r.role}</h3>
-                <Badge status={r.assignable ? 'ACTIVE' : ''}>
-                  {r.assignable ? 'Assignable' : 'System'}
-                </Badge>
+                <Chip>{r.assignable ? 'Assignable' : 'System'}</Chip>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {(r.permissions ?? []).length === 0 ? (
                   <span className="dim">No permissions</span>
                 ) : (
-                  (r.permissions ?? []).map((p) => (
-                    <span key={p} className="badge">
-                      {p}
-                    </span>
-                  ))
+                  (r.permissions ?? []).map((p) => <Chip key={p}>{p}</Chip>)
                 )}
               </div>
             </div>

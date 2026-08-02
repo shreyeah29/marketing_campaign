@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
+import { AssetCard } from '@/components/asset-card'
 import { ConfirmDialog, EmptyState, useToast } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon, type IconName } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
 import { PlatformIcon } from '@/components/platform-icon'
+import { Chip, kindLabel, StatusPill, toStatus } from '@/components/status'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Asset {
@@ -100,13 +102,6 @@ const SECTIONS: {
   { id: 'publishing', label: 'Publishing', icon: 'send', statuses: ['SCHEDULED', 'PUBLISHED'] },
   { id: 'analytics', label: 'Analytics', icon: 'bar-chart' },
 ]
-
-function statusTint(s: string): string {
-  if (s === 'APPROVED' || s === 'PUBLISHED') return 'ok'
-  if (s === 'REJECTED' || s === 'FAILED') return 'danger'
-  if (s === 'SCHEDULED' || s === 'PUBLISHING') return 'info'
-  return 'warn'
-}
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default function CampaignsPage() {
@@ -366,7 +361,7 @@ function PromptView({
                     {c.objective ?? 'Open workspace'}
                   </div>
                 </div>
-                {c.status ? <Badge status={statusTint(c.status)}>{c.status}</Badge> : null}
+                {c.status ? <StatusPill status={toStatus(c.status)} /> : null}
                 <Icon name="chevron-right" size={16} className="dim" />
               </button>
             ))}
@@ -422,13 +417,7 @@ function PlanView({
         <div>
           <div className="k">Platforms</div>
           <div className="v" style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {plan.platforms.length
-              ? plan.platforms.map((p) => (
-                  <span key={p} className="badge">
-                    {p}
-                  </span>
-                ))
-              : '—'}
+            {plan.platforms.length ? plan.platforms.map((p) => <Chip key={p}>{p}</Chip>) : '—'}
           </div>
         </div>
         <div>
@@ -443,11 +432,7 @@ function PlanView({
           <div className="k">Expected deliverables — {plan.estimatedAssets} assets</div>
           <div className="v" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
             {plan.deliverables.length
-              ? plan.deliverables.map((d) => (
-                  <span key={d} className="badge" style={{ background: 'var(--bg-subtle)' }}>
-                    {d}
-                  </span>
-                ))
+              ? plan.deliverables.map((d) => <Chip key={d}>{d}</Chip>)
               : '—'}
           </div>
         </div>
@@ -519,9 +504,7 @@ function WorkspaceView({
         </div>
         <div className="row" style={{ gap: 8 }}>
           <SaveTemplateButton campaign={campaign} />
-          {campaign.status ? (
-            <Badge status={statusTint(campaign.status)}>{campaign.status}</Badge>
-          ) : null}
+          {campaign.status ? <StatusPill status={toStatus(campaign.status)} /> : null}
         </div>
       </div>
 
@@ -606,7 +589,14 @@ function SectionView({
       <SectionHeader def={def} count={list.length} />
       <div className="stack" style={{ gap: 10 }}>
         {list.map((a) => (
-          <AssetRow key={a.id} asset={a} onOpen={() => onOpen(a)} />
+          <AssetCard
+            key={a.id}
+            platform={a.platform}
+            kind={a.kind}
+            status={a.status}
+            body={a.body}
+            onClick={() => onOpen(a)}
+          />
         ))}
       </div>
     </>
@@ -626,34 +616,6 @@ function SectionHeader({ def, count }: { def: (typeof SECTIONS)[number]; count: 
         </div>
       </div>
     </div>
-  )
-}
-
-function AssetRow({ asset, onOpen }: { asset: Asset; onOpen: () => void }) {
-  return (
-    <button className="asset-row" onClick={onOpen}>
-      <PlatformIcon platform={asset.platform} size={20} style={{ color: 'var(--color-primary)' }} />
-      <div className="body">
-        <div className="row" style={{ gap: 8, marginBottom: 5 }}>
-          <span className="dim" style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.03em' }}>
-            {asset.platform} · {asset.kind}
-          </span>
-          <Badge status={statusTint(asset.status)}>{asset.status}</Badge>
-        </div>
-        <div style={{ fontSize: 14, lineHeight: 1.55, color: 'var(--text)' }}>
-          {asset.body.length > 220 ? `${asset.body.slice(0, 220)}…` : asset.body || '(empty)'}
-        </div>
-        {asset.hashtags && asset.hashtags.length > 0 ? (
-          <div className="dim" style={{ fontSize: 12, marginTop: 6 }}>
-            {asset.hashtags
-              .slice(0, 6)
-              .map((h) => `#${h.replace(/^#/, '')}`)
-              .join(' ')}
-          </div>
-        ) : null}
-      </div>
-      <Icon name="chevron-right" size={16} className="dim" style={{ marginTop: 2 }} />
-    </button>
   )
 }
 
@@ -730,7 +692,7 @@ function StrategySection({ campaign }: { campaign: Campaign }) {
           <div className="stack" style={{ gap: 8 }}>
             {goals.map((g, i) => (
               <div key={i} className="row" style={{ gap: 8 }}>
-                <Icon name="check" size={15} style={{ color: 'var(--ok)' }} />
+                <Icon name="check" size={15} style={{ color: 'var(--text-secondary)' }} />
                 <span style={{ fontSize: 14 }}>{g}</span>
               </div>
             ))}
@@ -875,14 +837,10 @@ function AssetEditor({
       <div className="card">
         <div className="spread" style={{ marginBottom: 16, alignItems: 'center' }}>
           <div className="row" style={{ gap: 10 }}>
-            <PlatformIcon
-              platform={asset.platform}
-              size={22}
-              style={{ color: 'var(--color-primary)' }}
-            />
+            <PlatformIcon platform={asset.platform} size={22} />
             <div>
               <div style={{ fontWeight: 650, fontSize: 15 }}>
-                {asset.platform} · {asset.kind}
+                {asset.platform} · {kindLabel(asset.kind)}
               </div>
               {asset.scheduledFor ? (
                 <div className="dim" style={{ fontSize: 12 }}>
@@ -891,7 +849,7 @@ function AssetEditor({
               ) : null}
             </div>
           </div>
-          <Badge status={statusTint(status)}>{status}</Badge>
+          <StatusPill status={toStatus(status)} />
         </div>
 
         <Field label="Body">
@@ -912,9 +870,7 @@ function AssetEditor({
         {asset.hashtags && asset.hashtags.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
             {asset.hashtags.map((h) => (
-              <span key={h} className="badge">
-                #{h.replace(/^#/, '')}
-              </span>
+              <Chip key={h}>#{h.replace(/^#/, '')}</Chip>
             ))}
           </div>
         ) : null}

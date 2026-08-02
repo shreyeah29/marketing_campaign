@@ -13,8 +13,9 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Stagger, StaggerItem } from '@/components/motion'
+import { StatusPill, toStatus } from '@/components/status'
 
 interface LeadForm {
   id: string
@@ -24,10 +25,6 @@ interface LeadForm {
   submitCount: number
   headline?: string | null
   description?: string | null
-}
-
-function statusTint(status: string): string {
-  return status === 'PUBLISHED' ? 'ok' : status === 'ARCHIVED' ? 'danger' : 'info'
 }
 
 export default function FormsPage() {
@@ -101,7 +98,7 @@ export default function FormsPage() {
                 >
                   <div className="row" style={{ gap: 8 }}>
                     <span style={{ fontWeight: 600 }}>{f.name}</span>
-                    <Badge status={statusTint(f.status)}>{f.status}</Badge>
+                    <StatusPill status={toStatus(f.status)} />
                   </div>
                   <span className="dim" style={{ fontSize: 12 }}>
                     {f.submitCount} submission{f.submitCount === 1 ? '' : 's'}

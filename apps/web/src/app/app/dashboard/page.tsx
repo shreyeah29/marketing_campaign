@@ -6,7 +6,7 @@ import Link from 'next/link'
 
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, TableSkeleton } from '@/components/kit'
-import { DonutChart, LineChart } from '@/components/charts'
+import { HorizontalBarChart, LineChart } from '@/components/charts'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { Icon } from '@/components/icon'
 
@@ -216,7 +216,7 @@ export default function DashboardPage() {
             <div className="card">
               <div style={{ fontWeight: 600, marginBottom: 12 }}>Leads funnel</div>
               {funnelSegments.length > 0 ? (
-                <DonutChart segments={funnelSegments} centerLabel="Leads" />
+                <HorizontalBarChart data={funnelSegments} title="Leads funnel" />
               ) : (
                 <div
                   className="dim"

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState } from '@/components/kit'
-import { Badge } from '@/components/ui'
+import { StatusPill, toStatus } from '@/components/status'
 import { Stagger, StaggerItem } from '@/components/motion'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -33,13 +33,6 @@ const FILTERS: { id: string; label: string; statuses: string[] | null }[] = [
   { id: 'published', label: 'Published', statuses: ['SCHEDULED', 'PUBLISHING', 'PUBLISHED'] },
   { id: 'rejected', label: 'Rejected', statuses: ['REJECTED'] },
 ]
-
-function statusTint(s: string): string {
-  if (s === 'APPROVED' || s === 'PUBLISHED') return 'ok'
-  if (s === 'REJECTED' || s === 'FAILED') return 'danger'
-  if (s === 'SCHEDULED' || s === 'PUBLISHING') return 'info'
-  return 'warn'
-}
 
 export function CreativeLibrary({ type }: { type: 'image' | 'video' }) {
   const [assets, setAssets] = useState<CreativeAsset[] | null>(null)
@@ -164,7 +157,7 @@ export function CreativeLibrary({ type }: { type: 'image' | 'video' }) {
               />
             )}
             <div className="spread" style={{ marginTop: 10, gap: 8 }}>
-              <Badge status={statusTint(a.status)}>{a.status}</Badge>
+              <StatusPill status={toStatus(a.status)} />
               <span className="dim" style={{ fontSize: 11 }}>
                 {a.platform}
               </span>

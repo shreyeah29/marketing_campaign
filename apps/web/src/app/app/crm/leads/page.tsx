@@ -11,9 +11,10 @@ import {
   TableSkeleton,
   useToast,
 } from '@/components/kit'
-import { Badge, Field, Spinner } from '@/components/ui'
+import { Field, Spinner } from '@/components/ui'
 import { Icon } from '@/components/icon'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { Chip } from '@/components/status'
 
 /* ────────────────────────────────────────────────────────────────────────────
  * Leads — the pipeline board. Every lead arrives from somewhere (an ad, a form,
@@ -34,13 +35,13 @@ interface BoardLead {
   campaign: { id: string; name: string } | null
 }
 
-const STAGES: { id: string; label: string; tint: string }[] = [
-  { id: 'NEW', label: 'New', tint: 'info' },
-  { id: 'CONTACTED', label: 'Contacted', tint: 'info' },
-  { id: 'QUALIFIED', label: 'Qualified', tint: 'ok' },
-  { id: 'NURTURING', label: 'Nurturing', tint: 'warn' },
-  { id: 'CONVERTED', label: 'Completed', tint: 'ok' },
-  { id: 'UNQUALIFIED', label: 'Lost', tint: 'danger' },
+const STAGES: { id: string; label: string }[] = [
+  { id: 'NEW', label: 'New' },
+  { id: 'CONTACTED', label: 'Contacted' },
+  { id: 'QUALIFIED', label: 'Qualified' },
+  { id: 'NURTURING', label: 'Nurturing' },
+  { id: 'CONVERTED', label: 'Completed' },
+  { id: 'UNQUALIFIED', label: 'Lost' },
 ]
 
 /** Canonical source labels — anything else renders as its raw value. */
@@ -149,8 +150,8 @@ export default function LeadsPage() {
         <>
           {/* Insight strip: the numbers + source filters in one line. */}
           <FadeIn className="toolbar" style={{ gap: 8, marginBottom: 18 }}>
-            <span className="badge info">{leads.length} total</span>
-            <span className="badge ok">{week} this week</span>
+            <Chip>{leads.length} total</Chip>
+            <Chip>{week} this week</Chip>
             <span className="dim" style={{ margin: '0 6px' }}>
               ·
             </span>
@@ -193,7 +194,7 @@ export default function LeadsPage() {
                     >
                       {stage.label.toUpperCase()}
                     </span>
-                    <span className="badge">{inStage.length}</span>
+                    <Chip>{inStage.length}</Chip>
                   </div>
                   <Stagger className="stack" style={{ gap: 8 }} interval={0.04}>
                     {inStage.map((lead) => (
@@ -212,14 +213,10 @@ export default function LeadsPage() {
                           </div>
                         ) : null}
                         <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-                          <Badge status={stage.tint}>{sourceLabel(lead.source)}</Badge>
-                          {lead.value ? (
-                            <span className="badge">${Number(lead.value).toLocaleString()}</span>
-                          ) : null}
+                          <Chip>{sourceLabel(lead.source)}</Chip>
+                          {lead.value ? <Chip>${Number(lead.value).toLocaleString()}</Chip> : null}
                           {lead.campaign ? (
-                            <span className="badge" title="Came from this campaign">
-                              {lead.campaign.name}
-                            </span>
+                            <Chip title="Came from this campaign">{lead.campaign.name}</Chip>
                           ) : null}
                         </div>
                         <select

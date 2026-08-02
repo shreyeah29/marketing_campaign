@@ -18,19 +18,31 @@ export const workspace = {
   bootstrap: () => api.get<Workspace>('/me/workspace'),
 }
 
+/** Inline custom properties written by earlier builds of `applyBranding`. */
+const RETIRED_BRAND_PROPERTIES = [
+  '--color-primary',
+  '--color-primary-hover',
+  '--color-accent',
+  '--brand-heading-font',
+  '--brand-body-font',
+]
+
 /**
- * Applies an organisation's branding by rewriting the brandable CSS variables.
+ * Applies an organisation's branding.
  *
- * This is the white-label mechanism on the client: three colours and two fonts
- * from the branding response become `--color-primary` / `--brand-*-font`, so the
- * same shell reskins per-org without shipping any per-tenant CSS.
+ * White-labelling is logo + display name only (owner decision, 2026-08-02). A
+ * tenant no longer repaints the palette or the type: colour carries status
+ * meaning in this product, and a per-org repaint would make an amber pill mean
+ * something different in every workspace. The logo and name render in the shell;
+ * this function's remaining job is to strip the inline custom properties older
+ * builds wrote onto `<html>`, which would otherwise survive in a tab that was
+ * open across the deploy and keep overriding the design tokens.
+ *
+ * The `/me/workspace` branding response shape is unchanged — colour and font
+ * fields are simply no longer read.
  */
-export function applyBranding(branding: Workspace['branding']): void {
-  if (typeof document === 'undefined' || !branding) return
+export function applyBranding(_branding: Workspace['branding']): void {
+  if (typeof document === 'undefined') return
   const root = document.documentElement
-  if (branding.primaryColor) root.style.setProperty('--color-primary', branding.primaryColor)
-  if (branding.accentColor) root.style.setProperty('--color-accent', branding.accentColor)
-  if (branding.primaryColor) root.style.setProperty('--color-primary-hover', branding.primaryColor)
-  if (branding.headingFont) root.style.setProperty('--brand-heading-font', branding.headingFont)
-  if (branding.bodyFont) root.style.setProperty('--brand-body-font', branding.bodyFont)
+  for (const property of RETIRED_BRAND_PROPERTIES) root.style.removeProperty(property)
 }

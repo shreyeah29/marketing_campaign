@@ -283,9 +283,7 @@ function PromptView({
         >
           <Icon name="sparkles" size={13} /> AI Campaign Studio
         </span>
-        <h1>
-          What would you like to <span className="grad-text">create</span> today?
-        </h1>
+        <h1>What would you like to create today?</h1>
         <div className="sub">
           Describe your campaign and pick the outputs — your AI marketing director will plan it.
         </div>

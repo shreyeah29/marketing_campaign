@@ -1,114 +1,232 @@
 /*
- * VSP AI Marketing OS — design system ("High-Tech Boutique").
+ * VSP AI Marketing OS — design system (docs/DESIGN_BRIEF.md Part 1).
  *
- * Self-contained: every token the app consumes is defined here. Electric-blue
- * ground with glassmorphism surfaces, gradient interaction colour, amber spot
- * accent, Fira Sans / Fira Code type, and motion tuned for spring physics
- * (framer-motion drives entrances; CSS owns hovers at 150–300ms).
+ * The product is a decision surface: the AI does the work, the human judges it.
+ * Three enforced rules follow — (1) AI output renders provisional (iris) until a
+ * human approves it, (2) colour means status and nothing else, (3) amber appears
+ * only for "human decision required".
  *
- * White-labelling: `applyBranding` rewrites --color-primary / --color-accent /
- * --color-primary-hover / --brand-*-font on :root at runtime, so those names are
- * the contract and everything derives from them.
+ * Layers in this file:
+ *   1. Brief tokens (1.2–1.7) — colour, type ramp, space, radius, elevation,
+ *      motion. These are the only values new code may consume.
+ *   2. Legacy aliases — the old token names, re-pointed at brief tokens so the
+ *      not-yet-redesigned screens inherit the new palette. Phases 3–5 migrate
+ *      their consumers, then the aliases are deleted. Do not add consumers.
  *
  * `:root` is the light theme (default). `:root[data-theme="dark"]` overrides the
- * semantic layer only — components never read literal colours.
+ * brief tokens only — the alias layer and components resolve through them.
+ * The brief specifies light only; dark is a value-for-value graphite translation
+ * that preserves every pairing contract (-600 on -100, -800 on -100).
  */
 
 :root {
-  /* ── Brand (runtime-overridable) — Hanzo: ink on white, electric-blue accent ── */
-  --color-primary: #000000;
-  --color-primary-hover: #2b2b2b;
-  --color-secondary: #474747;
-  --color-accent: #0099ff;
-  --color-accent-2: #0099ff;
+  /* ── Type (brief 1.3) — General Sans UI, IBM Plex Mono data. Two families. ── */
+  --font: var(--font-sans, 'General Sans', Inter, system-ui, sans-serif);
+  --font-heading: var(--font-sans, 'General Sans', Inter, system-ui, sans-serif);
+  --font-code: var(--font-mono, 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace);
 
-  /* ── Type: Inter (Display cut), Instrument Serif accents, Fragment Mono data ── */
-  --font: var(--brand-body-font, var(--font-sans, 'Inter', system-ui, sans-serif));
-  --font-heading: var(--brand-heading-font, var(--font-sans, 'Inter', system-ui, sans-serif));
-  --font-serif: var(--font-serif-accent, 'Instrument Serif', Georgia, serif);
-  --font-code: var(--font-mono, 'Fragment Mono', ui-monospace, 'SF Mono', Menlo, monospace);
+  /* Type ramp — font shorthand (weight size/line-height family) + tracking.
+     Brief 1.3 names the 13px step "--text-secondary", which collides with the
+     colour token of the same name; the ramp is therefore prefixed --type-. */
+  --type-metric-hero: 500 36px/40px var(--font-code);
+  --type-metric-hero-tracking: -0.02em;
+  --type-metric: 500 28px/32px var(--font-code);
+  --type-metric-tracking: -0.02em;
+  --type-title: 500 22px/28px var(--font-heading);
+  --type-title-tracking: -0.01em;
+  --type-section: 500 18px/24px var(--font-heading);
+  --type-section-tracking: -0.01em;
+  --type-subhead: 500 15px/22px var(--font);
+  --type-body: 400 14px/21px var(--font);
+  --type-body-strong: 500 14px/21px var(--font);
+  --type-secondary: 400 13px/19px var(--font);
+  --type-caption: 400 12px/16px var(--font);
+  --type-label: 500 11px/14px var(--font);
+  --type-label-tracking: 0.06em;
 
-  /* ── Semantic surfaces (light) ───────────────────────────────────────────── */
-  --bg: #ffffff;
-  --bg-elevated: #ffffff;
-  --bg-card: #ffffff;
-  --bg-input: #ffffff;
-  --bg-subtle: #f5f5f5;
-  --border: #e3e3e3;
-  --border-strong: #d9d9d9;
-  --text: #000000;
-  --text-muted: #474747;
-  --text-dim: #9a9a9a;
-  --on-primary: #ffffff;
-  --primary-soft: rgba(0, 0, 0, 0.05);
+  /* ── Surfaces (brief 1.2) — cool graphite, not warm cream ─────────────────── */
+  --surface-canvas: #f6f7f9;
+  --surface-raised: #ffffff;
+  --surface-sunken: #edeff3;
+  --surface-inverse: #12151c;
+  --surface-hover: #f1f3f7;
+  --surface-selected: #edf1fe;
 
-  /* Legacy aliases still read from inline styles. */
-  --color-neutral-400: #d9d9d9;
-  --color-neutral-500: #9a9a9a;
-  --color-warn: #b45309;
+  /* ── Borders ──────────────────────────────────────────────────────────────── */
+  --border-subtle: #e4e7ec;
+  --border-default: #d3d8e0;
+  --border-strong: #b4bcc8;
+  --border-focus: #2b4fe8;
 
-  /* ── Status — the one exception to monochrome: state must read at a glance ── */
-  --ok: #0cb300;
-  --info: #0099ff;
-  --warn: #b45309;
-  --danger: #ff3700;
-  --ok-soft: rgba(12, 179, 0, 0.08);
-  --info-soft: rgba(0, 153, 255, 0.08);
-  --warn-soft: rgba(180, 83, 9, 0.08);
-  --danger-soft: rgba(255, 55, 0, 0.07);
+  /* ── Text ─────────────────────────────────────────────────────────────────── */
+  --text-primary: #12151c;
+  --text-secondary: #576070;
+  --text-tertiary: #8790a0;
+  --text-inverse: #ffffff;
+  --text-link: #2b4fe8;
 
-  /* ── Shape, depth, focus — pills and soft rectangles, quiet depth ────────── */
-  --radius-sm: 12px;
-  --radius: 16px;
-  --radius-lg: 24px;
-  --radius-pill: 999px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.16);
-  --glow-primary: none;
-  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--color-accent);
-  --glass-blur: 0px;
+  /* ── Semantic ramp — one meaning each, no exceptions (brief 1.1) ──────────── */
+  --cobalt-600: #2b4fe8; /* primary action, selected nav, links */
+  --cobalt-100: #e3e9fd;
+  --cobalt-800: #17307f;
 
-  /* ── Gradients retired: solid ink. Names kept so every rule still resolves. ── */
-  --grad-primary: var(--color-primary);
-  --grad-brand: var(--color-primary);
+  --amber-600: #c97a0e; /* RESERVED: human decision required */
+  --amber-100: #fbf0dc;
+  --amber-800: #6b3f04;
+
+  --jade-600: #0e7c5a; /* live, approved, published, positive delta */
+  --jade-100: #dcf2ea;
+  --jade-800: #06422f;
+
+  --crimson-600: #c8324b; /* rejected, failed, negative delta, destructive */
+  --crimson-100: #fbe4e8;
+  --crimson-800: #7a1527;
+
+  --iris-600: #6b5dd3; /* AI-generated, not yet reviewed */
+  --iris-100: #eeebfc;
+  --iris-050: #f5f3ff;
+  --iris-800: #372c7a;
+
+  --slate-600: #576070; /* draft, paused, archived, neutral */
+  --slate-100: #edeff3;
+
+  /* ── Chart categorical ramp — inside charts only, never UI chrome ─────────── */
+  --chart-1: #2b4fe8;
+  --chart-2: #6b5dd3;
+  --chart-3: #0e7c5a;
+  --chart-4: #c97a0e;
+  --chart-5: #c8324b;
+  --chart-6: #0e6f8c;
+
+  /* ── Space (brief 1.4) — 4px base unit ────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+
+  /* ── Radius ───────────────────────────────────────────────────────────────── */
+  --radius-sm: 4px; /* pills, badges, tags */
+  --radius-md: 6px; /* inputs, buttons */
+  --radius-lg: 10px; /* cards, panels */
+  --radius-xl: 14px; /* modals, drawers */
+
+  /* ── Elevation — never more than two floating layers at once ──────────────── */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(18, 21, 28, 0.06);
+  --elev-2: 0 4px 12px rgba(18, 21, 28, 0.08);
+  --elev-3: 0 12px 32px rgba(18, 21, 28, 0.14);
+
+  /* ── Motion (brief 1.7) ───────────────────────────────────────────────────── */
+  --dur-fast: 120ms; /* hover, focus */
+  --dur-base: 200ms; /* dropdown, tab switch */
+  --dur-slow: 320ms; /* drawer, modal, page transition */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Focus ring ───────────────────────────────────────────────────────────── */
+  --ring: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--border-focus);
+
+  /* ═══ LEGACY ALIASES — old names re-pointed at brief tokens. Phases 3–5
+     migrate every consumer, then this whole block is deleted. ═══ */
+  --bg: var(--surface-canvas);
+  --bg-elevated: var(--surface-raised);
+  --bg-card: var(--surface-raised);
+  --bg-input: var(--surface-raised);
+  --bg-subtle: var(--surface-sunken);
+  --border: var(--border-subtle);
+  /* --border-strong is shared: legacy rules simply get the brief value. */
+  --text: var(--text-primary);
+  --text-muted: var(--text-secondary);
+  --text-dim: var(--text-tertiary);
+  --on-primary: var(--text-inverse);
+  --primary-soft: var(--surface-selected);
+
+  --color-primary: var(--cobalt-600);
+  --color-primary-hover: var(--cobalt-800);
+  --color-secondary: var(--text-secondary);
+  --color-accent: var(--cobalt-600);
+  --color-accent-2: var(--cobalt-600);
+  --color-neutral-400: var(--border-default);
+  --color-neutral-500: var(--text-tertiary);
+  --color-warn: var(--amber-600);
+
+  --ok: var(--jade-600);
+  --info: var(--cobalt-600);
+  --warn: var(--amber-600);
+  --danger: var(--crimson-600);
+  --ok-soft: var(--jade-100);
+  --info-soft: var(--cobalt-100);
+  --warn-soft: var(--amber-100);
+  --danger-soft: var(--crimson-100);
+
+  --radius: var(--radius-lg);
+  --shadow-sm: var(--elev-1);
+  --shadow: var(--elev-2);
+  --shadow-lg: var(--elev-3);
 }
 
 :root[data-theme='dark'] {
-  --color-primary: #ffffff;
-  --color-primary-hover: #d9d9d9;
-  --color-secondary: #d9d9d9;
-  --color-accent: #0099ff;
+  --surface-canvas: #0e1116;
+  --surface-raised: #151922;
+  --surface-sunken: #0a0d12;
+  --surface-inverse: #f6f7f9;
+  --surface-hover: #1a1f2a;
+  --surface-selected: #182137;
 
-  --bg: #000000;
-  --bg-elevated: #111111;
-  --bg-card: #111111;
-  --bg-input: #161616;
-  --bg-subtle: #1c1c1c;
-  --border: #2b2b2b;
-  --border-strong: #474747;
-  --text: #ffffff;
-  --text-muted: #d9d9d9;
-  --text-dim: #9a9a9a;
-  --on-primary: #000000;
-  --primary-soft: rgba(255, 255, 255, 0.08);
+  --border-subtle: #232936;
+  --border-default: #2e3646;
+  --border-strong: #465062;
+  --border-focus: #6e8bff;
 
-  --color-neutral-400: #474747;
-  --color-neutral-500: #9a9a9a;
+  --text-primary: #e9ecf2;
+  --text-secondary: #a6aebe;
+  --text-tertiary: #717a8c;
+  --text-inverse: #12151c;
+  --text-link: #8fa5ff;
 
-  --ok: #52ff69;
-  --info: #05a9ff;
-  --warn: #ffd500;
-  --danger: #ff5e00;
-  --ok-soft: rgba(82, 255, 105, 0.1);
-  --info-soft: rgba(5, 169, 255, 0.1);
-  --warn-soft: rgba(255, 213, 0, 0.1);
-  --danger-soft: rgba(255, 94, 0, 0.1);
+  /* Pairing contract preserved: -600 = icon/accent, -100 = tinted surface,
+     -800 = text on that surface. */
+  --cobalt-600: #7c93f5;
+  --cobalt-100: #1b2440;
+  --cobalt-800: #c3cffc;
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
-  --glow-primary: none;
+  --amber-600: #e09a3e;
+  --amber-100: #33270f;
+  --amber-800: #f4d7a6;
+
+  --jade-600: #3fb58e;
+  --jade-100: #0f291f;
+  --jade-800: #a9e6cf;
+
+  --crimson-600: #e36880;
+  --crimson-100: #391219;
+  --crimson-800: #f6bfc9;
+
+  --iris-600: #9c8ff0;
+  --iris-100: #221d3f;
+  --iris-050: #1b1733;
+  --iris-800: #cfc7f8;
+
+  --slate-600: #a6aebe;
+  --slate-100: #222836;
+
+  --chart-1: #7c93f5;
+  --chart-2: #9c8ff0;
+  --chart-3: #3fb58e;
+  --chart-4: #e09a3e;
+  --chart-5: #e36880;
+  --chart-6: #4aa3c4;
+
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.55);
+  --elev-3: 0 12px 32px rgba(0, 0, 0, 0.7);
+
+  --ring: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--border-focus);
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────────── */
@@ -124,16 +242,10 @@ body {
 }
 
 body {
-  font-family: var(--font);
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--text);
-  background: var(--bg);
+  font: var(--type-body);
+  color: var(--text-primary);
+  background: var(--surface-canvas);
   -webkit-font-smoothing: antialiased;
-}
-
-:root[data-theme='dark'] body {
-  background: var(--bg);
 }
 
 h1,
@@ -142,9 +254,50 @@ h3,
 h4 {
   font-family: var(--font-heading);
   font-weight: 500;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.01em;
   margin: 0;
-  color: var(--text);
+  color: var(--text-primary);
+}
+
+/* ── Type ramp utilities (brief 1.3) — one class per role ────────────────────── */
+
+.type-metric-hero {
+  font: var(--type-metric-hero);
+  letter-spacing: var(--type-metric-hero-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.type-metric {
+  font: var(--type-metric);
+  letter-spacing: var(--type-metric-tracking);
+  font-variant-numeric: tabular-nums;
+}
+.type-title {
+  font: var(--type-title);
+  letter-spacing: var(--type-title-tracking);
+}
+.type-section {
+  font: var(--type-section);
+  letter-spacing: var(--type-section-tracking);
+}
+.type-subhead {
+  font: var(--type-subhead);
+}
+.type-body {
+  font: var(--type-body);
+}
+.type-body-strong {
+  font: var(--type-body-strong);
+}
+.type-secondary {
+  font: var(--type-secondary);
+}
+.type-caption {
+  font: var(--type-caption);
+}
+.type-label {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
 }
 
 p {
@@ -176,7 +329,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--cobalt-600) 18%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -202,11 +355,8 @@ textarea {
   min-height: 100vh;
 }
 
-/* Glass sidebar. */
 .sidebar {
   background: var(--bg-elevated);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border-right: 1px solid var(--border);
   padding: 18px 12px;
   display: flex;
@@ -232,9 +382,8 @@ textarea {
 .brand .dot {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: var(--grad-brand);
-  box-shadow: var(--glow-primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-inverse);
   flex-shrink: 0;
 }
 
@@ -256,7 +405,7 @@ textarea {
   align-items: center;
   gap: 10px;
   padding: 8px 14px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   font-weight: 500;
   font-size: 13.5px;
@@ -272,10 +421,9 @@ textarea {
 }
 
 .nav-item.active {
-  background: var(--grad-primary);
-  color: var(--on-primary);
+  background: var(--surface-selected);
+  color: var(--cobalt-600);
   font-weight: 600;
-  box-shadow: var(--glow-primary);
 }
 
 .nav-item .ico {
@@ -339,8 +487,6 @@ textarea {
 
 .card {
   background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 18px;
@@ -394,8 +540,6 @@ a.card:hover {
     gap: 12px;
     padding: 12px 16px;
     background: var(--bg-elevated);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -435,7 +579,6 @@ a.card:hover {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(3px);
     z-index: 50;
   }
 
@@ -503,7 +646,7 @@ a.card:hover {
   align-items: center;
   gap: 7px;
   padding: 10px 20px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text);
@@ -521,7 +664,7 @@ a.card:hover {
   box-shadow: var(--shadow-sm);
 }
 .btn:active {
-  transform: scale(0.96);
+  transform: translateY(1px);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -530,10 +673,9 @@ a.card:hover {
 }
 
 .btn.primary {
-  background: var(--grad-primary);
+  background: var(--cobalt-600);
   border-color: transparent;
-  color: var(--on-primary);
-  box-shadow: var(--glow-primary);
+  color: var(--text-inverse);
 }
 .btn.primary:hover {
   background: var(--color-primary-hover);
@@ -590,7 +732,7 @@ a.card:hover {
   border: 1px solid var(--border);
   color: var(--text);
   padding: 10px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   width: 100%;
   outline: none;
   transition:
@@ -613,7 +755,7 @@ a.card:hover {
   align-items: center;
   gap: 5px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.01em;
@@ -712,8 +854,6 @@ a.card:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow: var(--shadow-sm);
 }
 .table th.sortable {
@@ -780,9 +920,9 @@ a.card:hover {
   box-shadow: 0 0 0 3px var(--primary-soft);
 }
 .step.active .num {
-  background: var(--grad-primary);
+  background: var(--cobalt-600);
   border-color: transparent;
-  color: var(--on-primary);
+  color: var(--text-inverse);
 }
 .step.done .num {
   background: var(--ok);
@@ -967,7 +1107,6 @@ a.card:hover {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(3px);
   z-index: 50;
   animation: fade 0.15s ease;
 }
@@ -984,8 +1123,6 @@ a.card:hover {
   bottom: 0;
   width: min(460px, 100vw);
   background: var(--bg-elevated);
-  backdrop-filter: blur(calc(var(--glass-blur) + 6px));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px));
   border-left: 1px solid var(--border);
   z-index: 51;
   display: flex;
@@ -1031,10 +1168,8 @@ a.card:hover {
   width: min(440px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   background: var(--bg-elevated);
-  backdrop-filter: blur(calc(var(--glass-blur) + 6px));
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) + 6px));
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   z-index: 51;
   display: flex;
   flex-direction: column;
@@ -1084,8 +1219,6 @@ a.card:hover {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-strong);
   background: var(--bg-elevated);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   box-shadow: var(--shadow-lg);
   font-size: 13px;
   animation: slidein 0.22s cubic-bezier(0.32, 0.72, 0, 1);
@@ -1186,8 +1319,6 @@ a.card:hover {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   overflow: hidden;
 }
 .chat .stream {
@@ -1208,8 +1339,8 @@ a.card:hover {
 }
 .msg.user {
   align-self: flex-end;
-  background: var(--grad-primary);
-  color: var(--on-primary);
+  background: var(--cobalt-600);
+  color: var(--text-inverse);
   border-bottom-right-radius: 4px;
 }
 .msg.assistant {
@@ -1240,8 +1371,8 @@ a.card:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--grad-primary);
-  color: var(--on-primary);
+  background: var(--surface-inverse);
+  color: var(--surface-raised);
   font-size: 12px;
   font-weight: 650;
   flex-shrink: 0;
@@ -1263,8 +1394,6 @@ a.card:hover {
   margin: 0 auto;
   width: 100%;
   background: color-mix(in srgb, var(--bg) 55%, transparent);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
 }
 .lp-nav .brand {
   display: flex;
@@ -1293,7 +1422,7 @@ a.card:hover {
   align-items: center;
   gap: 7px;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--primary-soft);
   color: var(--color-primary);
@@ -1309,13 +1438,8 @@ a.card:hover {
   max-width: 900px;
   margin: 0 auto 20px;
 }
-.lp-hero h1 .grad,
-.grad-text {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-}
+/* .grad / .grad-text retired with the serif accent face — headline words render
+   in the interface family like everything else. */
 .lp-hero p.sub {
   font-size: clamp(15px, 2vw, 19px);
   color: var(--text-muted);
@@ -1386,7 +1510,7 @@ a.card:hover {
 }
 .lp-step {
   padding: 10px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--bg-card);
   font-size: 13px;
@@ -1457,8 +1581,6 @@ a.card:hover {
 .cmp-prompt {
   position: relative;
   background: var(--bg-card);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
@@ -1510,7 +1632,7 @@ a.card:hover {
   align-items: center;
   gap: 6px;
   padding: 7px 13px;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--bg-card);
   color: var(--text-muted);
@@ -1689,5 +1811,209 @@ a.card:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   /design-system — the living token reference (Phase 2 deliverable)
+   Scoped to this route: every rule is prefixed .ds-. Nothing here is consumed
+   by product screens.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ds-page {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6) var(--space-10);
+}
+
+.ds-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.ds-section {
+  padding-top: var(--space-9);
+}
+
+.ds-section > h2 {
+  font: var(--type-title);
+  letter-spacing: var(--type-title-tracking);
+}
+
+.ds-section > .ds-note {
+  font: var(--type-secondary);
+  color: var(--text-secondary);
+  max-width: 62ch;
+  margin-top: var(--space-2);
+}
+
+.ds-grid {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.ds-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-5);
+}
+
+/* Swatches: the value is the point, so the chip is large and the metadata mono. */
+.ds-swatch {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--surface-raised);
+}
+.ds-swatch .chip {
+  height: 64px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.ds-swatch .meta {
+  padding: var(--space-3);
+}
+.ds-swatch .name {
+  font: var(--type-body-strong);
+}
+.ds-swatch .value {
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+/* Ramp triad: -600 mark, -100 surface, -800 text on it — the pairing contract. */
+.ds-triad {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.ds-triad:first-child {
+  border-top: none;
+}
+.ds-triad .mark {
+  height: 40px;
+  border-radius: var(--radius-md);
+}
+.ds-triad .pair {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+}
+.ds-triad .use {
+  font: var(--type-secondary);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.ds-specimen {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: var(--space-5);
+  align-items: baseline;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.ds-specimen:first-child {
+  border-top: none;
+}
+.ds-specimen .spec {
+  font-family: var(--font-code);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.6;
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-5);
+}
+.ds-table th {
+  text-align: left;
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-default);
+}
+.ds-table td {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  font: var(--type-body);
+  vertical-align: middle;
+}
+.ds-table td.num {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+/* Status vocabulary preview — the shape Phase 3's StatusPill/StatusRail must render. */
+.ds-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ds-railed {
+  border-left: 3px solid transparent;
+  padding-left: var(--space-3);
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+/* Rule 1 demo — an AI draft resolving to approved. The rail wipes iris → jade. */
+.ds-draft {
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--iris-600);
+  border-radius: var(--radius-lg);
+  background: var(--iris-050);
+  padding: var(--space-5);
+  transition:
+    background var(--dur-slow) var(--ease-out),
+    border-left-color var(--dur-slow) var(--ease-out);
+}
+.ds-draft.approved {
+  background: var(--surface-raised);
+  border-left-color: var(--jade-600);
+}
+
+.ds-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .ds-specimen {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+  .ds-head {
+    flex-direction: column;
   }
 }

@@ -6,13 +6,14 @@
  * Every chart here is hand-rolled inline SVG — no charting library, no runtime
  * dependency. They are sized with a `viewBox` and stretch to their container, so
  * they are responsive and never overflow horizontally. Colours come from the
- * design-system CSS variables (`--color-primary`, `--text`, `--text-muted`,
- * `--border`) so a chart re-skins with the tenant's branding and stays legible
- * against the dark surface. Values are the caller's; these components invent
- * nothing — an empty series renders an honest empty state, not a fake line.
+ * design-system CSS variables. Series colour comes from the categorical chart
+ * ramp (`--chart-1` … `--chart-6`, design brief 1.2), which exists only inside
+ * charts — never in UI chrome, and never carrying status meaning. Values are the
+ * caller's; these components invent nothing — an empty series renders an honest
+ * empty state, not a fake line.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-const PRIMARY = 'var(--color-primary)'
+const PRIMARY = 'var(--chart-1)'
 const AXIS = 'var(--border-strong, var(--border))'
 const GRID = 'var(--border)'
 const MUTED = 'var(--text-muted)'
@@ -299,14 +300,12 @@ export function Sparkline({
 
 // ── Donut chart ─────────────────────────────────────────────────────────────
 const DONUT_COLORS = [
-  'var(--color-primary)',
-  'var(--color-accent)',
-  '#a78bfa',
-  '#f472b6',
-  '#fbbf24',
-  '#34d399',
-  '#60a5fa',
-  '#f87171',
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+  'var(--chart-6)',
 ]
 
 export function DonutChart({

@@ -78,6 +78,34 @@ export function useWorkspace(): Workspace {
   return ctx.workspace
 }
 
+/**
+ * The organisation's mark in the shell header.
+ *
+ * White-labelling is logo + display name: an uploaded logo renders as-is, and an
+ * organisation without one gets a neutral tile carrying its initial. Neither path
+ * introduces tenant colour — colour is reserved for status everywhere in the app.
+ */
+function BrandMark({ logoUrl, name }: { logoUrl: string | null; name: string }) {
+  if (logoUrl)
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={logoUrl}
+        alt=""
+        width={28}
+        height={28}
+        style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', objectFit: 'contain' }}
+      />
+    )
+  return (
+    <span className="dot" aria-hidden style={{ display: 'grid', placeItems: 'center' }}>
+      <span style={{ color: 'var(--text-inverse)', fontSize: 13, fontWeight: 600 }}>
+        {name.trim().charAt(0).toUpperCase() || 'W'}
+      </span>
+    </span>
+  )
+}
+
 type Status =
   | { kind: 'loading' }
   | { kind: 'no-org'; session: AuthSession }
@@ -214,7 +242,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               <Icon name="menu" size={22} />
             </button>
             <div className="brand" style={{ padding: 0 }}>
-              <span className="dot" />
+              <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
               <span>{brandName}</span>
             </div>
           </header>
@@ -224,7 +252,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
           <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
             <div className="brand">
-              <span className="dot" />
+              <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
               <span>{brandName}</span>
               <button
                 className="sidebar-close"
@@ -323,9 +351,9 @@ function ViewOnlyBanner({ organizationName }: { organizationName?: string | unde
         gap: 12,
         margin: '0 0 16px',
         padding: '10px 16px',
-        borderRadius: 'var(--radius-pill)',
-        background: 'var(--text)',
-        color: 'var(--bg)',
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--surface-inverse)',
+        color: 'var(--text-inverse)',
         fontSize: 13,
       }}
     >

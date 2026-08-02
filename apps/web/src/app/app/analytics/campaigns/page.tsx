@@ -46,10 +46,12 @@ const RANGES = [
   { key: '90', label: '90 days' },
 ]
 
+// Demographics are categories, not statuses: they take the chart ramp, never a
+// meaning-carrying status colour (design brief 1.1, rule 2).
 const GENDER_COLORS: Record<string, string> = {
-  female: 'var(--color-accent-2, #d6006c)',
-  male: 'var(--color-accent, #0088b0)',
-  unknown: 'var(--color-neutral-400, #9aa5ab)',
+  female: 'var(--chart-2)',
+  male: 'var(--chart-1)',
+  unknown: 'var(--chart-6)',
 }
 
 function num(v: number | undefined): string {

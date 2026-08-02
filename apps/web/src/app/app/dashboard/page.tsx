@@ -273,7 +273,7 @@ export default function DashboardPage() {
                                 display: 'block',
                                 height: '100%',
                                 width: `${(s.assets / maxAssets) * 100}%`,
-                                background: 'var(--grad-primary)',
+                                background: 'var(--chart-1)',
                                 borderRadius: 6,
                               }}
                             />

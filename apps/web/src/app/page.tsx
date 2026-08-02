@@ -41,7 +41,7 @@ export default function LandingPage() {
             VSP
           </div>
           <h1 style={{ fontSize: 'clamp(26px, 4vw, 38px)', letterSpacing: '-0.03em' }}>
-            The AI Marketing <span className="grad-text">Operating System</span>
+            The AI Marketing Operating System
           </h1>
           <p
             className="muted"

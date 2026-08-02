@@ -7,10 +7,13 @@ import { ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/ki
 import { FadeIn } from '@/components/motion'
 import { Field } from '@/components/ui'
 
+/**
+ * White-labelling is logo + display name (owner decision, 2026-08-02). The
+ * `/config/branding` contract still carries colour fields; this screen no longer
+ * reads or sends them, so stored values stay put and stop affecting the UI.
+ */
 interface Branding {
   displayName?: string | null
-  primaryColor?: string | null
-  accentColor?: string | null
   logoUrl?: string | null
   loginTagline?: string | null
 }
@@ -29,8 +32,6 @@ export default function BrandingSettingsPage() {
       const b = await api.get<Branding>('/config/branding')
       setForm({
         displayName: b?.displayName ?? '',
-        primaryColor: b?.primaryColor ?? '',
-        accentColor: b?.accentColor ?? '',
         logoUrl: b?.logoUrl ?? '',
         loginTagline: b?.loginTagline ?? '',
       })
@@ -53,8 +54,6 @@ export default function BrandingSettingsPage() {
       // url/hex validators.
       const body: Record<string, string> = {}
       if (form.displayName) body['displayName'] = form.displayName
-      if (form.primaryColor) body['primaryColor'] = form.primaryColor
-      if (form.accentColor) body['accentColor'] = form.accentColor
       if (form.logoUrl) body['logoUrl'] = form.logoUrl
       if (form.loginTagline) body['loginTagline'] = form.loginTagline
       await api.put('/config/branding', body)
@@ -84,25 +83,7 @@ export default function BrandingSettingsPage() {
               placeholder="Acme Marketing"
             />
           </Field>
-          <div className="cols-2 grid">
-            <Field label="Primary color" hint="Hex, e.g. #4f46e5">
-              <input
-                className="input"
-                value={form.primaryColor ?? ''}
-                onChange={(e) => setForm({ ...form, primaryColor: e.target.value })}
-                placeholder="#4f46e5"
-              />
-            </Field>
-            <Field label="Accent color" hint="Hex, e.g. #06b6d4">
-              <input
-                className="input"
-                value={form.accentColor ?? ''}
-                onChange={(e) => setForm({ ...form, accentColor: e.target.value })}
-                placeholder="#06b6d4"
-              />
-            </Field>
-          </div>
-          <Field label="Logo URL">
+          <Field label="Logo URL" hint="Shown beside your workspace name in the sidebar">
             <input
               className="input"
               value={form.logoUrl ?? ''}

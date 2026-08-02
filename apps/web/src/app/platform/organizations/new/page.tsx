@@ -53,8 +53,6 @@ export default function NewOrganizationPage() {
   // ── Brand & vision ───────────────────────────────────────────────────────────
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
-  const [primaryColor, setPrimaryColor] = useState('#111111')
-  const [accentColor, setAccentColor] = useState('#111111')
   const [tagline, setTagline] = useState('')
   const [vision, setVision] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
@@ -156,8 +154,6 @@ export default function NewOrganizationPage() {
       branding: {
         displayName: name.trim(),
         ...(logoDataUrl ? { logoUrl: logoDataUrl } : {}),
-        primaryColor,
-        accentColor,
       },
       admin: { name: adminName.trim(), email: adminEmail.trim(), password: adminPassword },
       status: 'TRIAL',
@@ -309,43 +305,6 @@ export default function NewOrganizationPage() {
               <span style={{ color: 'var(--danger)', fontSize: 12 }}>{logoError}</span>
             ) : null}
           </Field>
-
-          <div className="cols-2 grid" style={{ gap: 14 }}>
-            <Field label="Primary brand color">
-              <div className="row">
-                <input
-                  type="color"
-                  value={primaryColor}
-                  onChange={(e) => setPrimaryColor(e.target.value)}
-                  style={{
-                    width: 44,
-                    height: 36,
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                  }}
-                />
-                <span className="mono dim">{primaryColor}</span>
-              </div>
-            </Field>
-            <Field label="Accent color">
-              <div className="row">
-                <input
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  style={{
-                    width: 44,
-                    height: 36,
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                  }}
-                />
-                <span className="mono dim">{accentColor}</span>
-              </div>
-            </Field>
-          </div>
 
           <Field label="Tagline" hint="One line that captures them.">
             <input

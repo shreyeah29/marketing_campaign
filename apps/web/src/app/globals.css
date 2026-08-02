@@ -5348,3 +5348,116 @@ a.card:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Module cards — the "Assign Modules" step ────────────────────────────────── */
+
+.module-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  margin-bottom: var(--space-3);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.module-card:hover {
+  border-color: var(--border-strong);
+}
+.module-card[data-locked] {
+  background: var(--surface-sunken);
+}
+.module-card__icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+.module-card__body {
+  flex: 1;
+  min-width: 0;
+}
+.module-card__eyebrow {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.module-card__title {
+  font: var(--type-subhead);
+  margin-top: 2px;
+}
+.module-card__desc {
+  font: var(--type-secondary);
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
+  text-wrap: pretty;
+}
+.module-card__note {
+  font: var(--type-caption);
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
+}
+
+/* Switch — the toggle on a module card. */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 28px;
+  display: inline-block;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.switch input:disabled {
+  cursor: not-allowed;
+}
+.switch__track {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  border: 1px solid var(--border-default);
+  transition:
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--surface-inverse);
+  display: grid;
+  place-items: center;
+  color: var(--text-inverse);
+  transition: transform var(--dur-base) var(--ease-out);
+  pointer-events: none;
+}
+.switch input:checked ~ .switch__knob {
+  transform: translateX(24px);
+}
+.switch input:checked ~ .switch__track {
+  background: var(--surface-sunken);
+  border-color: var(--border-strong);
+}
+.switch input:focus-visible ~ .switch__track {
+  box-shadow: var(--ring);
+}
+.switch input:disabled ~ .switch__knob {
+  opacity: 0.4;
+}

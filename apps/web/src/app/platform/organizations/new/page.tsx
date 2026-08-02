@@ -9,11 +9,23 @@ import { closeDependencies, enabledDependentsOf, indexFeatures } from '@/lib/fea
 import { platform } from '@/lib/platform'
 import type { Catalog, ProvisionInput } from '@/lib/types'
 import { Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
-import { Icon } from '@/components/icon'
+import { Icon, type IconName } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
 import { Chip } from '@/components/status'
 
 type Step = 1 | 2 | 3 | 4
+
+const MODULE_ICONS: Record<string, IconName> = {
+  Marketing: 'megaphone',
+  Analytics: 'bar-chart',
+  CRM: 'users',
+  AI: 'sparkles',
+  Automation: 'workflow',
+  Support: 'life-buoy',
+  Documents: 'folder',
+  Inbox: 'inbox',
+  Commerce: 'credit-card',
+}
 
 const STEPS: { n: Step; label: string }[] = [
   { n: 1, label: 'Company' },
@@ -399,61 +411,65 @@ export default function NewOrganizationPage() {
         <FadeIn className="stack">
           <div className="card">
             <div className="spread" style={{ marginBottom: 12 }}>
-              <h3>Modules</h3>
+              <h3 className="type-section">Assign modules</h3>
               <Chip>{features.size} enabled</Chip>
             </div>
             <p className="dim" style={{ marginBottom: 14, fontSize: 12 }}>
-              Enable exactly the modules this client should have. Dependencies are pulled in
-              automatically; a module another enabled module needs cannot be turned off.
+              Configure this workspace by enabling core services. Dependencies are pulled in
+              automatically, and a module another enabled module needs cannot be switched off.
             </p>
-            {catalog.features.map((group) => {
-              const enabledInCat = group.features.filter((f) => features.has(f.id)).length
-              return (
-                <details key={group.category} className="cat" open={enabledInCat > 0}>
-                  <summary>
-                    <span style={{ textTransform: 'capitalize' }}>
-                      {group.category.replace(/_/g, ' ')}
-                    </span>
-                    <span className="dim" style={{ fontSize: 12 }}>
-                      {enabledInCat}/{group.features.length}
-                    </span>
-                  </summary>
-                  <div className="cat-body">
-                    {group.features.map((f) => {
-                      const on = features.has(f.id)
-                      const blockers = on ? enabledDependentsOf(f.id, features, index) : []
-                      const locked = blockers.length > 0
-                      return (
-                        <label key={f.id} className="feat">
-                          <input
-                            type="checkbox"
-                            checked={on}
-                            disabled={locked}
-                            onChange={(e) => toggleFeature(f.id, e.target.checked)}
-                          />
-                          <span>
-                            <span className="fname">{f.name}</span>
-                            <div className="fdesc">{f.description}</div>
-                            {f.dependencies.length > 0 && (
-                              <div className="dim" style={{ fontSize: 11, marginTop: 2 }}>
-                                needs:{' '}
-                                {f.dependencies.map((d) => index.names.get(d) ?? d).join(', ')}
-                              </div>
-                            )}
-                            {locked && (
-                              <div className="dep-note">
-                                required by{' '}
-                                {blockers.map((b) => index.names.get(b) ?? b).join(', ')}
-                              </div>
-                            )}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </details>
-              )
-            })}
+            {catalog.features.map((group) => (
+              <div key={group.category} style={{ marginBottom: 'var(--space-6)' }}>
+                <div className="module-card__eyebrow" style={{ marginBottom: 'var(--space-3)' }}>
+                  {group.category.replace(/_/g, ' ')}
+                </div>
+                {group.features.map((f) => {
+                  const on = features.has(f.id)
+                  // A module another enabled module depends on cannot be switched
+                  // off — that combination is exactly what refuses to boot.
+                  const blockers = on ? enabledDependentsOf(f.id, features, index) : []
+                  const locked = blockers.length > 0
+                  return (
+                    <div
+                      key={f.id}
+                      className="module-card"
+                      {...(locked ? { 'data-locked': '' } : {})}
+                    >
+                      <span className="module-card__icon" aria-hidden>
+                        <Icon name={MODULE_ICONS[group.category] ?? 'grid'} size={20} />
+                      </span>
+                      <div className="module-card__body">
+                        <div className="module-card__title">{f.name}</div>
+                        <p className="module-card__desc">{f.description}</p>
+                        {f.dependencies.length > 0 ? (
+                          <p className="module-card__note">
+                            Needs {f.dependencies.map((d) => index.names.get(d) ?? d).join(', ')}
+                          </p>
+                        ) : null}
+                        {locked ? (
+                          <p className="module-card__note">
+                            Required by {blockers.map((b) => index.names.get(b) ?? b).join(', ')}
+                          </p>
+                        ) : null}
+                      </div>
+                      <label className="switch">
+                        <input
+                          type="checkbox"
+                          checked={on}
+                          disabled={locked}
+                          aria-label={`Enable ${f.name}`}
+                          onChange={(e) => toggleFeature(f.id, e.target.checked)}
+                        />
+                        <span className="switch__track" />
+                        <span className="switch__knob">
+                          {on ? <Icon name="check" size={13} /> : null}
+                        </span>
+                      </label>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
           </div>
 
           <div className="spread">

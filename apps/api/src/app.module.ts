@@ -65,6 +65,8 @@ import { PlatformController } from './modules/platform/platform.controller.js'
 import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
 import { ProvisioningService } from './modules/platform/provisioning.service.js'
 import { PlatformAdminGuard } from './modules/platform/platform-admin.guard.js'
+import { ViewAsService } from './modules/platform/view-as.service.js'
+import { ReadOnlySessionGuard } from './common/guards/read-only.guard.js'
 import { WorkspaceController } from './modules/workspace/workspace.controller.js'
 import { MetaController } from './modules/meta/meta.controller.js'
 import { MetaConnectService } from './modules/meta/meta-connect.service.js'
@@ -159,6 +161,7 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
     PlatformAuthService,
     ProvisioningService,
     PlatformAdminGuard,
+    ViewAsService,
     {
       provide: APP_FILTER,
       inject: [LOGGER],
@@ -171,6 +174,13 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
       // decide. Nest runs global guards in registration order, so this is first.
       provide: APP_GUARD,
       useExisting: AuthGuard,
+    },
+    {
+      // Directly after AuthGuard: a view-as (impersonation) principal is
+      // rejected for any mutating verb before entitlement/permission checks
+      // even look at it. Read-only by construction, not by permission set.
+      provide: APP_GUARD,
+      useClass: ReadOnlySessionGuard,
     },
     {
       // Runs BEFORE the permission guard, matching the pipeline order:

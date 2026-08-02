@@ -22,6 +22,15 @@ export interface Principal {
   readonly sessionId?: string
   readonly email?: string
   readonly displayName?: string
+  /**
+   * Present when a platform admin is viewing this organisation through the
+   * view-as bridge. Always read-only: the ReadOnlySessionGuard rejects every
+   * mutating request carrying this, and the tenant transaction opens READ ONLY.
+   */
+  readonly impersonation?: {
+    readonly platformAdminId: string
+    readonly readOnly: true
+  }
 }
 
 export function can(principal: Principal, permission: Permission): boolean {

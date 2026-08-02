@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 
-import { ApiError } from '@/lib/api'
+import { ApiError, setViewAsToken } from '@/lib/api'
 import { platform } from '@/lib/platform'
 import type { OrgDetail, OrgStatus } from '@/lib/types'
 import { Badge, Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
@@ -81,6 +81,29 @@ export default function OrganizationDetailPage() {
           </div>
           <p className="page-sub mono">{org.slug}</p>
         </div>
+        {org.status !== 'DELETED' ? (
+          <button
+            className="btn"
+            disabled={acting}
+            onClick={() =>
+              act(async () => {
+                // Same-tab on purpose: the bridge token lives in sessionStorage,
+                // which does not reliably follow into a new tab. Exit view
+                // returns here.
+                const res = await platform.startViewSession(id)
+                setViewAsToken(res.token)
+                try {
+                  window.sessionStorage.removeItem('vsp:shell:v1')
+                } catch {
+                  /* ignore */
+                }
+                router.push('/app')
+              }, 'View session started.')
+            }
+          >
+            {acting ? <Spinner /> : 'View as client'}
+          </button>
+        ) : null}
       </div>
 
       {notice ? <Banner kind="success">{notice}</Banner> : null}

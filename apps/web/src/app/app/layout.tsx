@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 
-import { ApiError } from '@/lib/api'
+import { ApiError, getViewAsToken, setViewAsToken } from '@/lib/api'
 import { authClient, type AuthSession } from '@/lib/auth-client'
 import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
@@ -107,13 +107,31 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
   const load = useCallback(async () => {
     // Render the last known-good shell immediately (optimistic), then revalidate.
-    const cached = readShellCache()
+    // Never from cache in view-as mode — the cache belongs to whatever tenant
+    // session this browser normally holds, not to the client being viewed.
+    const cached = getViewAsToken() ? null : readShellCache()
     if (cached) {
       applyBranding(cached.workspace.branding)
       setStatus({ kind: 'ready', data: { ...cached, reload: () => void load() } })
     }
 
     try {
+      // View-as mode: a platform admin looking around read-only. There is no
+      // Better Auth identity to fetch — the bridge token IS the session, and
+      // the workspace response carries everything the shell needs.
+      if (getViewAsToken()) {
+        const ws = await workspaceApi.bootstrap()
+        applyBranding(ws.branding)
+        const session: AuthSession = {
+          user: { id: ws.user.id, email: ws.user.email, name: ws.user.name, emailVerified: true },
+          organizations: [],
+          activeOrganizationId: ws.organization?.id ?? null,
+          needsOrganization: false,
+        }
+        setStatus({ kind: 'ready', data: { workspace: ws, session, reload: () => void load() } })
+        return
+      }
+
       // Fetch session + workspace concurrently so a cold API is paid once, not twice.
       const [sessionRes, wsRes] = await Promise.allSettled([
         authClient.session(),
@@ -133,6 +151,13 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
       writeShellCache(session, ws)
       setStatus({ kind: 'ready', data: { workspace: ws, session, reload: () => void load() } })
     } catch (err) {
+      // An expired view-as token → back to the platform console, not the
+      // tenant sign-in: the visitor is the operator, not a member.
+      if (getViewAsToken() && err instanceof ApiError && err.status === 401) {
+        setViewAsToken(null)
+        router.replace('/platform')
+        return
+      }
       // No session → sign in. Any other failure is surfaced — unless we already
       // rendered a cached shell, in which case we keep it (the API may be waking).
       if (err instanceof ApiError && err.status === 401) {
@@ -210,11 +235,13 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
 
-            <OrgSwitcher
-              session={session}
-              activeId={ws.organization?.id ?? null}
-              onSwitched={() => void load()}
-            />
+            {ws.viewOnly ? null : (
+              <OrgSwitcher
+                session={session}
+                activeId={ws.organization?.id ?? null}
+                onSwitched={() => void load()}
+              />
+            )}
 
             {/* Dynamic navigation — sections and items straight from the API. */}
             {ws.navigation.map((group) => (
@@ -267,13 +294,59 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
                 </span>
               </div>
               <ThemeToggle />
-              <SignOutButton />
+              {ws.viewOnly ? null : <SignOutButton />}
             </div>
           </aside>
-          <main className="main">{children}</main>
+          <main className="main">
+            {ws.viewOnly ? <ViewOnlyBanner organizationName={ws.organization?.name} /> : null}
+            {children}
+          </main>
         </div>
       </ToastProvider>
     </WorkspaceContext.Provider>
+  )
+}
+
+/**
+ * The strip that keeps a view-as session honest: always visible, names the
+ * client being viewed, and offers the one action available — leaving.
+ */
+function ViewOnlyBanner({ organizationName }: { organizationName?: string | undefined }) {
+  const router = useRouter()
+  return (
+    <div
+      role="status"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        margin: '0 0 16px',
+        padding: '10px 16px',
+        borderRadius: 'var(--radius-pill)',
+        background: 'var(--text)',
+        color: 'var(--bg)',
+        fontSize: 13,
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <Icon name="eye" size={15} style={{ flexShrink: 0 }} />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          Viewing {organizationName ?? 'this workspace'} as the operator — read-only
+        </span>
+      </span>
+      <button
+        className="btn"
+        style={{ flexShrink: 0 }}
+        onClick={() => {
+          setViewAsToken(null)
+          clearShellCache()
+          router.replace('/platform')
+        }}
+      >
+        Exit view
+      </button>
+    </div>
   )
 }
 

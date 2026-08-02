@@ -181,6 +181,8 @@ export interface NavGroup {
 
 export interface Workspace {
   user: { id: string; email: string; name: string; role: string; permissions: string[] }
+  /** True when a platform admin is viewing this workspace read-only. */
+  viewOnly?: boolean
   organization: {
     id: string
     name: string

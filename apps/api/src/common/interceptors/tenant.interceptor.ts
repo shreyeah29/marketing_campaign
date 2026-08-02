@@ -62,6 +62,9 @@ export class TenantInterceptor implements NestInterceptor {
           organizationId: principal.organizationId,
           ...(principal.type === 'user' ? { userId: principal.id } : {}),
           requestId,
+          // View-as sessions run their tenant transactions READ ONLY — the
+          // database-level backstop behind the read-only guard.
+          ...(principal.impersonation?.readOnly ? { readOnly: true } : {}),
         },
         async () => {
           // firstValueFrom would be tidier, but importing it here pulls the

@@ -94,6 +94,9 @@ export class WorkspaceController {
         role: principal.role,
         permissions: [...principal.permissions],
       },
+      // True when a platform admin is viewing this workspace read-only; the
+      // shell shows a banner and the API rejects every mutating request.
+      viewOnly: principal.impersonation?.readOnly === true,
       organization: org && {
         id: org.id,
         name: org.name,

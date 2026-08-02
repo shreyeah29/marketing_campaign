@@ -58,6 +58,14 @@ export const platform = {
       { platformAuth: true },
     ),
 
+  /** Exchange the platform session for a read-only view-as token for one org. */
+  startViewSession: (id: string) =>
+    api.post<{ token: string; expiresAt: string; organization: { id: string; name: string } }>(
+      `/platform/organizations/${id}/view-session`,
+      undefined,
+      { platformAuth: true },
+    ),
+
   setFeatures: (
     id: string,
     features: string[],

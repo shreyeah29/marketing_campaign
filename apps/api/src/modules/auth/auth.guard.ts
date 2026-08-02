@@ -3,7 +3,9 @@ import { fromNodeHeaders } from 'better-auth/node'
 
 import type { AppLogger } from '@vsp/observability'
 
+import { effectivePermissions } from '../../common/rbac/permissions.js'
 import { LOGGER } from '../../infrastructure/database.module.js'
+import { ViewAsService, VIEW_AS_HEADER } from '../platform/view-as.service.js'
 
 import { AuthService } from './auth.service.js'
 import { IdentityService } from './identity.service.js'
@@ -36,11 +38,39 @@ export class AuthGuard implements CanActivate {
   constructor(
     @Inject(AuthService) private readonly auth: AuthService,
     @Inject(IdentityService) private readonly identity: IdentityService,
+    @Inject(ViewAsService) private readonly viewAs: ViewAsService,
     @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>()
+
+    // View-as bridge: a platform admin looking around a client workspace. The
+    // token names one organisation and yields a VIEWER principal marked
+    // read-only; the ReadOnlySessionGuard and the read-only tenant transaction
+    // enforce that mark. Checked first — a view-as request must not fall
+    // through to any tenant cookie the browser happens to hold.
+    const viewAsToken = request.headers[VIEW_AS_HEADER]
+    if (typeof viewAsToken === 'string' && viewAsToken.length > 0) {
+      try {
+        const claims = this.viewAs.verify(viewAsToken)
+        request.principal = {
+          type: 'user',
+          id: `platform:${claims.platformAdminId}`,
+          organizationId: claims.organizationId,
+          role: 'VIEWER',
+          permissions: effectivePermissions('VIEWER', []),
+          email: claims.email,
+          displayName: 'Platform operator (view only)',
+          impersonation: { platformAdminId: claims.platformAdminId, readOnly: true },
+        }
+      } catch (error) {
+        // Invalid or expired bridge token → unauthenticated, never a fallthrough
+        // to cookie auth: mixing realms on one request invites confusion bugs.
+        this.logger.debug({ err: error }, 'view-as token rejected; proceeding unauthenticated')
+      }
+      return true
+    }
 
     try {
       const result = await this.auth.instance.api.getSession({

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Inject,
   NotFoundException,
@@ -31,6 +32,7 @@ import { loadEnv } from '../../config/env.js'
 import { PlatformActor } from './platform-actor.decorator.js'
 import { PlatformAdminGuard } from './platform-admin.guard.js'
 import { PlatformAuthService, type PlatformPrincipal } from './platform-auth.service.js'
+import { ViewAsService } from './view-as.service.js'
 import { ProvisioningService } from './provisioning.service.js'
 import {
   changePlanSchema,
@@ -69,6 +71,7 @@ export class PlatformController {
     @Inject(PlatformAuthService) private readonly auth: PlatformAuthService,
     @Inject(ProvisioningService) private readonly provisioning: ProvisioningService,
     @Inject(EntitlementService) private readonly entitlements: EntitlementService,
+    @Inject(ViewAsService) private readonly viewAs: ViewAsService,
   ) {
     this.owner = createAdminClient(loadEnv().DIRECT_DATABASE_URL ?? loadEnv().DATABASE_URL)
   }
@@ -276,6 +279,69 @@ export class PlatformController {
       },
     })
     return { ok: true }
+  }
+
+  /**
+   * View as client — exchanges the operator's platform session for a
+   * short-lived, read-only VIEWER token inside one organisation. The platform
+   * token itself never crosses into the tenant realm; this is the only bridge.
+   * Both sides get an audit trail: the platform log records who started a view
+   * session, and the tenant's own append-only audit log records that their
+   * workspace was viewed.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Post('organizations/:id/view-session')
+  @ApiOperation({ summary: 'Start a read-only view-as-client session for an organisation' })
+  async startViewSession(
+    @Param('id') id: string,
+    @PlatformActor() actor: PlatformPrincipal,
+  ): Promise<{ token: string; expiresAt: string; organization: { id: string; name: string } }> {
+    if (actor.role !== 'SUPER_ADMIN') {
+      throw new ForbiddenException('Only the super admin can view client workspaces')
+    }
+
+    const org = await this.owner.organization.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, name: true },
+    })
+    if (!org) throw new NotFoundException('Organisation not found')
+
+    const { token, expiresAt } = this.viewAs.issue({
+      platformAdminId: actor.id,
+      organizationId: org.id,
+      email: actor.email,
+    })
+
+    await this.owner.platformAuditLog.create({
+      data: {
+        platformAdminId: actor.id,
+        action: 'organization.view_session_started',
+        targetOrganizationId: org.id,
+        resourceType: 'organization',
+        resourceId: org.id,
+        after: { expiresAt: expiresAt.toISOString() },
+      },
+    })
+    // The client's own trail: their append-only audit log shows the visit.
+    await this.owner.auditLog
+      .create({
+        data: {
+          organizationId: org.id,
+          actorType: 'SYSTEM',
+          action: 'organization.viewed_by_operator',
+          resourceType: 'organization',
+          resourceId: org.id,
+          after: { readOnly: true, expiresAt: expiresAt.toISOString() },
+        },
+      })
+      .catch(() => undefined)
+
+    return {
+      token,
+      expiresAt: expiresAt.toISOString(),
+      organization: { id: org.id, name: org.name },
+    }
   }
 
   // ── Portfolio analytics ──────────────────────────────────────────────────────

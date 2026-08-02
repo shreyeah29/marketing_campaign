@@ -21,6 +21,12 @@ export interface TenantContext {
   readonly agentRunId?: string
   /** Correlates logs, audit entries and emitted events across one operation. */
   readonly requestId?: string
+  /**
+   * Set for view-only sessions (a platform admin viewing a client workspace).
+   * `withTenantTransaction` then opens the transaction READ ONLY, so a write
+   * that slips past every guard becomes a Postgres error, not a silent change.
+   */
+  readonly readOnly?: boolean
 }
 
 const storage = new AsyncLocalStorage<TenantContext>()

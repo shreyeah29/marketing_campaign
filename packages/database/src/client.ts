@@ -85,9 +85,13 @@ export async function withTenantTransaction<T>(
   fn: (tx: TenantTransactionClient) => Promise<T>,
   context?: TenantContext,
 ): Promise<T> {
-  const { organizationId } = context ?? requireTenantContext()
+  const ctx = context ?? requireTenantContext()
+  const { organizationId } = ctx
 
   return client.$transaction(async (tx) => {
+    // Must be the first statement in the transaction: Postgres refuses to
+    // change the read-only property after any query has run.
+    if (ctx.readOnly) await tx.$executeRaw`SET TRANSACTION READ ONLY`
     await tx.$executeRaw`SELECT set_config(${TENANT_SETTING}, ${organizationId}, true)`
     return fn(tx)
   })

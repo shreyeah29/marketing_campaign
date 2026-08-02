@@ -13,6 +13,9 @@ const API_BASE = (
 ).replace(/\/+$/, '')
 
 const PLATFORM_TOKEN_KEY = 'vsp.platform.token'
+// View-as-client bridge token. sessionStorage on purpose: the read-only visit
+// is confined to its tab and dies with it, never outliving the operator's look.
+const VIEW_AS_TOKEN_KEY = 'vsp.viewas.token'
 
 export interface Problem {
   type: string
@@ -47,6 +50,17 @@ export function setPlatformToken(token: string | null): void {
   else window.localStorage.setItem(PLATFORM_TOKEN_KEY, token)
 }
 
+export function getViewAsToken(): string | null {
+  if (typeof window === 'undefined') return null
+  return window.sessionStorage.getItem(VIEW_AS_TOKEN_KEY)
+}
+
+export function setViewAsToken(token: string | null): void {
+  if (typeof window === 'undefined') return
+  if (token === null) window.sessionStorage.removeItem(VIEW_AS_TOKEN_KEY)
+  else window.sessionStorage.setItem(VIEW_AS_TOKEN_KEY, token)
+}
+
 interface RequestOptions {
   method?: string
   body?: unknown
@@ -61,6 +75,12 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
   if (opts.platformAuth) {
     const token = getPlatformToken()
     if (token) headers['Authorization'] = `Bearer ${token}`
+  } else {
+    // A tab in view-as mode presents the bridge token on every tenant call;
+    // the API then resolves a read-only VIEWER principal for that org and
+    // ignores any tenant cookie also present.
+    const viewAs = getViewAsToken()
+    if (viewAs) headers['x-vsp-view-as'] = viewAs
   }
 
   // `credentials: 'include'` so the Better Auth session cookie is sent on tenant

@@ -36,6 +36,7 @@ export default function CampaignAssetDetailPage() {
   return (
     <AssetEditor
       asset={asset}
+      variant="drawer"
       onBack={() => router.push(`/app/campaigns/${params.id}/assets`)}
       onChanged={() => {
         reload()

@@ -36,6 +36,7 @@ export { PlanView } from './plan-view'
 export type { SectionId } from './plan-view'
 export { WorkspaceView } from './workspace-view'
 export { AssetEditor, PublishDialog } from './asset-editor'
+export { ReviewQueue } from './review-queue'
 export {
   OverviewSection,
   StrategySection,

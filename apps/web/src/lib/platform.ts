@@ -51,6 +51,13 @@ export const platform = {
 
   analytics: () => api.get<PortfolioAnalytics>('/platform/analytics', { platformAuth: true }),
 
+  setFee: (id: string, monthlyFeeUsd: number | null) =>
+    api.patch<{ ok: true }>(
+      `/platform/organizations/${id}/fee`,
+      { monthlyFeeUsd },
+      { platformAuth: true },
+    ),
+
   setFeatures: (
     id: string,
     features: string[],

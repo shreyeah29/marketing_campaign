@@ -208,6 +208,16 @@ export default function OrganizationDetailPage() {
             <span className="muted">AI calls</span>
             <span style={{ fontWeight: 600 }}>{org.usage.aiCalls}</span>
           </div>
+          <h3 style={{ margin: '20px 0 12px' }}>Monthly service fee (private)</h3>
+          <FeeEditor
+            orgId={id}
+            current={org.monthlyFeeUsd}
+            onSaved={() => {
+              setNotice('Fee updated.')
+              load()
+            }}
+          />
+
           <h3 style={{ margin: '20px 0 12px' }}>Limits</h3>
           {org.limits.length === 0 ? (
             <span className="dim">No limits configured.</span>
@@ -239,5 +249,53 @@ export default function OrganizationDetailPage() {
         </div>
       </div>
     </>
+  )
+}
+
+/**
+ * The operator's private fee note — what this client pays for the service.
+ * Never rendered anywhere a tenant can see; margin = fee minus your AI cost.
+ */
+function FeeEditor({
+  orgId,
+  current,
+  onSaved,
+}: {
+  orgId: string
+  current: number | null
+  onSaved: () => void
+}) {
+  const [value, setValue] = useState(current !== null ? String(current) : '')
+  const [busy, setBusy] = useState(false)
+
+  async function save() {
+    setBusy(true)
+    try {
+      const n = Number(value)
+      await platform.setFee(orgId, value.trim() === '' || !Number.isFinite(n) ? null : n)
+      onSaved()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="row" style={{ gap: 8 }}>
+      <input
+        className="input"
+        style={{ maxWidth: 160 }}
+        inputMode="decimal"
+        placeholder="e.g. 1500"
+        value={value}
+        onChange={(e) => setValue(e.target.value.replace(/[^0-9.]/g, ''))}
+        aria-label="Monthly service fee in USD"
+      />
+      <button className="btn sm" disabled={busy} onClick={() => void save()}>
+        {busy ? <Spinner /> : 'Save'}
+      </button>
+      <span className="dim" style={{ fontSize: 12 }}>
+        USD/month · only you see this
+      </span>
+    </div>
   )
 }

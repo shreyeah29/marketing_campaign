@@ -116,6 +116,7 @@ export default function PortfolioAnalyticsPage() {
               <th>Assets</th>
               <th>Revenue won</th>
               <th>AI cost</th>
+              <th>Fee / margin</th>
               <th>Last activity</th>
             </tr>
           </thead>
@@ -165,6 +166,25 @@ export default function PortfolioAnalyticsPage() {
                 <td>{org.assetsGenerated}</td>
                 <td>{money(org.revenueWonUsd)}</td>
                 <td className="dim">{money(org.aiCostUsd)}</td>
+                <td>
+                  {org.monthlyFeeUsd !== null ? (
+                    <>
+                      {money(String(org.monthlyFeeUsd))}
+                      <span
+                        style={{
+                          color: Number(org.marginUsd) >= 0 ? 'var(--ok)' : 'var(--danger)',
+                          fontWeight: 600,
+                          marginLeft: 6,
+                        }}
+                      >
+                        {Number(org.marginUsd) >= 0 ? '+' : ''}
+                        {money(org.marginUsd ?? '0')}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="dim">—</span>
+                  )}
+                </td>
                 <td className={isDormant(org) ? '' : 'dim'}>
                   {isDormant(org) ? (
                     <span style={{ color: 'var(--warn)', fontWeight: 600 }}>

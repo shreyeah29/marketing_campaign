@@ -201,6 +201,8 @@ export class PlatformController {
       registeredYear:
         typeof metadata['registeredYear'] === 'number' ? metadata['registeredYear'] : null,
       description: typeof metadata['description'] === 'string' ? metadata['description'] : null,
+      monthlyFeeUsd:
+        typeof metadata['monthlyFeeUsd'] === 'number' ? metadata['monthlyFeeUsd'] : null,
       profile: org.settings && {
         vision: org.settings.brandVoice,
         targetAudience: org.settings.targetAudience,
@@ -224,6 +226,46 @@ export class PlatformController {
         aiCalls: aiUsage._count,
       },
     }
+  }
+
+  /**
+   * The operator's private monthly fee note for a client — stored on
+   * Organization.metadata, never exposed to any tenant surface. Powers the
+   * cost & margin view.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Patch('organizations/:id/fee')
+  @ApiOperation({ summary: 'Set the private monthly service fee note for an organisation' })
+  async setFee(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @PlatformActor() actor: PlatformPrincipal,
+  ): Promise<{ ok: true }> {
+    const { monthlyFeeUsd } = zodBody(
+      z.object({ monthlyFeeUsd: z.number().min(0).max(1_000_000).nullable() }),
+      body,
+    )
+    const org = await this.owner.organization.findFirst({
+      where: { id },
+      select: { metadata: true },
+    })
+    if (!org) throw new NotFoundException('Organisation not found')
+    const metadata = { ...((org.metadata ?? {}) as Record<string, unknown>) }
+    if (monthlyFeeUsd === null) delete metadata['monthlyFeeUsd']
+    else metadata['monthlyFeeUsd'] = monthlyFeeUsd
+    await this.owner.organization.update({ where: { id }, data: { metadata: metadata as never } })
+    await this.owner.platformAuditLog.create({
+      data: {
+        platformAdminId: actor.id,
+        action: 'organization.fee_set',
+        targetOrganizationId: id,
+        resourceType: 'organization',
+        resourceId: id,
+        after: { monthlyFeeUsd },
+      },
+    })
+    return { ok: true }
   }
 
   // ── Portfolio analytics ──────────────────────────────────────────────────────
@@ -279,24 +321,32 @@ export class PlatformController {
     const leads30d = new Map(leads30dByOrg.map((r) => [r.organizationId, r._count]))
     const lastActivity = new Map(lastActivityByOrg.map((r) => [r.organizationId, r._max.createdAt]))
 
-    const organizations = orgs.map((org) => ({
-      id: org.id,
-      name: org.branding?.displayName ?? org.name,
-      slug: org.slug,
-      status: org.status,
-      logoUrl: org.branding?.logoUrl ?? null,
-      createdAt: org.createdAt.toISOString(),
-      members: org._count.memberships,
-      modules: org.featureAssignments.map((f) => f.featureKey),
-      leadsTotal: org._count.leads,
-      leads30d: leads30d.get(org.id) ?? 0,
-      campaigns: org._count.campaigns,
-      assetsGenerated: org._count.campaignAssets,
-      aiCostUsd: ai.get(org.id)?._sum.costUsd?.toString() ?? '0',
-      aiCalls: ai.get(org.id)?._count ?? 0,
-      revenueWonUsd: revenue.get(org.id)?.toString() ?? '0',
-      lastActivityAt: lastActivity.get(org.id)?.toISOString() ?? null,
-    }))
+    const organizations = orgs.map((org) => {
+      const meta = (org.metadata ?? {}) as Record<string, unknown>
+      const fee = typeof meta['monthlyFeeUsd'] === 'number' ? meta['monthlyFeeUsd'] : null
+      const aiCost = Number(ai.get(org.id)?._sum.costUsd ?? 0)
+      return {
+        id: org.id,
+        name: org.branding?.displayName ?? org.name,
+        slug: org.slug,
+        status: org.status,
+        logoUrl: org.branding?.logoUrl ?? null,
+        createdAt: org.createdAt.toISOString(),
+        members: org._count.memberships,
+        modules: org.featureAssignments.map((f) => f.featureKey),
+        leadsTotal: org._count.leads,
+        leads30d: leads30d.get(org.id) ?? 0,
+        campaigns: org._count.campaigns,
+        assetsGenerated: org._count.campaignAssets,
+        aiCostUsd: aiCost.toFixed(2),
+        aiCalls: ai.get(org.id)?._count ?? 0,
+        revenueWonUsd: revenue.get(org.id)?.toString() ?? '0',
+        lastActivityAt: lastActivity.get(org.id)?.toISOString() ?? null,
+        // Private to the operator: what you charge vs what the AI costs you.
+        monthlyFeeUsd: fee,
+        marginUsd: fee !== null ? (fee - aiCost).toFixed(2) : null,
+      }
+    })
 
     return {
       totals: {

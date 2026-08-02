@@ -52,6 +52,7 @@ export interface OrgDetail {
   website: string | null
   registeredYear: number | null
   description: string | null
+  monthlyFeeUsd: number | null
   profile: { vision: string | null; targetAudience: string | null; tagline: string | null } | null
   features: { key: string; source: string }[]
   limits: { metric: string; limit: number }[]
@@ -91,6 +92,8 @@ export interface PortfolioOrg {
   aiCalls: number
   revenueWonUsd: string
   lastActivityAt: string | null
+  monthlyFeeUsd: number | null
+  marginUsd: string | null
 }
 
 export interface PortfolioAnalytics {

@@ -388,7 +388,8 @@ function SignOutButton() {
         try {
           await authClient.signOut()
         } finally {
-          router.replace('/login')
+          // Signing out returns to the front door, not another login form.
+          router.replace('/')
         }
       }}
     >
@@ -418,7 +419,7 @@ function NoOrganization({ session }: { session: AuthSession }) {
           onClick={async () => {
             clearShellCache()
             await authClient.signOut()
-            router.replace('/login')
+            router.replace('/')
           }}
         >
           Sign out

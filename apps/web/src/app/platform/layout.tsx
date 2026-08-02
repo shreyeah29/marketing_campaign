@@ -113,10 +113,13 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
             style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
             onClick={() => {
               platform.logout()
-              router.replace('/platform/login')
+              // Signing out returns to the front door.
+              router.replace('/')
             }}
           >
-            <span className="ico">⏻</span>
+            <span className="ico">
+              <Icon name="log-out" size={16} />
+            </span>
             Sign out
           </button>
         </div>

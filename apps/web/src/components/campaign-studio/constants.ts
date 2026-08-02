@@ -160,18 +160,110 @@ export const ENDED_CAMPAIGN_STATUSES = ['COMPLETED', 'ARCHIVED', 'ENDED'] as con
 
 export const TEMPLATE_CATEGORY = 'Campaign template'
 
-export const INTAKE_STEPS = ['objective', 'audience', 'channels', 'tone'] as const
+/** Brief Part 3 §5 — one question per screen, this order. */
+export const INTAKE_STEPS = ['objective', 'channels', 'audience', 'duration'] as const
 export type IntakeStep = (typeof INTAKE_STEPS)[number]
 
+export const INTAKE_OBJECTIVES: {
+  id: string
+  label: string
+  consequence: string
+  icon: IconName
+  recommendChannels: string[]
+}[] = [
+  {
+    id: 'sales',
+    label: 'Sales',
+    consequence: 'Optimised for conversion, ad spend weighted to retargeting.',
+    icon: 'dollar-sign',
+    recommendChannels: ['Instagram', 'Facebook', 'Google', 'Email'],
+  },
+  {
+    id: 'leads',
+    label: 'Leads',
+    consequence: 'Forms and CTAs first; nurture sequences after the click.',
+    icon: 'filter',
+    recommendChannels: ['Instagram', 'Facebook', 'LinkedIn', 'Email'],
+  },
+  {
+    id: 'awareness',
+    label: 'Awareness',
+    consequence: 'Reach and frequency over conversion; broad creative tests.',
+    icon: 'megaphone',
+    recommendChannels: ['Instagram', 'Facebook', 'YouTube', 'X'],
+  },
+  {
+    id: 'traffic',
+    label: 'Traffic',
+    consequence: 'Site visits and landing engagement; SEO + paid search lean.',
+    icon: 'external-link',
+    recommendChannels: ['Google', 'Instagram', 'Facebook', 'Email'],
+  },
+  {
+    id: 'engagement',
+    label: 'Engagement',
+    consequence: 'Comments, shares, and community — social-native formats.',
+    icon: 'message-square',
+    recommendChannels: ['Instagram', 'Facebook', 'LinkedIn', 'X'],
+  },
+  {
+    id: 'retention',
+    label: 'Retention',
+    consequence: 'Keep customers active with email, CRM, and remarketing.',
+    icon: 'refresh',
+    recommendChannels: ['Email', 'Facebook', 'Instagram', 'WhatsApp'],
+  },
+]
+
 export const INTAKE_CHANNELS = [
-  'Instagram',
-  'Facebook',
-  'LinkedIn',
-  'X',
-  'Google',
-  'Email',
+  { id: 'Instagram', platform: 'INSTAGRAM', meta: true },
+  { id: 'Facebook', platform: 'FACEBOOK', meta: true },
+  { id: 'LinkedIn', platform: 'LINKEDIN', meta: false },
+  { id: 'X', platform: 'X', meta: false },
+  { id: 'Google', platform: 'GOOGLE', meta: false },
+  { id: 'Email', platform: 'EMAIL', meta: false },
+  { id: 'YouTube', platform: 'YOUTUBE', meta: false },
+  { id: 'WhatsApp', platform: 'WHATSAPP', meta: true },
 ] as const
 
+export const INTAKE_LOCATIONS = [
+  'Mumbai',
+  'Delhi',
+  'Bengaluru',
+  'Hyderabad',
+  'Chennai',
+  'Kolkata',
+  'Pune',
+  'Ahmedabad',
+  'Jaipur',
+  'Chandigarh',
+  'India — nationwide',
+  'United States',
+  'United Kingdom',
+  'UAE',
+  'Singapore',
+]
+
+export const INTAKE_INTEREST_SUGGESTIONS = [
+  'Skincare',
+  'Fitness',
+  'Luxury fashion',
+  'Parenting',
+  'SaaS buyers',
+  'Home décor',
+  'Food & dining',
+  'Travel',
+  'Personal finance',
+  'Wellness',
+  'B2B decision makers',
+  'Students',
+]
+
+export const INTAKE_LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Marathi', 'Bengali']
+
+export const INTAKE_DURATIONS = [7, 15, 30, 90] as const
+
+/** @deprecated Old drafts may still store a tone string. */
 export const INTAKE_TONES = [
   'Professional',
   'Friendly',
@@ -180,3 +272,9 @@ export const INTAKE_TONES = [
   'Playful',
   'Urgent',
 ] as const
+
+export function normalizeIntakeStep(raw: string | null | undefined): IntakeStep {
+  if (raw === 'tone') return 'duration'
+  if (raw && (INTAKE_STEPS as readonly string[]).includes(raw)) return raw as IntakeStep
+  return 'objective'
+}

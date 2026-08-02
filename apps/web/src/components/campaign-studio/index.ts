@@ -9,8 +9,14 @@ export {
   ENDED_CAMPAIGN_STATUSES,
   TEMPLATE_CATEGORY,
   INTAKE_STEPS,
+  INTAKE_OBJECTIVES,
   INTAKE_CHANNELS,
+  INTAKE_LOCATIONS,
+  INTAKE_INTEREST_SUGGESTIONS,
+  INTAKE_LANGUAGES,
+  INTAKE_DURATIONS,
   INTAKE_TONES,
+  normalizeIntakeStep,
 } from './constants'
 export type { IntakeStep } from './constants'
 export {
@@ -19,6 +25,9 @@ export {
   writeDraft,
   upsertDraft,
   buildBriefFromDraft,
+  composeAudienceSummary,
+  estimateReach,
+  suggestBudget,
   listDrafts,
   BrowserDraftBanner,
 } from './draft'

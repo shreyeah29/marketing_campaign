@@ -43,10 +43,23 @@ export interface CreateDraft {
   selectedChips?: string[] | undefined
   plan?: CampaignPlan | undefined
   step?: string | undefined
-  /** Guided intake fields (browser-only). */
+  /** Guided intake — objective id from INTAKE_OBJECTIVES. */
   objective?: string | undefined
+  /** Free-text audience summary (built from structured fields). */
   audience?: string | undefined
   channels?: string[] | undefined
+  /** @deprecated Replaced by duration step; kept for old browser drafts. */
   tone?: string | undefined
+  audienceAgeMin?: number | undefined
+  audienceAgeMax?: number | undefined
+  audienceGender?: string | undefined
+  audienceLocations?: string[] | undefined
+  audienceInterests?: string[] | undefined
+  audienceLanguages?: string[] | undefined
+  audienceOccupation?: string | undefined
+  durationDays?: number | undefined
+  customStart?: string | undefined
+  customEnd?: string | undefined
+  budget?: number | undefined
   updatedAt: string
 }

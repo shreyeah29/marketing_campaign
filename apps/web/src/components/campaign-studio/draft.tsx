@@ -1,6 +1,7 @@
 'use client'
 
 import type { CreateDraft } from './types'
+import { INTAKE_OBJECTIVES } from './constants'
 
 const DRAFT_KEY = (id: string) => `vsp:draft:${id}`
 
@@ -54,87 +55,110 @@ export function writeDraft(draft: CreateDraft): void {
   }
 }
 
+const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] = [
+  'prompt',
+  'selectedChips',
+  'plan',
+  'step',
+  'objective',
+  'audience',
+  'channels',
+  'tone',
+  'audienceAgeMin',
+  'audienceAgeMax',
+  'audienceGender',
+  'audienceLocations',
+  'audienceInterests',
+  'audienceLanguages',
+  'audienceOccupation',
+  'durationDays',
+  'customStart',
+  'customEnd',
+  'budget',
+]
+
 export function upsertDraft(
   id: string,
   patch: Partial<Omit<CreateDraft, 'id'>> & { brief?: string },
 ): CreateDraft {
   const existing = readDraft(id)
-  const next: CreateDraft = {
+  const base: CreateDraft = {
     id,
     brief: patch.brief ?? existing?.brief ?? '',
     updatedAt: new Date().toISOString(),
-    ...(patch.prompt !== undefined
-      ? { prompt: patch.prompt }
-      : existing?.prompt !== undefined
-        ? { prompt: existing.prompt }
-        : {}),
-    ...(patch.selectedChips !== undefined
-      ? { selectedChips: patch.selectedChips }
-      : existing?.selectedChips !== undefined
-        ? { selectedChips: existing.selectedChips }
-        : {}),
-    ...(patch.plan !== undefined
-      ? { plan: patch.plan }
-      : existing?.plan !== undefined
-        ? { plan: existing.plan }
-        : {}),
-    ...(patch.step !== undefined
-      ? { step: patch.step }
-      : existing?.step !== undefined
-        ? { step: existing.step }
-        : {}),
-    ...(patch.objective !== undefined
-      ? { objective: patch.objective }
-      : existing?.objective !== undefined
-        ? { objective: existing.objective }
-        : {}),
-    ...(patch.audience !== undefined
-      ? { audience: patch.audience }
-      : existing?.audience !== undefined
-        ? { audience: existing.audience }
-        : {}),
-    ...(patch.channels !== undefined
-      ? { channels: patch.channels }
-      : existing?.channels !== undefined
-        ? { channels: existing.channels }
-        : {}),
-    ...(patch.tone !== undefined
-      ? { tone: patch.tone }
-      : existing?.tone !== undefined
-        ? { tone: existing.tone }
-        : {}),
   }
-  writeDraft(next)
-  return next
+  const merged: CreateDraft = { ...existing, ...base, ...patch, id, updatedAt: base.updatedAt }
+  // Drop undefined optional keys so exactOptionalPropertyTypes stays honest.
+  for (const key of OPTIONAL_KEYS) {
+    if (merged[key] === undefined) delete (merged as unknown as { [k: string]: unknown })[key]
+  }
+  writeDraft(merged)
+  return merged
+}
+
+export function composeAudienceSummary(draft: CreateDraft): string {
+  const bits: string[] = []
+  const min = draft.audienceAgeMin ?? 18
+  const max = draft.audienceAgeMax ?? 65
+  bits.push(`Ages ${min}–${max}`)
+  if (draft.audienceGender && draft.audienceGender !== 'all') bits.push(draft.audienceGender)
+  if (draft.audienceLocations?.length) bits.push(draft.audienceLocations.join(', '))
+  if (draft.audienceInterests?.length) bits.push(`Interests: ${draft.audienceInterests.join(', ')}`)
+  if (draft.audienceLanguages?.length) bits.push(`Languages: ${draft.audienceLanguages.join(', ')}`)
+  if (draft.audienceOccupation?.trim()) bits.push(draft.audienceOccupation.trim())
+  return bits.join(' · ')
 }
 
 export function buildBriefFromDraft(draft: CreateDraft): string {
-  if (draft.brief.trim()) return draft.brief.trim()
   const parts: string[] = []
   if (draft.prompt?.trim()) parts.push(draft.prompt.trim())
-  if (draft.objective?.trim()) parts.push(`Objective: ${draft.objective.trim()}`)
-  if (draft.audience?.trim()) parts.push(`Audience: ${draft.audience.trim()}`)
+
+  const obj = INTAKE_OBJECTIVES.find((o) => o.id === draft.objective)
+  if (obj) parts.push(`Objective: ${obj.label} — ${obj.consequence}`)
+  else if (draft.objective?.trim()) parts.push(`Objective: ${draft.objective.trim()}`)
+
+  const audience = draft.audience?.trim() || composeAudienceSummary(draft)
+  if (audience) parts.push(`Audience: ${audience}`)
+
   if (draft.channels?.length) parts.push(`Channels: ${draft.channels.join(', ')}`)
+
+  if (draft.durationDays) parts.push(`Duration: ${draft.durationDays} days`)
+  else if (draft.customStart && draft.customEnd)
+    parts.push(`Duration: ${draft.customStart} to ${draft.customEnd}`)
+
+  if (typeof draft.budget === 'number' && draft.budget > 0)
+    parts.push(`Budget: ₹${draft.budget.toLocaleString('en-IN')}`)
+
   if (draft.tone?.trim()) parts.push(`Tone: ${draft.tone.trim()}`)
   if (draft.selectedChips?.length)
     parts.push(`Requested outputs: ${draft.selectedChips.join(', ')}`)
-  return parts.join('\n\n')
+
+  if (parts.length === 0 && draft.brief.trim()) return draft.brief.trim()
+  return parts.join('\n\n') || draft.brief.trim()
+}
+
+/** Rough client-side reach estimate — not live platform data. */
+export function estimateReach(draft: CreateDraft): number {
+  const ageSpan = Math.max(1, (draft.audienceAgeMax ?? 45) - (draft.audienceAgeMin ?? 25))
+  const locs = Math.max(1, draft.audienceLocations?.length ?? 1)
+  const interests = Math.max(1, draft.audienceInterests?.length ?? 1)
+  const channels = Math.max(1, draft.channels?.length ?? 1)
+  const genderFactor = !draft.audienceGender || draft.audienceGender === 'all' ? 1 : 0.55
+  const base = 18_000
+  return Math.round(
+    base * (ageSpan / 25) * locs * 1.15 * Math.sqrt(interests) * channels * genderFactor,
+  )
+}
+
+export function suggestBudget(draft: CreateDraft): number {
+  const days = draft.durationDays ?? 30
+  const channels = Math.max(1, draft.channels?.length ?? 1)
+  return Math.round(days * channels * 1_500)
 }
 
 export function BrowserDraftBanner() {
   return (
-    <div
-      role="status"
-      style={{
-        marginBottom: 16,
-        fontSize: 13,
-        background: 'var(--surface-sunken)',
-        color: 'var(--text-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius)',
-        padding: '10px 14px',
-      }}
-    >
+    <div role="status" className="intake-browser-banner">
       This draft lives in this browser. Closing the tab or clearing site data will lose it — there
       is no server draft API yet.
     </div>

@@ -12,6 +12,7 @@ import {
   listDrafts,
   readDraft,
   fetchCampaigns,
+  normalizeIntakeStep,
   type Campaign,
   type CampaignPlan,
   type CreateDraft,
@@ -75,7 +76,7 @@ export default function CreatePage() {
     const d = readDraft(id)
     if (!d) return
     if (d.plan) router.push(`/app/create/strategy/${id}`)
-    else router.push(`/app/create/intake/${id}?step=${d.step ?? 'objective'}`)
+    else router.push(`/app/create/intake/${id}?step=${normalizeIntakeStep(d.step)}`)
   }
 
   return (

@@ -141,7 +141,7 @@ export default function PortfolioAnalyticsPage() {
                           objectFit: 'contain',
                           borderRadius: 7,
                           background: 'var(--surface-raised)',
-                          border: '1px solid var(--border)',
+                          border: '1px solid var(--border-subtle)',
                         }}
                       />
                     ) : (
@@ -173,7 +173,8 @@ export default function PortfolioAnalyticsPage() {
                       {money(String(org.monthlyFeeUsd))}
                       <span
                         style={{
-                          color: Number(org.marginUsd) >= 0 ? 'var(--ok)' : 'var(--danger)',
+                          color:
+                            Number(org.marginUsd) >= 0 ? 'var(--jade-600)' : 'var(--crimson-600)',
                           fontWeight: 600,
                           marginLeft: 6,
                         }}

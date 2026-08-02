@@ -114,7 +114,7 @@ export default function WorkflowsPage() {
                   <td>
                     <Link
                       href={`/app/automation/workflows/${w.id}`}
-                      style={{ fontWeight: 600, color: 'var(--color-primary)' }}
+                      style={{ fontWeight: 600, color: 'var(--cobalt-600)' }}
                     >
                       {w.name}
                     </Link>

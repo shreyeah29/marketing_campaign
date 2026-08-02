@@ -57,7 +57,7 @@ export default function CampaignsListPage() {
               style={{ alignItems: 'center', padding: 14, width: '100%', textAlign: 'left' }}
               onClick={() => router.push(`/app/campaigns/${c.id}/assets`)}
             >
-              <div className="avatar" style={{ background: 'var(--primary-soft)' }}>
+              <div className="avatar" style={{ background: 'var(--surface-selected)' }}>
                 <Icon name="megaphone" size={15} />
               </div>
               <div className="body">

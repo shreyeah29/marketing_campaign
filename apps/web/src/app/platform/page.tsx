@@ -68,7 +68,7 @@ export default function OrganizationsPage() {
         {orgs.length === 0 ? (
           <div style={{ padding: 40, textAlign: 'center' }} className="muted">
             No organizations yet.{' '}
-            <Link href="/platform/organizations/new" style={{ color: 'var(--color-primary)' }}>
+            <Link href="/platform/organizations/new" style={{ color: 'var(--cobalt-600)' }}>
               Provision the first one →
             </Link>
           </div>
@@ -105,7 +105,7 @@ export default function OrganizationsPage() {
                               objectFit: 'contain',
                               borderRadius: 7,
                               background: 'var(--surface-raised)',
-                              border: '1px solid var(--border)',
+                              border: '1px solid var(--border-subtle)',
                             }}
                           />
                         ) : (

@@ -157,7 +157,7 @@ export default function AnalyticsAudiencePage() {
             className="card"
             style={{
               padding: '14px 18px',
-              borderLeft: '3px solid var(--color-accent, var(--chart-2))',
+              borderLeft: '3px solid var(--cobalt-600, var(--chart-2))',
             }}
           >
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>{bestSegment}</p>

@@ -204,7 +204,7 @@ export default function DashboardPage() {
               </div>
               <LineChart
                 data={lineData}
-                color={metric === 'revenue' ? 'var(--color-accent)' : 'var(--color-primary)'}
+                color={metric === 'revenue' ? 'var(--cobalt-600)' : 'var(--cobalt-600)'}
                 valueFormat={
                   metric === 'revenue'
                     ? (v) => `$${v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0)}`
@@ -258,12 +258,14 @@ export default function DashboardPage() {
                       const maxAssets = Math.max(...channels.social.map((x) => x.assets), 1)
                       return (
                         <div key={s.platform} className="spread" style={{ gap: 12, fontSize: 13 }}>
-                          <span style={{ width: 96, color: 'var(--text)' }}>{s.platform}</span>
+                          <span style={{ width: 96, color: 'var(--text-primary)' }}>
+                            {s.platform}
+                          </span>
                           <span
                             style={{
                               flex: 1,
                               height: 8,
-                              background: 'var(--border)',
+                              background: 'var(--border-subtle)',
                               borderRadius: 6,
                               overflow: 'hidden',
                             }}
@@ -345,7 +347,12 @@ function AttentionStrip({
       ) : (
         <>
           <span
-            style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--warn)' }}
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: '0.06em',
+              color: 'var(--amber-600)',
+            }}
           >
             NEEDS ATTENTION
           </span>
@@ -354,7 +361,7 @@ function AttentionStrip({
               key={it.href}
               href={it.href}
               className="chip"
-              style={{ borderColor: 'color-mix(in srgb, var(--warn) 45%, transparent)' }}
+              style={{ borderColor: 'color-mix(in srgb, var(--amber-600) 45%, transparent)' }}
             >
               <Icon name={it.icon as never} size={13} /> {it.label}
               <Icon name="chevron-right" size={12} />

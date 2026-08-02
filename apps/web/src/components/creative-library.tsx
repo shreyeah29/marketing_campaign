@@ -152,7 +152,7 @@ export function CreativeLibrary({ type }: { type: 'image' | 'video' }) {
                   aspectRatio: '16 / 10',
                   objectFit: 'cover',
                   borderRadius: 10,
-                  background: 'var(--bg-subtle)',
+                  background: 'var(--surface-sunken)',
                 }}
               />
             )}

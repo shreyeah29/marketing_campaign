@@ -246,15 +246,19 @@ export default function InboxPage() {
           style={{
             gridTemplateColumns: '300px 1fr',
             gap: 0,
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-lg)',
             overflow: 'hidden',
             minHeight: 480,
           }}
         >
           {/* ── Left: conversation list ─────────────────────────────────────── */}
           <div
-            style={{ borderRight: '1px solid var(--border)', overflowY: 'auto', maxHeight: 640 }}
+            style={{
+              borderRight: '1px solid var(--border-subtle)',
+              overflowY: 'auto',
+              maxHeight: 640,
+            }}
           >
             {rows.length === 0 ? (
               <div style={{ padding: 20 }}>
@@ -310,7 +314,7 @@ export default function InboxPage() {
               <>
                 <div
                   className="spread"
-                  style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}
+                  style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-subtle)' }}
                 >
                   <div>
                     <h3 style={{ margin: 0 }}>{active.subject || 'Conversation'}</h3>
@@ -364,9 +368,9 @@ export default function InboxPage() {
                               padding: '9px 12px',
                               borderRadius: 12,
                               background: outbound
-                                ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
-                                : 'var(--bg-subtle)',
-                              border: '1px solid var(--border)',
+                                ? 'color-mix(in srgb, var(--cobalt-600) 14%, transparent)'
+                                : 'var(--surface-sunken)',
+                              border: '1px solid var(--border-subtle)',
                             }}
                           >
                             <div
@@ -400,7 +404,7 @@ export default function InboxPage() {
                   className="composer row"
                   style={{
                     padding: 12,
-                    borderTop: '1px solid var(--border)',
+                    borderTop: '1px solid var(--border-subtle)',
                     gap: 8,
                     alignItems: 'flex-end',
                   }}

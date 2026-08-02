@@ -52,7 +52,7 @@ function ResetPasswordInner() {
       {!token ? (
         <Banner kind="error">
           This link is invalid or expired.{' '}
-          <Link href="/forgot-password" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+          <Link href="/forgot-password" style={{ color: 'var(--cobalt-600)', fontWeight: 600 }}>
             Request a new one
           </Link>
           .

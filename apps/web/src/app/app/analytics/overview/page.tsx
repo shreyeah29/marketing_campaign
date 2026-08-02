@@ -114,9 +114,9 @@ function FunnelWithDropOff({ stages }: { stages: FunnelStage[] }) {
               className="spread"
               style={{
                 padding: '10px 14px',
-                background: 'var(--surface-raised, var(--bg-subtle))',
+                background: 'var(--surface-raised, var(--surface-sunken))',
                 borderRadius: 'var(--radius-sm, 6px)',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               <span style={{ fontWeight: 500 }}>{STAGE_LABELS[s.stage] ?? s.stage}</span>

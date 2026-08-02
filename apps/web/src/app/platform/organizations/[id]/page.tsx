@@ -142,7 +142,7 @@ export default function OrganizationDetailPage() {
                   objectFit: 'contain',
                   borderRadius: 10,
                   background: 'var(--surface-raised)',
-                  border: '1px solid var(--border)',
+                  border: '1px solid var(--border-subtle)',
                   padding: 4,
                 }}
               />
@@ -165,7 +165,7 @@ export default function OrganizationDetailPage() {
                   href={org.website}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ color: 'var(--color-primary)' }}
+                  style={{ color: 'var(--cobalt-600)' }}
                 >
                   {org.website.replace(/^https?:\/\//, '')}
                 </a>

@@ -23,9 +23,9 @@ import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { Icon } from '@/components/icon'
 
 const PRIMARY = 'var(--chart-1)'
-const AXIS = 'var(--border-strong, var(--border))'
-const GRID = 'var(--border)'
-const MUTED = 'var(--text-muted)'
+const AXIS = 'var(--border-strong, var(--border-subtle))'
+const GRID = 'var(--border-subtle)'
+const MUTED = 'var(--text-secondary)'
 
 const CHART_COLORS = [
   'var(--chart-1)',
@@ -358,7 +358,7 @@ export function LineChart({
                   textAnchor="end"
                   fontSize={11}
                   fontWeight={600}
-                  fill="var(--text)"
+                  fill="var(--text-primary)"
                   style={NUM_STYLE}
                 >
                   {fmt(pts[n - 1]!.v)}
@@ -555,7 +555,7 @@ export function BarChart({
                         textAnchor="middle"
                         fontSize={10}
                         fontWeight={600}
-                        fill="var(--text)"
+                        fill="var(--text-primary)"
                         style={NUM_STYLE}
                       >
                         {v.toLocaleString()}
@@ -652,7 +652,7 @@ export function HorizontalBarChart({
                 y={cy + 3.5}
                 textAnchor="end"
                 fontSize={12}
-                fill="var(--text)"
+                fill="var(--text-primary)"
               >
                 {d.label}
               </text>
@@ -671,7 +671,7 @@ export function HorizontalBarChart({
                 textAnchor="start"
                 fontSize={12}
                 fontWeight={600}
-                fill="var(--text)"
+                fill="var(--text-primary)"
                 style={NUM_STYLE}
               >
                 {fmt(d.value)}
@@ -807,7 +807,7 @@ export function DonutChart({
             textAnchor="middle"
             fontSize={22}
             fontWeight={700}
-            fill="var(--text)"
+            fill="var(--text-primary)"
             style={NUM_STYLE}
           >
             {total.toLocaleString()}
@@ -830,7 +830,7 @@ export function DonutChart({
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ color: 'var(--text)' }}>{seg.label}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{seg.label}</span>
               </span>
               <span className="dim" style={NUM_STYLE}>
                 {seg.value.toLocaleString()}

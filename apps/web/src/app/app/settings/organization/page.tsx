@@ -133,7 +133,9 @@ export default function OrganizationSettingsPage() {
           </Field>
 
           {/* Monthly report — composed and sent by the worker on the 1st. */}
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+          <div
+            style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 4 }}
+          >
             <label className="row" style={{ gap: 8, marginBottom: 12 }}>
               <input
                 type="checkbox"

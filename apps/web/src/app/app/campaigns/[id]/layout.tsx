@@ -64,7 +64,7 @@ function CampaignTabs() {
                 href={t.href}
                 className={active ? 'btn sm primary' : 'btn ghost sm'}
                 style={{
-                  borderRadius: 'var(--radius) var(--radius) 0 0',
+                  borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
                   marginBottom: -1,
                   borderBottom: active ? '2px solid var(--cobalt-600)' : '2px solid transparent',
                 }}

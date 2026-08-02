@@ -307,15 +307,15 @@ export default function KnowledgeBaseDetailPage() {
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
         style={{
-          border: `1.5px dashed ${dragging ? 'var(--color-primary)' : 'var(--border-strong)'}`,
-          background: dragging ? 'var(--primary-soft)' : undefined,
+          border: `1.5px dashed ${dragging ? 'var(--cobalt-600)' : 'var(--border-strong)'}`,
+          background: dragging ? 'var(--surface-selected)' : undefined,
           textAlign: 'center',
           padding: '28px 20px',
           marginBottom: 18,
           transition: 'border-color .15s, background .15s',
         }}
       >
-        <div style={{ marginBottom: 8, color: 'var(--color-primary)' }}>
+        <div style={{ marginBottom: 8, color: 'var(--cobalt-600)' }}>
           <Icon name="file-text" size={26} />
         </div>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Drag &amp; drop files here</div>
@@ -356,11 +356,11 @@ export default function KnowledgeBaseDetailPage() {
                   {u.name}
                 </span>
                 {u.status === 'error' ? (
-                  <span style={{ color: 'var(--danger)' }}>{u.error ?? 'Failed'}</span>
+                  <span style={{ color: 'var(--crimson-600)' }}>{u.error ?? 'Failed'}</span>
                 ) : u.status === 'done' ? (
                   <span
                     style={{
-                      color: 'var(--ok)',
+                      color: 'var(--jade-600)',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4,
@@ -448,7 +448,9 @@ export default function KnowledgeBaseDetailPage() {
                   <td>
                     <div style={{ fontWeight: 550 }}>{d.title}</div>
                     {d.status === 'FAILED' && d.failureReason ? (
-                      <div style={{ fontSize: 11, color: 'var(--danger)' }}>{d.failureReason}</div>
+                      <div style={{ fontSize: 11, color: 'var(--crimson-600)' }}>
+                        {d.failureReason}
+                      </div>
                     ) : null}
                   </td>
                   <td>

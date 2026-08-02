@@ -11,7 +11,7 @@ import type { Asset, Campaign } from './types'
 export function SectionHeader({ def, count }: { def: (typeof SECTIONS)[number]; count: number }) {
   return (
     <div className="row" style={{ gap: 10, marginBottom: 16 }}>
-      <div className="avatar" style={{ background: 'var(--primary-soft)' }}>
+      <div className="avatar" style={{ background: 'var(--surface-selected)' }}>
         <Icon name={def.icon} size={16} />
       </div>
       <div>
@@ -130,13 +130,18 @@ export function AnalyticsSection({ assets }: { assets: Asset[] | null }) {
                 <PlatformIcon platform={p} size={14} /> {p}
               </span>
               <div
-                style={{ flex: 1, height: 10, background: 'var(--bg-subtle)', borderRadius: 999 }}
+                style={{
+                  flex: 1,
+                  height: 10,
+                  background: 'var(--surface-sunken)',
+                  borderRadius: 999,
+                }}
               >
                 <div
                   style={{
                     width: `${(n / max) * 100}%`,
                     height: '100%',
-                    background: 'var(--color-primary)',
+                    background: 'var(--cobalt-600)',
                     borderRadius: 999,
                   }}
                 />

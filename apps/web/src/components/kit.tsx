@@ -68,7 +68,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
     <div className="state">
       <div
         className="state-badge"
-        style={{ background: 'var(--danger-soft)', color: 'var(--danger)' }}
+        style={{ background: 'var(--crimson-100)', color: 'var(--crimson-600)' }}
       >
         <Icon name="alert-triangle" size={22} />
       </div>
@@ -142,7 +142,7 @@ export function ProviderNotConfigured({
 }) {
   return (
     <div className="banner info" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-      <Icon name="plug" size={18} style={{ color: 'var(--color-primary)' }} />
+      <Icon name="plug" size={18} style={{ color: 'var(--cobalt-600)' }} />
       <span>
         <strong>{what} is temporarily unavailable.</strong> Please try again shortly.
       </span>

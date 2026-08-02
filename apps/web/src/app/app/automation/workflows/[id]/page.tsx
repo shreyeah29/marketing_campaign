@@ -455,7 +455,7 @@ export default function WorkflowBuilderPage() {
                   </pre>
                 ) : null}
                 {s.error ? (
-                  <div style={{ color: 'var(--danger)', fontSize: 12 }}>{s.error}</div>
+                  <div style={{ color: 'var(--crimson-600)', fontSize: 12 }}>{s.error}</div>
                 ) : null}
               </div>
             ))}

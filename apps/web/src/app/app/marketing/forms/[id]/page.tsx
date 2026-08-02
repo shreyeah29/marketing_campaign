@@ -442,7 +442,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
                     style={{
                       textAlign: 'left',
                       padding: 10,
-                      borderBottom: '1px solid var(--border, #333)',
+                      borderBottom: '1px solid var(--border-subtle, #333)',
                     }}
                   >
                     {c}
@@ -452,7 +452,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
                   style={{
                     textAlign: 'left',
                     padding: 10,
-                    borderBottom: '1px solid var(--border, #333)',
+                    borderBottom: '1px solid var(--border-subtle, #333)',
                   }}
                 >
                   Received
@@ -461,7 +461,7 @@ function SubmissionsTab({ formId }: { formId: string }) {
                   style={{
                     textAlign: 'left',
                     padding: 10,
-                    borderBottom: '1px solid var(--border, #333)',
+                    borderBottom: '1px solid var(--border-subtle, #333)',
                   }}
                 >
                   Lead
@@ -474,18 +474,18 @@ function SubmissionsTab({ formId }: { formId: string }) {
                   {columns.map((c) => (
                     <td
                       key={c}
-                      style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}
+                      style={{ padding: 10, borderBottom: '1px solid var(--border-subtle, #222)' }}
                     >
                       {formatValue(r.data[c])}
                     </td>
                   ))}
                   <td
                     className="dim"
-                    style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}
+                    style={{ padding: 10, borderBottom: '1px solid var(--border-subtle, #222)' }}
                   >
                     {new Date(r.createdAt).toLocaleString()}
                   </td>
-                  <td style={{ padding: 10, borderBottom: '1px solid var(--border, #222)' }}>
+                  <td style={{ padding: 10, borderBottom: '1px solid var(--border-subtle, #222)' }}>
                     {r.leadId ? (
                       <Link className="btn ghost sm" href="/app/crm/leads">
                         View in Leads

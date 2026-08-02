@@ -209,8 +209,7 @@ export default function CampaignInsightsPage() {
                 segments={(demo?.gender ?? []).map((b) => ({
                   label: titleCase(b.value),
                   value: b.reach,
-                  color:
-                    GENDER_COLORS[b.value.toLowerCase()] ?? 'var(--color-neutral-500, #6b7680)',
+                  color: GENDER_COLORS[b.value.toLowerCase()] ?? 'var(--text-tertiary, #6b7680)',
                 }))}
               />
             </div>

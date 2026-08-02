@@ -295,7 +295,7 @@ export default function NewOrganizationPage() {
                     maxWidth: 160,
                     objectFit: 'contain',
                     borderRadius: 10,
-                    border: '1px solid var(--border)',
+                    border: '1px solid var(--border-subtle)',
                     background: 'var(--surface-raised)',
                     padding: 6,
                   }}
@@ -303,7 +303,7 @@ export default function NewOrganizationPage() {
               ) : null}
             </div>
             {logoError ? (
-              <span style={{ color: 'var(--danger)', fontSize: 12 }}>{logoError}</span>
+              <span style={{ color: 'var(--crimson-600)', fontSize: 12 }}>{logoError}</span>
             ) : null}
           </Field>
 

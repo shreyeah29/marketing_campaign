@@ -54,7 +54,7 @@ function RegisterInner() {
       footer={
         <div className="muted" style={{ textAlign: 'center' }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+          <Link href="/login" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
             Sign in
           </Link>
         </div>

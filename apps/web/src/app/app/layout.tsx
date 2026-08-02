@@ -419,6 +419,14 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               <Icon name="sparkles" size={17} style={{ opacity: 0.9 }} />
               <span className="nav-label">Create</span>
             </Link>
+            <Link
+              href="/app"
+              className={`nav-item ${pathname === '/app' ? 'active' : ''}`}
+              title="Home"
+            >
+              <Icon name="home" size={17} style={{ opacity: 0.9 }} />
+              <span className="nav-label">Home</span>
+            </Link>
 
             {/* Dynamic navigation — sections and items straight from the API. */}
             {ws.navigation.map((group) => (

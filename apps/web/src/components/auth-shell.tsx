@@ -5,13 +5,15 @@ import { motion, MotionConfig } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 import { Icon } from '@/components/icon'
-import { spring } from '@/components/motion'
+import { tween } from '@/components/motion'
 
 /**
- * Shared frame for every authentication screen: centred glass card with the
- * brand mark, springing into place. Pages provide the form (children) and an
- * optional footer row (links under the form). Every screen carries a way back
- * to the landing page — an entrance you can't leave is a trap.
+ * Shared frame for every authentication screen.
+ *
+ * Brief 3.1: 50/50 split — graphite left panel with one anonymised result in
+ * Plex Mono; white (raised) right panel with the form. No marketing copy, no
+ * Google SSO (no backend support). One rewrite covers tenant + platform login
+ * and the password/invite siblings.
  */
 export function AuthShell({
   title,
@@ -28,37 +30,55 @@ export function AuthShell({
 }) {
   return (
     <MotionConfig reducedMotion="user">
-      <div className="center-screen" style={{ position: 'relative' }}>
-        <motion.div
-          className="card auth-card"
-          initial={{ opacity: 0, y: 24, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={spring}
-        >
-          <div className="spread" style={{ padding: '0 0 20px' }}>
-            <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="dot" />
-              <strong>{brand}</strong>
-            </div>
-            <Link
-              href="/"
-              className="btn ghost sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-            >
-              <Icon name="arrow-left" size={13} /> Home
-            </Link>
+      <div className="auth-split">
+        <aside className="auth-split__panel" aria-hidden>
+          <div className="auth-split__brand">
+            <span className="auth-split__mark" />
+            <strong>{brand}</strong>
           </div>
-          <h1 style={{ fontSize: 20, marginBottom: 4 }}>{title}</h1>
-          {subtitle ? (
-            <p className="page-sub" style={{ marginBottom: 20 }}>
-              {subtitle}
+          <div className="auth-split__metric">
+            <p className="auth-split__metric-label type-label">Last campaign</p>
+            <p className="auth-split__metric-value">Reach 2.4M · ROAS 4.1× · 38 days</p>
+            <p className="auth-split__metric-note type-caption">
+              Anonymised result from a live workspace
             </p>
-          ) : (
-            <div style={{ height: 14 }} />
-          )}
-          {children}
-          {footer ? <div style={{ marginTop: 16, fontSize: 13 }}>{footer}</div> : null}
-        </motion.div>
+          </div>
+        </aside>
+
+        <main className="auth-split__form-wrap">
+          <motion.div
+            className="auth-split__form"
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={tween}
+          >
+            <div className="auth-split__form-head">
+              <div className="auth-split__form-brand">
+                <span className="auth-split__mark auth-split__mark--ink" />
+                <strong>{brand}</strong>
+              </div>
+              <Link
+                href="/"
+                className="btn ghost sm"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                <Icon name="arrow-left" size={13} /> Home
+              </Link>
+            </div>
+            <h1 className="type-title" style={{ marginBottom: 'var(--space-2)' }}>
+              {title}
+            </h1>
+            {subtitle ? (
+              <p className="type-secondary" style={{ marginBottom: 'var(--space-5)' }}>
+                {subtitle}
+              </p>
+            ) : (
+              <div style={{ height: 'var(--space-5)' }} />
+            )}
+            {children}
+            {footer ? <div className="auth-split__footer type-secondary">{footer}</div> : null}
+          </motion.div>
+        </main>
       </div>
     </MotionConfig>
   )

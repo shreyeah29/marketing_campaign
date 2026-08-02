@@ -29,11 +29,7 @@ export default function PlatformLoginPage() {
   }
 
   return (
-    <AuthShell
-      brand="VSP Platform"
-      title="Operator sign-in"
-      subtitle="The platform-owner console. Not accessible to client organizations."
-    >
+    <AuthShell brand="VSP Platform" title="Operator sign-in">
       {error ? <Banner kind="error">{error}</Banner> : null}
       <form onSubmit={submit}>
         <Field label="Email">

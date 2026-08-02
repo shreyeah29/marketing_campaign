@@ -208,7 +208,7 @@ export function AssetEditor({
                 maxHeight: 320,
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border-subtle)',
-                background: '#000',
+                background: 'var(--surface-inverse)',
               }}
             />
           ) : (

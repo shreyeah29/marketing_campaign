@@ -62,7 +62,6 @@ const dayKey = (d: Date): string =>
   `${String(d.getFullYear())}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 export default function ContentCalendarPage() {
-  const toast = useToast()
   const [assets, setAssets] = useState<CalAsset[] | null>(null)
   const [posts, setPosts] = useState<SocialPostRow[]>([])
   const [accounts, setAccounts] = useState<SocialAccount[]>([])

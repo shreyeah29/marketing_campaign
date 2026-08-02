@@ -10,11 +10,36 @@ import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
 import { Banner, Spinner } from '@/components/ui'
 import { ToastProvider } from '@/components/kit'
-import { Icon } from '@/components/icon'
+import { Icon, type IconName } from '@/components/icon'
 import { CommandPalette, openCommandPalette } from '@/components/command-palette'
 
 const THEME_KEY = 'vsp:theme'
 const SIDEBAR_KEY = 'vsp:sidebar:collapsed'
+
+/**
+ * The navigation, in full.
+ *
+ * Five destinations, one level, no section headers. Studio is where work starts,
+ * Campaigns is the container a campaign lives in (its lifecycle is tabs inside
+ * the campaign, not siblings out here), Library is every asset across campaigns,
+ * CRM is people, Analytics is results.
+ *
+ * Everything else the feature registry serves — Automation, Support, Documents,
+ * Inbox, the AI tool pages, the per-channel Marketing pages — stays routable and
+ * simply is not a menu item. Nothing is deleted or ungranted.
+ */
+const PRIMARY_NAV: {
+  label: string
+  href: string
+  icon: IconName
+  indicator?: 'assets' | 'leads'
+}[] = [
+  { label: 'Studio', href: '/app/create', icon: 'sparkles' },
+  { label: 'Campaigns', href: '/app/campaigns', icon: 'megaphone', indicator: 'assets' },
+  { label: 'Library', href: '/app/content', icon: 'book' },
+  { label: 'CRM', href: '/app/leads', icon: 'users', indicator: 'leads' },
+  { label: 'Analytics', href: '/app/analytics/overview', icon: 'bar-chart' },
+]
 
 function toggleTheme(): 'light' | 'dark' {
   const root = document.documentElement
@@ -380,7 +405,10 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
           <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
             <div className="brand">
               <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
-              <span className="brand-name">{brandName}</span>
+              <span className="brand-lockup">
+                <span className="brand-name">{brandName}</span>
+                <span className="brand-product">Marketing OS</span>
+              </span>
               <button
                 className="sidebar-close"
                 onClick={() => setNavOpen(false)}
@@ -410,69 +438,46 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               />
             )}
 
-            {/* Furniture: Create — primary workspace entry (Home removed — same destination). */}
-            <Link
-              href="/app/create"
-              className={`nav-item nav-create ${isActivePath(pathname, '/app/create') ? 'active' : ''}`}
-              title="Create"
-            >
-              <Icon name="sparkles" size={18} style={{ opacity: 0.9 }} />
-              <span className="nav-label">Create</span>
-            </Link>
-
-            {/* Dynamic navigation — sections and items straight from the API. */}
-            {ws.navigation.map((group) => (
-              <div key={group.section} className="nav-section">
-                <div className="label">{group.section}</div>
-                {group.items.map((item) => {
-                  const href = `/app${item.path}`
-                  const active = isActivePath(pathname, href)
-                  const isCampaign = /campaign/i.test(item.path)
-                  const isLead = /lead/i.test(item.path)
-                  const count = isCampaign
-                    ? indicators.assetsNeedingReview
-                    : isLead
-                      ? indicators.newLeads
-                      : 0
-                  const amber = (isCampaign || isLead) && count > 0
-                  return (
-                    <Link
-                      key={item.path}
-                      href={href}
-                      className={`nav-item ${active ? 'active' : ''}`}
-                      title={item.label}
-                    >
-                      <Icon name={item.icon ?? 'dot'} size={17} style={{ opacity: 0.9 }} />
-                      <span className="nav-label">{item.label}</span>
-                      {count > 0 ? <span className="nav-count">{count}</span> : null}
-                      {amber ? <span className="nav-dot" aria-hidden /> : null}
-                    </Link>
-                  )
-                })}
-              </div>
-            ))}
+            {/* The five destinations. Deliberately fixed rather than rendered from
+                `ws.navigation`: the API serves ~30 entries across 11 sections, which
+                is the structure users get lost in. Everything the registry offers is
+                still routable — it is just no longer a menu. */}
+            {PRIMARY_NAV.map((entry) => {
+              const active = isActivePath(pathname, entry.href)
+              const count =
+                entry.indicator === 'assets'
+                  ? indicators.assetsNeedingReview
+                  : entry.indicator === 'leads'
+                    ? indicators.newLeads
+                    : 0
+              return (
+                <Link
+                  key={entry.href}
+                  href={entry.href}
+                  className={`nav-item ${active ? 'active' : ''}`}
+                  title={entry.label}
+                >
+                  <Icon name={entry.icon} size={18} style={{ opacity: 0.9 }} />
+                  <span className="nav-label">{entry.label}</span>
+                  {count > 0 ? <span className="nav-count">{count}</span> : null}
+                </Link>
+              )
+            })}
 
             <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-              {/* Connections — furniture near Settings; crimson when token bad. */}
-              <Link
-                href="/app/connections"
-                className={`nav-item ${isActivePath(pathname, '/app/connections') ? 'active' : ''}`}
-                title="Connections"
-              >
-                <Icon name="plug" size={17} style={{ opacity: 0.9 }} />
-                <span className="nav-label">Connections</span>
-                {indicators.connectionIssue ? (
-                  <span className="nav-dot-danger" aria-label="Connection issue" />
-                ) : null}
-              </Link>
-              {/* Settings is workspace furniture, not a module — always reachable. */}
+              {/* Settings is workspace furniture, not a module — always reachable.
+                  Connections folds in here rather than taking a sixth nav slot, so a
+                  broken token still surfaces where the user can act on it. */}
               <Link
                 href="/app/settings/organization"
-                className={`nav-item ${pathname.startsWith('/app/settings') ? 'active' : ''}`}
+                className={`nav-item ${pathname.startsWith('/app/settings') || isActivePath(pathname, '/app/connections') ? 'active' : ''}`}
                 title="Settings"
               >
                 <Icon name="settings" size={17} style={{ opacity: 0.9 }} />
                 <span className="nav-label">Settings</span>
+                {indicators.connectionIssue ? (
+                  <span className="nav-dot-danger" aria-label="A connection needs attention" />
+                ) : null}
               </Link>
               <div
                 className="nav-item"

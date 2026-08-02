@@ -1,21 +1,18 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
+import { Inter } from 'next/font/google'
 import localFont from 'next/font/local'
 
 import './globals.css'
 
-// Two families, self-hosted (design brief 1.3): General Sans for the interface,
-// IBM Plex Mono for every number, ID and timestamp. No CDN dependency.
-const generalSans = localFont({
-  src: [
-    { path: '../../public/fonts/GeneralSans-Regular.woff2', weight: '400', style: 'normal' },
-    { path: '../../public/fonts/GeneralSans-Medium.woff2', weight: '500', style: 'normal' },
-    { path: '../../public/fonts/GeneralSans-Semibold.woff2', weight: '600', style: 'normal' },
-    { path: '../../public/fonts/GeneralSans-Bold.woff2', weight: '700', style: 'normal' },
-  ],
+// Inter carries the whole interface, including the numbers — the reference sets
+// metrics in the UI face with tabular figures rather than switching to a mono.
+// next/font self-hosts it at build time, so there is still no CDN dependency.
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
-  fallback: ['Inter', 'system-ui', 'sans-serif'],
 })
 
 const plexMono = localFont({
@@ -35,7 +32,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${generalSans.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${plexMono.variable}`}>
       <head>
         {/* Apply the saved theme before first paint so dark-mode users never see a
             light flash. Light is the default (no attribute needed). */}

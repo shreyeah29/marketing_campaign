@@ -17,83 +17,95 @@
  */
 
 :root {
-  /* ── Type (brief 1.3) — General Sans UI, IBM Plex Mono data. Two families. ── */
-  --font: var(--font-sans, 'General Sans', Inter, system-ui, sans-serif);
-  --font-heading: var(--font-sans, 'General Sans', Inter, system-ui, sans-serif);
+  /* ── Type — one grotesque, tightly tracked. Numbers are the same face with
+     tabular figures, not a mono; the reference sets metrics in the UI font. ── */
+  --font: var(--font-sans, Inter, system-ui, sans-serif);
+  --font-heading: var(--font-sans, Inter, system-ui, sans-serif);
   --font-code: var(--font-mono, 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace);
 
-  /* Type ramp — font shorthand (weight size/line-height family) + tracking.
-     Brief 1.3 names the 13px step "--text-secondary", which collides with the
-     colour token of the same name; the ramp is therefore prefixed --type-. */
-  --type-metric-hero: 500 36px/40px var(--font-code);
-  --type-metric-hero-tracking: -0.02em;
-  --type-metric: 500 28px/32px var(--font-code);
-  --type-metric-tracking: -0.02em;
-  --type-title: 500 22px/28px var(--font-heading);
-  --type-title-tracking: -0.01em;
-  --type-section: 500 18px/24px var(--font-heading);
-  --type-section-tracking: -0.01em;
-  --type-subhead: 500 15px/22px var(--font);
+  /* Type ramp — font shorthand (weight size/line-height family) + tracking. */
+  --type-display: 700 clamp(40px, 6vw, 68px) / 1.02 var(--font-heading);
+  --type-display-tracking: -0.045em;
+  --type-metric-hero: 600 36px/40px var(--font-heading);
+  --type-metric-hero-tracking: -0.03em;
+  --type-metric: 600 28px/32px var(--font-heading);
+  --type-metric-tracking: -0.03em;
+  --type-title: 600 22px/28px var(--font-heading);
+  --type-title-tracking: -0.02em;
+  --type-section: 600 18px/24px var(--font-heading);
+  --type-section-tracking: -0.02em;
+  --type-subhead: 600 15px/22px var(--font);
   --type-body: 400 14px/21px var(--font);
   --type-body-strong: 500 14px/21px var(--font);
   --type-secondary: 400 13px/19px var(--font);
   --type-caption: 400 12px/16px var(--font);
-  --type-label: 500 11px/14px var(--font);
-  --type-label-tracking: 0.06em;
+  --type-label: 600 11px/14px var(--font);
+  --type-label-tracking: 0.08em;
 
-  /* ── Surfaces (brief 1.2) — cool graphite, not warm cream ─────────────────── */
-  --surface-canvas: #f6f7f9;
+  /* ── Surfaces — paper white, neutral greys, no colour cast ────────────────── */
+  --surface-canvas: #fafafa;
   --surface-raised: #ffffff;
-  --surface-sunken: #edeff3;
-  --surface-inverse: #12151c;
-  --surface-hover: #f1f3f7;
-  --surface-selected: #edf1fe;
+  --surface-sunken: #f4f4f5;
+  --surface-inverse: #0a0a0a;
+  --surface-hover: #f4f4f5;
+  --surface-selected: #f4f4f5;
 
-  /* ── Borders ──────────────────────────────────────────────────────────────── */
-  --border-subtle: #e4e7ec;
-  --border-default: #d3d8e0;
-  --border-strong: #b4bcc8;
-  --border-focus: #2b4fe8;
+  /* ── Borders — hairlines carry the structure; shadows barely appear ───────── */
+  --border-subtle: #efeff1;
+  --border-default: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --border-focus: #0a0a0a;
 
   /* ── Text ─────────────────────────────────────────────────────────────────── */
-  --text-primary: #12151c;
-  --text-secondary: #576070;
-  --text-tertiary: #8790a0;
+  --text-primary: #0a0a0a;
+  --text-secondary: #52525b;
+  --text-tertiary: #a1a1aa;
   --text-inverse: #ffffff;
-  --text-link: #2b4fe8;
+  --text-link: #0a0a0a;
 
-  /* ── Semantic ramp — one meaning each, no exceptions (brief 1.1) ──────────── */
-  --cobalt-600: #2b4fe8; /* primary action, selected nav, links */
-  --cobalt-100: #e3e9fd;
-  --cobalt-800: #17307f;
+  /* ── Semantic ramp.
+     This system is monochrome: emphasis is carried by solid ink, not by hue.
+     Primary actions and active nav are black on white; states that used to be
+     cobalt/amber/iris all resolve to the ink pair, so a filled black pill reads
+     as "this one" wherever it appears. The only two hues left are the delta
+     colours, which encode direction on a number and nothing else, plus a single
+     blue reserved for source/platform chips.
+     Token names are unchanged so every existing component keeps resolving. ── */
+  --cobalt-600: #0a0a0a; /* primary action, active nav, selected */
+  --cobalt-100: #f4f4f5;
+  --cobalt-800: #0a0a0a;
 
-  --amber-600: #c97a0e; /* RESERVED: human decision required */
-  --amber-100: #fbf0dc;
-  --amber-800: #6b3f04;
+  --amber-600: #0a0a0a; /* attention — ink, not colour, in this system */
+  --amber-100: #f4f4f5;
+  --amber-800: #0a0a0a;
 
-  --jade-600: #0e7c5a; /* live, approved, published, positive delta */
-  --jade-100: #dcf2ea;
-  --jade-800: #06422f;
+  --jade-600: #16a34a; /* positive delta only */
+  --jade-100: #f0fdf4;
+  --jade-800: #14532d;
 
-  --crimson-600: #c8324b; /* rejected, failed, negative delta, destructive */
-  --crimson-100: #fbe4e8;
-  --crimson-800: #7a1527;
+  --crimson-600: #dc2626; /* negative delta, destructive */
+  --crimson-100: #fef2f2;
+  --crimson-800: #7f1d1d;
 
-  --iris-600: #6b5dd3; /* AI-generated, not yet reviewed */
-  --iris-100: #eeebfc;
-  --iris-050: #f5f3ff;
-  --iris-800: #372c7a;
+  --iris-600: #0a0a0a; /* AI output — neutral ink here */
+  --iris-100: #f4f4f5;
+  --iris-050: #fafafa;
+  --iris-800: #0a0a0a;
 
-  --slate-600: #576070; /* draft, paused, archived, neutral */
-  --slate-100: #edeff3;
+  --slate-600: #52525b; /* draft, paused, archived, neutral */
+  --slate-100: #f4f4f5;
 
-  /* ── Chart categorical ramp — inside charts only, never UI chrome ─────────── */
-  --chart-1: #2b4fe8;
-  --chart-2: #6b5dd3;
-  --chart-3: #0e7c5a;
-  --chart-4: #c97a0e;
-  --chart-5: #c8324b;
-  --chart-6: #0e6f8c;
+  /* The one accent — source and platform chips (LinkedIn, Google Ads…). */
+  --accent-600: #2563eb;
+  --accent-100: #eff6ff;
+
+  /* ── Chart ramp — stepped by lightness, not hue, with the accent last ─────── */
+  --chart-1: #0a0a0a;
+  --chart-2: #52525b;
+  --chart-3: #a1a1aa;
+  --chart-4: #d4d4d8;
+  --chart-5: #2563eb;
+  --chart-6: #e4e4e7;
 
   /* ── Space (brief 1.4) — 4px base unit ────────────────────────────────────── */
   --space-1: 4px;
@@ -108,16 +120,16 @@
   --space-10: 64px;
 
   /* ── Radius ───────────────────────────────────────────────────────────────── */
-  --radius-sm: 4px; /* pills, badges, tags */
-  --radius-md: 6px; /* inputs, buttons */
-  --radius-lg: 10px; /* cards, panels */
-  --radius-xl: 14px; /* modals, drawers */
+  --radius-sm: 6px; /* pills, badges, tags */
+  --radius-md: 8px; /* inputs, buttons */
+  --radius-lg: 12px; /* cards, panels */
+  --radius-xl: 16px; /* modals, drawers */
 
-  /* ── Elevation — never more than two floating layers at once ──────────────── */
+  /* ── Elevation — borders do the work here; shadows stay almost invisible ──── */
   --elev-0: none;
-  --elev-1: 0 1px 2px rgba(18, 21, 28, 0.06);
-  --elev-2: 0 4px 12px rgba(18, 21, 28, 0.08);
-  --elev-3: 0 12px 32px rgba(18, 21, 28, 0.14);
+  --elev-1: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --elev-2: 0 4px 12px rgba(10, 10, 10, 0.06);
+  --elev-3: 0 16px 40px rgba(10, 10, 10, 0.1);
 
   /* ── Motion (brief 1.7) ───────────────────────────────────────────────────── */
   --dur-fast: 120ms; /* hover, focus */
@@ -130,56 +142,59 @@
 }
 
 :root[data-theme='dark'] {
-  --surface-canvas: #0e1116;
-  --surface-raised: #151922;
-  --surface-sunken: #0a0d12;
-  --surface-inverse: #f6f7f9;
-  --surface-hover: #1a1f2a;
-  --surface-selected: #182137;
+  --surface-canvas: #0a0a0a;
+  --surface-raised: #141414;
+  --surface-sunken: #000000;
+  --surface-inverse: #fafafa;
+  --surface-hover: #1c1c1c;
+  --surface-selected: #1c1c1c;
 
-  --border-subtle: #232936;
-  --border-default: #2e3646;
-  --border-strong: #465062;
-  --border-focus: #6e8bff;
+  --border-subtle: #1f1f1f;
+  --border-default: #2a2a2a;
+  --border-strong: #3f3f46;
+  --border-focus: #fafafa;
 
-  --text-primary: #e9ecf2;
-  --text-secondary: #a6aebe;
-  --text-tertiary: #717a8c;
-  --text-inverse: #12151c;
-  --text-link: #8fa5ff;
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+  --text-inverse: #0a0a0a;
+  --text-link: #fafafa;
 
-  /* Pairing contract preserved: -600 = icon/accent, -100 = tinted surface,
-     -800 = text on that surface. */
-  --cobalt-600: #7c93f5;
-  --cobalt-100: #1b2440;
-  --cobalt-800: #c3cffc;
+  /* Inverted: emphasis is now white ink on near-black. The pairing contract
+     holds — -600 is the mark, -100 the tinted surface, -800 the text on it. */
+  --cobalt-600: #fafafa;
+  --cobalt-100: #1c1c1c;
+  --cobalt-800: #fafafa;
 
-  --amber-600: #e09a3e;
-  --amber-100: #33270f;
-  --amber-800: #f4d7a6;
+  --amber-600: #fafafa;
+  --amber-100: #1c1c1c;
+  --amber-800: #fafafa;
 
-  --jade-600: #3fb58e;
-  --jade-100: #0f291f;
-  --jade-800: #a9e6cf;
+  --jade-600: #4ade80;
+  --jade-100: #0c1f14;
+  --jade-800: #bbf7d0;
 
-  --crimson-600: #e36880;
-  --crimson-100: #391219;
-  --crimson-800: #f6bfc9;
+  --crimson-600: #f87171;
+  --crimson-100: #24100f;
+  --crimson-800: #fecaca;
 
-  --iris-600: #9c8ff0;
-  --iris-100: #221d3f;
-  --iris-050: #1b1733;
-  --iris-800: #cfc7f8;
+  --iris-600: #fafafa;
+  --iris-100: #1c1c1c;
+  --iris-050: #141414;
+  --iris-800: #fafafa;
 
-  --slate-600: #a6aebe;
-  --slate-100: #222836;
+  --slate-600: #a1a1aa;
+  --slate-100: #1c1c1c;
 
-  --chart-1: #7c93f5;
-  --chart-2: #9c8ff0;
-  --chart-3: #3fb58e;
-  --chart-4: #e09a3e;
-  --chart-5: #e36880;
-  --chart-6: #4aa3c4;
+  --accent-600: #60a5fa;
+  --accent-100: #0e1a2e;
+
+  --chart-1: #fafafa;
+  --chart-2: #a1a1aa;
+  --chart-3: #71717a;
+  --chart-4: #3f3f46;
+  --chart-5: #60a5fa;
+  --chart-6: #2a2a2a;
 
   --elev-1: 0 1px 2px rgba(0, 0, 0, 0.5);
   --elev-2: 0 4px 12px rgba(0, 0, 0, 0.55);
@@ -310,9 +325,32 @@ textarea {
 
 .shell {
   display: grid;
-  grid-template-columns: 244px 1fr;
+  grid-template-columns: 264px 1fr;
   min-height: 100vh;
   transition: grid-template-columns 0.2s ease;
+}
+
+/* Brand lockup: mark, workspace name, and the product line beneath it. */
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.15;
+}
+.brand-lockup .brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brand-lockup .brand-product {
+  font: var(--type-label);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: 2px;
 }
 
 .shell[data-collapsed] {

@@ -53,8 +53,8 @@ export default function NewOrganizationPage() {
   // ── Brand & vision ───────────────────────────────────────────────────────────
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
-  const [primaryColor, setPrimaryColor] = useState('#1e40af')
-  const [accentColor, setAccentColor] = useState('#d97706')
+  const [primaryColor, setPrimaryColor] = useState('#111111')
+  const [accentColor, setAccentColor] = useState('#111111')
   const [tagline, setTagline] = useState('')
   const [vision, setVision] = useState('')
   const [targetAudience, setTargetAudience] = useState('')

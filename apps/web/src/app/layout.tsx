@@ -1,17 +1,17 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { Fira_Code, Fira_Sans } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 
 import './globals.css'
 
-const firaSans = Fira_Sans({
+const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-sans',
   display: 'swap',
 })
 
-const firaCode = Fira_Code({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-mono',
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${firaSans.variable} ${firaCode.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <head>
         {/* Apply the saved theme before first paint so dark-mode users never see a
             light flash. Light is the default (no attribute needed). */}

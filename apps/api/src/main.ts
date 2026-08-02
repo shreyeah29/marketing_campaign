@@ -1,5 +1,8 @@
 import 'reflect-metadata'
 
+import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+
 import helmet from '@fastify/helmet'
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
@@ -36,6 +39,29 @@ import { createRedis } from './infrastructure/redis.js'
 
 function toTableName(model: string): string {
   return model.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase()
+}
+
+/**
+ * Applies pending database migrations before anything else inspects the schema.
+ *
+ * The hosting build step only installs and generates the client — it never runs
+ * migrations — so the booting service is the one place they reliably execute.
+ * `prisma migrate deploy` is idempotent and uses the owner connection via the
+ * datasource's directUrl. Set MIGRATE_ON_BOOT=0 when a separate deploy step
+ * owns migrations.
+ */
+function applyMigrations(logger: Logger): void {
+  if (process.env['MIGRATE_ON_BOOT'] === '0') {
+    logger.warn('MIGRATE_ON_BOOT=0 — skipping migrations; a deploy step must own them')
+    return
+  }
+  const repoRoot = fileURLToPath(new URL('../../..', import.meta.url))
+  logger.log('Applying database migrations…')
+  execSync('pnpm --filter @vsp/database exec prisma migrate deploy', {
+    cwd: repoRoot,
+    stdio: 'inherit',
+  })
+  logger.log('Database migrations applied')
 }
 
 /**
@@ -110,6 +136,8 @@ async function bootstrap(): Promise<void> {
   })
 
   const bootLogger = new Logger('Bootstrap')
+
+  applyMigrations(bootLogger)
 
   await runPreflight(env.DATABASE_URL, env.DIRECT_DATABASE_URL, bootLogger)
 

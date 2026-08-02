@@ -2259,6 +2259,159 @@ a.card:hover {
    Campaigns — AI workspace
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Command Center (brief 3.4) */
+.cc {
+  padding-bottom: var(--space-10);
+}
+.cc__hero {
+  max-width: 720px;
+  margin: 8vh auto 0;
+  padding: 0 var(--space-4);
+}
+.cc__title {
+  margin: 0 0 var(--space-5);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  text-align: center;
+}
+.cc__prompt {
+  position: relative;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--elev-0);
+  transition:
+    border-color var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+.cc__prompt:focus-within {
+  border-color: var(--cobalt-600);
+  box-shadow: 0 0 0 3px var(--cobalt-100);
+}
+.cc__textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 120px;
+  max-height: 320px;
+}
+.cc__textarea::placeholder {
+  color: var(--text-tertiary);
+}
+.cc__prompt-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+.cc__attach-wrap {
+  position: relative;
+}
+.cc__attach-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: min(360px, 80vw);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  box-shadow: var(--elev-2);
+  z-index: 5;
+}
+.cc__kbd {
+  margin-left: var(--space-2);
+  font-family: var(--font-code);
+  font-size: 11px;
+  opacity: 0.75;
+}
+.cc__suggestions {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.cc__row-label {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+}
+.cc__row-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.cc__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font: var(--type-secondary);
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.cc__chip:hover {
+  border-color: var(--cobalt-600);
+  color: var(--text-primary);
+  background: var(--cobalt-100);
+}
+.cc__secondary {
+  margin-top: var(--space-5);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+.cc__recent {
+  max-width: 720px;
+  margin: var(--space-9) auto 0;
+  padding: 0 var(--space-4);
+}
+.cc__recent-label {
+  color: var(--text-secondary);
+}
+.cc__recent-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+.cc__recent-row:hover {
+  background: var(--surface-hover);
+}
+.cc__recent-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .cmp-hero {
   max-width: 760px;
   margin: 6vh auto 0;

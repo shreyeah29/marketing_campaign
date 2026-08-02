@@ -18,6 +18,103 @@ export const CHIPS = [
   'Complete 360° Campaign',
 ]
 
+/** Command Center suggestion rows — chip label → editable full sentence. */
+export const SUGGESTION_ROWS: {
+  id: string
+  label: string
+  items: { label: string; sentence: string }[]
+}[] = [
+  {
+    id: 'launch',
+    label: 'Launch',
+    items: [
+      {
+        label: 'Product launch',
+        sentence:
+          'Launch my new product to the right audience with a mix of awareness ads, social proof content, and a clear call to buy.',
+      },
+      {
+        label: 'Festive campaign',
+        sentence:
+          'Run a festive campaign that feels seasonal and gift-ready, with offers, social posts, and paid ads timed for peak shopping days.',
+      },
+      {
+        label: 'Brand awareness',
+        sentence:
+          'Build brand awareness with consistent storytelling across social and paid, focused on reach and memorable creative.',
+      },
+    ],
+  },
+  {
+    id: 'grow',
+    label: 'Grow',
+    items: [
+      {
+        label: 'Get more leads',
+        sentence:
+          'Generate more qualified leads with lead magnets, retargeting, and clear CTAs that push people into our CRM.',
+      },
+      {
+        label: 'Increase traffic',
+        sentence:
+          'Increase website traffic with SEO-friendly content, social distribution, and paid campaigns aimed at high-intent searches.',
+      },
+      {
+        label: 'Improve sales',
+        sentence:
+          'Improve sales this month with conversion-focused creatives, email follow-ups, and remarketing to warm audiences.',
+      },
+    ],
+  },
+  {
+    id: 'channel',
+    label: 'Channel',
+    items: [
+      {
+        label: 'Instagram campaign',
+        sentence:
+          'Create an Instagram campaign with posts, Reels, and Stories that match my brand tone and drive profile visits and leads.',
+      },
+      {
+        label: 'Meta ads',
+        sentence:
+          'Plan Meta ads with clear audiences, creative variants, and a budget split between prospecting and retargeting.',
+      },
+      {
+        label: 'Google ads',
+        sentence:
+          'Set up Google ads focused on high-intent keywords, strong landing pages, and measurable cost per lead.',
+      },
+      {
+        label: 'Email campaign',
+        sentence:
+          'Write an email campaign sequence that nurtures subscribers from awareness to conversion with clear next steps.',
+      },
+    ],
+  },
+  {
+    id: 'analyse',
+    label: 'Analyse',
+    items: [
+      {
+        label: 'Competitor analysis',
+        sentence:
+          'Analyse my top competitors’ positioning, channels, and creative angles, then recommend where we can win.',
+      },
+      {
+        label: 'Improve last campaign',
+        sentence:
+          'Review my last campaign’s performance and propose a follow-up plan that fixes weak spots and doubles down on what worked.',
+      },
+      {
+        label: 'Content for next month',
+        sentence:
+          'Plan a month of content across my channels with themes, formats, and a posting cadence I can approve and schedule.',
+      },
+    ],
+  },
+]
+
 export const SECTIONS: {
   id: string
   label: string

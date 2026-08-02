@@ -9,6 +9,24 @@ function newId(): string {
   return `draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
+export function listDrafts(): CreateDraft[] {
+  if (typeof window === 'undefined') return []
+  const out: CreateDraft[] = []
+  try {
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const key = window.sessionStorage.key(i)
+      if (!key?.startsWith('vsp:draft:')) continue
+      const raw = window.sessionStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw) as CreateDraft
+      if (parsed?.id) out.push(parsed)
+    }
+  } catch {
+    return []
+  }
+  return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
 export function createDraftId(): string {
   return newId()
 }

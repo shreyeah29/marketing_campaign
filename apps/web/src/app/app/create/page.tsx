@@ -1,18 +1,20 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
 import { useToast } from '@/components/kit'
-import { Icon } from '@/components/icon'
 import {
   PromptView,
   createDraftId,
   writeDraft,
+  listDrafts,
+  readDraft,
   fetchCampaigns,
   type Campaign,
   type CampaignPlan,
+  type CreateDraft,
 } from '@/components/campaign-studio'
 
 /**
@@ -24,33 +26,20 @@ export default function CreatePage() {
   const router = useRouter()
   const toast = useToast()
   const [prompt, setPrompt] = useState('')
-  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [planning, setPlanning] = useState(false)
   const [recent, setRecent] = useState<Campaign[]>([])
+  const [drafts, setDrafts] = useState<CreateDraft[]>([])
 
-  const brief = useMemo(() => {
-    const chips = [...selected]
-    return chips.length > 0
-      ? `${prompt.trim()}\n\nRequested outputs: ${chips.join(', ')}`
-      : prompt.trim()
-  }, [prompt, selected])
-
-  const loadRecent = useCallback(() => {
+  const refreshLists = useCallback(() => {
     fetchCampaigns().then(setRecent)
+    setDrafts(listDrafts().filter((d) => d.brief.trim() || d.prompt?.trim() || d.plan))
   }, [])
-  useEffect(loadRecent, [loadRecent])
 
-  function toggleChip(c: string) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(c)) next.delete(c)
-      else next.add(c)
-      return next
-    })
-  }
+  useEffect(refreshLists, [refreshLists])
 
   async function createPlan() {
-    if (brief.trim().length < 4) return
+    const brief = prompt.trim()
+    if (brief.length < 4) return
     setPlanning(true)
     try {
       const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
@@ -58,8 +47,7 @@ export default function CreatePage() {
       writeDraft({
         id: draftId,
         brief,
-        prompt: prompt.trim(),
-        selectedChips: [...selected],
+        prompt: brief,
         plan,
         updatedAt: new Date().toISOString(),
       })
@@ -75,30 +63,32 @@ export default function CreatePage() {
     const id = createDraftId()
     writeDraft({
       id,
-      brief: '',
+      brief: prompt.trim(),
+      ...(prompt.trim() ? { prompt: prompt.trim() } : {}),
       step: 'objective',
       updatedAt: new Date().toISOString(),
     })
     router.push(`/app/create/intake/${id}?step=objective`)
   }
 
+  function openDraft(id: string) {
+    const d = readDraft(id)
+    if (!d) return
+    if (d.plan) router.push(`/app/create/strategy/${id}`)
+    else router.push(`/app/create/intake/${id}?step=${d.step ?? 'objective'}`)
+  }
+
   return (
-    <div>
-      <div style={{ maxWidth: 760, margin: '0 auto 8px', padding: '0 16px' }}>
-        <button type="button" className="btn ghost sm" onClick={startIntake}>
-          <Icon name="clipboard" size={14} /> Guided intake instead
-        </button>
-      </div>
-      <PromptView
-        prompt={prompt}
-        setPrompt={setPrompt}
-        selected={selected}
-        toggleChip={toggleChip}
-        planning={planning}
-        onSubmit={() => void createPlan()}
-        recent={recent}
-        onOpen={(id) => router.push(`/app/campaigns/${id}/assets`)}
-      />
-    </div>
+    <PromptView
+      prompt={prompt}
+      setPrompt={setPrompt}
+      planning={planning}
+      onSubmit={() => void createPlan()}
+      recent={recent}
+      onOpen={(id) => router.push(`/app/campaigns/${id}/assets`)}
+      drafts={drafts}
+      onOpenDraft={openDraft}
+      onGuidedIntake={startIntake}
+    />
   )
 }

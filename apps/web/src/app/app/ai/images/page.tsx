@@ -4,6 +4,7 @@ import { useState } from 'react'
 
 import { PageHeader, useToast } from '@/components/kit'
 import { Field, Spinner } from '@/components/ui'
+import { CreativeLibrary } from '@/components/creative-library'
 import { ApiError, api } from '@/lib/api'
 
 interface GeneratedImage {
@@ -51,7 +52,10 @@ export default function AiImagesPage() {
 
   return (
     <>
-      <PageHeader title="AI Images" subtitle="Generate images from a text prompt" />
+      <PageHeader
+        title="Image Studio"
+        subtitle="Generate images on demand — and browse every poster the system has made for you."
+      />
 
       <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
         <Field label="Describe the image">
@@ -117,6 +121,14 @@ export default function AiImagesPage() {
           ))}
         </div>
       ) : null}
+
+      {/* The permanent record: every campaign image, with its approval fate. */}
+      <h2 style={{ fontSize: 16, margin: '30px 0 4px' }}>Image library</h2>
+      <p className="dim" style={{ fontSize: 13, marginBottom: 14 }}>
+        Every image generated for your campaigns — approved, rejected or published. What you approve
+        shapes what gets made next.
+      </p>
+      <CreativeLibrary type="image" />
     </>
   )
 }

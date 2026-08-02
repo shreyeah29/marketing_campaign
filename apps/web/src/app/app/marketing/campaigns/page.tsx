@@ -264,7 +264,26 @@ function PromptView({
   return (
     <div style={{ paddingBottom: 40 }}>
       <div className="cmp-hero">
-        <h1>What would you like to create today?</h1>
+        <span
+          className="pill"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '5px 13px',
+            borderRadius: 999,
+            background: 'var(--primary-soft)',
+            color: 'var(--color-primary)',
+            fontSize: 12,
+            fontWeight: 600,
+            marginBottom: 16,
+          }}
+        >
+          <Icon name="sparkles" size={13} /> AI Campaign Studio
+        </span>
+        <h1>
+          What would you like to <span className="grad-text">create</span> today?
+        </h1>
         <div className="sub">
           Describe your campaign and pick the outputs — your AI marketing director will plan it.
         </div>

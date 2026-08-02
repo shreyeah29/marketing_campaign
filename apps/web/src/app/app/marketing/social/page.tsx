@@ -79,6 +79,8 @@ export default function SocialPage() {
   const [connectOpen, setConnectOpen] = useState(false)
   const [disconnectId, setDisconnectId] = useState<string | null>(null)
 
+  const [platformTab, setPlatformTab] = useState<string | null>(null)
+
   const load = useCallback(() => {
     setError(null)
     Promise.all([
@@ -93,7 +95,34 @@ export default function SocialPage() {
   }, [])
   useEffect(load, [load])
 
-  const connected = (accounts ?? []).filter((a) => a.status === 'CONNECTED')
+  const allConnected = (accounts ?? []).filter((a) => a.status === 'CONNECTED')
+  // The hub tabs: every platform with an account or a post, so each channel has
+  // its own room with its own numbers.
+  const hubPlatforms = [
+    ...new Set([
+      ...allConnected.map((a) => a.platform),
+      ...(posts ?? []).flatMap((p) => p.targets.map((t) => t.platform)),
+    ]),
+  ].sort()
+  const connected = platformTab
+    ? allConnected.filter((a) => a.platform === platformTab)
+    : allConnected
+  const visiblePosts = platformTab
+    ? (posts ?? []).filter((p) => p.targets.some((t) => t.platform === platformTab))
+    : (posts ?? [])
+  const hubStats = platformTab
+    ? {
+        published: visiblePosts.filter((p) =>
+          p.targets.some((t) => t.platform === platformTab && t.status === 'PUBLISHED'),
+        ).length,
+        scheduled: visiblePosts.filter((p) =>
+          p.targets.some((t) => t.platform === platformTab && t.status === 'SCHEDULED'),
+        ).length,
+        failed: visiblePosts.filter((p) =>
+          p.targets.some((t) => t.platform === platformTab && t.status === 'FAILED'),
+        ).length,
+      }
+    : null
 
   async function disconnect(id: string) {
     try {
@@ -131,6 +160,41 @@ export default function SocialPage() {
         title="Social"
         subtitle="Connect accounts, compose and schedule posts across every channel."
       />
+
+      {/* ── Platform hubs — each channel is its own room ─────────────────── */}
+      {hubPlatforms.length > 0 ? (
+        <div className="toolbar" style={{ gap: 8, marginBottom: 16 }}>
+          <button
+            className={`chip ${platformTab === null ? 'on' : ''}`}
+            onClick={() => setPlatformTab(null)}
+          >
+            All platforms
+          </button>
+          {hubPlatforms.map((p) => (
+            <button
+              key={p}
+              className={`chip ${platformTab === p ? 'on' : ''}`}
+              onClick={() => setPlatformTab(platformTab === p ? null : p)}
+            >
+              <PlatformIcon platform={p} size={14} /> {p.charAt(0) + p.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {hubStats ? (
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <span className="badge ok">{hubStats.published} published</span>
+          <span className="badge info">{hubStats.scheduled} scheduled</span>
+          {hubStats.failed > 0 ? (
+            <span className="badge danger">{hubStats.failed} failed</span>
+          ) : null}
+          <span className="dim" style={{ fontSize: 12 }}>
+            Reach, clicks and audience demographics appear here per post once the platform account
+            is connected for insights.
+          </span>
+        </div>
+      ) : null}
 
       {/* ── Connections ─────────────────────────────────────────────────── */}
       <div className="spread" style={{ marginBottom: 12 }}>
@@ -194,15 +258,15 @@ export default function SocialPage() {
       <h2 style={{ fontSize: 15, fontWeight: 600, margin: '24px 0 12px' }}>Posts</h2>
       {posts === null ? (
         <TableSkeleton rows={4} cols={3} />
-      ) : posts.length === 0 ? (
+      ) : visiblePosts.length === 0 ? (
         <EmptyState
           icon="megaphone"
-          title="No posts yet"
-          hint="Compose a post above to schedule it across your connected accounts."
+          title={platformTab ? `No posts on ${platformTab.toLowerCase()} yet` : 'No posts yet'}
+          hint="Compose a post above — or approve a campaign creative and publish it here."
         />
       ) : (
         <div className="stack" style={{ gap: 10 }}>
-          {posts.map((p) => (
+          {visiblePosts.map((p) => (
             <PostCard
               key={p.id}
               post={p}

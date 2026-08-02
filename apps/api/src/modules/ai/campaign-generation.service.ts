@@ -57,11 +57,75 @@ export class CampaignGenerationService {
    * any assets. The workspace shows this for the user to confirm before spending a
    * full generation. Reuses the platform LLM; nothing is written to the database.
    */
+  /**
+   * The tenant's brand profile as a prompt block — the onboarding promise kept.
+   * Whatever the operator captured (vision, audience, tagline, tone) shapes every
+   * plan and every asset. Best-effort: an org without a profile gets ''.
+   */
+  private async brandContext(principal: Principal): Promise<string> {
+    try {
+      const [settings, branding, org, rejections, approvedCreatives] = await withTenantTransaction(
+        this.db,
+        (tx) =>
+          Promise.all([
+            tx.organizationSettings.findFirst(),
+            tx.branding.findFirst(),
+            tx.organization.findFirst({
+              where: { id: principal.organizationId },
+              select: { name: true, industry: true, metadata: true },
+            }),
+            // The learning loop: recent human rejection reasons become standing
+            // negative guidance, so the same mistake isn't generated twice.
+            tx.campaignAssetComment.findMany({
+              where: { event: 'rejected', body: { startsWith: 'Rejected: ' } },
+              orderBy: { createdAt: 'desc' },
+              take: 8,
+              select: { body: true },
+            }),
+            // ...and recently approved visual concepts are the positive signal.
+            tx.campaignAsset.findMany({
+              where: {
+                kind: { in: ['IMAGE_PROMPT', 'VIDEO_PROMPT'] },
+                status: { in: ['APPROVED', 'SCHEDULED', 'PUBLISHED'] },
+                deletedAt: null,
+                title: { not: null },
+              },
+              orderBy: { updatedAt: 'desc' },
+              take: 5,
+              select: { title: true },
+            }),
+          ]),
+      )
+      const meta = (org?.metadata ?? {}) as Record<string, unknown>
+      const avoid = [...new Set(rejections.map((r) => r.body.slice('Rejected: '.length).trim()))]
+        .filter((r) => r.length > 0)
+        .slice(0, 5)
+      const liked = approvedCreatives.map((a) => a.title).filter(Boolean)
+      const lines = [
+        org ? `Company: ${org.name}${org.industry ? ` (${org.industry})` : ''}` : null,
+        typeof meta['description'] === 'string' ? `About: ${meta['description']}` : null,
+        settings?.tagline ? `Tagline: ${settings.tagline}` : null,
+        settings?.brandVoice ? `Vision & brand voice: ${settings.brandVoice}` : null,
+        settings?.targetAudience ? `Target audience: ${settings.targetAudience}` : null,
+        branding?.aiPersonality ? `Tone: ${branding.aiPersonality}` : null,
+        liked.length > 0 ? `Creative direction they approved recently: ${liked.join('; ')}` : null,
+        avoid.length > 0
+          ? `AVOID — feedback from recently rejected content: ${avoid.join('; ')}`
+          : null,
+      ].filter(Boolean)
+      if (lines.length === 0) return ''
+      return `BRAND PROFILE — write ALL content in this brand's voice, for this audience:\n${lines.join('\n')}\n\n`
+    } catch {
+      return ''
+    }
+  }
+
   async plan(principal: Principal, brief: string): Promise<CampaignPlan> {
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
     const model = resolved.model ?? adapter.defaultModel
+    const brand = await this.brandContext(principal)
     const startedAt = Date.now()
     try {
       const result = await adapter.chat({
@@ -70,7 +134,10 @@ export class CampaignGenerationService {
         maxTokens: 2000,
         messages: [
           { role: 'system', content: PLAN_PROMPT },
-          { role: 'user', content: `Brief: ${brief}\n\nReturn ONLY the JSON object described.` },
+          {
+            role: 'user',
+            content: `${brand}Brief: ${brief}\n\nReturn ONLY the JSON object described.`,
+          },
         ],
       })
       await this.ai.recordUsage(principal, {
@@ -99,6 +166,7 @@ export class CampaignGenerationService {
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
 
     const model = resolved.model ?? adapter.defaultModel
+    const brand = await this.brandContext(principal)
     const startedAt = Date.now()
 
     let plan: GeneratedPlan
@@ -110,7 +178,7 @@ export class CampaignGenerationService {
           { role: 'system', content: SYSTEM_PROMPT },
           {
             role: 'user',
-            content: `Marketing brief: ${brief}\n\nReturn ONLY the JSON object described.`,
+            content: `${brand}Marketing brief: ${brief}\n\nReturn ONLY the JSON object described.`,
           },
         ],
         // A full multi-platform campaign is a large JSON document, and reasoning
@@ -324,11 +392,12 @@ const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Gi
   "suggestedBudget": number,
   "assets": [
     { "platform": "INSTAGRAM"|"FACEBOOK"|"LINKEDIN"|"X"|"GOOGLE",
-      "kind": "POST"|"AD_COPY"|"AD_HEADLINE"|"AD_DESCRIPTION"|"CAPTION",
+      "kind": "POST"|"AD_COPY"|"AD_HEADLINE"|"AD_DESCRIPTION"|"CAPTION"|"IMAGE_PROMPT"|"VIDEO_PROMPT",
       "title": string, "body": string, "caption": string, "hashtags": string[], "cta": string }
   ]
 }
-Produce at least one POST per platform (Instagram, Facebook, LinkedIn, X, Google) plus a few ad-copy assets. Keep captions platform-appropriate. Return valid JSON only.`
+Produce at least one POST per platform (Instagram, Facebook, LinkedIn, X, Google) plus a few ad-copy assets. Keep captions platform-appropriate.
+ALSO produce 2-4 IMAGE_PROMPT assets (poster/visual concepts) and 1-2 VIDEO_PROMPT assets (short clip concepts). For these, "title" is the concept name and "body" is a rich, detailed generation prompt for an AI image/video model — subject, composition, lighting, mood, colours, style — written to match the brand. Return valid JSON only.`
 
 function parsePlan(raw: string): GeneratedPlan {
   // Models sometimes wrap JSON in prose or code fences — extract the object.

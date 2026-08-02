@@ -832,6 +832,7 @@ function AssetEditor({
   const canApprove = ['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'].includes(status)
   const canPublish = status === 'APPROVED'
   const [publishOpen, setPublishOpen] = useState(false)
+  const [rejectOpen, setRejectOpen] = useState(false)
 
   /**
    * Gate 1 for concepts: approving an image/video *concept* immediately turns it
@@ -1016,9 +1017,7 @@ function AssetEditor({
           <button
             className="btn ghost sm"
             disabled={busy !== null}
-            onClick={() =>
-              void act('Reject', () => api.post(`/campaign-assets/${asset.id}/reject`, {}))
-            }
+            onClick={() => setRejectOpen(true)}
           >
             <Icon name="x" size={14} /> Reject
           </button>
@@ -1056,6 +1055,18 @@ function AssetEditor({
             setPublishOpen(false)
             toast.push('success', 'Queued for publishing')
             onChanged()
+          }}
+        />
+      ) : null}
+
+      {rejectOpen ? (
+        <RejectDialog
+          onClose={() => setRejectOpen(false)}
+          onReject={(reason) => {
+            setRejectOpen(false)
+            void act('Reject', () =>
+              api.post(`/campaign-assets/${asset.id}/reject`, reason ? { reason } : {}),
+            )
           }}
         />
       ) : null}
@@ -1186,6 +1197,68 @@ function PublishDialog({
             onClick={() => void publish()}
           >
             {busy ? <Spinner /> : when ? 'Schedule' : 'Post now'}
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ── Reject dialog — the reason becomes standing guidance for future AI work ───
+const REJECT_REASONS = ['Off-brand', 'Wrong style', 'Weak copy', 'Wrong colors', 'Not relevant']
+
+function RejectDialog({
+  onClose,
+  onReject,
+}: {
+  onClose: () => void
+  onReject: (reason: string | null) => void
+}) {
+  const [picked, setPicked] = useState<string | null>(null)
+  const [custom, setCustom] = useState('')
+
+  const reason = [picked, custom.trim()].filter(Boolean).join(' — ') || null
+
+  return (
+    <>
+      <div className="overlay" onClick={onClose} />
+      <div className="modal" role="dialog" aria-label="Reject asset">
+        <div className="head">
+          <h3>Why reject it?</h3>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div className="body">
+          <p className="dim" style={{ fontSize: 12.5, marginBottom: 12 }}>
+            The AI learns from this — future content avoids what you reject.
+          </p>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+            {REJECT_REASONS.map((r) => (
+              <button
+                key={r}
+                className={`chip ${picked === r ? 'on' : ''}`}
+                onClick={() => setPicked(picked === r ? null : r)}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <Field label="Anything more specific?">
+            <input
+              className="input"
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="e.g. Too corporate — we speak casually"
+            />
+          </Field>
+        </div>
+        <div className="foot">
+          <button className="btn" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn danger" onClick={() => onReject(reason)}>
+            Reject
           </button>
         </div>
       </div>

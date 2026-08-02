@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ApiError, api } from '@/lib/api'
 import { useToast } from '@/components/kit'
 import {
-  PromptView,
+  CampaignStudioHome,
   createDraftId,
   writeDraft,
   listDrafts,
@@ -19,9 +19,8 @@ import {
 } from '@/components/campaign-studio'
 
 /**
- * AI Command Center — `/app/create`.
- * Plans via POST /campaign-assets/plan, then persists the plan in sessionStorage
- * (no draft API) and navigates to `/app/create/strategy/[draftId]`.
+ * Campaign studio — `/app/create`.
+ * Structured brief → plan → channel glimpse board (strategy route).
  */
 export default function CreatePage() {
   return (
@@ -35,10 +34,10 @@ function CreateInner() {
   const router = useRouter()
   const search = useSearchParams()
   const toast = useToast()
-  const [prompt, setPrompt] = useState('')
   const [planning, setPlanning] = useState(false)
   const [recent, setRecent] = useState<Campaign[]>([])
   const [drafts, setDrafts] = useState<CreateDraft[]>([])
+  const [seedNotes, setSeedNotes] = useState('')
 
   const refreshLists = useCallback(() => {
     fetchCampaigns().then(setRecent)
@@ -49,20 +48,20 @@ function CreateInner() {
 
   useEffect(() => {
     const q = search.get('prompt')
-    if (q?.trim()) setPrompt(q.trim())
+    if (q?.trim()) setSeedNotes(q.trim())
   }, [search])
 
-  async function createPlan() {
-    const brief = prompt.trim()
-    if (brief.length < 4) return
+  async function createPlan(brief: string) {
+    const text = brief.trim()
+    if (text.length < 4) return
     setPlanning(true)
     try {
-      const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
+      const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief: text })
       const draftId = createDraftId()
       writeDraft({
         id: draftId,
-        brief,
-        prompt: brief,
+        brief: text,
+        prompt: text,
         plan,
         updatedAt: new Date().toISOString(),
       })
@@ -74,18 +73,6 @@ function CreateInner() {
     }
   }
 
-  function startIntake() {
-    const id = createDraftId()
-    writeDraft({
-      id,
-      brief: prompt.trim(),
-      ...(prompt.trim() ? { prompt: prompt.trim() } : {}),
-      step: 'objective',
-      updatedAt: new Date().toISOString(),
-    })
-    router.push(`/app/create/intake/${id}?step=objective`)
-  }
-
   function openDraft(id: string) {
     const d = readDraft(id)
     if (!d) return
@@ -94,16 +81,16 @@ function CreateInner() {
   }
 
   return (
-    <PromptView
-      prompt={prompt}
-      setPrompt={setPrompt}
+    <CampaignStudioHome
       planning={planning}
-      onSubmit={() => void createPlan()}
+      onSubmit={(brief) => {
+        const withSeed = seedNotes ? `${brief} Extra context from link: ${seedNotes}` : brief
+        void createPlan(withSeed)
+      }}
       recent={recent}
       onOpen={(id) => router.push(`/app/campaigns/${id}/assets`)}
       drafts={drafts}
       onOpenDraft={openDraft}
-      onGuidedIntake={startIntake}
     />
   )
 }

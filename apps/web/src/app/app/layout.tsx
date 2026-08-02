@@ -410,22 +410,14 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               />
             )}
 
-            {/* Furniture: Create — accent first item, always above API nav. */}
+            {/* Furniture: Create — primary workspace entry (Home removed — same destination). */}
             <Link
               href="/app/create"
               className={`nav-item nav-create ${isActivePath(pathname, '/app/create') ? 'active' : ''}`}
               title="Create"
             >
-              <Icon name="sparkles" size={17} style={{ opacity: 0.9 }} />
+              <Icon name="sparkles" size={18} style={{ opacity: 0.9 }} />
               <span className="nav-label">Create</span>
-            </Link>
-            <Link
-              href="/app"
-              className={`nav-item ${pathname === '/app' ? 'active' : ''}`}
-              title="Home"
-            >
-              <Icon name="home" size={17} style={{ opacity: 0.9 }} />
-              <span className="nav-label">Home</span>
             </Link>
 
             {/* Dynamic navigation — sections and items straight from the API. */}

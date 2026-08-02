@@ -424,24 +424,26 @@ textarea {
 }
 
 .nav-section > .label {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.11em;
-  color: var(--text-dim);
-  padding: var(--space-2) var(--space-3) var(--space-1);
-  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  font-weight: 600;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  height: 36px;
-  padding: 0 var(--space-3);
+  gap: var(--space-3);
+  min-height: 42px;
+  height: auto;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 15px;
+  line-height: 1.3;
   position: relative;
   transition:
     background 0.16s ease,
@@ -4625,5 +4627,335 @@ a.card:hover {
   }
   .perf__rail {
     position: static;
+  }
+}
+
+/* Campaign studio (Create) */
+.studio {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-bottom: var(--space-8);
+}
+.studio__title {
+  margin: var(--space-2) 0;
+  font-size: clamp(26px, 3vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.studio__sub {
+  margin: 0;
+  max-width: 52ch;
+}
+.studio__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+  align-items: start;
+}
+.studio__compose {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.studio__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.studio__input {
+  font-size: 16px;
+  min-height: 44px;
+}
+.studio__notes {
+  resize: vertical;
+  min-height: 88px;
+}
+.studio__goal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.studio__goal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.studio__goal.is-on {
+  border-color: var(--cobalt-600);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--cobalt-600);
+}
+.studio__channel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.studio__channel {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  text-align: left;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.studio__channel span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.studio__channel.is-on {
+  border-color: var(--cobalt-600);
+  background: var(--surface-raised);
+}
+.studio__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border-subtle);
+}
+.studio__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: var(--space-4);
+}
+.studio__rail-block {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-4);
+}
+.studio__rail-title {
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+}
+.studio__camp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.studio__camp {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 10px 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.studio__camp:hover {
+  background: var(--surface-sunken);
+}
+.studio__camp-name {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Channel glimpse board */
+.glimpse__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+.glimpse__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--space-6);
+  align-items: start;
+}
+.glimpse__title {
+  margin: var(--space-2) 0;
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.glimpse__header {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+}
+.glimpse__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+.glimpse-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.glimpse-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  font: var(--type-caption);
+  font-weight: 600;
+}
+.glimpse-social__media,
+.glimpse-video__frame,
+.glimpse-poster__art {
+  aspect-ratio: 1;
+  background: var(--surface-sunken);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--space-4);
+  text-align: center;
+}
+.glimpse-card--video .glimpse-video__frame {
+  aspect-ratio: 9 / 16;
+  max-height: 280px;
+  margin: 0 auto;
+  width: 100%;
+}
+.glimpse-social__caption,
+.glimpse-email,
+.glimpse-wa,
+.glimpse-video,
+.glimpse-poster {
+  padding: var(--space-4);
+  font: var(--type-secondary);
+  white-space: pre-wrap;
+}
+.glimpse-email {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.glimpse-email__subject {
+  font: var(--type-body-strong);
+  margin: 0;
+}
+.glimpse-email__body {
+  margin: 0;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.glimpse-wa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--space-4);
+  background: var(--surface-sunken);
+}
+.glimpse-wa__bubble {
+  align-self: flex-start;
+  max-width: 90%;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  font: var(--type-caption);
+  border: 1px solid var(--border-subtle);
+}
+.glimpse-wa__bubble.is-user {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--cobalt-600) 12%, var(--surface-raised));
+}
+.glimpse__rail {
+  position: sticky;
+  top: var(--space-4);
+}
+.glimpse__rail-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-5);
+  box-shadow: var(--elev-1);
+}
+.glimpse-summary {
+  margin: 0 0 var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.glimpse-summary > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.glimpse-summary dt {
+  color: var(--text-secondary);
+  font: var(--type-caption);
+}
+.glimpse-summary dd {
+  margin: 0;
+  font: var(--type-body-strong);
+}
+.glimpse__rail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.glimpse__rail-actions .btn.primary {
+  width: 100%;
+}
+.glimpse__changes {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.glimpse__details {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 640px;
+}
+@media (max-width: 900px) {
+  .studio__layout,
+  .glimpse__layout {
+    grid-template-columns: 1fr;
+  }
+  .studio__rail,
+  .glimpse__rail {
+    position: static;
+  }
+  .studio__goal-grid,
+  .studio__channel-grid {
+    grid-template-columns: 1fr;
   }
 }

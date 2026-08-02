@@ -18,6 +18,9 @@ import { DATABASE } from '../../infrastructure/database.module.js'
  * Sidebar section order. Marketing-led: the creative/AI surfaces lead, analytics
  * follows, and CRM sits beneath analytics. Sections not listed fall to the end.
  */
+/** Categories retired from the product — mirrors the operator catalog. */
+const RETIRED_CATEGORIES = new Set(['Commerce', 'Support', 'Communication', 'Automation'])
+
 const SECTION_ORDER: Record<string, number> = {
   Overview: 0,
   Marketing: 1,
@@ -128,6 +131,9 @@ export class WorkspaceController {
   ): { section: string; items: NavEntry[] }[] {
     const visible = FEATURES.filter((feature) => {
       if (feature.navEntry === undefined) return false
+      // Retired categories never render, even for orgs still holding stale
+      // assignments — the product no longer offers them.
+      if (RETIRED_CATEGORIES.has(feature.category)) return false
       if (!entitlements.features.has(feature.id)) return false
       // Every permission the feature requires must be held, or the menu item
       // would lead to a 403.

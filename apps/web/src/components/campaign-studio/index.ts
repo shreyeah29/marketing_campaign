@@ -33,6 +33,13 @@ export {
 } from './draft'
 export { PromptView } from './prompt-view'
 export { CampaignStudioHome } from './studio-home'
+export {
+  CampaignWizard,
+  normalizeWizardStep,
+  wizardPathForDraft,
+  WIZARD_STEPS,
+} from './campaign-wizard'
+export type { WizardStep } from './campaign-wizard'
 export { PlanView } from './plan-view'
 export type { SectionId } from './plan-view'
 export { WorkspaceView } from './workspace-view'

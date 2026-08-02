@@ -51,7 +51,7 @@ export function PlanView({
   const [detailsOpen, setDetailsOpen] = useState(false)
   const reach = estimateReach(draft)
 
-  const glimpses = useMemo(() => buildGlimpses(plan), [plan])
+  const glimpses = useMemo(() => buildGlimpses(plan, draft), [plan, draft])
 
   function approveAndGenerate() {
     onApprove()
@@ -60,7 +60,7 @@ export function PlanView({
 
   return (
     <ApprovalWipe approved={approved}>
-      <div className={`glimpse${approved ? 'is-approved' : ''}`}>
+      <div className={`glimpse${approved ? ' is-approved' : ''}`}>
         <div className="glimpse__top">
           <button type="button" className="btn ghost sm" onClick={onBack}>
             <Icon name="arrow-left" size={14} /> Back
@@ -88,8 +88,11 @@ export function PlanView({
                   {plan.objective}
                 </p>
                 <p className="type-caption" style={{ marginTop: 8, color: 'var(--text-tertiary)' }}>
-                  Glimpses below use your plan copy. After you approve, we generate posters, video
-                  concepts, captions and channel assets — then you review and post.
+                  Preview of how channels will look. After you approve, we generate creatives
+                  {draft.wantPosters !== false || draft.wantVideos
+                    ? ' (including AI posters/video via Runway where selected)'
+                    : ''}{' '}
+                  — then you review and post to assigned platforms.
                 </p>
               </header>
             </StatusRail>
@@ -258,8 +261,15 @@ type Glimpse = {
   headline?: string
 }
 
-function buildGlimpses(plan: CampaignPlan): Glimpse[] {
-  const platforms = plan.platforms.length ? plan.platforms : ['Instagram', 'Email']
+function buildGlimpses(plan: CampaignPlan, draft: CreateDraft): Glimpse[] {
+  const platforms = (draft.channels?.length ? draft.channels : plan.platforms).length
+    ? draft.channels?.length
+      ? draft.channels
+      : plan.platforms
+    : ['Instagram', 'Email']
+  const formats = new Set((draft.formats?.length ? draft.formats : ['posts']).map((f) => f.toLowerCase()))
+  const wantPosters = draft.wantPosters !== false
+  const wantVideos = Boolean(draft.wantVideos)
   const caption = firstSentence(plan.strategy) || plan.objective
   const hook = plan.campaignName || 'Your campaign'
   const out: Glimpse[] = []
@@ -267,31 +277,46 @@ function buildGlimpses(plan: CampaignPlan): Glimpse[] {
   for (const raw of platforms) {
     const p = raw.toLowerCase()
     if (p.includes('instagram') || p === 'ig') {
-      out.push({
-        id: 'ig-post',
-        kind: 'instagram',
-        platform: 'INSTAGRAM',
-        label: 'Instagram',
-        format: 'Feed post',
-        headline: hook,
-        caption: `${caption}\n\n#${slugTag(hook)} #launch`,
-      })
-      out.push({
-        id: 'ig-reel',
-        kind: 'video',
-        platform: 'INSTAGRAM',
-        label: 'Instagram',
-        format: 'Reel / video',
-        headline: hook,
-        caption: `15–30s product story · ${plan.objective}`,
-      })
+      if (formats.has('posts') || formats.has('stories')) {
+        out.push({
+          id: 'ig-post',
+          kind: 'instagram',
+          platform: 'INSTAGRAM',
+          label: 'Instagram',
+          format: formats.has('stories') && !formats.has('posts') ? 'Story' : 'Feed post',
+          headline: hook,
+          caption: `${caption}\n\n#${slugTag(hook)} #launch`,
+        })
+      }
+      if (formats.has('reels') || wantVideos) {
+        out.push({
+          id: 'ig-reel',
+          kind: 'video',
+          platform: 'INSTAGRAM',
+          label: 'Instagram',
+          format: formats.has('reels') ? 'Reel / video' : 'Video concept',
+          headline: hook,
+          caption: `15–30s product story · ${plan.objective}`,
+        })
+      }
+      if (formats.has('ads')) {
+        out.push({
+          id: 'ig-ad',
+          kind: 'instagram',
+          platform: 'INSTAGRAM',
+          label: 'Instagram',
+          format: 'Ad',
+          headline: hook,
+          caption: `Paid placement · ${caption}`,
+        })
+      }
     } else if (p.includes('facebook') || p === 'fb' || p.includes('meta')) {
       out.push({
         id: 'fb',
         kind: 'facebook',
         platform: 'FACEBOOK',
         label: 'Facebook',
-        format: 'Feed + ad',
+        format: formats.has('ads') ? 'Feed + ad' : 'Feed',
         headline: hook,
         caption,
       })
@@ -311,7 +336,7 @@ function buildGlimpses(plan: CampaignPlan): Glimpse[] {
         kind: 'whatsapp',
         platform: 'WHATSAPP',
         label: 'WhatsApp',
-        format: 'Chatbot',
+        format: 'Broadcast',
         caption: `Bot: Hi! Interested in ${hook}?\nUser: Tell me more\nBot: ${firstSentence(plan.audience) || plan.objective}`,
       })
     } else if (p.includes('linkedin')) {
@@ -320,20 +345,22 @@ function buildGlimpses(plan: CampaignPlan): Glimpse[] {
         kind: 'linkedin',
         platform: 'LINKEDIN',
         label: 'LinkedIn',
-        format: 'Post',
+        format: formats.has('ads') ? 'Post + ad' : 'Post',
         headline: hook,
         caption,
       })
     } else if (p.includes('youtube') || p.includes('video')) {
-      out.push({
-        id: `yt-${raw}`,
-        kind: 'video',
-        platform: 'YOUTUBE',
-        label: raw,
-        format: 'Video',
-        headline: hook,
-        caption,
-      })
+      if (wantVideos || formats.has('reels') || formats.has('ads')) {
+        out.push({
+          id: `yt-${raw}`,
+          kind: 'video',
+          platform: 'YOUTUBE',
+          label: raw,
+          format: 'Video',
+          headline: hook,
+          caption,
+        })
+      }
     } else {
       out.push({
         id: `gen-${raw}`,
@@ -347,26 +374,39 @@ function buildGlimpses(plan: CampaignPlan): Glimpse[] {
     }
   }
 
-  // Always show a poster slot when we have visual channels or none matched.
-  if (!out.some((g) => g.kind === 'poster' || g.kind === 'instagram' || g.kind === 'video')) {
-    out.unshift({
-      id: 'poster',
-      kind: 'poster',
-      platform: 'IMAGE',
-      label: 'Poster',
-      format: 'Creative',
-      headline: hook,
-      caption,
-    })
-  } else if (!out.some((g) => g.kind === 'poster')) {
+  if (wantPosters) {
     out.push({
       id: 'poster',
       kind: 'poster',
       platform: 'IMAGE',
-      label: 'Poster / static',
+      label: 'AI poster',
       format: 'Image concept',
       headline: hook,
-      caption: `Visual direction from strategy · ${plan.deliverables.slice(0, 2).join(' · ') || plan.objective}`,
+      caption: `Visual direction · ${draft.lookFeel || plan.deliverables.slice(0, 2).join(' · ') || plan.objective}`,
+    })
+  }
+
+  if (wantVideos && !out.some((g) => g.kind === 'video')) {
+    out.push({
+      id: 'video-concept',
+      kind: 'video',
+      platform: 'VIDEO',
+      label: 'AI video',
+      format: 'Video concept',
+      headline: hook,
+      caption: `Runway video concept · ${plan.objective}`,
+    })
+  }
+
+  if (out.length === 0) {
+    out.push({
+      id: 'poster',
+      kind: 'poster',
+      platform: 'IMAGE',
+      label: 'Creative',
+      format: 'Concept',
+      headline: hook,
+      caption,
     })
   }
 

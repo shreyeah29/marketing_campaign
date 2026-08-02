@@ -162,7 +162,7 @@ export default function StrategyDraftPage() {
           approved={Boolean(draft.planApproved)}
           generating={generating}
           regenerating={regenerating}
-          onBack={() => router.push(`/app/create/intake/${draftId}?step=duration`)}
+          onBack={() => router.push(`/app/create/wizard/${draftId}?step=audience`)}
           onPlanChange={persistPlan}
           onApprove={() => {
             const next = upsertDraft(draftId, { planApproved: true, plan: draft.plan })
@@ -178,7 +178,7 @@ export default function StrategyDraftPage() {
           style={{ marginTop: 16 }}
           onClick={() => router.push('/app/create')}
         >
-          <Icon name="arrow-left" size={14} /> Edit in Command Center
+          <Icon name="arrow-left" size={14} /> Back to Create
         </button>
       </div>
     </div>

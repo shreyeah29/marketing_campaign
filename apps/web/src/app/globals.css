@@ -4959,3 +4959,198 @@ a.card:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* Create wizard (step-by-step campaign studio) */
+.wiz {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-bottom: var(--space-8);
+}
+.wiz__head {
+  margin-bottom: var(--space-5);
+}
+.wiz__title {
+  margin: var(--space-2) 0;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.wiz__sub {
+  margin: 0;
+  max-width: 52ch;
+}
+.wiz__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: var(--space-6);
+  align-items: start;
+}
+.wiz__panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-6);
+}
+.wiz__prompt {
+  resize: vertical;
+  min-height: 140px;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: var(--space-2);
+}
+.wiz__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  flex-wrap: wrap;
+}
+.wiz__rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  position: sticky;
+  top: 16px;
+}
+.wiz__rail-block {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  padding: var(--space-4);
+}
+.wiz__rail-title {
+  margin: 0 0 var(--space-3);
+  font-size: 14px;
+  font-weight: 600;
+}
+.wiz__camp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wiz__camp {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.wiz__camp:hover {
+  border-color: var(--border-subtle);
+}
+.wiz__camp-name {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wiz__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.wiz__pip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.45;
+}
+.wiz__pip.is-active,
+.wiz__pip.is-done {
+  opacity: 1;
+}
+.wiz__pip-n {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.wiz__pip.is-active .wiz__pip-n {
+  color: var(--cobalt-600);
+}
+.wiz__pip-label {
+  font-size: 13px;
+}
+.wiz__brief-echo {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  border-left: 2px solid var(--cobalt-600);
+  background: var(--surface-sunken);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  color: var(--text-secondary);
+}
+.wiz__chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.wiz__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+.wiz__chip.is-on {
+  border-color: var(--cobalt-600);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--cobalt-600);
+}
+.wiz__media-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.wiz__media-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  min-height: 120px;
+}
+.wiz__media-card.is-on {
+  border-color: var(--cobalt-600);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--cobalt-600);
+}
+@media (max-width: 900px) {
+  .wiz__layout {
+    grid-template-columns: 1fr;
+  }
+  .wiz__rail {
+    position: static;
+  }
+  .wiz__media-grid {
+    grid-template-columns: 1fr;
+  }
+}

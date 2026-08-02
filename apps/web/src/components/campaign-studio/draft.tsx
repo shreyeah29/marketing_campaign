@@ -76,6 +76,10 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'customEnd',
   'budget',
   'planApproved',
+  'formats',
+  'wantPosters',
+  'wantVideos',
+  'lookFeel',
 ]
 
 export function upsertDraft(
@@ -122,6 +126,20 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
   if (audience) parts.push(`Audience: ${audience}`)
 
   if (draft.channels?.length) parts.push(`Channels: ${draft.channels.join(', ')}`)
+
+  if (draft.formats?.length)
+    parts.push(`Publish formats: ${draft.formats.join(', ')}`)
+
+  if (draft.wantPosters || draft.wantVideos) {
+    const media: string[] = []
+    if (draft.wantPosters) media.push('AI posters / static image creatives (Runway)')
+    if (draft.wantVideos) media.push('AI video concepts (Runway)')
+    parts.push(`Creative media: ${media.join('; ')}`)
+  } else if (draft.wantPosters === false && draft.wantVideos === false) {
+    parts.push('Creative media: copy and captions only — no AI image/video generation')
+  }
+
+  if (draft.lookFeel?.trim()) parts.push(`Look & feel: ${draft.lookFeel.trim()}`)
 
   if (draft.durationDays) parts.push(`Duration: ${draft.durationDays} days`)
   else if (draft.customStart && draft.customEnd)

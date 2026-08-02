@@ -62,5 +62,13 @@ export interface CreateDraft {
   customEnd?: string | undefined
   budget?: number | undefined
   planApproved?: boolean | undefined
+  /** Content formats: posts, stories, reels, ads */
+  formats?: string[] | undefined
+  /** Generate AI image posters (Runway via generate-media). */
+  wantPosters?: boolean | undefined
+  /** Generate AI video concepts (Runway). */
+  wantVideos?: boolean | undefined
+  /** Visual direction / look & feel. */
+  lookFeel?: string | undefined
   updatedAt: string
 }

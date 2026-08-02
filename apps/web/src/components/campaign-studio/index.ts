@@ -33,6 +33,7 @@ export {
 } from './draft'
 export { PromptView } from './prompt-view'
 export { PlanView } from './plan-view'
+export type { SectionId } from './plan-view'
 export { WorkspaceView } from './workspace-view'
 export { AssetEditor, PublishDialog } from './asset-editor'
 export {

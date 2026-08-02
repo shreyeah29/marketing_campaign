@@ -75,6 +75,7 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'customStart',
   'customEnd',
   'budget',
+  'planApproved',
 ]
 
 export function upsertDraft(

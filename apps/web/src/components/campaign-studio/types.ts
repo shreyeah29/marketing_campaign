@@ -61,5 +61,6 @@ export interface CreateDraft {
   customStart?: string | undefined
   customEnd?: string | undefined
   budget?: number | undefined
+  planApproved?: boolean | undefined
   updatedAt: string
 }

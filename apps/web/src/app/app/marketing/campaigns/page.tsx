@@ -21,6 +21,7 @@ interface Asset {
   cta?: string | null
   scheduledFor?: string | null
   mediaUrl?: string | null
+  aiVersions?: { variants?: string[] } | null
 }
 interface Campaign {
   id: string
@@ -844,7 +845,11 @@ function AssetEditor({
       setBusy('Generate')
       try {
         await api.post(`/campaign-assets/${asset.id}/approve`, {})
-        await api.post(`/campaign-assets/${asset.id}/generate-media`, {})
+        // Images come back as 2 variants so the reviewer picks a winner.
+        await api.post(
+          `/campaign-assets/${asset.id}/generate-media`,
+          asset.kind === 'IMAGE_PROMPT' ? { variants: 2 } : {},
+        )
         toast.push('success', 'Creative generated — give it a final look')
         onChanged()
       } catch (e) {
@@ -907,6 +912,49 @@ function AssetEditor({
                 #{h.replace(/^#/, '')}
               </span>
             ))}
+          </div>
+        ) : null}
+
+        {/* A/B variants: the reviewer promotes the winner before final approval. */}
+        {asset.kind === 'IMAGE_PROMPT' &&
+        (asset.aiVersions?.variants?.length ?? 0) > 1 &&
+        status === 'NEEDS_REVIEW' ? (
+          <div style={{ marginBottom: 12 }}>
+            <div className="dim" style={{ fontSize: 12, marginBottom: 8 }}>
+              Pick the winner — the selected variant becomes the final creative:
+            </div>
+            <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+              {asset.aiVersions!.variants!.map((v) => (
+                <button
+                  key={v}
+                  onClick={() =>
+                    void act('Select variant', () =>
+                      api.post(`/campaign-assets/${asset.id}/choose-variant`, { url: v }),
+                    )
+                  }
+                  disabled={busy !== null}
+                  style={{
+                    padding: 0,
+                    border:
+                      v === asset.mediaUrl
+                        ? '3px solid var(--color-primary)'
+                        : '1px solid var(--border)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                    background: 'none',
+                    cursor: 'pointer',
+                  }}
+                  aria-label={v === asset.mediaUrl ? 'Selected variant' : 'Choose this variant'}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={v}
+                    alt="Variant"
+                    style={{ width: 132, height: 92, objectFit: 'cover', display: 'block' }}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
         ) : null}
 

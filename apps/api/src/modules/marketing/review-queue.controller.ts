@@ -47,6 +47,10 @@ const publishSchema = z
   })
   .strict()
 const rejectSchema = z.object({ reason: z.string().max(1000).optional() }).strict()
+const generateMediaSchema = z
+  .object({ variants: z.number().int().min(1).max(3).optional() })
+  .strict()
+const chooseVariantSchema = z.object({ url: z.string().url() }).strict()
 const bulkSchema = z
   .object({ action: z.enum(['approve', 'reject']), ids: z.array(z.string()).min(1).max(200) })
   .strict()
@@ -266,7 +270,12 @@ export class ReviewQueueController {
    */
   @Post(':id/generate-media')
   @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
-  async generateMedia(@Param('id') id: string, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async generateMedia(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
+    const input = zodBody(generateMediaSchema, body ?? {})
     const asset = await withTenantTransaction(this.db, (tx) =>
       tx.campaignAsset.findFirst({ where: { id, deletedAt: null } }),
     )
@@ -286,14 +295,24 @@ export class ReviewQueueController {
     // The slow Runway round-trip happens OUTSIDE any transaction; holding a
     // connection open for up to minutes would starve the pool.
     const prompt = [asset.title, asset.body].filter(Boolean).join(' — ')
-    let url: string
+    let urls: string[]
     if (asset.kind === 'IMAGE_PROMPT') {
-      const result = await generateRunwayImage({
-        apiKey: runway.apiKey,
-        prompt,
-        ...(runway.imageModel ? { model: runway.imageModel } : {}),
-      })
-      url = result.url
+      // A/B variants: images render concurrently so picking a winner costs no
+      // extra wall-clock. Video stays single — minutes-long and expensive.
+      const count = input.variants ?? 2
+      const results = await Promise.allSettled(
+        Array.from({ length: count }, () =>
+          generateRunwayImage({
+            apiKey: runway.apiKey,
+            prompt,
+            ...(runway.imageModel ? { model: runway.imageModel } : {}),
+          }),
+        ),
+      )
+      urls = results.filter((r) => r.status === 'fulfilled').map((r) => r.value.url)
+      if (urls.length === 0) {
+        throw new ServiceUnavailableException('Media generation failed — try again')
+      }
     } else {
       const result = await generateRunwayVideo({
         apiKey: runway.apiKey,
@@ -301,33 +320,73 @@ export class ReviewQueueController {
         ...(runway.videoModel ? { model: runway.videoModel } : {}),
         ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
       })
-      url = result.url
+      urls = [result.url]
     }
+
+    const primary = urls[0]
+    if (!primary) throw new ServiceUnavailableException('Media generation failed — try again')
 
     return withTenantTransaction(this.db, async (tx) => {
       // Every generated creative also lands in the media library, so the
       // Creative Library can browse everything ever made — approved or not.
-      await tx.mediaAsset.create({
-        data: {
-          organizationId: p.organizationId,
-          type: asset.kind === 'IMAGE_PROMPT' ? 'IMAGE' : 'VIDEO',
-          storageKey: `runway/${id}/${Date.now()}`,
-          url,
-          prompt,
-          generatorProvider: 'RUNWAY',
-          ...(runway.imageModel || runway.videoModel
-            ? {
-                generatorModel:
-                  asset.kind === 'IMAGE_PROMPT' ? runway.imageModel : runway.videoModel,
-              }
-            : {}),
-        },
-      })
+      for (const url of urls) {
+        await tx.mediaAsset.create({
+          data: {
+            organizationId: p.organizationId,
+            type: asset.kind === 'IMAGE_PROMPT' ? 'IMAGE' : 'VIDEO',
+            storageKey: `runway/${id}/${Date.now()}-${urls.indexOf(url)}`,
+            url,
+            prompt,
+            generatorProvider: 'RUNWAY',
+            ...(runway.imageModel || runway.videoModel
+              ? {
+                  generatorModel:
+                    asset.kind === 'IMAGE_PROMPT' ? runway.imageModel : runway.videoModel,
+                }
+              : {}),
+          },
+        })
+      }
       const updated = await tx.campaignAsset.update({
         where: { id },
-        data: { mediaUrl: url, status: 'NEEDS_REVIEW' },
+        data: {
+          mediaUrl: primary,
+          status: 'NEEDS_REVIEW',
+          // All variants ride on the asset so the reviewer can pick the winner.
+          aiVersions: { variants: urls },
+        },
       })
-      await this.comment(tx, p, id, 'Creative generated — awaiting final review', 'generated')
+      await this.comment(
+        tx,
+        p,
+        id,
+        urls.length > 1
+          ? `${urls.length} variants generated — pick the winner, then approve`
+          : 'Creative generated — awaiting final review',
+        'generated',
+      )
+      return updated
+    })
+  }
+
+  /** The reviewer's A/B choice: promote one generated variant to THE creative. */
+  @Post(':id/choose-variant')
+  @RequirePermissions(PERMISSIONS.CONTENT_APPROVE)
+  async chooseVariant(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
+    const { url } = zodBody(chooseVariantSchema, body)
+    return withTenantTransaction(this.db, async (tx) => {
+      const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
+      if (!asset) throw new NotFoundException('Asset not found')
+      const versions = (asset.aiVersions ?? {}) as { variants?: string[] }
+      if (!versions.variants?.includes(url)) {
+        throw new BadRequestException('That URL is not one of this asset’s variants')
+      }
+      const updated = await tx.campaignAsset.update({ where: { id }, data: { mediaUrl: url } })
+      await this.comment(tx, p, id, 'Variant selected as the final creative', 'variant_selected')
       return updated
     })
   }

@@ -73,6 +73,8 @@ const FROM_API: Record<string, StatusKind> = {
   CONNECTED: 'live',
   NOT_CONNECTED: 'draft',
   DISCONNECTED: 'draft',
+  EXPIRED: 'failed',
+  TOKEN_EXPIRED: 'failed',
   // CRM stages (relabel only — Won jade / Lost crimson; rest slate)
   NEW: 'draft',
   CONTACTED: 'draft',

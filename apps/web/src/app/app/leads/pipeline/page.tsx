@@ -1,6 +1,7 @@
-import { redirect } from 'next/navigation'
+'use client'
 
-/** Pipeline view — maps to CRM pipelines until Phase 5 dual inbox/pipeline toggle. */
-export default function LeadsPipelineRedirect(): never {
-  redirect('/app/crm/pipelines')
+import { LeadsWorkspace } from '@/components/leads-workspace'
+
+export default function LeadsPipelinePage() {
+  return <LeadsWorkspace initialView="pipeline" />
 }

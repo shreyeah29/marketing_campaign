@@ -75,7 +75,18 @@ export function MetaConnectCard() {
     setBusy(true)
     try {
       const { url } = await api.get<{ url: string }>('/meta/oauth/url')
-      window.location.href = url
+      const popup = window.open(url, 'meta_oauth', 'width=600,height=720')
+      if (!popup) {
+        window.location.href = url
+        return
+      }
+      const poll = window.setInterval(() => {
+        if (popup.closed) {
+          window.clearInterval(poll)
+          load()
+          setBusy(false)
+        }
+      }, 400)
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Could not start Meta connect')
       setBusy(false)

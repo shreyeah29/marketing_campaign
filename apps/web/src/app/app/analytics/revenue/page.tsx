@@ -1,17 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
-import { ErrorState, PageHeader, StatCard, TableSkeleton } from '@/components/kit'
+import { ErrorState, MetricTile, TableSkeleton } from '@/components/kit'
 import { BarChart } from '@/components/charts'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 
-/* ────────────────────────────────────────────────────────────────────────────
- * Revenue analytics — what your campaigns actually earn. The attribution chain
- * runs campaign → lead → completed deal → revenue. GA4 purchase attribution
- * plugs into this same page once the client's property is connected.
- * ──────────────────────────────────────────────────────────────────────────── */
+import { useAnalyticsFilters } from '../layout'
 
 interface RevenueAnalytics {
   summary: { wonRevenueUsd: string; wonDeals: number; pipelineUsd: string; openDeals: number }
@@ -42,6 +38,7 @@ function monthLabel(ym: string): string {
 }
 
 export default function RevenueAnalyticsPage() {
+  const { days, campaignId, campaigns } = useAnalyticsFilters()
   const [data, setData] = useState<RevenueAnalytics | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,134 +51,147 @@ export default function RevenueAnalyticsPage() {
         setError(e instanceof ApiError ? e.message : 'Failed to load revenue analytics'),
       )
   }, [])
-  useEffect(load, [load])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  const filteredCampaigns = useMemo(() => {
+    if (!data) return []
+    if (!campaignId) return data.byCampaign
+    return data.byCampaign.filter((c) => c.campaignId === campaignId)
+  }, [data, campaignId])
+
+  const campaignName = campaignId
+    ? (campaigns.find((c) => c.id === campaignId)?.name ?? 'Selected campaign')
+    : null
 
   if (error) {
-    return (
-      <>
-        <PageHeader title="Revenue analytics" subtitle="What your campaigns actually earn." />
-        <ErrorState message={error} onRetry={load} />
-      </>
-    )
+    return <ErrorState message={error} onRetry={load} />
   }
 
   if (!data) {
-    return (
-      <>
-        <PageHeader title="Revenue analytics" subtitle="What your campaigns actually earn." />
-        <TableSkeleton cols={4} />
-      </>
-    )
+    return <TableSkeleton cols={4} />
   }
 
   return (
-    <>
-      <PageHeader
-        title="Revenue analytics"
-        subtitle="Campaign → lead → completed deal: the revenue your marketing produced."
-      />
+    <div className="stack" style={{ gap: 22 }}>
+      {campaignId ? (
+        <p className="dim" style={{ fontSize: 12, margin: 0 }}>
+          Showing revenue for <strong>{campaignName}</strong> in the table below — the API has no
+          campaign query param, so summary tiles and charts remain workspace-wide ({days}-day filter
+          applies to layout only).
+        </p>
+      ) : null}
 
-      <div className="stack" style={{ gap: 22 }}>
-        <Stagger className="cols-4 grid" interval={0.05}>
-          <StaggerItem>
-            <StatCard label="Revenue won" value={money(data.summary.wonRevenueUsd)} />
-          </StaggerItem>
-          <StaggerItem>
-            <StatCard label="Completed deals" value={data.summary.wonDeals.toLocaleString()} />
-          </StaggerItem>
-          <StaggerItem>
-            <StatCard label="Open pipeline" value={money(data.summary.pipelineUsd)} />
-          </StaggerItem>
-          <StaggerItem>
-            <StatCard label="Open deals" value={data.summary.openDeals.toLocaleString()} />
-          </StaggerItem>
-        </Stagger>
+      <Stagger className="cols-4 grid" interval={0.05}>
+        <StaggerItem>
+          <MetricTile label="Revenue won" value={money(data.summary.wonRevenueUsd)} />
+        </StaggerItem>
+        <StaggerItem>
+          <MetricTile label="Completed deals" value={data.summary.wonDeals.toLocaleString()} />
+        </StaggerItem>
+        <StaggerItem>
+          <MetricTile label="Open pipeline" value={money(data.summary.pipelineUsd)} />
+        </StaggerItem>
+        <StaggerItem>
+          <MetricTile label="Open deals" value={data.summary.openDeals.toLocaleString()} />
+        </StaggerItem>
+      </Stagger>
 
-        <FadeIn delay={0.12} className="card">
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Won revenue by month</div>
-          <div className="dim" style={{ fontSize: 12, marginBottom: 8 }}>
-            Last 90 days
-          </div>
+      <FadeIn delay={0.12} className="card">
+        <div style={{ fontWeight: 600, marginBottom: 4 }}>Won revenue by month</div>
+        <div className="dim" style={{ fontSize: 12, marginBottom: 8 }}>
+          Monthly totals from completed deals
+        </div>
+        {data.monthly.length > 0 ? (
           <BarChart
+            title="Won revenue by month"
             data={data.monthly.map((m) => ({
               label: monthLabel(m.month),
               value: Number(m.revenueUsd),
             }))}
           />
-        </FadeIn>
-
-        <FadeIn
-          delay={0.2}
-          className="cols-2 split grid"
-          style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'start' }}
-        >
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 18px 4px', fontWeight: 600 }}>Revenue by campaign</div>
-            <p className="dim" style={{ padding: '0 18px 10px', fontSize: 12 }}>
-              Which campaigns produce paying customers.
-            </p>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Campaign</th>
-                  <th>Deals</th>
-                  <th>Revenue</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.byCampaign.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="dim" style={{ textAlign: 'center', padding: 24 }}>
-                      No campaign-attributed revenue yet.
-                    </td>
-                  </tr>
-                ) : (
-                  data.byCampaign.map((c) => (
-                    <tr key={c.campaignId}>
-                      <td style={{ fontWeight: 600 }}>{c.name}</td>
-                      <td>{c.deals}</td>
-                      <td>{money(c.revenueUsd)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        ) : (
+          <div className="dim" style={{ padding: '40px 0', textAlign: 'center', fontSize: 13 }}>
+            No revenue yet — it appears when deals complete.
           </div>
+        )}
+      </FadeIn>
 
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ padding: '16px 18px 4px', fontWeight: 600 }}>Revenue by source</div>
-            <p className="dim" style={{ padding: '0 18px 10px', fontSize: 12 }}>
-              Which channels bring customers who complete.
-            </p>
-            <table className="table">
-              <thead>
+      <FadeIn
+        delay={0.2}
+        className="cols-2 split grid"
+        style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'start' }}
+      >
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 18px 4px', fontWeight: 600 }}>Revenue by campaign</div>
+          <p className="dim" style={{ padding: '0 18px 10px', fontSize: 12, margin: 0 }}>
+            Which campaigns produce paying customers.
+          </p>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Campaign</th>
+                <th>Deals</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCampaigns.length === 0 ? (
                 <tr>
-                  <th>Source</th>
-                  <th>Deals</th>
-                  <th>Revenue</th>
+                  <td colSpan={3} className="dim" style={{ textAlign: 'center', padding: 24 }}>
+                    {campaignId
+                      ? 'No revenue attributed to this campaign yet.'
+                      : 'No campaign-attributed revenue yet.'}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.bySource.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="dim" style={{ textAlign: 'center', padding: 24 }}>
-                      No revenue yet — it appears when deals complete.
-                    </td>
+              ) : (
+                filteredCampaigns.map((c) => (
+                  <tr key={c.campaignId}>
+                    <td style={{ fontWeight: 600 }}>{c.name}</td>
+                    <td>{c.deals}</td>
+                    <td>{money(c.revenueUsd)}</td>
                   </tr>
-                ) : (
-                  data.bySource.map((s) => (
-                    <tr key={s.source}>
-                      <td style={{ fontWeight: 600 }}>{SOURCE_LABELS[s.source] ?? s.source}</td>
-                      <td>{s.deals}</td>
-                      <td>{money(s.revenueUsd)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </FadeIn>
-      </div>
-    </>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 18px 4px', fontWeight: 600 }}>Revenue by source</div>
+          <p className="dim" style={{ padding: '0 18px 10px', fontSize: 12, margin: 0 }}>
+            Which channels bring customers who complete.
+          </p>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Source</th>
+                <th>Deals</th>
+                <th>Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.bySource.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="dim" style={{ textAlign: 'center', padding: 24 }}>
+                    No revenue yet — it appears when deals complete.
+                  </td>
+                </tr>
+              ) : (
+                data.bySource.map((s) => (
+                  <tr key={s.source}>
+                    <td style={{ fontWeight: 600 }}>{SOURCE_LABELS[s.source] ?? s.source}</td>
+                    <td>{s.deals}</td>
+                    <td>{money(s.revenueUsd)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </FadeIn>
+    </div>
   )
 }

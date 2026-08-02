@@ -1,6 +1,7 @@
-import { redirect } from 'next/navigation'
+'use client'
 
-/** Leads inbox — existing board lives under CRM; brief path is /app/leads. */
-export default function LeadsAliasRedirect(): never {
-  redirect('/app/crm/leads')
+import { LeadsWorkspace } from '@/components/leads-workspace'
+
+export default function LeadsPage() {
+  return <LeadsWorkspace initialView="inbox" />
 }

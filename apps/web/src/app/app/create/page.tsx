@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
 import { useToast } from '@/components/kit'
@@ -24,7 +24,16 @@ import {
  * (no draft API) and navigates to `/app/create/strategy/[draftId]`.
  */
 export default function CreatePage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateInner />
+    </Suspense>
+  )
+}
+
+function CreateInner() {
   const router = useRouter()
+  const search = useSearchParams()
   const toast = useToast()
   const [prompt, setPrompt] = useState('')
   const [planning, setPlanning] = useState(false)
@@ -37,6 +46,11 @@ export default function CreatePage() {
   }, [])
 
   useEffect(refreshLists, [refreshLists])
+
+  useEffect(() => {
+    const q = search.get('prompt')
+    if (q?.trim()) setPrompt(q.trim())
+  }, [search])
 
   async function createPlan() {
     const brief = prompt.trim()

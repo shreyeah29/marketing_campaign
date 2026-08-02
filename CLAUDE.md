@@ -8,6 +8,7 @@ before touching UI code.
 ## Scope — what may change
 
 **In scope (the redesign may modify):**
+
 - `apps/web/src/app/**` — pages, layouts (presentation only)
 - `apps/web/src/components/**`
 - `apps/web/src/app/globals.css`, fonts, static assets in `apps/web/public/**`
@@ -17,6 +18,7 @@ before touching UI code.
 - `docs/DESIGN_BRIEF.md`, `docs/UI_AUDIT.md`, `docs/REDESIGN_VERIFICATION.md`
 
 **READ-ONLY (never modify during the redesign):**
+
 - `apps/api/**` — all backend source, routes, guards, services
 - `apps/worker/**` — pollers, queues, publishers
 - `packages/database/**` — schema, migrations, RLS, tenant scoping
@@ -42,14 +44,14 @@ changing behaviour.
 ## Design rules that are enforced, not aspirational
 
 From `docs/DESIGN_BRIEF.md` Part 1.1:
+
 1. AI output renders provisional (iris surface + 3px iris rail + "AI draft")
    until approved; approval resolves it to white with a jade rail.
 2. Colour means status, nothing else. Channel glyphs are monochrome. No
    decorative colour.
 3. Amber appears **only** for "human decision required".
 
-Status display goes through `StatusPill`/`StatusRail` once they exist (Phase
-3) — never hand-rolled. Tokens only; zero hardcoded style values.
+Status display goes through `StatusPill`/`StatusRail` once they exist (Phase 3) — never hand-rolled. Tokens only; zero hardcoded style values.
 
 Agreed product adaptations (owner-approved 2026-08-02): the brief replaces the
 former Hanzo direction; white-label tenant branding is **logo + display name
@@ -69,7 +71,7 @@ the platform console (operator realm, incl. view-as) adopts the same system.
 - TypeScript `exactOptionalPropertyTypes` is on: optional fields need
   `| undefined`.
 - CI is authoritative; verify with `gh run list` / `gh run view <id>
-  --log-failed`.
+--log-failed`.
 - Redesign phases run one per session, in the order defined in the design
   brief's Part 4; commit between phases.
 

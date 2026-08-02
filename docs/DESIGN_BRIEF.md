@@ -42,50 +42,50 @@ It appears nowhere else. Not on warnings, not on highlights, not on charts. User
 
 ```css
 /* Surfaces — cool graphite, not warm cream */
---surface-canvas:    #F6F7F9;
---surface-raised:    #FFFFFF;
---surface-sunken:    #EDEFF3;
---surface-inverse:   #12151C;
---surface-hover:     #F1F3F7;
---surface-selected:  #EDF1FE;
+--surface-canvas: #f6f7f9;
+--surface-raised: #ffffff;
+--surface-sunken: #edeff3;
+--surface-inverse: #12151c;
+--surface-hover: #f1f3f7;
+--surface-selected: #edf1fe;
 
 /* Borders */
---border-subtle:     #E4E7EC;
---border-default:    #D3D8E0;
---border-strong:     #B4BCC8;
---border-focus:      #2B4FE8;
+--border-subtle: #e4e7ec;
+--border-default: #d3d8e0;
+--border-strong: #b4bcc8;
+--border-focus: #2b4fe8;
 
 /* Text */
---text-primary:      #12151C;
---text-secondary:    #576070;
---text-tertiary:     #8790A0;
---text-inverse:      #FFFFFF;
---text-link:         #2B4FE8;
+--text-primary: #12151c;
+--text-secondary: #576070;
+--text-tertiary: #8790a0;
+--text-inverse: #ffffff;
+--text-link: #2b4fe8;
 
 /* Semantic — one meaning each, no exceptions */
---cobalt-600:  #2B4FE8;  /* primary action, selected nav, links */
---cobalt-100:  #E3E9FD;
---cobalt-800:  #17307F;
+--cobalt-600: #2b4fe8; /* primary action, selected nav, links */
+--cobalt-100: #e3e9fd;
+--cobalt-800: #17307f;
 
---amber-600:   #C97A0E;  /* RESERVED: human decision required */
---amber-100:   #FBF0DC;
---amber-800:   #6B3F04;
+--amber-600: #c97a0e; /* RESERVED: human decision required */
+--amber-100: #fbf0dc;
+--amber-800: #6b3f04;
 
---jade-600:    #0E7C5A;  /* live, approved, published, positive delta */
---jade-100:    #DCF2EA;
---jade-800:    #06422F;
+--jade-600: #0e7c5a; /* live, approved, published, positive delta */
+--jade-100: #dcf2ea;
+--jade-800: #06422f;
 
---crimson-600: #C8324B;  /* rejected, failed, negative delta, destructive */
---crimson-100: #FBE4E8;
---crimson-800: #7A1527;
+--crimson-600: #c8324b; /* rejected, failed, negative delta, destructive */
+--crimson-100: #fbe4e8;
+--crimson-800: #7a1527;
 
---iris-600:    #6B5DD3;  /* AI-generated, not yet reviewed */
---iris-100:    #EEEBFC;
---iris-050:    #F5F3FF;
---iris-800:    #372C7A;
+--iris-600: #6b5dd3; /* AI-generated, not yet reviewed */
+--iris-100: #eeebfc;
+--iris-050: #f5f3ff;
+--iris-800: #372c7a;
 
---slate-600:   #576070;  /* draft, paused, archived, neutral */
---slate-100:   #EDEFF3;
+--slate-600: #576070; /* draft, paused, archived, neutral */
+--slate-100: #edeff3;
 ```
 
 **Contrast:** every `-600` on its matching `-100` tint clears WCAG AA at 14px. Never put `-600` text on white for body copy — use `--text-primary`. Never put white text on `-100` tints.
@@ -94,24 +94,22 @@ It appears nowhere else. Not on warnings, not on highlights, not on charts. User
 
 ## 1.3 Typography
 
-| Role | Face | Notes |
-|---|---|---|
-| Interface | **General Sans** (Fontshare) | Fallback: `Inter, system-ui, sans-serif`. Self-host the woff2 — no CDN dependency in an enterprise app. |
-| Data / numeric | **IBM Plex Mono** | All metrics, currency, IDs, timestamps, percentages, ad spend. Tabular figures on. |
+| Role           | Face                         | Notes                                                                                                   |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Interface      | **General Sans** (Fontshare) | Fallback: `Inter, system-ui, sans-serif`. Self-host the woff2 — no CDN dependency in an enterprise app. |
+| Data / numeric | **IBM Plex Mono**            | All metrics, currency, IDs, timestamps, percentages, ad spend. Tabular figures on.                      |
 
 Two families. No third. No serif display face — it would fight the density.
 
 ```css
---text-metric-hero:  36px / 40px  / 500 / -0.02em   /* dashboard headline numbers */
---text-metric:       28px / 32px  / 500 / -0.02em
---text-title:        22px / 28px  / 500 / -0.01em   /* page title */
---text-section:      18px / 24px  / 500 / -0.01em   /* card and section heads */
---text-subhead:      15px / 22px  / 500 / 0
---text-body:         14px / 21px  / 400 / 0         /* DEFAULT — not 16px */
---text-body-strong:  14px / 21px  / 500 / 0
---text-secondary:    13px / 19px  / 400 / 0         /* helper, metadata */
---text-caption:      12px / 16px  / 400 / 0
---text-label:        11px / 14px  / 500 / 0.06em / uppercase   /* eyebrows, status pills */
+--text-metric-hero: 36px / 40px / 500 / -0.02em /* dashboard headline numbers */
+  --text-metric: 28px / 32px / 500 / -0.02em --text-title: 22px / 28px / 500 / -0.01em
+  /* page title */ --text-section: 18px / 24px / 500 / -0.01em
+  /* card and section heads */ --text-subhead: 15px / 22px / 500 / 0 --text-body: 14px /
+  21px / 400 / 0 /* DEFAULT — not 16px */ --text-body-strong: 14px / 21px / 500 / 0
+  --text-secondary: 13px / 19px / 400 / 0 /* helper, metadata */ --text-caption: 12px /
+  16px / 400 / 0 --text-label: 11px / 14px / 500 / 0.06em / uppercase
+  /* eyebrows, status pills */;
 ```
 
 Body is **14px**. This is enterprise software people live in for hours — 16px body wastes vertical space and makes dense tables impossible.
@@ -119,60 +117,56 @@ Body is **14px**. This is enterprise software people live in for hours — 16px 
 ## 1.4 Space, radius, elevation
 
 ```css
---space: 4 8 12 16 20 24 32 40 48 64        /* 4px base unit */
---radius-sm: 4px    /* pills, badges, tags */
---radius-md: 6px    /* inputs, buttons */
---radius-lg: 10px   /* cards, panels */
---radius-xl: 14px   /* modals, drawers */
-
---elev-0: none                                       /* flat in-flow cards */
---elev-1: 0 1px 2px rgba(18,21,28,.06)               /* raised card */
---elev-2: 0 4px 12px rgba(18,21,28,.08)              /* dropdown, popover */
---elev-3: 0 12px 32px rgba(18,21,28,.14)             /* modal, drawer */
+--space: 4 8 12 16 20 24 32 40 48 64 /* 4px base unit */ --radius-sm: 4px
+  /* pills, badges, tags */ --radius-md: 6px /* inputs, buttons */ --radius-lg: 10px
+  /* cards, panels */ --radius-xl: 14px /* modals, drawers */ --elev-0: none
+  /* flat in-flow cards */ --elev-1: 0 1px 2px rgba(18, 21, 28, 0.06) /* raised card */
+  --elev-2: 0 4px 12px rgba(18, 21, 28, 0.08) /* dropdown, popover */ --elev-3: 0 12px
+  32px rgba(18, 21, 28, 0.14) /* modal, drawer */;
 ```
 
 Never more than two floating layers on screen at once. A third means it should have been a full page.
 
 ## 1.5 Density
 
-| Element | Height |
-|---|---|
-| Table row | 44px comfortable / 36px compact (user toggle, persisted) |
-| Input, select, button | 36px default, 32px small, 44px large |
-| Sidebar item | 36px |
-| Top bar | 56px |
-| Sidebar width | 244px expanded / 60px collapsed |
-| Card padding | 20px |
-| Page gutter | 24px |
+| Element               | Height                                                   |
+| --------------------- | -------------------------------------------------------- |
+| Table row             | 44px comfortable / 36px compact (user toggle, persisted) |
+| Input, select, button | 36px default, 32px small, 44px large                     |
+| Sidebar item          | 36px                                                     |
+| Top bar               | 56px                                                     |
+| Sidebar width         | 244px expanded / 60px collapsed                          |
+| Card padding          | 20px                                                     |
+| Page gutter           | 24px                                                     |
 
 ## 1.6 Status vocabulary — used identically everywhere
 
-| State | Colour | Rail | Pill background / text |
-|---|---|---|---|
-| Draft | Slate | — | `--slate-100` / `--text-secondary` |
-| AI draft | Iris | 3px iris | `--iris-100` / `--iris-800` |
-| Needs review | Amber | 3px amber | `--amber-100` / `--amber-800` |
-| Needs changes | Amber | 3px amber, dashed | `--amber-100` / `--amber-800` |
-| Approved | Jade | 3px jade | `--jade-100` / `--jade-800` |
-| Scheduled | Cobalt | 3px cobalt | `--cobalt-100` / `--cobalt-800` |
-| Publishing | Cobalt | animated cobalt | `--cobalt-100` / `--cobalt-800` |
-| Live | Jade | 3px jade + pulse dot | `--jade-100` / `--jade-800` |
-| Rejected | Crimson | 3px crimson | `--crimson-100` / `--crimson-800` |
-| Failed | Crimson | 3px crimson | `--crimson-100` / `--crimson-800` |
-| Completed | Slate | — | `--slate-100` / `--text-secondary` |
+| State         | Colour  | Rail                 | Pill background / text             |
+| ------------- | ------- | -------------------- | ---------------------------------- |
+| Draft         | Slate   | —                    | `--slate-100` / `--text-secondary` |
+| AI draft      | Iris    | 3px iris             | `--iris-100` / `--iris-800`        |
+| Needs review  | Amber   | 3px amber            | `--amber-100` / `--amber-800`      |
+| Needs changes | Amber   | 3px amber, dashed    | `--amber-100` / `--amber-800`      |
+| Approved      | Jade    | 3px jade             | `--jade-100` / `--jade-800`        |
+| Scheduled     | Cobalt  | 3px cobalt           | `--cobalt-100` / `--cobalt-800`    |
+| Publishing    | Cobalt  | animated cobalt      | `--cobalt-100` / `--cobalt-800`    |
+| Live          | Jade    | 3px jade + pulse dot | `--jade-100` / `--jade-800`        |
+| Rejected      | Crimson | 3px crimson          | `--crimson-100` / `--crimson-800`  |
+| Failed        | Crimson | 3px crimson          | `--crimson-100` / `--crimson-800`  |
+| Completed     | Slate   | —                    | `--slate-100` / `--text-secondary` |
 
 One `<StatusPill status="..."/>` component. One `<StatusRail>`. Never hand-rolled again.
 
 ## 1.7 Motion
 
 ```css
---dur-fast: 120ms    /* hover, focus */
---dur-base: 200ms    /* dropdown, tab switch */
---dur-slow: 320ms    /* drawer, modal, page transition */
---ease-out: cubic-bezier(.2,0,0,1)
+--dur-fast: 120ms /* hover, focus */ --dur-base: 200ms /* dropdown, tab switch */
+  --dur-slow: 320ms /* drawer, modal, page transition */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
 ```
 
 Three places motion is allowed to be expressive, because in each one it carries information:
+
 1. **AI generation** — assets appear in sequence as they finish, each fading in with its iris rail drawing downward. The user watches work arrive.
 2. **Approval** — the iris rail wipes to jade left-to-right over 320ms. Approval should feel like it landed.
 3. **Publishing** — a per-channel progress line, each channel ticking to jade as the worker confirms.
@@ -325,6 +319,7 @@ Centred column, 720px max, vertically weighted to the upper third. `What would y
 Bottom-right inside the box: attach (brand assets, competitor links), and the submit button — cobalt, `Continue →`, with `⌘↵`.
 
 Below the box, suggestion chips in three labelled rows, not one undifferentiated mass:
+
 - **Launch** — Product launch · Festive campaign · Brand awareness
 - **Grow** — Get more leads · Increase traffic · Improve sales
 - **Channel** — Instagram campaign · Meta ads · Google ads · Email campaign
@@ -342,7 +337,7 @@ Four steps. **One question per screen.** Do not put all four on one page — tha
 
 Layout: 640px centred column. Step rail across the top (4 dots, current one filled cobalt, completed ones jade with a tick, all clickable backward). The user's original prompt sits above the question in a quiet grey card so they never lose the thread.
 
-- **Step 1 — Objective.** Six large radio cards in a 3×2 grid, each 140×88px with an icon, label, and one line of consequence: "Sales — optimised for conversion, ad spend weighted to retargeting". The user should understand what their choice *does*.
+- **Step 1 — Objective.** Six large radio cards in a 3×2 grid, each 140×88px with an icon, label, and one line of consequence: "Sales — optimised for conversion, ad spend weighted to retargeting". The user should understand what their choice _does_.
 - **Step 2 — Channels.** Multi-select cards. Connected channels are selectable; unconnected ones show `Connect` inline and open a modal without leaving the step. Selected cards get a cobalt border and check. Preselect based on their objective, and say why: "Recommended for product launch."
 - **Step 3 — Audience.** The only multi-field step: age range (dual slider), gender (segmented), locations (tokenised multiselect with autocomplete), interests (tag input with AI suggestions appearing as the user types), languages, occupation. Right side shows a live estimated reach figure in Plex Mono that updates as fields change — this makes the form feel responsive instead of bureaucratic.
 - **Step 4 — Duration and budget.** Four duration cards (7/15/30/90 days) plus a custom date range. Budget input with an AI-suggested figure prefilled and justified: "Suggested ₹45,000 based on 30 days across 3 channels in your market."
@@ -457,9 +452,9 @@ Two views, one toggle.
 
 New leads arriving live get a brief cobalt flash on the row. Not a toast — a toast for every lead is noise.
 
-*Adaptation note: lead-score amber band (40–70) conflicts with Rule 3 — in
+_Adaptation note: lead-score amber band (40–70) conflicts with Rule 3 — in
 this product the mid band renders slate, and amber remains exclusively
-"human decision required".*
+"human decision required"._
 
 ---
 

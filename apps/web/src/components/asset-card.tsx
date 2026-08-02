@@ -46,7 +46,7 @@ export function AssetCard({
   const truncated = caption.length > 160 ? `${caption.slice(0, 160)}…` : caption
 
   return (
-    <StatusRail status={kindStatus} className={`asset-card${selected ? 'is-selected' : ''}`}>
+    <StatusRail status={kindStatus} className={`asset-card${selected ? ' is-selected' : ''}`}>
       <button type="button" className="asset-card__hit" onClick={onClick}>
         <div className={`asset-card__preview ${ASPECT_CLASS[aspect]}`}>
           {preview ?? (

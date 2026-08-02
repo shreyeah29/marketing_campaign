@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui'
 
 import { useCampaign } from './campaign-context'
 import { REVIEW_STATUSES } from './constants'
+import { approveCampaignAsset } from './approve-asset'
 import type { Asset } from './types'
 
 type StatusFilter = 'needs_review' | 'approved' | 'changes' | 'rejected' | 'all'
@@ -169,10 +170,17 @@ export function ReviewQueue({
     setBusy(true)
     let ok = 0
     let fail = 0
+    let generated = 0
     for (const id of ids) {
       try {
         if (action === 'approve') {
-          await api.post(`/campaign-assets/${id}/approve`, {})
+          const asset = list.find((a) => a.id === id)
+          if (!asset) {
+            fail++
+            continue
+          }
+          const result = await approveCampaignAsset(asset)
+          if (result === 'generated') generated++
         } else {
           await api.post(`/campaign-assets/${id}/reject`, reason ? { reason } : {})
         }
@@ -184,17 +192,34 @@ export function ReviewQueue({
     setBusy(false)
     clearSelection()
     reload()
-    if (fail === 0) toast.push('success', `${ok} ${action === 'approve' ? 'approved' : 'rejected'}`)
-    else toast.push('error', `${ok} succeeded, ${fail} failed`)
+    if (fail === 0) {
+      toast.push(
+        'success',
+        generated > 0
+          ? `${ok} done · ${generated} creative${generated === 1 ? '' : 's'} generating`
+          : `${ok} ${action === 'approve' ? 'approved' : 'rejected'}`,
+      )
+    } else toast.push('error', `${ok} succeeded, ${fail} failed`)
   }
 
   async function quickAct(asset: Asset, action: 'approve' | 'reject' | 'regenerate') {
     setBusy(true)
     try {
-      if (action === 'approve') await api.post(`/campaign-assets/${asset.id}/approve`, {})
-      else if (action === 'reject') await api.post(`/campaign-assets/${asset.id}/reject`, {})
-      else await api.post(`/campaign-assets/${asset.id}/regenerate`, {})
-      toast.push('success', action === 'regenerate' ? 'Regenerated' : `${action} done`)
+      if (action === 'approve') {
+        const result = await approveCampaignAsset(asset)
+        toast.push(
+          'success',
+          result === 'generated'
+            ? 'Creative generating — refresh in a moment'
+            : 'Approved',
+        )
+      } else if (action === 'reject') {
+        await api.post(`/campaign-assets/${asset.id}/reject`, {})
+        toast.push('success', 'Rejected')
+      } else {
+        await api.post(`/campaign-assets/${asset.id}/regenerate`, {})
+        toast.push('success', 'Regenerated')
+      }
       reload()
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : `${action} failed`)
@@ -359,14 +384,10 @@ export function ReviewQueue({
                   kind={a.kind}
                   status={a.status}
                   body={a.caption || a.body}
+                  title={a.title}
+                  mediaUrl={a.mediaUrl}
                   selected={a.id === selectedAssetId || selected.has(a.id)}
                   onClick={() => open(a.id)}
-                  preview={
-                    a.mediaUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={a.mediaUrl} alt="" className="rq__preview-img" />
-                    ) : undefined
-                  }
                   actions={
                     <>
                       <button

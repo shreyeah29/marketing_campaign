@@ -152,7 +152,9 @@ function SectionView({
             platform={a.platform}
             kind={a.kind}
             status={a.status}
-            body={a.body}
+            body={a.caption || a.body}
+            title={a.title}
+            mediaUrl={a.mediaUrl}
             onClick={() => onOpen(a)}
           />
         ))}

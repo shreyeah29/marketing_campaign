@@ -55,3 +55,4 @@ export {
 } from './sections'
 export { TemplatePicker, SaveTemplateButton } from './templates'
 export { CampaignProvider, useCampaign } from './campaign-context'
+export { approveCampaignAsset } from './approve-asset'

@@ -394,16 +394,8 @@ function AssetStack({ assets, empty }: { assets: Asset[]; empty: string }) {
           kind={a.kind}
           status={a.status}
           body={a.caption || a.body}
-          preview={
-            a.mediaUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={a.mediaUrl}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : undefined
-          }
+          title={a.title}
+          mediaUrl={a.mediaUrl}
         />
       ))}
     </div>

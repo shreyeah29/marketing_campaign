@@ -10,6 +10,7 @@ import { PlatformIcon } from '@/components/platform-icon'
 import { Chip, kindLabel, StatusPill, toStatus } from '@/components/status'
 
 import { pushAssetVersion, readAssetVersions, type AssetVersion } from './asset-versions'
+import { approveCampaignAsset } from './approve-asset'
 import type { Asset } from './types'
 
 type DrawerTab = 'content' | 'targeting' | 'comments' | 'history'
@@ -102,11 +103,7 @@ export function AssetEditor({
     if (isConcept && !asset.mediaUrl) {
       setBusy('Generate')
       try {
-        await api.post(`/campaign-assets/${asset.id}/approve`, {})
-        await api.post(
-          `/campaign-assets/${asset.id}/generate-media`,
-          asset.kind === 'IMAGE_PROMPT' ? { variants: 2 } : {},
-        )
+        await approveCampaignAsset(asset)
         toast.push('success', 'Creative generated — give it a final look')
         onChanged()
       } catch (e) {

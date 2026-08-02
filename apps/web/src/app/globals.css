@@ -15,56 +15,58 @@
  */
 
 :root {
-  /* ── Brand (runtime-overridable) ─────────────────────────────────────────── */
-  --color-primary: #111111;
-  --color-primary-hover: #000000;
-  --color-secondary: #404040;
-  --color-accent: #111111;
-  --color-accent-2: #404040;
+  /* ── Brand (runtime-overridable) — Hanzo: ink on white, electric-blue accent ── */
+  --color-primary: #000000;
+  --color-primary-hover: #2b2b2b;
+  --color-secondary: #474747;
+  --color-accent: #0099ff;
+  --color-accent-2: #0099ff;
 
-  /* ── Type ────────────────────────────────────────────────────────────────── */
+  /* ── Type: Inter (Display cut), Instrument Serif accents, Fragment Mono data ── */
   --font: var(--brand-body-font, var(--font-sans, 'Inter', system-ui, sans-serif));
   --font-heading: var(--brand-heading-font, var(--font-sans, 'Inter', system-ui, sans-serif));
-  --font-code: var(--font-mono, 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace);
+  --font-serif: var(--font-serif-accent, 'Instrument Serif', Georgia, serif);
+  --font-code: var(--font-mono, 'Fragment Mono', ui-monospace, 'SF Mono', Menlo, monospace);
 
   /* ── Semantic surfaces (light) ───────────────────────────────────────────── */
-  --bg: #fafafa;
+  --bg: #ffffff;
   --bg-elevated: #ffffff;
   --bg-card: #ffffff;
   --bg-input: #ffffff;
-  --bg-subtle: #f4f4f5;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --text: #111111;
-  --text-muted: #52525b;
-  --text-dim: #a1a1aa;
+  --bg-subtle: #f5f5f5;
+  --border: #e3e3e3;
+  --border-strong: #d9d9d9;
+  --text: #000000;
+  --text-muted: #474747;
+  --text-dim: #9a9a9a;
   --on-primary: #ffffff;
   --primary-soft: rgba(0, 0, 0, 0.05);
 
   /* Legacy aliases still read from inline styles. */
-  --color-neutral-400: #d4d4d8;
-  --color-neutral-500: #a1a1aa;
+  --color-neutral-400: #d9d9d9;
+  --color-neutral-500: #9a9a9a;
   --color-warn: #b45309;
 
-  /* ── Status — the one deliberate exception to monochrome: state must read ── */
-  --ok: #15803d;
-  --info: #52525b;
+  /* ── Status — the one exception to monochrome: state must read at a glance ── */
+  --ok: #0cb300;
+  --info: #0099ff;
   --warn: #b45309;
-  --danger: #b91c1c;
-  --ok-soft: rgba(21, 128, 61, 0.08);
-  --info-soft: rgba(0, 0, 0, 0.05);
+  --danger: #ff3700;
+  --ok-soft: rgba(12, 179, 0, 0.08);
+  --info-soft: rgba(0, 153, 255, 0.08);
   --warn-soft: rgba(180, 83, 9, 0.08);
-  --danger-soft: rgba(185, 28, 28, 0.07);
+  --danger-soft: rgba(255, 55, 0, 0.07);
 
-  /* ── Shape, depth, focus ─────────────────────────────────────────────────── */
-  --radius-sm: 8px;
-  --radius: 10px;
-  --radius-lg: 14px;
+  /* ── Shape, depth, focus — pills and soft rectangles, quiet depth ────────── */
+  --radius-sm: 12px;
+  --radius: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.14);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.16);
   --glow-primary: none;
-  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--color-primary);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--color-accent);
   --glass-blur: 0px;
 
   /* ── Gradients retired: solid ink. Names kept so every rule still resolves. ── */
@@ -73,39 +75,39 @@
 }
 
 :root[data-theme='dark'] {
-  --color-primary: #fafafa;
-  --color-primary-hover: #ffffff;
-  --color-secondary: #d4d4d8;
-  --color-accent: #fafafa;
+  --color-primary: #ffffff;
+  --color-primary-hover: #d9d9d9;
+  --color-secondary: #d9d9d9;
+  --color-accent: #0099ff;
 
-  --bg: #0a0a0a;
-  --bg-elevated: #141414;
-  --bg-card: #141414;
-  --bg-input: #1a1a1a;
-  --bg-subtle: #1f1f1f;
-  --border: #262626;
-  --border-strong: #3f3f46;
-  --text: #fafafa;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
-  --on-primary: #111111;
+  --bg: #000000;
+  --bg-elevated: #111111;
+  --bg-card: #111111;
+  --bg-input: #161616;
+  --bg-subtle: #1c1c1c;
+  --border: #2b2b2b;
+  --border-strong: #474747;
+  --text: #ffffff;
+  --text-muted: #d9d9d9;
+  --text-dim: #9a9a9a;
+  --on-primary: #000000;
   --primary-soft: rgba(255, 255, 255, 0.08);
 
-  --color-neutral-400: #3f3f46;
-  --color-neutral-500: #52525b;
+  --color-neutral-400: #474747;
+  --color-neutral-500: #9a9a9a;
 
-  --ok: #4ade80;
-  --info: #a1a1aa;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --ok-soft: rgba(74, 222, 128, 0.1);
-  --info-soft: rgba(255, 255, 255, 0.08);
-  --warn-soft: rgba(251, 191, 36, 0.1);
-  --danger-soft: rgba(248, 113, 113, 0.1);
+  --ok: #52ff69;
+  --info: #05a9ff;
+  --warn: #ffd500;
+  --danger: #ff5e00;
+  --ok-soft: rgba(82, 255, 105, 0.1);
+  --info-soft: rgba(5, 169, 255, 0.1);
+  --warn-soft: rgba(255, 213, 0, 0.1);
+  --danger-soft: rgba(255, 94, 0, 0.1);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.8);
   --glow-primary: none;
 }
 
@@ -139,8 +141,8 @@ h2,
 h3,
 h4 {
   font-family: var(--font-heading);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 500;
+  letter-spacing: -0.04em;
   margin: 0;
   color: var(--text);
 }
@@ -253,8 +255,8 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 11px;
-  border-radius: var(--radius-sm);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
   color: var(--text-muted);
   font-weight: 500;
   font-size: 13.5px;
@@ -322,9 +324,9 @@ textarea {
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.025em;
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.04em;
 }
 
 .page-sub {
@@ -500,8 +502,8 @@ a.card:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 15px;
-  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong);
   background: var(--bg-input);
   color: var(--text);
@@ -560,7 +562,7 @@ a.card:hover {
 }
 
 .btn.sm {
-  padding: 6px 11px;
+  padding: 7px 14px;
   font-size: 12px;
 }
 
@@ -597,8 +599,8 @@ a.card:hover {
 }
 .input:focus,
 .select:focus {
-  border-color: var(--color-secondary);
-  box-shadow: 0 0 0 3px var(--primary-soft);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--info-soft);
 }
 .input::placeholder {
   color: var(--text-dim);
@@ -1309,10 +1311,10 @@ a.card:hover {
 }
 .lp-hero h1 .grad,
 .grad-text {
-  background: var(--grad-brand);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 .lp-hero p.sub {
   font-size: clamp(15px, 2vw, 19px);

@@ -7,7 +7,6 @@ import { Spinner } from '@/components/ui'
 import { Chip, StatusRail } from '@/components/status'
 import { PlatformIcon } from '@/components/platform-icon'
 import { ApprovalWipe } from '@/components/motion'
-import { estimateReach } from './draft'
 import type { CampaignPlan, CreateDraft } from './types'
 
 export type SectionId =
@@ -30,7 +29,6 @@ export function PlanView({
   onBack,
   onPlanChange,
   onApprove,
-  onSaveDraft,
   onRequestChanges,
   onGenerate,
 }: {
@@ -42,14 +40,12 @@ export function PlanView({
   onBack: () => void
   onPlanChange: (next: CampaignPlan) => void
   onApprove: () => void
-  onSaveDraft: () => void
   onRequestChanges: (section: SectionId, comment: string) => void
   onGenerate: () => void
 }) {
   const [changeOpen, setChangeOpen] = useState(false)
   const [changeComment, setChangeComment] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(false)
-  const reach = estimateReach(draft)
 
   const glimpses = useMemo(() => buildGlimpses(plan, draft), [plan, draft])
 
@@ -60,7 +56,7 @@ export function PlanView({
 
   return (
     <ApprovalWipe approved={approved}>
-      <div className={`glimpse${approved ? ' is-approved' : ''}`}>
+      <div className={`glimpse${approved ? 'is-approved' : ''}`}>
         <div className="glimpse__top">
           <button type="button" className="btn ghost sm" onClick={onBack}>
             <Icon name="arrow-left" size={14} /> Back
@@ -80,20 +76,7 @@ export function PlanView({
           <div className="glimpse__main">
             <StatusRail status={approved ? 'approved' : 'ai-draft'}>
               <header className="glimpse__header">
-                <p className="type-label" style={{ color: 'var(--text-secondary)' }}>
-                  How this campaign will look
-                </p>
                 <h1 className="glimpse__title">{plan.campaignName || 'Untitled campaign'}</h1>
-                <p className="type-body" style={{ color: 'var(--text-secondary)' }}>
-                  {plan.objective}
-                </p>
-                <p className="type-caption" style={{ marginTop: 8, color: 'var(--text-tertiary)' }}>
-                  Preview of how channels will look. After you approve, we generate creatives
-                  {draft.wantPosters !== false || draft.wantVideos
-                    ? ' (including AI posters/video via Runway where selected)'
-                    : ''}{' '}
-                  — then you review and post to assigned platforms.
-                </p>
               </header>
             </StatusRail>
 
@@ -105,7 +88,7 @@ export function PlanView({
                     <span>{g.label}</span>
                     <Chip>{g.format}</Chip>
                   </div>
-                  <GlimpseBody glimpse={g} plan={plan} />
+                  <GlimpseBody glimpse={g} />
                 </article>
               ))}
             </div>
@@ -147,28 +130,6 @@ export function PlanView({
 
           <aside className="glimpse__rail">
             <div className="glimpse__rail-card">
-              <h2 className="type-body-strong" style={{ margin: '0 0 12px', fontSize: 15 }}>
-                Summary
-              </h2>
-              <dl className="glimpse-summary">
-                <div>
-                  <dt>Reach</dt>
-                  <dd className="strat-mono">{reach.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>Budget</dt>
-                  <dd className="strat-mono">${plan.suggestedBudget.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>Duration</dt>
-                  <dd className="strat-mono">{plan.durationDays} days</dd>
-                </div>
-                <div>
-                  <dt>Assets</dt>
-                  <dd className="strat-mono">~{plan.estimatedAssets}</dd>
-                </div>
-              </dl>
-
               {!approved ? (
                 <div className="glimpse__rail-actions">
                   <button
@@ -192,9 +153,6 @@ export function PlanView({
                     onClick={() => setChangeOpen((v) => !v)}
                   >
                     Request changes
-                  </button>
-                  <button type="button" className="btn ghost" onClick={onSaveDraft}>
-                    Save draft
                   </button>
                 </div>
               ) : (
@@ -267,7 +225,9 @@ function buildGlimpses(plan: CampaignPlan, draft: CreateDraft): Glimpse[] {
       ? draft.channels
       : plan.platforms
     : ['Instagram', 'Email']
-  const formats = new Set((draft.formats?.length ? draft.formats : ['posts']).map((f) => f.toLowerCase()))
+  const formats = new Set(
+    (draft.formats?.length ? draft.formats : ['posts']).map((f) => f.toLowerCase()),
+  )
   const wantPosters = draft.wantPosters !== false
   const wantVideos = Boolean(draft.wantVideos)
   const caption = firstSentence(plan.strategy) || plan.objective
@@ -413,13 +373,13 @@ function buildGlimpses(plan: CampaignPlan, draft: CreateDraft): Glimpse[] {
   return out
 }
 
-function GlimpseBody({ glimpse, plan }: { glimpse: Glimpse; plan: CampaignPlan }) {
+function GlimpseBody({ glimpse }: { glimpse: Glimpse }) {
   if (glimpse.kind === 'instagram' || glimpse.kind === 'facebook' || glimpse.kind === 'linkedin') {
     return (
       <div className="glimpse-social">
         <div className="glimpse-social__media" data-kind={glimpse.kind}>
-          <span className="type-caption">{glimpse.headline}</span>
-          <span className="glimpse-social__ph type-caption">Creative preview after generate</span>
+          <PlatformIcon platform={glimpse.platform} size={22} />
+          <span className="glimpse-social__headline">{glimpse.headline}</span>
         </div>
         <p className="glimpse-social__caption">{glimpse.caption}</p>
       </div>
@@ -462,7 +422,6 @@ function GlimpseBody({ glimpse, plan }: { glimpse: Glimpse; plan: CampaignPlan }
     <div className="glimpse-poster">
       <div className="glimpse-poster__art">
         <PlatformIcon platform={glimpse.platform} size={28} />
-        <span className="type-caption">{plan.estimatedAssets} assets planned</span>
       </div>
       <p className="type-caption">{glimpse.caption}</p>
     </div>

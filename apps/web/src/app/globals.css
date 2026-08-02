@@ -4993,19 +4993,22 @@ a.card:hover {
   align-items: start;
 }
 .glimpse__title {
-  margin: var(--space-2) 0;
-  font-size: clamp(24px, 3vw, 30px);
-  font-weight: 500;
-  letter-spacing: -0.02em;
+  margin: 0;
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
 .glimpse__header {
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .glimpse__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: var(--space-4);
+  align-items: start;
 }
 .glimpse-card {
   border: 1px solid var(--border-subtle);
@@ -5027,17 +5030,24 @@ a.card:hover {
 .glimpse-social__media,
 .glimpse-video__frame,
 .glimpse-poster__art {
-  aspect-ratio: 1;
-  background: var(--surface-sunken);
+  aspect-ratio: 4 / 3;
+  background:
+    repeating-linear-gradient(-45deg, var(--surface-sunken) 0 10px, transparent 10px 20px),
+    var(--surface-raised);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
-  color: var(--text-secondary);
+  gap: var(--space-3);
+  color: var(--text-tertiary);
   border-bottom: 1px solid var(--border-subtle);
-  padding: var(--space-4);
+  padding: var(--space-5);
   text-align: center;
+}
+.glimpse-social__headline {
+  font: var(--type-body-strong);
+  color: var(--text-primary);
+  text-wrap: balance;
 }
 .glimpse-card--video .glimpse-video__frame {
   aspect-ratio: 9 / 16;

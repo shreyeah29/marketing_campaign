@@ -32,7 +32,6 @@ export default function StrategyDraftPage() {
   const [generating, setGenerating] = useState(false)
   const [planning, setPlanning] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
-  const [savedFlash, setSavedFlash] = useState(false)
 
   useEffect(() => {
     setDraft(readDraft(draftId))
@@ -67,15 +66,6 @@ export default function StrategyDraftPage() {
     const brief = buildBriefFromDraft({ ...draft, plan })
     const next = upsertDraft(draftId, { plan, brief })
     setDraft(next)
-  }
-
-  function saveDraft() {
-    if (!draft) return
-    const brief = buildBriefFromDraft(draft)
-    const next = upsertDraft(draftId, { brief, ...(draft.plan ? { plan: draft.plan } : {}) })
-    setDraft(next)
-    setSavedFlash(true)
-    window.setTimeout(() => setSavedFlash(false), 1400)
   }
 
   async function requestChanges(section: SectionId, comment: string) {
@@ -151,11 +141,6 @@ export default function StrategyDraftPage() {
         <div className="spread" style={{ marginBottom: 12 }}>
           <BrowserDraftBanner />
         </div>
-        {savedFlash ? (
-          <p className="type-caption" style={{ color: 'var(--jade-600)', marginBottom: 8 }}>
-            Draft saved in this browser
-          </p>
-        ) : null}
         <PlanView
           plan={draft.plan}
           draft={draft}
@@ -168,7 +153,6 @@ export default function StrategyDraftPage() {
             const next = upsertDraft(draftId, { planApproved: true, plan: draft.plan })
             setDraft(next)
           }}
-          onSaveDraft={saveDraft}
           onRequestChanges={(section, comment) => void requestChanges(section, comment)}
           onGenerate={() => void generate()}
         />

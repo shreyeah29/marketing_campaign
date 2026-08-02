@@ -309,7 +309,11 @@ const marketing: readonly FeatureManifest[] = [
     category: 'Marketing',
     version: 1,
     dependencies: [],
-    defaultEnabled: false,
+    // The per-platform hubs (Instagram, Facebook) are default-enabled and depend
+    // on this one, so it must be default-enabled too or a new organisation gets
+    // them in a broken state — the registry preflight refuses to boot otherwise.
+    // It carries no navEntry of its own; the hubs are what the user sees.
+    defaultEnabled: true,
     billingCategory: 'addon',
     requiredPermissions: ['content:read'],
     apiRoutes: ['/v1/social'],

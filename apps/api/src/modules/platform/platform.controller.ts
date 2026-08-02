@@ -164,6 +164,7 @@ export class PlatformController {
       include: {
         branding: true,
         settings: { select: { brandVoice: true, targetAudience: true, tagline: true } },
+        metaConnection: { select: { id: true } },
         featureAssignments: {
           where: { enabled: true },
           select: { featureKey: true, source: true },
@@ -177,6 +178,7 @@ export class PlatformController {
             campaigns: true,
             campaignAssets: true,
             agentRuns: true,
+            socialAccounts: true,
           },
         },
       },
@@ -224,6 +226,14 @@ export class PlatformController {
         agentRuns: org._count.agentRuns,
         aiCostUsd: aiUsage._sum.costUsd?.toString() ?? '0',
         aiCalls: aiUsage._count,
+      },
+      // Activation checklist — how far this client is from fully onboarded.
+      setup: {
+        brandProfile: Boolean(org.branding?.logoUrl && org.settings?.brandVoice),
+        metaConnected: org.metaConnection !== null,
+        socialConnected: org._count.socialAccounts > 0,
+        firstCampaign: org._count.campaigns > 0,
+        firstLead: org._count.leads > 0,
       },
     }
   }

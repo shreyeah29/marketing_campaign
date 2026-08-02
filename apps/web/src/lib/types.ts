@@ -71,6 +71,13 @@ export interface OrgDetail {
     aiCostUsd: string
     aiCalls: number
   }
+  setup: {
+    brandProfile: boolean
+    metaConnected: boolean
+    socialConnected: boolean
+    firstCampaign: boolean
+    firstLead: boolean
+  }
 }
 
 // ── Portfolio analytics (operator console) ─────────────────────────────────────

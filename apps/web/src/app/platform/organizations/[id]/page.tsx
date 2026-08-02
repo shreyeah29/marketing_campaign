@@ -85,6 +85,8 @@ export default function OrganizationDetailPage() {
       {notice ? <Banner kind="success">{notice}</Banner> : null}
       {error ? <Banner kind="error">{error}</Banner> : null}
 
+      <SetupTracker setup={org.setup} />
+
       <div className="cols-4 grid" style={{ marginBottom: 22 }}>
         <Stat label="Members" value={org.usage.members} />
         <Stat label="Leads" value={org.usage.leads} />
@@ -296,6 +298,52 @@ function FeeEditor({
       <span className="dim" style={{ fontSize: 12 }}>
         USD/month · only you see this
       </span>
+    </div>
+  )
+}
+
+/**
+ * Activation checklist — the distance between "provisioned" and "fully live".
+ * Collapses to a single green line once every step is done.
+ */
+function SetupTracker({ setup }: { setup: OrgDetail['setup'] }) {
+  const STEPS: { key: keyof OrgDetail['setup']; label: string }[] = [
+    { key: 'brandProfile', label: 'Brand profile (logo + vision)' },
+    { key: 'metaConnected', label: 'Meta connected' },
+    { key: 'socialConnected', label: 'Social account connected' },
+    { key: 'firstCampaign', label: 'First campaign generated' },
+    { key: 'firstLead', label: 'First lead captured' },
+  ]
+  const done = STEPS.filter((s) => setup[s.key]).length
+
+  if (done === STEPS.length) {
+    return (
+      <div className="banner success" style={{ marginBottom: 18 }}>
+        Fully onboarded — all {STEPS.length} activation steps complete.
+      </div>
+    )
+  }
+
+  return (
+    <div className="card" style={{ marginBottom: 18, padding: '14px 18px' }}>
+      <div className="spread" style={{ marginBottom: 10 }}>
+        <span style={{ fontWeight: 700, fontSize: 13 }}>Onboarding progress</span>
+        <span className="badge info">
+          {done}/{STEPS.length}
+        </span>
+      </div>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+        {STEPS.map((s) => (
+          <span
+            key={s.key}
+            className={`badge ${setup[s.key] ? 'ok' : ''}`}
+            style={setup[s.key] ? {} : { opacity: 0.75 }}
+          >
+            {setup[s.key] ? '✓ ' : '○ '}
+            {s.label}
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

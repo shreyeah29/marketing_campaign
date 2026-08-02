@@ -278,6 +278,90 @@ export class AnalyticsController {
     }
   }
 
+  @Get('revenue')
+  @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
+  @ApiOperation({ summary: 'Revenue analytics — won revenue, attribution by campaign and source' })
+  async revenue(): Promise<unknown> {
+    const since90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+
+    const [wonAgg, openAgg, wonDeals] = await withTenantTransaction(this.db, (tx) =>
+      Promise.all([
+        tx.deal.aggregate({
+          where: { status: 'WON', deletedAt: null },
+          _sum: { value: true },
+          _count: true,
+        }),
+        tx.deal.aggregate({
+          where: { status: 'OPEN', deletedAt: null },
+          _sum: { value: true },
+          _count: true,
+        }),
+        // Won deals with their lead's campaign/source — the attribution chain:
+        // campaign → lead → deal → revenue.
+        tx.deal.findMany({
+          where: { status: 'WON', deletedAt: null },
+          select: {
+            value: true,
+            closedAt: true,
+            createdAt: true,
+            lead: {
+              select: { source: true, campaign: { select: { id: true, name: true } } },
+            },
+          },
+          orderBy: { updatedAt: 'desc' },
+          take: 1000,
+        }),
+      ]),
+    )
+
+    // Monthly won revenue for the last 3 months of activity.
+    const monthly = new Map<string, number>()
+    const byCampaign = new Map<string, { name: string; revenue: number; deals: number }>()
+    const bySource = new Map<string, { revenue: number; deals: number }>()
+    for (const d of wonDeals) {
+      const when = d.closedAt ?? d.createdAt
+      if (when >= since90d) {
+        const key = when.toISOString().slice(0, 7)
+        monthly.set(key, (monthly.get(key) ?? 0) + Number(d.value))
+      }
+      const campaign = d.lead?.campaign
+      if (campaign) {
+        const c = byCampaign.get(campaign.id) ?? { name: campaign.name, revenue: 0, deals: 0 }
+        c.revenue += Number(d.value)
+        c.deals += 1
+        byCampaign.set(campaign.id, c)
+      }
+      const source = d.lead?.source ?? 'DIRECT'
+      const s = bySource.get(source) ?? { revenue: 0, deals: 0 }
+      s.revenue += Number(d.value)
+      s.deals += 1
+      bySource.set(source, s)
+    }
+
+    return {
+      summary: {
+        wonRevenueUsd: wonAgg._sum.value?.toString() ?? '0',
+        wonDeals: wonAgg._count,
+        pipelineUsd: openAgg._sum.value?.toString() ?? '0',
+        openDeals: openAgg._count,
+      },
+      monthly: [...monthly.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, revenue]) => ({ month, revenueUsd: revenue.toFixed(2) })),
+      byCampaign: [...byCampaign.entries()]
+        .map(([id, c]) => ({
+          campaignId: id,
+          name: c.name,
+          revenueUsd: c.revenue.toFixed(2),
+          deals: c.deals,
+        }))
+        .sort((a, b) => Number(b.revenueUsd) - Number(a.revenueUsd)),
+      bySource: [...bySource.entries()]
+        .map(([source, s]) => ({ source, revenueUsd: s.revenue.toFixed(2), deals: s.deals }))
+        .sort((a, b) => Number(b.revenueUsd) - Number(a.revenueUsd)),
+    }
+  }
+
   @Get('timeseries')
   @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
   @ApiOperation({ summary: 'Daily leads, deals and revenue for the last N days' })

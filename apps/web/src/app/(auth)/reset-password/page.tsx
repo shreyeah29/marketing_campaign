@@ -48,7 +48,10 @@ function ResetPasswordInner() {
   }
 
   return (
-    <AuthShell title="Choose a new password" subtitle="Enter a new password for your account.">
+    <AuthShell
+      panelTitle="One last step."
+      panelSubtitle="Choose a new password and you're back in."
+      tone="light" title="Choose a new password" subtitle="Enter a new password for your account.">
       {!token ? (
         <Banner kind="error">
           This link is invalid or expired.{' '}

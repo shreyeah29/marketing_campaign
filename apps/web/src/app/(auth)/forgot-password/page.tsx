@@ -29,6 +29,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
+      panelTitle="Locked out happens."
+      panelSubtitle="Enter the address you signed up with and we'll send you a link to set a new password."
+      tone="light"
       title="Reset your password"
       subtitle="Enter your email and we'll send a reset link."
       footer={

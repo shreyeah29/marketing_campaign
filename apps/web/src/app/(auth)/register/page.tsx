@@ -49,6 +49,9 @@ function RegisterInner() {
 
   return (
     <AuthShell
+      panelTitle="Scale intelligence."
+      panelSubtitle="The unified workspace for professional-grade AI orchestration and campaign management."
+      tone="light"
       title="Create your account"
       subtitle="Start here. You'll join a workspace by invitation or provisioning."
       footer={

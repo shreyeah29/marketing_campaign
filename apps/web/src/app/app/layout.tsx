@@ -361,7 +361,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   if (status.kind === 'error')
     return (
       <div className="center-screen">
-        <div className="card auth-card" style={{ textAlign: 'center' }}>
+        <div className="card" style={{ textAlign: 'center', width: '100%', maxWidth: 420 }}>
           <Banner kind="error">{status.message}</Banner>
           <button
             className="btn primary"
@@ -743,7 +743,7 @@ function NoOrganization({ session }: { session: AuthSession }) {
   const router = useRouter()
   return (
     <div className="center-screen">
-      <div className="card auth-card" style={{ textAlign: 'center' }}>
+      <div className="card" style={{ textAlign: 'center', width: '100%', maxWidth: 420 }}>
         <div className="brand" style={{ justifyContent: 'center', padding: '0 0 16px' }}>
           <span className="dot" />
           <strong>VSP</strong>

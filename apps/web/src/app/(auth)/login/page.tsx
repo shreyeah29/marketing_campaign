@@ -8,7 +8,7 @@ import { Suspense, useEffect, useState } from 'react'
 
 import { authClient, type AuthError } from '@/lib/auth-client'
 import { AuthShell } from '@/components/auth-shell'
-import { Banner, Field, LoadingScreen, Spinner } from '@/components/ui'
+import { Banner, LoadingScreen, Spinner } from '@/components/ui'
 
 export default function LoginPage() {
   return (
@@ -23,6 +23,7 @@ function LoginInner() {
   const params = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [lockUntil, setLockUntil] = useState<number | null>(null)
@@ -61,16 +62,17 @@ function LoginInner() {
 
   return (
     <AuthShell
-      title="Sign in"
+      title="Welcome back"
+      subtitle="Access your intelligent dashboard"
+      panelTitle="Marketing intelligence, in one place."
+      panelSubtitle="Plan the campaign, approve the work, watch it perform — without leaving the workspace."
+      tone="dark"
       footer={
-        <div className="spread">
-          <Link href="/forgot-password" className="muted">
-            Forgot password?
-          </Link>
-          <Link href="/register" style={{ color: 'var(--text-link)', fontWeight: 600 }}>
-            Create account
-          </Link>
-        </div>
+        <>
+          <Link href="/privacy">Privacy Policy</Link>
+          <Link href="/terms">Terms of Service</Link>
+          <Link href="/support">Support</Link>
+        </>
       }
     >
       {justRegistered ? (
@@ -83,36 +85,62 @@ function LoginInner() {
         <Banner kind="error">Too many failed attempts. Try again in {lockSeconds}s.</Banner>
       ) : null}
       {error && !locked ? <Banner kind="error">{error}</Banner> : null}
+
       <form onSubmit={(ev) => void submit(ev)}>
-        <Field label="Email">
+        <div className="auth-field">
+          <label className="auth-label" htmlFor="login-email">
+            Email address
+          </label>
           <input
-            className="input"
+            id="login-email"
+            className="auth-input"
             type="email"
             autoComplete="username"
+            placeholder="name@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-        </Field>
-        <Field label="Password">
+        </div>
+
+        <div className="auth-field">
+          <div className="auth-field__row">
+            <label className="auth-label" htmlFor="login-password">
+              Password
+            </label>
+            <Link href="/forgot-password" className="auth-link-quiet">
+              Forgot password?
+            </Link>
+          </div>
           <input
-            className="input"
+            id="login-password"
+            className="auth-input"
             type="password"
             autoComplete="current-password"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-        </Field>
-        <button
-          className="btn primary"
-          style={{ width: '100%', justifyContent: 'center' }}
-          disabled={busy || locked}
-          type="submit"
-        >
-          {busy ? <Spinner /> : 'Sign in'}
+        </div>
+
+        <label className="auth-check">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+          />
+          <span>Remember me for 30 days</span>
+        </label>
+
+        <button className="auth-submit" disabled={busy || locked} type="submit">
+          {busy ? <Spinner /> : 'Sign in to dashboard'}
         </button>
       </form>
+
+      <p className="auth-alt">
+        New here? <Link href="/register">Create an account</Link>
+      </p>
     </AuthShell>
   )
 }

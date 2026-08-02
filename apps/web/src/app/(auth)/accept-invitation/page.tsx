@@ -73,6 +73,9 @@ function AcceptInvitationInner() {
 
   return (
     <AuthShell
+      panelTitle="You've been invited."
+      panelSubtitle="Set a password and your workspace is ready."
+      tone="light"
       title="Accept invitation"
       subtitle={
         state.kind === 'needs-auth'

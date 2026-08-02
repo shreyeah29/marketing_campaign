@@ -296,7 +296,7 @@ export default function NewOrganizationPage() {
                     objectFit: 'contain',
                     borderRadius: 10,
                     border: '1px solid var(--border)',
-                    background: '#fff',
+                    background: 'var(--surface-raised)',
                     padding: 6,
                   }}
                 />

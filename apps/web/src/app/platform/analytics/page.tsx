@@ -140,7 +140,7 @@ export default function PortfolioAnalyticsPage() {
                           height: 28,
                           objectFit: 'contain',
                           borderRadius: 7,
-                          background: '#fff',
+                          background: 'var(--surface-raised)',
                           border: '1px solid var(--border)',
                         }}
                       />

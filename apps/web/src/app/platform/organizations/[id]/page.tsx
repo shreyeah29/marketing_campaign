@@ -141,7 +141,7 @@ export default function OrganizationDetailPage() {
                   height: 44,
                   objectFit: 'contain',
                   borderRadius: 10,
-                  background: '#fff',
+                  background: 'var(--surface-raised)',
                   border: '1px solid var(--border)',
                   padding: 4,
                 }}

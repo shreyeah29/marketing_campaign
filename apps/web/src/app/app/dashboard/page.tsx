@@ -315,7 +315,7 @@ function AttentionStrip({
     items.push({
       icon: 'check-square',
       label: `${awaitingReview} asset${awaitingReview === 1 ? '' : 's'} awaiting your review`,
-      href: '/app/marketing/campaigns',
+      href: '/app/campaigns',
     })
   if (newLeads > 0)
     items.push({

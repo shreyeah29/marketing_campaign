@@ -96,7 +96,7 @@ export function CreativeLibrary({ type }: { type: 'image' | 'video' }) {
         title={`No ${type}s in the library yet`}
         hint={`Approve a ${type} concept inside a campaign and the generated creative lands here automatically.`}
         action={
-          <Link href="/app/marketing/campaigns" className="btn primary">
+          <Link href="/app/create" className="btn primary">
             Open campaigns
           </Link>
         }

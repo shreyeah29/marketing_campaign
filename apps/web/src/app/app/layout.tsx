@@ -4,15 +4,18 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 
-import { ApiError, getViewAsToken, setViewAsToken } from '@/lib/api'
+import { ApiError, api, getViewAsToken, setViewAsToken } from '@/lib/api'
 import { authClient, type AuthSession } from '@/lib/auth-client'
 import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
 import { Banner, Spinner } from '@/components/ui'
 import { ToastProvider } from '@/components/kit'
 import { Icon } from '@/components/icon'
+import { CommandPalette, openCommandPalette } from '@/components/command-palette'
 
 const THEME_KEY = 'vsp:theme'
+const SIDEBAR_KEY = 'vsp:sidebar:collapsed'
+
 function toggleTheme(): 'light' | 'dark' {
   const root = document.documentElement
   const next = root.dataset['theme'] === 'dark' ? 'light' : 'dark'
@@ -24,6 +27,57 @@ function toggleTheme(): 'light' | 'dark' {
     /* ignore */
   }
   return next
+}
+
+function readSidebarCollapsed(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage.getItem(SIDEBAR_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeSidebarCollapsed(collapsed: boolean): void {
+  try {
+    window.localStorage.setItem(SIDEBAR_KEY, collapsed ? '1' : '0')
+  } catch {
+    /* ignore */
+  }
+}
+
+function isActivePath(pathname: string, href: string): boolean {
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
+function unwrapList<T>(r: T[] | { data: T[] }): T[] {
+  return Array.isArray(r) ? r : (r.data ?? [])
+}
+
+const CONNECTION_BAD = new Set(['EXPIRED', 'ERROR', 'TOKEN_EXPIRED'])
+
+async function poolMap<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length)
+  let next = 0
+  async function worker() {
+    while (next < items.length) {
+      const idx = next++
+      results[idx] = await fn(items[idx]!)
+    }
+  }
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+  await Promise.all(workers)
+  return results
+}
+
+interface NavIndicators {
+  newLeads: number
+  assetsNeedingReview: number
+  connectionIssue: boolean
 }
 
 /**
@@ -129,9 +183,25 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   // Mobile off-canvas navigation. Closed on every route change so tapping a link
   // dismisses the menu.
   const [navOpen, setNavOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
+  const [indicators, setIndicators] = useState<NavIndicators>({
+    newLeads: 0,
+    assetsNeedingReview: 0,
+    connectionIssue: false,
+  })
+
   useEffect(() => {
     setNavOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    setCollapsed(readSidebarCollapsed())
+  }, [])
+
+  const setCollapsedPersist = useCallback((next: boolean) => {
+    setCollapsed(next)
+    writeSidebarCollapsed(next)
+  }, [])
 
   const load = useCallback(async () => {
     // Render the last known-good shell immediately (optimistic), then revalidate.
@@ -206,6 +276,62 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
     void load()
   }, [load])
 
+  // Amber dots + Connections crimson — existing endpoints only, best-effort.
+  useEffect(() => {
+    if (status.kind !== 'ready') return
+    let cancelled = false
+    void (async () => {
+      const next: NavIndicators = {
+        newLeads: 0,
+        assetsNeedingReview: 0,
+        connectionIssue: false,
+      }
+
+      const [leadsRes, campsRes, socialRes, metaRes] = await Promise.allSettled([
+        api.get<{ id: string; status: string }[]>('/leads/board'),
+        api.get<{ id: string }[] | { data: { id: string }[] }>('/campaigns'),
+        api.get<{ id: string; status: string }[]>('/social/accounts'),
+        api.get<{ status: string } | null>('/meta/connection'),
+      ])
+
+      if (cancelled) return
+
+      if (leadsRes.status === 'fulfilled') {
+        next.newLeads = leadsRes.value.filter((l) => l.status === 'NEW').length
+      }
+
+      if (campsRes.status === 'fulfilled') {
+        const camps = unwrapList(campsRes.value)
+        const counts = await poolMap(camps, 8, async (c) => {
+          try {
+            const r = await api.get<{ status: string }[] | { data: { status: string }[] }>(
+              `/campaign-assets?campaignId=${encodeURIComponent(c.id)}`,
+            )
+            return unwrapList(r).filter(
+              (a) => a.status === 'GENERATED' || a.status === 'NEEDS_REVIEW',
+            ).length
+          } catch {
+            return 0
+          }
+        })
+        if (cancelled) return
+        next.assetsNeedingReview = counts.reduce((sum, n) => sum + n, 0)
+      }
+
+      if (socialRes.status === 'fulfilled') {
+        next.connectionIssue = socialRes.value.some((a) => CONNECTION_BAD.has(a.status))
+      }
+      if (metaRes.status === 'fulfilled' && metaRes.value) {
+        if (CONNECTION_BAD.has(metaRes.value.status)) next.connectionIssue = true
+      }
+
+      if (!cancelled) setIndicators(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [status.kind])
+
   if (status.kind === 'loading') return <ShellBooting />
   if (status.kind === 'error')
     return (
@@ -226,11 +352,12 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
   const { workspace: ws, session } = status.data
   const brandName = ws.branding?.displayName ?? ws.organization?.name ?? 'Workspace'
+  const pageContext = pageContextLabel(pathname)
 
   return (
     <WorkspaceContext.Provider value={status.data}>
       <ToastProvider>
-        <div className="shell">
+        <div className="shell" {...(collapsed ? { 'data-collapsed': '' } : {})}>
           {/* Mobile top bar — only shown below the sidebar breakpoint. */}
           <header className="mobile-topbar">
             <button
@@ -253,7 +380,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
           <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
             <div className="brand">
               <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
-              <span>{brandName}</span>
+              <span className="brand-name">{brandName}</span>
               <button
                 className="sidebar-close"
                 onClick={() => setNavOpen(false)}
@@ -263,13 +390,35 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               </button>
             </div>
 
+            <button
+              type="button"
+              className="sidebar-collapse"
+              onClick={() => setCollapsedPersist(!collapsed)}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              title={collapsed ? 'Expand' : 'Collapse'}
+            >
+              <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={16} />
+            </button>
+
             {ws.viewOnly ? null : (
               <OrgSwitcher
                 session={session}
                 activeId={ws.organization?.id ?? null}
+                identityName={brandName}
+                collapsed={collapsed}
                 onSwitched={() => void load()}
               />
             )}
+
+            {/* Furniture: Create — accent first item, always above API nav. */}
+            <Link
+              href="/app/create"
+              className={`nav-item nav-create ${isActivePath(pathname, '/app/create') ? 'active' : ''}`}
+              title="Create"
+            >
+              <Icon name="sparkles" size={17} style={{ opacity: 0.9 }} />
+              <span className="nav-label">Create</span>
+            </Link>
 
             {/* Dynamic navigation — sections and items straight from the API. */}
             {ws.navigation.map((group) => (
@@ -277,15 +426,26 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
                 <div className="label">{group.section}</div>
                 {group.items.map((item) => {
                   const href = `/app${item.path}`
-                  const active = pathname === href
+                  const active = isActivePath(pathname, href)
+                  const isCampaign = /campaign/i.test(item.path)
+                  const isLead = /lead/i.test(item.path)
+                  const count = isCampaign
+                    ? indicators.assetsNeedingReview
+                    : isLead
+                      ? indicators.newLeads
+                      : 0
+                  const amber = (isCampaign || isLead) && count > 0
                   return (
                     <Link
                       key={item.path}
                       href={href}
                       className={`nav-item ${active ? 'active' : ''}`}
+                      title={item.label}
                     >
                       <Icon name={item.icon ?? 'dot'} size={17} style={{ opacity: 0.9 }} />
-                      {item.label}
+                      <span className="nav-label">{item.label}</span>
+                      {count > 0 ? <span className="nav-count">{count}</span> : null}
+                      {amber ? <span className="nav-dot" aria-hidden /> : null}
                     </Link>
                   )
                 })}
@@ -293,19 +453,36 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
             ))}
 
             <div style={{ marginTop: 'auto', paddingTop: 16 }}>
+              {/* Connections — furniture near Settings; crimson when token bad. */}
+              <Link
+                href="/app/connections"
+                className={`nav-item ${isActivePath(pathname, '/app/connections') ? 'active' : ''}`}
+                title="Connections"
+              >
+                <Icon name="plug" size={17} style={{ opacity: 0.9 }} />
+                <span className="nav-label">Connections</span>
+                {indicators.connectionIssue ? (
+                  <span className="nav-dot-danger" aria-label="Connection issue" />
+                ) : null}
+              </Link>
               {/* Settings is workspace furniture, not a module — always reachable. */}
               <Link
                 href="/app/settings/organization"
                 className={`nav-item ${pathname.startsWith('/app/settings') ? 'active' : ''}`}
+                title="Settings"
               >
                 <Icon name="settings" size={17} style={{ opacity: 0.9 }} />
-                Settings
+                <span className="nav-label">Settings</span>
               </Link>
-              <div className="nav-item" style={{ cursor: 'default' }}>
+              <div
+                className="nav-item"
+                style={{ cursor: 'default' }}
+                title={ws.user.name || ws.user.email}
+              >
                 <span className="avatar">
                   {(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}
                 </span>
-                <span style={{ minWidth: 0 }}>
+                <span className="user-meta" style={{ minWidth: 0 }}>
                   <div
                     style={{
                       fontSize: 13,
@@ -325,14 +502,44 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               {ws.viewOnly ? null : <SignOutButton />}
             </div>
           </aside>
-          <main className="main">
-            {ws.viewOnly ? <ViewOnlyBanner organizationName={ws.organization?.name} /> : null}
-            {children}
-          </main>
+
+          <div className="shell-content">
+            <header className="topbar-desktop">
+              <div className="dim" style={{ fontSize: 13, fontWeight: 500 }}>
+                {pageContext}
+              </div>
+              <button
+                type="button"
+                className="topbar-desktop-hint"
+                onClick={() => openCommandPalette()}
+                aria-label="Open command palette"
+              >
+                <Icon name="search" size={14} />
+                <span>Search</span>
+                <kbd>⌘K</kbd>
+              </button>
+            </header>
+            <main className="main">
+              {ws.viewOnly ? <ViewOnlyBanner organizationName={ws.organization?.name} /> : null}
+              {children}
+            </main>
+          </div>
+
+          <CommandPalette />
         </div>
       </ToastProvider>
     </WorkspaceContext.Provider>
   )
+}
+
+function pageContextLabel(pathname: string): string {
+  const parts = pathname
+    .replace(/^\/app\/?/, '')
+    .split('/')
+    .filter(Boolean)
+  if (parts.length === 0) return 'Home'
+  const last = parts[parts.length - 1] ?? 'Home'
+  return last.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /**
@@ -381,18 +588,21 @@ function ViewOnlyBanner({ organizationName }: { organizationName?: string | unde
 function OrgSwitcher({
   session,
   activeId,
+  identityName,
+  collapsed,
   onSwitched,
 }: {
   session: AuthSession
   activeId: string | null
+  identityName: string
+  collapsed: boolean
   onSwitched: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const active = session.organizations.find((o) => o.organizationId === activeId)
-
-  // Only worth showing a switcher when there is more than one workspace.
-  if (session.organizations.length <= 1) return null
+  const canSwitch = session.organizations.length > 1
+  const label = active?.name ?? identityName
 
   async function pick(orgId: string) {
     if (orgId === activeId) {
@@ -414,17 +624,29 @@ function OrgSwitcher({
   return (
     <div style={{ position: 'relative', margin: '4px 0 8px' }}>
       <button
-        className="btn"
+        className="btn org-switcher-btn"
         style={{ width: '100%', justifyContent: 'space-between' }}
-        onClick={() => setOpen((v) => !v)}
-        disabled={busy}
+        onClick={() => {
+          if (canSwitch) setOpen((v) => !v)
+        }}
+        disabled={busy || !canSwitch}
+        title={label}
+        aria-haspopup={canSwitch ? 'listbox' : undefined}
+        aria-expanded={canSwitch ? open : undefined}
       >
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {busy ? 'Switching…' : (active?.name ?? 'Select workspace')}
+        <span
+          className="org-switcher-label"
+          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+        >
+          {busy ? 'Switching…' : label}
         </span>
-        <Icon name="chevron-down" size={15} className="dim" />
+        {collapsed ? (
+          <Icon name="building" size={16} className="dim" />
+        ) : canSwitch ? (
+          <Icon name="chevron-down" size={15} className="dim" />
+        ) : null}
       </button>
-      {open && (
+      {open && canSwitch ? (
         <div
           className="card"
           style={{
@@ -435,6 +657,7 @@ function OrgSwitcher({
             zIndex: 10,
             padding: 6,
             marginTop: 4,
+            minWidth: collapsed ? 200 : undefined,
           }}
         >
           {session.organizations.map((o) => (
@@ -460,7 +683,7 @@ function OrgSwitcher({
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -470,15 +693,17 @@ function ThemeToggle() {
   useEffect(() => {
     setDark(document.documentElement.dataset['theme'] === 'dark')
   }, [])
+  const label = dark ? 'Light mode' : 'Dark mode'
   return (
     <button
       className="nav-item"
       style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
       onClick={() => setDark(toggleTheme() === 'dark')}
       aria-label="Toggle colour theme"
+      title={label}
     >
       <Icon name={dark ? 'sun' : 'moon'} size={16} style={{ opacity: 0.9 }} />
-      {dark ? 'Light mode' : 'Dark mode'}
+      <span className="nav-label">{label}</span>
     </button>
   )
 }
@@ -491,6 +716,7 @@ function SignOutButton() {
       className="nav-item"
       style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
       disabled={busy}
+      title={busy ? 'Signing out…' : 'Sign out'}
       onClick={async () => {
         setBusy(true)
         clearShellCache()
@@ -503,7 +729,7 @@ function SignOutButton() {
       }}
     >
       <Icon name="log-out" size={16} style={{ opacity: 0.9 }} />
-      {busy ? 'Signing out…' : 'Sign out'}
+      <span className="nav-label">{busy ? 'Signing out…' : 'Sign out'}</span>
     </button>
   )
 }

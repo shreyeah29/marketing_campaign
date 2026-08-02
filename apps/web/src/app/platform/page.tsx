@@ -10,6 +10,7 @@ import type { OrgListItem } from '@/lib/types'
 import { Banner, LoadingScreen, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { StatusPill, toStatus } from '@/components/status'
+import { Icon } from '@/components/icon'
 
 export default function OrganizationsPage() {
   const router = useRouter()
@@ -44,7 +45,7 @@ export default function OrganizationsPage() {
           <p className="page-sub">Every tenant on the platform. Provision, inspect and manage.</p>
         </div>
         <Link href="/platform/organizations/new" className="btn primary">
-          ＋ New organization
+          <Icon name="plus" size={16} /> New organization
         </Link>
       </div>
 
@@ -103,7 +104,7 @@ export default function OrganizationsPage() {
                               height: 26,
                               objectFit: 'contain',
                               borderRadius: 7,
-                              background: '#fff',
+                              background: 'var(--surface-raised)',
                               border: '1px solid var(--border)',
                             }}
                           />

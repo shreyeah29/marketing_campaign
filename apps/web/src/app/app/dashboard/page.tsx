@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react'
 
+import Link from 'next/link'
+
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, StatCard, TableSkeleton } from '@/components/kit'
 import { DonutChart, LineChart } from '@/components/charts'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
+import { Icon } from '@/components/icon'
 
 import { useWorkspace } from '../layout'
 
@@ -127,7 +130,7 @@ export default function DashboardPage() {
     <>
       <PageHeader
         title={`Welcome, ${orgName}`}
-        subtitle={`${ws.plan?.name ?? 'No plan'} · ${ws.enabledFeatures.length} modules enabled`}
+        subtitle={`${ws.enabledFeatures.length} modules enabled`}
       />
 
       {loading ? (
@@ -136,6 +139,12 @@ export default function DashboardPage() {
         <ErrorState message={error} onRetry={load} />
       ) : (
         <div className="stack" style={{ gap: 22 }}>
+          {/* Needs your attention — the one strip to check every morning. */}
+          <AttentionStrip
+            awaitingReview={overview?.assetsGenerated ?? 0}
+            newLeads={funnel.find((s) => s.stage === 'NEW')?.count ?? 0}
+          />
+
           {/* KPI row — cascades in on load */}
           <Stagger className="cols-4 grid" interval={0.05}>
             <StaggerItem>
@@ -287,5 +296,72 @@ export default function DashboardPage() {
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * The morning-glance strip: what needs a human right now. Quiet when all clear —
+ * a pulsing green dot instead of a wall of zeros.
+ */
+function AttentionStrip({
+  awaitingReview,
+  newLeads,
+}: {
+  awaitingReview: number
+  newLeads: number
+}) {
+  const items: { icon: string; label: string; href: string }[] = []
+  if (awaitingReview > 0)
+    items.push({
+      icon: 'check-square',
+      label: `${awaitingReview} asset${awaitingReview === 1 ? '' : 's'} awaiting your review`,
+      href: '/app/marketing/campaigns',
+    })
+  if (newLeads > 0)
+    items.push({
+      icon: 'filter',
+      label: `${newLeads} new lead${newLeads === 1 ? '' : 's'} to contact`,
+      href: '/app/crm/leads',
+    })
+
+  return (
+    <FadeIn
+      className="card"
+      style={{
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        flexWrap: 'wrap',
+      }}
+    >
+      {items.length === 0 ? (
+        <>
+          <span className="pulse-dot" />
+          <span className="muted" style={{ fontSize: 13 }}>
+            All clear — nothing needs your attention right now.
+          </span>
+        </>
+      ) : (
+        <>
+          <span
+            style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--warn)' }}
+          >
+            NEEDS ATTENTION
+          </span>
+          {items.map((it) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className="chip"
+              style={{ borderColor: 'color-mix(in srgb, var(--warn) 45%, transparent)' }}
+            >
+              <Icon name={it.icon as never} size={13} /> {it.label}
+              <Icon name="chevron-right" size={12} />
+            </Link>
+          ))}
+        </>
+      )}
+    </FadeIn>
   )
 }

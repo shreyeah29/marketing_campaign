@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
 import { Field } from '@/components/ui'
 import { MetaConnectCard } from '@/components/meta-connect'
 
@@ -11,6 +12,8 @@ interface OrgSettings {
   tagline?: string | null
   brandVoice?: string | null
   targetAudience?: string | null
+  monthlyReportEnabled?: boolean
+  reportRecipientEmail?: string | null
 }
 
 interface Organization {
@@ -42,6 +45,8 @@ export default function OrganizationSettingsPage() {
         tagline: res?.settings?.tagline ?? '',
         brandVoice: res?.settings?.brandVoice ?? '',
         targetAudience: res?.settings?.targetAudience ?? '',
+        monthlyReportEnabled: res?.settings?.monthlyReportEnabled ?? false,
+        reportRecipientEmail: res?.settings?.reportRecipientEmail ?? '',
       })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load organization')
@@ -64,6 +69,8 @@ export default function OrganizationSettingsPage() {
         tagline: form.tagline || null,
         brandVoice: form.brandVoice || null,
         targetAudience: form.targetAudience || null,
+        monthlyReportEnabled: form.monthlyReportEnabled ?? false,
+        reportRecipientEmail: form.reportRecipientEmail?.trim() || null,
       })
       toast.push('success', 'Organization updated')
     } catch (err) {
@@ -82,7 +89,7 @@ export default function OrganizationSettingsPage() {
       ) : error ? (
         <ErrorState message={error} onRetry={load} />
       ) : (
-        <div className="card" style={{ maxWidth: 640 }}>
+        <FadeIn delay={0.12} className="card" style={{ maxWidth: 640 }}>
           <div className="cols-2 grid" style={{ marginBottom: 18 }}>
             <Field label="Name">
               <input className="input" value={org?.name ?? ''} disabled />
@@ -125,16 +132,41 @@ export default function OrganizationSettingsPage() {
             />
           </Field>
 
+          {/* Monthly report — composed and sent by the worker on the 1st. */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+            <label className="row" style={{ gap: 8, marginBottom: 12 }}>
+              <input
+                type="checkbox"
+                checked={form.monthlyReportEnabled ?? false}
+                onChange={(e) => setForm({ ...form, monthlyReportEnabled: e.target.checked })}
+              />
+              <span>Email a monthly performance report</span>
+            </label>
+            {form.monthlyReportEnabled ? (
+              <Field label="Report recipient" hint="Leave empty to send it to the workspace owner.">
+                <input
+                  className="input"
+                  type="email"
+                  value={form.reportRecipientEmail ?? ''}
+                  onChange={(e) => setForm({ ...form, reportRecipientEmail: e.target.value })}
+                  placeholder="reports@yourcompany.com"
+                />
+              </Field>
+            ) : null}
+          </div>
+
           <div className="row" style={{ marginTop: 8 }}>
             <button className="btn primary" onClick={save} disabled={saving}>
               {saving ? 'Saving…' : 'Save changes'}
             </button>
           </div>
-        </div>
+        </FadeIn>
       )}
 
       {/* Channel connections — Meta powers ads, lead capture and insights. */}
-      <MetaConnectCard />
+      <FadeIn delay={0.18}>
+        <MetaConnectCard />
+      </FadeIn>
     </>
   )
 }

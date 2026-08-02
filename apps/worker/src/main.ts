@@ -21,6 +21,7 @@ import {
   type TenantJobData,
 } from './queues.js'
 import { MetaPoller } from './meta/poller.js'
+import { MonthlyReportPoller } from './reports/poller.js'
 import { SchedulePoller } from './schedule-poller.js'
 import { createWorkflowHandler } from './workflow/executor.js'
 
@@ -258,6 +259,11 @@ async function bootstrap(): Promise<void> {
   const metaPoller = new MetaPoller(dispatcherDb, env, logger)
   metaPoller.start()
 
+  // Monthly client reports. Owner connection: enumerates opted-in organisations
+  // across tenants; delivery itself rides the schedule poller's email drain.
+  const reportPoller = new MonthlyReportPoller(dispatcherDb, logger)
+  reportPoller.start()
+
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'shutting down worker')
 
@@ -267,6 +273,7 @@ async function bootstrap(): Promise<void> {
     await dispatcher.stop()
     await schedulePoller.stop()
     await metaPoller.stop()
+    await reportPoller.stop()
     await Promise.all(workers.map((worker) => worker.close()))
     await bullRedis.quit()
     await db.$disconnect()

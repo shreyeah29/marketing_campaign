@@ -728,6 +728,12 @@ model OrganizationSettings {
   monthlyAiBudgetUsd Decimal? @map("monthly_ai_budget_usd") @db.Decimal(12, 2)
   hardStopOnBudget   Boolean  @default(true) @map("hard_stop_on_budget")
 
+  // Monthly performance report emailed to the client. Off by default — the
+  // operator (or an org admin) opts each organisation in. When no recipient is
+  // set the report goes to the organisation OWNER's email.
+  monthlyReportEnabled Boolean @default(false) @map("monthly_report_enabled")
+  reportRecipientEmail String? @map("report_recipient_email")
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("organization_settings")

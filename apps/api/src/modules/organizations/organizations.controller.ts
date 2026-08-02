@@ -27,6 +27,10 @@ const updateSettingsSchema = z
     // client cannot set an out-of-range level the orchestrator does not handle.
     autonomyLevel: z.number().int().min(0).max(3).optional(),
     requireContentApproval: z.boolean().optional(),
+    // Monthly performance report emailed to the client. When no recipient is
+    // set the report goes to the organisation owner's email.
+    monthlyReportEnabled: z.boolean().optional(),
+    reportRecipientEmail: z.string().email().max(320).nullish(),
   })
   .strict()
 
@@ -70,6 +74,8 @@ export class OrganizationsController {
         requireContentApproval: org.settings.requireContentApproval,
         monthlyAiBudgetUsd: org.settings.monthlyAiBudgetUsd?.toString() ?? null,
         hardStopOnBudget: org.settings.hardStopOnBudget,
+        monthlyReportEnabled: org.settings.monthlyReportEnabled,
+        reportRecipientEmail: org.settings.reportRecipientEmail,
       },
     }
   }
@@ -103,6 +109,12 @@ export class OrganizationsController {
           ...(input.requireContentApproval === undefined
             ? {}
             : { requireContentApproval: input.requireContentApproval }),
+          ...(input.monthlyReportEnabled === undefined
+            ? {}
+            : { monthlyReportEnabled: input.monthlyReportEnabled }),
+          ...(input.reportRecipientEmail === undefined
+            ? {}
+            : { reportRecipientEmail: input.reportRecipientEmail }),
         },
       })
 

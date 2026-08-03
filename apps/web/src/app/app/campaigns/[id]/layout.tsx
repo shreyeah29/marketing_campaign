@@ -7,7 +7,12 @@ import type { ReactNode } from 'react'
 import { Icon } from '@/components/icon'
 import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
-import { CampaignProvider, SaveTemplateButton, useCampaign } from '@/components/campaign-studio'
+import {
+  CampaignProvider,
+  CampaignProgress,
+  SaveTemplateButton,
+  useCampaign,
+} from '@/components/campaign-studio'
 
 function CampaignTabs() {
   const { campaignId, campaign, loading, showPerformance } = useCampaign()
@@ -16,7 +21,7 @@ function CampaignTabs() {
 
   const tabs: { href: string; label: string; hide?: boolean }[] = [
     { href: `${base}/strategy`, label: 'Strategy' },
-    { href: `${base}/assets`, label: 'Assets' },
+    { href: `${base}/assets`, label: 'Creatives' },
     { href: `${base}/schedule`, label: 'Schedule' },
     { href: `${base}/performance`, label: 'Performance', hide: !showPerformance },
     { href: `${base}/report`, label: 'Report' },
@@ -43,6 +48,8 @@ function CampaignTabs() {
           {campaign?.status ? <StatusPill status={toStatus(campaign.status)} /> : null}
         </div>
       </div>
+
+      <CampaignProgress />
 
       <nav
         className="row"

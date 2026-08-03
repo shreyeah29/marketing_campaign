@@ -1,4 +1,4 @@
-export type { Asset, Campaign, CampaignPlan, CreateDraft } from './types'
+export type { Asset, Campaign, CampaignPlan, CreateDraft, ContentPiece } from './types'
 export { fetchCampaigns, fetchCampaignById, fetchAssets } from './api'
 export {
   CHIPS,
@@ -44,7 +44,16 @@ export { PlanView } from './plan-view'
 export type { SectionId } from './plan-view'
 export { WorkspaceView } from './workspace-view'
 export { AssetEditor, PublishDialog } from './asset-editor'
-export { ReviewQueue } from './review-queue'
+export { CreativeStudio, ReviewQueue } from './creative-studio'
+export { CampaignProgress } from './campaign-progress'
+export {
+  groupIntoContentPieces,
+  pieceStatus,
+  piecePlatforms,
+  piecePreviewUrl,
+  piecePrimaryCaption,
+} from './content-pieces'
+export { approveCampaignAsset } from './approve-asset'
 export {
   OverviewSection,
   StrategySection,
@@ -55,4 +64,3 @@ export {
 } from './sections'
 export { TemplatePicker, SaveTemplateButton } from './templates'
 export { CampaignProvider, useCampaign } from './campaign-context'
-export { approveCampaignAsset } from './approve-asset'

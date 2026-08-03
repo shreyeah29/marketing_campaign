@@ -16,7 +16,7 @@ import {
 
 /**
  * Campaign studio — `/app/create`.
- * Step 1: prompt → wizard (platforms → media → audience) → strategy overview.
+ * Step 1: prompt → wizard (platforms → deliverables → audience) → strategy.
  */
 export default function CreatePage() {
   return (
@@ -56,6 +56,11 @@ function CreateInner() {
       formats: ['posts'],
       wantPosters: true,
       wantVideos: false,
+      postCount: 5,
+      videoCount: 0,
+      adPlatforms: [],
+      wantEmails: false,
+      wantLanding: false,
       updatedAt: new Date().toISOString(),
     })
     router.push(`/app/create/wizard/${draftId}?step=platforms`)

@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { useParams, usePathname } from 'next/navigation'
 
-import { ReviewQueue } from '@/components/campaign-studio'
+import { CreativeStudio } from '@/components/campaign-studio'
 
 export default function CampaignAssetsLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ id: string }>()
@@ -12,5 +12,5 @@ export default function CampaignAssetsLayout({ children }: { children: ReactNode
   const rest = pathname.startsWith(base + '/') ? pathname.slice(base.length + 1) : ''
   const selectedAssetId = rest && !rest.includes('/') ? rest : null
 
-  return <ReviewQueue selectedAssetId={selectedAssetId} drawer={children} />
+  return <CreativeStudio selectedAssetId={selectedAssetId} drawer={children} />
 }

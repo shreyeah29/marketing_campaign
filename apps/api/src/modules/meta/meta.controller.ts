@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Post, Put } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Inject, Post, Put } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -33,7 +33,14 @@ const assetsSchema = z
 @ApiTags('Meta')
 @Controller('meta')
 export class MetaController {
-  constructor(private readonly connect: MetaConnectService) {}
+  // `@Inject` is mandatory here, not stylistic. Production runs the API through
+  // tsx (esbuild), which does not implement `emitDecoratorMetadata` — so
+  // `design:paramtypes` is never emitted no matter what tsconfig says. Nest then
+  // sees a constructor with no parameters, builds the controller with none, and
+  // every dependency is silently `undefined` until a request dereferences it.
+  // Injecting by explicit token is what every other controller in this codebase
+  // does, and it is the only form that survives the runtime.
+  constructor(@Inject(MetaConnectService) private readonly connect: MetaConnectService) {}
 
   @Get('oauth/url')
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)

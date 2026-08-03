@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common'
+import { Body, Controller, Get, Inject, Param, Post, Put } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -55,8 +55,8 @@ const rejectSchema = z.object({ reason: z.string().min(1).max(1000) })
 @Controller('meta/campaigns')
 export class MetaAdsController {
   constructor(
-    private readonly campaigns: AdCampaignService,
-    private readonly publisher: AdPublishService,
+    @Inject(AdCampaignService) private readonly campaigns: AdCampaignService,
+    @Inject(AdPublishService) private readonly publisher: AdPublishService,
   ) {}
 
   @Post()

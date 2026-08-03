@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common'
+import { Controller, Get, Inject, Query } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import type { Principal } from '../../common/auth/principal.js'
@@ -15,7 +15,7 @@ import { AdAnalyticsService, type DateRange } from './ad-analytics.service.js'
 @ApiTags('Campaign Analytics')
 @Controller('meta/analytics')
 export class AdAnalyticsController {
-  constructor(private readonly analytics: AdAnalyticsService) {}
+  constructor(@Inject(AdAnalyticsService) private readonly analytics: AdAnalyticsService) {}
 
   @Get('summary')
   @RequirePermissions(PERMISSIONS.ORG_READ)

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Inject, Param, Post, Put } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
@@ -37,7 +37,7 @@ const updateSchema = createSchema.partial()
 @ApiTags('Chatbot')
 @Controller('meta/chatbot-flows')
 export class ChatbotController {
-  constructor(private readonly flows: ChatbotService) {}
+  constructor(@Inject(ChatbotService) private readonly flows: ChatbotService) {}
 
   @Post()
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)

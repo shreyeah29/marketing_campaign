@@ -130,7 +130,10 @@ function IntakeInner() {
     if (!draft) return
     const brief = buildBriefFromDraft(draft)
     upsertDraft(draftId, { brief, step: 'duration' })
-    router.push(`/app/create/strategy/${draftId}`)
+    // Route through the planning screen so the user watches the plan being
+    // built rather than staring at a spinner; it redirects on to the strategy
+    // once the plan lands, and falls through to it on failure.
+    router.push(`/app/create/generating/${draftId}?phase=strategy`)
   }
 
   const recommended = useMemo(() => {
@@ -201,7 +204,7 @@ function IntakeInner() {
         <button type="button" className="btn ghost sm" onClick={() => router.push('/app/create')}>
           <Icon name="arrow-left" size={14} /> Command Center
         </button>
-        <span className={`intake-saved${savedFlash ? 'is-on' : ''}`} aria-live="polite">
+        <span className={`intake-saved${savedFlash ? ' is-on' : ''}`} aria-live="polite">
           {savedFlash ? 'Saved' : ''}
         </span>
       </div>
@@ -214,7 +217,7 @@ function IntakeInner() {
             <button
               key={s}
               type="button"
-              className={`intake-dot${current ? 'is-current' : ''}${done ? 'is-done' : ''}`}
+              className={`intake-dot${current ? ' is-current' : ''}${done ? ' is-done' : ''}`}
               aria-current={current ? 'step' : undefined}
               aria-label={`Step ${i + 1}: ${s}`}
               disabled={i > stepIndex}
@@ -245,7 +248,7 @@ function IntakeInner() {
                 <button
                   key={o.id}
                   type="button"
-                  className={`intake-obj${on ? 'is-selected' : ''}`}
+                  className={`intake-obj${on ? ' is-selected' : ''}`}
                   onClick={() => save({ objective: o.id, channels: undefined })}
                 >
                   <Icon name={o.icon} size={18} />
@@ -274,7 +277,7 @@ function IntakeInner() {
               return (
                 <div
                   key={c.id}
-                  className={`intake-channel${on ? 'is-selected' : ''}${!isConnected ? 'is-dim' : ''}`}
+                  className={`intake-channel${on ? ' is-selected' : ''}${!isConnected ? ' is-dim' : ''}`}
                 >
                   <button
                     type="button"
@@ -501,7 +504,7 @@ function IntakeInner() {
               <button
                 key={d}
                 type="button"
-                className={`intake-duration${draft.durationDays === d ? 'is-selected' : ''}`}
+                className={`intake-duration${draft.durationDays === d ? ' is-selected' : ''}`}
                 onClick={() =>
                   save({
                     durationDays: d,

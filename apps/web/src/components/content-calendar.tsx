@@ -378,7 +378,7 @@ export function ContentCalendar({
     return (
       <div
         key={key}
-        className={`cal-day${isToday ? 'is-today' : ''}${past ? 'is-past' : ''}${hint ? (hint.ok ? 'is-drop-ok' : 'is-drop-bad') : ''}`}
+        className={`cal-day${isToday ? ' is-today' : ''}${past ? ' is-past' : ''}${hint ? (hint.ok ? ' is-drop-ok' : ' is-drop-bad') : ''}`}
         onDragOver={(e) => {
           e.preventDefault()
           const v = dropValidity(d)
@@ -419,7 +419,7 @@ export function ContentCalendar({
             {hours.map((h) => {
               const recommended = Object.values(OPTIMAL_HOURS).includes(h)
               return (
-                <div key={h} className={`cal-hour${recommended ? 'is-optimal' : ''}`}>
+                <div key={h} className={`cal-hour${recommended ? ' is-optimal' : ''}`}>
                   <span className="strat-mono type-caption">{String(h).padStart(2, '0')}:00</span>
                 </div>
               )
@@ -617,7 +617,7 @@ export function ContentCalendar({
                   {unscheduled.map((a) => (
                     <li
                       key={a.id}
-                      className={`cal-rail-item${pickIds.includes(a.id) ? 'is-picked' : ''}`}
+                      className={`cal-rail-item${pickIds.includes(a.id) ? ' is-picked' : ''}`}
                       draggable
                       onDragStart={(e) => {
                         setDragId(a.id)
@@ -846,7 +846,7 @@ function PublishCampaignModal({
                 {channels.map((c) => (
                   <li
                     key={c.platform}
-                    className={`cal-publish__row${!c.connected ? 'is-bad' : ''}`}
+                    className={`cal-publish__row${!c.connected ? ' is-bad' : ''}`}
                   >
                     <PlatformIcon platform={c.platform} size={16} />
                     <span>
@@ -875,7 +875,7 @@ function PublishCampaignModal({
               {rows.map((r) => (
                 <li
                   key={r.platform}
-                  className={`cal-publish__row${r.status === 'fail' ? 'is-bad' : ''}${r.status === 'ok' ? 'is-ok' : ''}`}
+                  className={`cal-publish__row${r.status === 'fail' ? ' is-bad' : ''}${r.status === 'ok' ? ' is-ok' : ''}`}
                 >
                   <PlatformIcon platform={r.platform} size={16} />
                   <span>{r.platform}</span>

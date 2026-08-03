@@ -230,7 +230,7 @@ export function LeadsWorkspace({ initialView = 'inbox' }: { initialView?: 'inbox
             return (
               <div
                 key={stage.id}
-                className={`leads-kanban__col${won ? 'is-won' : ''}${lost ? 'is-lost' : ''}`}
+                className={`leads-kanban__col${won ? ' is-won' : ''}${lost ? ' is-lost' : ''}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
                   const lead = leads.find((x) => x.id === dragId)
@@ -249,7 +249,7 @@ export function LeadsWorkspace({ initialView = 'inbox' }: { initialView?: 'inbox
                     <button
                       key={l.id}
                       type="button"
-                      className={`leads-kanban__card${flashIds.has(l.id) ? 'is-flash' : ''}`}
+                      className={`leads-kanban__card${flashIds.has(l.id) ? ' is-flash' : ''}`}
                       draggable
                       onDragStart={() => setDragId(l.id)}
                       onDragEnd={() => setDragId(null)}

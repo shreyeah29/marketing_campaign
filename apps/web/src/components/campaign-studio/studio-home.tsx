@@ -37,8 +37,8 @@ export function CampaignStudioHome({
         </p>
         <h1 className="wiz__title">What campaign are we building?</h1>
         <p className="wiz__sub type-secondary">
-          Describe it in plain language. Next we will pick platforms, creatives, and audience —
-          step by step.
+          Describe it in plain language. Next we will pick platforms, creatives, and audience — step
+          by step.
         </p>
       </header>
 

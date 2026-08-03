@@ -70,5 +70,31 @@ export interface CreateDraft {
   wantVideos?: boolean | undefined
   /** Visual direction / look & feel. */
   lookFeel?: string | undefined
+  /** Exact number of unique social post concepts (not per-platform). */
+  postCount?: 3 | 5 | 10 | 20 | undefined
+  /** Number of unique video concepts (0–3). */
+  videoCount?: 0 | 1 | 2 | 3 | undefined
+  /** Ad platforms to generate for. */
+  adPlatforms?: string[] | undefined
+  /** Generate email sequence copy. */
+  wantEmails?: boolean | undefined
+  /** Generate landing page copy. */
+  wantLanding?: boolean | undefined
   updatedAt: string
+}
+
+/**
+ * Client-only grouping of flat API assets into one creative concept
+ * with platform adaptations. Not persisted — derived from Asset[].
+ */
+export interface ContentPiece {
+  id: string
+  index: number
+  label: string
+  /** Master IMAGE_PROMPT or VIDEO_PROMPT when present. */
+  master: Asset | null
+  /** Platform copy adaptations (POST, CAPTION, AD_*, etc.). */
+  adaptations: Asset[]
+  /** All assets in this piece (master first). */
+  assets: Asset[]
 }

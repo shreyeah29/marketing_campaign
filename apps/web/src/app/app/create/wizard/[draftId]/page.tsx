@@ -3,10 +3,7 @@
 import { Suspense } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
 
-import {
-  CampaignWizard,
-  normalizeWizardStep,
-} from '@/components/campaign-studio'
+import { CampaignWizard, normalizeWizardStep } from '@/components/campaign-studio'
 import { LoadingScreen } from '@/components/ui'
 
 export default function CreateWizardPage() {

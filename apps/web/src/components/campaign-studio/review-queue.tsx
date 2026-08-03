@@ -209,9 +209,7 @@ export function ReviewQueue({
         const result = await approveCampaignAsset(asset)
         toast.push(
           'success',
-          result === 'generated'
-            ? 'Creative generating — refresh in a moment'
-            : 'Approved',
+          result === 'generated' ? 'Creative generating — refresh in a moment' : 'Approved',
         )
       } else if (action === 'reject') {
         await api.post(`/campaign-assets/${asset.id}/reject`, {})
@@ -250,7 +248,7 @@ export function ReviewQueue({
             <li key={f.id}>
               <button
                 type="button"
-                className={`rq__filter${statusFilter === f.id ? 'is-active' : ''}`}
+                className={`rq__filter${statusFilter === f.id ? ' is-active' : ''}`}
                 onClick={() => setStatusFilter(f.id)}
               >
                 <span>{f.label}</span>
@@ -265,7 +263,7 @@ export function ReviewQueue({
           <li>
             <button
               type="button"
-              className={`rq__filter${channel === null ? 'is-active' : ''}`}
+              className={`rq__filter${channel === null ? ' is-active' : ''}`}
               onClick={() => setChannel(null)}
             >
               All channels
@@ -275,7 +273,7 @@ export function ReviewQueue({
             <li key={p}>
               <button
                 type="button"
-                className={`rq__filter${channel === p ? 'is-active' : ''}`}
+                className={`rq__filter${channel === p ? ' is-active' : ''}`}
                 onClick={() => setChannel(p)}
               >
                 <PlatformIcon platform={p} size={14} />
@@ -290,7 +288,7 @@ export function ReviewQueue({
           <li>
             <button
               type="button"
-              className={`rq__filter${kind === null ? 'is-active' : ''}`}
+              className={`rq__filter${kind === null ? ' is-active' : ''}`}
               onClick={() => setKind(null)}
             >
               All types
@@ -300,7 +298,7 @@ export function ReviewQueue({
             <li key={k}>
               <button
                 type="button"
-                className={`rq__filter${kind === k ? 'is-active' : ''}`}
+                className={`rq__filter${kind === k ? ' is-active' : ''}`}
                 onClick={() => setKind(k)}
               >
                 {kindLabel(k)}

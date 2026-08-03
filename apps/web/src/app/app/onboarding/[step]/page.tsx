@@ -187,7 +187,7 @@ export default function OnboardingStepPage() {
             return (
               <li
                 key={s.id}
-                className={`onboard__step${current ? 'is-current' : ''}${done ? 'is-done' : ''}`}
+                className={`onboard__step${current ? ' is-current' : ''}${done ? ' is-done' : ''}`}
               >
                 <Link href={`/app/onboarding/${s.id}`} className="onboard__step-link">
                   <span className="onboard__step-n mono">{s.n}</span>

@@ -2,9 +2,7 @@ import { api } from '@/lib/api'
 import type { Asset } from './types'
 
 function isMediaConcept(asset: Pick<Asset, 'kind' | 'mediaUrl'>) {
-  return (
-    (asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT') && !asset.mediaUrl
-  )
+  return (asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT') && !asset.mediaUrl
 }
 
 /**

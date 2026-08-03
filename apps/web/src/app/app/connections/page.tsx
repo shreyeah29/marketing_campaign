@@ -281,7 +281,7 @@ export default function ConnectionsPage() {
       return (
         <StatusRail key={key} status={railStatus} className="conn-card">
           <div className="conn-card__head">
-            <span className={`conn-card__icon-wrap${m.connected ? '' : 'is-dim'}`}>
+            <span className={`conn-card__icon-wrap${m.connected ? '' : ' is-dim'}`}>
               <PlatformIcon platform={key} size={22} />
             </span>
             <div>
@@ -329,7 +329,7 @@ export default function ConnectionsPage() {
     return (
       <StatusRail key={key} status={railStatus} className="conn-card">
         <div className="conn-card__head">
-          <span className={`conn-card__icon-wrap${connected ? '' : 'is-dim'}`}>
+          <span className={`conn-card__icon-wrap${connected ? '' : ' is-dim'}`}>
             <PlatformIcon platform={key} size={22} />
           </span>
           <div>

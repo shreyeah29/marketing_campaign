@@ -56,7 +56,7 @@ export function PlanView({
 
   return (
     <ApprovalWipe approved={approved}>
-      <div className={`glimpse${approved ? 'is-approved' : ''}`}>
+      <div className={`glimpse${approved ? ' is-approved' : ''}`}>
         <div className="glimpse__top">
           <button type="button" className="btn ghost sm" onClick={onBack}>
             <Icon name="arrow-left" size={14} /> Back
@@ -411,7 +411,7 @@ function GlimpseBody({ glimpse }: { glimpse: Glimpse }) {
     return (
       <div className="glimpse-wa">
         {glimpse.caption.split('\n').map((line, i) => (
-          <div key={i} className={`glimpse-wa__bubble${line.startsWith('User') ? 'is-user' : ''}`}>
+          <div key={i} className={`glimpse-wa__bubble${line.startsWith('User') ? ' is-user' : ''}`}>
             {line}
           </div>
         ))}

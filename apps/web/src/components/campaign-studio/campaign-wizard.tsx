@@ -9,31 +9,24 @@ import { Icon } from '@/components/icon'
 import { Spinner } from '@/components/ui'
 import { PlatformIcon } from '@/components/platform-icon'
 import { BrowserDraftBanner } from './draft'
-import {
-  buildBriefFromDraft,
-  readDraft,
-  upsertDraft,
-} from './draft'
+import { buildBriefFromDraft, readDraft, upsertDraft } from './draft'
 import type { CampaignPlan, CreateDraft } from './types'
 
-export const WIZARD_STEPS = ['platforms', 'media', 'audience'] as const
+export const WIZARD_STEPS = ['platforms', 'deliverables', 'audience'] as const
 export type WizardStep = (typeof WIZARD_STEPS)[number]
 
 const PLATFORMS = [
   { id: 'Instagram', label: 'Instagram' },
   { id: 'Facebook', label: 'Facebook' },
   { id: 'LinkedIn', label: 'LinkedIn' },
-  { id: 'Email', label: 'Email' },
-  { id: 'WhatsApp', label: 'WhatsApp' },
+  { id: 'X', label: 'X' },
+  { id: 'Threads', label: 'Threads' },
   { id: 'YouTube', label: 'YouTube' },
 ] as const
 
-const FORMATS = [
-  { id: 'posts', label: 'Posts', hint: 'Feed content' },
-  { id: 'stories', label: 'Stories', hint: 'Ephemeral' },
-  { id: 'reels', label: 'Reels / Shorts', hint: 'Short video' },
-  { id: 'ads', label: 'Ads', hint: 'Paid placements' },
-] as const
+const POST_COUNTS = [3, 5, 10, 20] as const
+const VIDEO_COUNTS = [0, 1, 2, 3] as const
+const AD_PLATFORMS = ['Facebook', 'Instagram', 'Google', 'LinkedIn'] as const
 
 const LOOKS = [
   'Clean & clinical',
@@ -44,7 +37,7 @@ const LOOKS = [
 ] as const
 
 /**
- * Steps 2–4 after the prompt: platforms → AI media → audience/look → plan API → strategy.
+ * Steps after the prompt: platforms → deliverables → audience → plan → strategy.
  */
 export function CampaignWizard({ draftId, step }: { draftId: string; step: WizardStep }) {
   const router = useRouter()
@@ -53,7 +46,7 @@ export function CampaignWizard({ draftId, step }: { draftId: string; step: Wizar
   const [busy, setBusy] = useState(false)
 
   const stepIndex = WIZARD_STEPS.indexOf(step)
-  const displayStep = stepIndex + 2 // prompt was step 1
+  const displayStep = stepIndex + 2
 
   if (!draft) {
     return (
@@ -95,19 +88,21 @@ export function CampaignWizard({ draftId, step }: { draftId: string; step: Wizar
       upsertDraft(draftId, { brief, plan, step: 'strategy' })
       router.push(`/app/create/strategy/${draftId}`)
     } catch (e) {
-      toast.push('error', e instanceof ApiError ? e.message : 'Could not build the strategy overview')
+      toast.push(
+        'error',
+        e instanceof ApiError ? e.message : 'Could not build the strategy overview',
+      )
       setBusy(false)
     }
   }
 
   const channels = draft.channels ?? []
-  const formats = draft.formats ?? ['posts']
 
   return (
     <div className="wiz">
       <BrowserDraftBanner />
       <div className="wiz__progress" aria-label="Wizard progress">
-        {['Brief', 'Platforms', 'Creatives', 'Audience', 'Overview'].map((label, i) => {
+        {['Brief', 'Platforms', 'Deliverables', 'Audience', 'Overview'].map((label, i) => {
           const n = i + 1
           const active = n === displayStep
           const done = n < displayStep
@@ -131,30 +126,22 @@ export function CampaignWizard({ draftId, step }: { draftId: string; step: Wizar
       {step === 'platforms' ? (
         <PlatformsStep
           channels={channels}
-          formats={formats}
           onChannels={(v) => persist({ channels: v })}
-          onFormats={(v) => persist({ formats: v })}
           onBack={() => router.push('/app/create')}
           onNext={() => {
             if (!channels.length) {
               toast.push('error', 'Pick at least one platform')
               return
             }
-            if (!formats.length) {
-              toast.push('error', 'Pick at least one format')
-              return
-            }
-            go('media')
+            go('deliverables')
           }}
         />
       ) : null}
 
-      {step === 'media' ? (
-        <MediaStep
-          wantPosters={draft.wantPosters !== false}
-          wantVideos={Boolean(draft.wantVideos)}
-          onPosters={(v) => persist({ wantPosters: v })}
-          onVideos={(v) => persist({ wantVideos: v })}
+      {step === 'deliverables' ? (
+        <DeliverablesStep
+          draft={draft}
+          onPatch={persist}
           onBack={() => go('platforms')}
           onNext={() => go('audience')}
         />
@@ -167,7 +154,7 @@ export function CampaignWizard({ draftId, step }: { draftId: string; step: Wizar
           busy={busy}
           onAudience={(v) => persist({ audience: v })}
           onLook={(v) => persist({ lookFeel: v })}
-          onBack={() => go('media')}
+          onBack={() => go('deliverables')}
           onNext={() => go('strategy')}
         />
       ) : null}
@@ -177,64 +164,44 @@ export function CampaignWizard({ draftId, step }: { draftId: string; step: Wizar
 
 function PlatformsStep({
   channels,
-  formats,
   onChannels,
-  onFormats,
   onBack,
   onNext,
 }: {
   channels: string[]
-  formats: string[]
   onChannels: (v: string[]) => void
-  onFormats: (v: string[]) => void
   onBack: () => void
   onNext: () => void
 }) {
-  function toggle(list: string[], id: string, set: (v: string[]) => void) {
-    set(list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
-  }
-
   return (
     <section className="wiz__panel">
       <h1 className="wiz__title">Where should it publish?</h1>
       <p className="wiz__sub type-secondary">
-        Choose platforms and formats. You will approve creatives before anything goes live.
+        One master creative is reused across these platforms. Copy is adapted per channel — not
+        regenerated as separate images.
       </p>
 
       <p className="type-label" style={{ marginTop: 20 }}>
         Platforms
       </p>
       <div className="wiz__chip-grid">
-        {PLATFORMS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`wiz__chip${channels.includes(p.id) ? ' is-on' : ''}`}
-            onClick={() => toggle(channels, p.id, onChannels)}
-            aria-pressed={channels.includes(p.id)}
-          >
-            <PlatformIcon platform={p.id.toUpperCase()} size={18} />
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <p className="type-label" style={{ marginTop: 24 }}>
-        Formats
-      </p>
-      <div className="wiz__chip-grid">
-        {FORMATS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            className={`wiz__chip${formats.includes(f.id) ? ' is-on' : ''}`}
-            onClick={() => toggle(formats, f.id, onFormats)}
-            aria-pressed={formats.includes(f.id)}
-          >
-            <strong>{f.label}</strong>
-            <span className="type-caption">{f.hint}</span>
-          </button>
-        ))}
+        {PLATFORMS.map((p) => {
+          const on = channels.includes(p.id)
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className={`wiz__chip${on ? ' is-on' : ''}`}
+              onClick={() =>
+                onChannels(on ? channels.filter((x) => x !== p.id) : [...channels, p.id])
+              }
+              aria-pressed={on}
+            >
+              <PlatformIcon platform={p.id.toUpperCase()} size={18} />
+              {p.label}
+            </button>
+          )
+        })}
       </div>
 
       <WizardNav onBack={onBack} onNext={onNext} nextLabel="Continue" />
@@ -242,53 +209,146 @@ function PlatformsStep({
   )
 }
 
-function MediaStep({
-  wantPosters,
-  wantVideos,
-  onPosters,
-  onVideos,
+function DeliverablesStep({
+  draft,
+  onPatch,
   onBack,
   onNext,
 }: {
-  wantPosters: boolean
-  wantVideos: boolean
-  onPosters: (v: boolean) => void
-  onVideos: (v: boolean) => void
+  draft: CreateDraft
+  onPatch: (p: Partial<CreateDraft>) => void
   onBack: () => void
   onNext: () => void
 }) {
+  const postCount = draft.postCount ?? 5
+  const wantImages = draft.wantPosters !== false
+  const videoCount = draft.videoCount ?? 0
+  const adPlatforms = draft.adPlatforms ?? []
+  const wantEmails = Boolean(draft.wantEmails)
+  const wantLanding = Boolean(draft.wantLanding)
+
+  function toggleAd(id: string) {
+    onPatch({
+      adPlatforms: adPlatforms.includes(id)
+        ? adPlatforms.filter((x) => x !== id)
+        : [...adPlatforms, id],
+    })
+  }
+
   return (
     <section className="wiz__panel">
-      <h1 className="wiz__title">AI posters &amp; videos?</h1>
+      <h1 className="wiz__title">What should we generate?</h1>
       <p className="wiz__sub type-secondary">
-        If yes, image and video concepts are generated with the creative pipeline (Runway) after you
-        approve the strategy — then you review before posting.
+        Only what you select is produced. {postCount} posts means {postCount} unique creatives —
+        reused across platforms — not {postCount}× every channel.
       </p>
 
-      <div className="wiz__media-grid">
+      <p className="type-label" style={{ marginTop: 20 }}>
+        How many social posts?
+      </p>
+      <div className="wiz__chip-grid wiz__chip-grid--compact">
+        {POST_COUNTS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={`wiz__chip${postCount === n ? ' is-on' : ''}`}
+            onClick={() => onPatch({ postCount: n })}
+          >
+            <strong>{n}</strong>
+          </button>
+        ))}
+      </div>
+
+      <p className="type-label" style={{ marginTop: 24 }}>
+        Generate images?
+      </p>
+      <div className="wiz__chip-grid wiz__chip-grid--compact">
         <button
           type="button"
-          className={`wiz__media-card${wantPosters ? ' is-on' : ''}`}
-          onClick={() => onPosters(!wantPosters)}
-          aria-pressed={wantPosters}
+          className={`wiz__chip${wantImages ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantPosters: true, wantVideos: videoCount > 0 })}
         >
-          <Icon name="image" size={22} />
-          <strong>AI posters / stills</strong>
-          <span className="type-caption">
-            {wantPosters ? 'Yes — generate image concepts' : 'No — skip image generation'}
-          </span>
+          Yes — {postCount} master images
         </button>
         <button
           type="button"
-          className={`wiz__media-card${wantVideos ? ' is-on' : ''}`}
-          onClick={() => onVideos(!wantVideos)}
-          aria-pressed={wantVideos}
+          className={`wiz__chip${!wantImages ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantPosters: false })}
         >
-          <Icon name="video" size={22} />
-          <strong>AI videos</strong>
-          <span className="type-caption">
-            {wantVideos ? 'Yes — generate video concepts' : 'No — skip video generation'}
-          </span>
+          No
+        </button>
+      </div>
+
+      <p className="type-label" style={{ marginTop: 24 }}>
+        Generate videos?
+      </p>
+      <div className="wiz__chip-grid wiz__chip-grid--compact">
+        {VIDEO_COUNTS.map((n) => (
+          <button
+            key={n}
+            type="button"
+            className={`wiz__chip${videoCount === n ? ' is-on' : ''}`}
+            onClick={() => onPatch({ videoCount: n, wantVideos: n > 0 })}
+          >
+            <strong>{n}</strong>
+          </button>
+        ))}
+      </div>
+
+      <p className="type-label" style={{ marginTop: 24 }}>
+        Generate advertisements?
+      </p>
+      <div className="wiz__chip-grid">
+        {AD_PLATFORMS.map((p) => (
+          <button
+            key={p}
+            type="button"
+            className={`wiz__chip${adPlatforms.includes(p) ? ' is-on' : ''}`}
+            onClick={() => toggleAd(p)}
+            aria-pressed={adPlatforms.includes(p)}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+
+      <p className="type-label" style={{ marginTop: 24 }}>
+        Generate emails?
+      </p>
+      <div className="wiz__chip-grid wiz__chip-grid--compact">
+        <button
+          type="button"
+          className={`wiz__chip${wantEmails ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantEmails: true })}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          className={`wiz__chip${!wantEmails ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantEmails: false })}
+        >
+          No
+        </button>
+      </div>
+
+      <p className="type-label" style={{ marginTop: 24 }}>
+        Generate landing page?
+      </p>
+      <div className="wiz__chip-grid wiz__chip-grid--compact">
+        <button
+          type="button"
+          className={`wiz__chip${wantLanding ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantLanding: true })}
+        >
+          Yes
+        </button>
+        <button
+          type="button"
+          className={`wiz__chip${!wantLanding ? ' is-on' : ''}`}
+          onClick={() => onPatch({ wantLanding: false })}
+        >
+          No
         </button>
       </div>
 
@@ -320,7 +380,7 @@ function AudienceStep({
     <section className="wiz__panel">
       <h1 className="wiz__title">Who is it for, and how should it look?</h1>
       <p className="wiz__sub type-secondary">
-        A few details so the strategy overview matches your product and audience.
+        A few details so the strategy and creatives match your product and audience.
       </p>
 
       <label className="type-label" htmlFor="wiz-aud" style={{ marginTop: 16 }}>
@@ -387,12 +447,7 @@ function WizardNav({
       <button type="button" className="btn ghost" onClick={onBack} disabled={nextBusy}>
         <Icon name="arrow-left" size={14} /> Back
       </button>
-      <button
-        type="button"
-        className="btn primary"
-        disabled={nextDisabled}
-        onClick={onNext}
-      >
+      <button type="button" className="btn primary" disabled={nextDisabled} onClick={onNext}>
         {nextBusy ? <Spinner /> : null}
         {nextLabel}
       </button>
@@ -401,11 +456,11 @@ function WizardNav({
 }
 
 export function normalizeWizardStep(raw: string | null | undefined): WizardStep {
+  if (raw === 'media') return 'deliverables'
   if (raw && (WIZARD_STEPS as readonly string[]).includes(raw)) return raw as WizardStep
   return 'platforms'
 }
 
-/** Resume helper for drafts list. */
 export function wizardPathForDraft(d: CreateDraft): string {
   if (d.plan) return `/app/create/strategy/${d.id}`
   if (!d.channels?.length) return `/app/create/wizard/${d.id}?step=platforms`

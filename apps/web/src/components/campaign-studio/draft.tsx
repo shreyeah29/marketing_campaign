@@ -80,6 +80,11 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'wantPosters',
   'wantVideos',
   'lookFeel',
+  'postCount',
+  'videoCount',
+  'adPlatforms',
+  'wantEmails',
+  'wantLanding',
 ]
 
 export function upsertDraft(
@@ -127,17 +132,50 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
 
   if (draft.channels?.length) parts.push(`Channels: ${draft.channels.join(', ')}`)
 
-  if (draft.formats?.length)
-    parts.push(`Publish formats: ${draft.formats.join(', ')}`)
+  const postCount = draft.postCount ?? 5
+  const videoCount = draft.videoCount ?? (draft.wantVideos ? 1 : 0)
+  const wantImages = draft.wantPosters !== false
+  const adPlatforms = draft.adPlatforms ?? []
 
-  if (draft.wantPosters || draft.wantVideos) {
-    const media: string[] = []
-    if (draft.wantPosters) media.push('AI posters / static image creatives (Runway)')
-    if (draft.wantVideos) media.push('AI video concepts (Runway)')
-    parts.push(`Creative media: ${media.join('; ')}`)
-  } else if (draft.wantPosters === false && draft.wantVideos === false) {
-    parts.push('Creative media: copy and captions only — no AI image/video generation')
-  }
+  parts.push(
+    [
+      'DELIVERABLES (exact — do not invent extra):',
+      `- Social post concepts: exactly ${postCount} unique creative concepts.`,
+      wantImages
+        ? `- Images: exactly ${postCount} IMAGE_PROMPT assets (ONE master creative per concept). Title each "Concept 1:", "Concept 2:", …`
+        : '- Images: none — do not produce IMAGE_PROMPT assets.',
+      videoCount > 0
+        ? `- Videos: exactly ${videoCount} VIDEO_PROMPT assets. Title "Concept V1:", "Concept V2:", …`
+        : '- Videos: none — do not produce VIDEO_PROMPT assets.',
+      adPlatforms.length
+        ? `- Advertisements: AD_COPY / AD_HEADLINE / AD_DESCRIPTION for: ${adPlatforms.join(', ')} only.`
+        : '- Advertisements: none.',
+      draft.wantEmails
+        ? '- Email: produce email sequence copy as POST assets on platform GENERIC titled "Email: …".'
+        : '- Email: none.',
+      draft.wantLanding
+        ? '- Landing page: produce landing copy as POST on platform GENERIC titled "Landing: …".'
+        : '- Landing page: none.',
+    ].join('\n'),
+  )
+
+  parts.push(
+    [
+      'MASTER CREATIVE RULE (critical for credit efficiency):',
+      `Create exactly ${postCount} unique creative concepts.`,
+      'For EACH concept produce:',
+      wantImages
+        ? '1) ONE IMAGE_PROMPT (master visual) titled "Concept N: …" — body is the detailed image-generation prompt.'
+        : '1) No image prompt.',
+      `2) ONE primary caption (POST) titled "Concept N: …" for the first channel.`,
+      `3) Platform adaptations: additional POST assets for each of [${(draft.channels ?? []).join(', ') || 'Instagram'}], each titled with the SAME "Concept N:" prefix, adapting tone/length/hashtags per platform.`,
+      'Do NOT generate a separate image or video per platform.',
+      'Do NOT duplicate IMAGE_PROMPT rows across Instagram/Facebook/LinkedIn/X.',
+      'Reuse the same Concept N master creative conceptually across all platform adaptations.',
+    ].join('\n'),
+  )
+
+  if (draft.formats?.length) parts.push(`Publish formats: ${draft.formats.join(', ')}`)
 
   if (draft.lookFeel?.trim()) parts.push(`Look & feel: ${draft.lookFeel.trim()}`)
 

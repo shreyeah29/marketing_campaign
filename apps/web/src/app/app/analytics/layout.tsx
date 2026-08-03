@@ -132,7 +132,11 @@ export default function AnalyticsLayout({ children }: { children: ReactNode }) {
         {TABS.map((t) => {
           const active = pathname === t.href || pathname.startsWith(`${t.href}/`)
           return (
-            <Link key={t.href} href={t.href} className={`an-tabs__tab${active ? 'is-active' : ''}`}>
+            <Link
+              key={t.href}
+              href={t.href}
+              className={`an-tabs__tab${active ? ' is-active' : ''}`}
+            >
               {t.label}
             </Link>
           )

@@ -189,7 +189,7 @@ function GeneratingInner() {
             return (
               <li
                 key={label}
-                className={`gen-checklist__item${done ? 'is-done' : ''}${current ? 'is-current' : ''}`}
+                className={`gen-checklist__item${done ? ' is-done' : ''}${current ? ' is-current' : ''}`}
               >
                 <span className="gen-checklist__tick" aria-hidden>
                   {done ? '✓' : i + 1}
@@ -306,7 +306,7 @@ function GeneratingInner() {
           Back to Create
         </button>
         <Link
-          className={`btn primary${firstGroupComplete ? '' : 'is-disabled'}`}
+          className={`btn primary${firstGroupComplete ? '' : ' is-disabled'}`}
           href={firstGroupComplete ? reviewHref : '#'}
           aria-disabled={!firstGroupComplete}
           onClick={(e: MouseEvent<HTMLAnchorElement>) => {

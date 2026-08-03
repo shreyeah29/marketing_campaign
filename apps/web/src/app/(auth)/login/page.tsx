@@ -67,13 +67,6 @@ function LoginInner() {
       panelTitle="Marketing intelligence, in one place."
       panelSubtitle="Plan the campaign, approve the work, watch it perform — without leaving the workspace."
       tone="dark"
-      footer={
-        <>
-          <Link href="/privacy">Privacy Policy</Link>
-          <Link href="/terms">Terms of Service</Link>
-          <Link href="/support">Support</Link>
-        </>
-      }
     >
       {justRegistered ? (
         <Banner kind="success">Account created — sign in to continue.</Banner>

@@ -116,7 +116,7 @@ export function GenerationArrival({ children }: { children: ReactNode }) {
  * Parent should toggle `approved` after the human confirms.
  */
 export function ApprovalWipe({ approved, children }: { approved: boolean; children: ReactNode }) {
-  return <div className={`approval-wipe${approved ? 'is-approved' : ''}`}>{children}</div>
+  return <div className={`approval-wipe${approved ? ' is-approved' : ''}`}>{children}</div>
 }
 
 /** Per-channel publish progress bar. */

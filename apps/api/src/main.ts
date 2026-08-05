@@ -21,6 +21,7 @@ import {
 import { createLogger } from '@vsp/observability'
 
 import { AppModule } from './app.module.js'
+import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
 import { AuthService } from './modules/auth/auth.service.js'
 import { mountBetterAuth } from './modules/auth/fastify-mount.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
@@ -234,6 +235,26 @@ async function bootstrap(): Promise<void> {
       swaggerOptions: { persistAuthorization: true },
     })
     bootLogger.log(`OpenAPI served at /docs`)
+  }
+
+  // Seed the first operator account. The console has no sign-up route on
+  // purpose, so without this the PlatformAdmin table stays empty and nobody can
+  // ever reach /platform. Idempotent: existing emails are left untouched.
+  if (env.PLATFORM_BOOTSTRAP_EMAIL && env.PLATFORM_BOOTSTRAP_PASSWORD) {
+    try {
+      const platformAuth = app.get(PlatformAuthService)
+      await platformAuth.ensureBootstrapAdmin(
+        env.PLATFORM_BOOTSTRAP_EMAIL,
+        env.PLATFORM_BOOTSTRAP_PASSWORD,
+        env.PLATFORM_BOOTSTRAP_NAME,
+      )
+      bootLogger.log(`Operator account ready: ${env.PLATFORM_BOOTSTRAP_EMAIL}`)
+    } catch (error) {
+      // Never block boot on this — the tenant app must still serve.
+      bootLogger.error(
+        `Operator bootstrap failed: ${error instanceof Error ? error.message : String(error)}`,
+      )
+    }
   }
 
   // Prefer the platform-assigned port. Render/Railway/Heroku inject $PORT and

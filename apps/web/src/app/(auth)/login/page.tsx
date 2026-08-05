@@ -134,6 +134,11 @@ function LoginInner() {
       <p className="auth-alt">
         New here? <Link href="/register">Create an account</Link>
       </p>
+      <p className="auth-alt" style={{ marginTop: 'var(--space-3)' }}>
+        <Link href="/platform/login" className="auth-link-quiet">
+          Operator sign-in
+        </Link>
+      </p>
     </AuthShell>
   )
 }

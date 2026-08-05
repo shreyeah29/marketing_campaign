@@ -111,6 +111,22 @@ export const envSchema = z.object({
   META_WEBHOOK_VERIFY_TOKEN: z.string().optional(),
 
   /**
+   * Bootstraps the first operator (platform) account at boot.
+   *
+   * The operator console authenticates against `PlatformAdmin`, which is a
+   * different table and a different login from tenant users — and nothing else
+   * writes to it: there is no sign-up route, by design, because operator access
+   * must never be self-service. Without a seed the console is unreachable, so
+   * these two variables create the first SUPER_ADMIN and nothing more. Creation
+   * is idempotent and skipped when the email already exists, so leaving them set
+   * across deploys is harmless; rotating the password here does NOT change an
+   * existing account's password.
+   */
+  PLATFORM_BOOTSTRAP_EMAIL: z.string().email().optional(),
+  PLATFORM_BOOTSTRAP_PASSWORD: z.string().min(12).optional(),
+  PLATFORM_BOOTSTRAP_NAME: z.string().default('Platform Admin'),
+
+  /**
    * Served in non-production by default; explicit opt-in required in production.
    *
    * Kept as the raw string rather than transformed to a boolean here. A

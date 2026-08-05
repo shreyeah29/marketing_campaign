@@ -217,6 +217,11 @@ body {
 
 body {
   font: var(--type-body);
+  /* The `font` shorthand above sets line-height to a fixed 21px, which every
+     descendant then inherits — a 32px heading on a 21px line box overlaps
+     itself. Re-declaring it unitless makes inherited leading scale with each
+     element's own size. */
+  line-height: 1.5;
   color: var(--text-primary);
   background: var(--surface-canvas);
   -webkit-font-smoothing: antialiased;
@@ -228,6 +233,8 @@ h3,
 h4 {
   font-family: var(--font-heading);
   font-weight: 500;
+  line-height: 1.15;
+  text-wrap: balance;
   letter-spacing: -0.01em;
   margin: 0;
   color: var(--text-primary);
@@ -5635,9 +5642,12 @@ a.card:hover {
 }
 .cstudio__title {
   margin: 4px 0 0;
-  font-size: clamp(24px, 3vw, 32px);
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
 }
 .cstudio__preview {
   width: 100%;

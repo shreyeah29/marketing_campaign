@@ -283,8 +283,13 @@ export class ReviewQueueController {
     if (asset.kind !== 'IMAGE_PROMPT' && asset.kind !== 'VIDEO_PROMPT') {
       throw new BadRequestException('Only image/video concepts can generate media')
     }
-    if (asset.status !== 'APPROVED') {
-      throw new BadRequestException('Approve the concept first — then media is generated')
+    // Media may be generated before the concept is approved. You cannot judge a
+    // poster from its prompt, so requiring approval first asked the reviewer to
+    // commit blind; they now generate, look, and then approve, reject or
+    // regenerate. Only a rejected concept is refused — regenerating one means
+    // reopening it first, which keeps the rejection meaningful.
+    if (asset.status === 'REJECTED') {
+      throw new BadRequestException('This concept was rejected — reopen it before generating media')
     }
 
     const runway = this.ai.platformRunwayKey()

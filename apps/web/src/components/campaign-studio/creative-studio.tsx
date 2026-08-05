@@ -94,11 +94,18 @@ export function CreativeStudio({
 
   async function actOnPiece(
     piece: ContentPiece,
-    action: 'approve' | 'reject' | 'regenerate' | 'duplicate',
+    action: 'approve' | 'reject' | 'regenerate' | 'duplicate' | 'generate',
   ) {
     setBusy(true)
     try {
-      if (action === 'approve') {
+      if (action === 'generate') {
+        // Render the creative so it can be judged on sight. Deliberately does
+        // not approve anything — the reviewer decides after seeing it.
+        const target = piece.master
+        if (!target) return
+        await api.post(`/campaign-assets/${target.id}/generate-media`, { variants: 1 })
+        toast.push('success', 'Generating the creative — this takes a moment')
+      } else if (action === 'approve') {
         // Master creative first (may chain Runway), then adaptations
         const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
         let generated = 0
@@ -280,9 +287,21 @@ export function CreativeStudio({
                   </p>
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
                     {selectedPiece.master
-                      ? 'Approve to generate one image/video for this concept. It will be reused across every platform tab.'
-                      : 'No IMAGE_PROMPT was produced for this group — captions only.'}
+                      ? 'Generate it to see the creative, then approve, reject or regenerate. It is reused across every platform tab.'
+                      : 'This group came back as captions only — the plan produced no image concept for it.'}
                   </p>
+                  {selectedPiece.master ? (
+                    <button
+                      type="button"
+                      className="btn primary"
+                      style={{ marginTop: 16 }}
+                      disabled={busy}
+                      onClick={() => void actOnPiece(selectedPiece, 'generate')}
+                    >
+                      {busy ? <Spinner /> : <Icon name="sparkles" size={14} />}
+                      Generate creative
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>

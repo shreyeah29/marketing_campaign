@@ -34,19 +34,18 @@ export {
 } from './template/bind.js'
 
 export { buildTree } from './render/layout.js'
+export { resolveImages, type ResolveImagesOptions } from './render/images.js'
 export { loadFonts, resetFontCache, type LoadedFont } from './render/fonts.js'
+export { renderAllRatios, renderCreative, renderHash, type RenderResult } from './render/render.js'
+
 export {
-  renderAllRatios,
-  renderCreative,
-  renderHash,
-  type RenderOptions,
-  type RenderResult,
-} from './render/render.js'
-
-export { TRICOLOUR } from './templates/tricolour.js'
-
-import { TRICOLOUR } from './templates/tricolour.js'
-import type { TemplateDocument } from './template/schema.js'
-
-/** Templates shipped with the platform, available to every organisation. */
-export const BUILT_IN_TEMPLATES: readonly TemplateDocument[] = [TRICOLOUR]
+  BUILT_IN_TEMPLATES,
+  DEFAULT_TEMPLATE_SLUG,
+  FESTIVE,
+  findTemplate,
+  FLASH,
+  LUXURY,
+  MINIMAL,
+  TRICOLOUR,
+  type BuiltInTemplate,
+} from './templates/index.js'

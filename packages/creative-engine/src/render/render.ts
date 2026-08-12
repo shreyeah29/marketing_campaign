@@ -33,11 +33,6 @@ export interface RenderResult {
   readonly hash: string
 }
 
-export interface RenderOptions {
-  /** Fetch remote images referenced by image slots. Off by default. */
-  readonly allowRemoteImages?: boolean
-}
-
 /**
  * A fingerprint of everything that affects the output.
  *
@@ -60,7 +55,6 @@ export async function renderCreative(
   template: TemplateDocument,
   data: CreativeData,
   ratio: AspectRatio,
-  options: RenderOptions = {},
 ): Promise<RenderResult> {
   const fonts = await loadFonts()
   const { element, width, height } = buildTree(template, data, ratio)
@@ -74,9 +68,10 @@ export async function renderCreative(
       weight: f.weight,
       style: f.style,
     })),
-    // Satori resolves <img src> itself. Left off unless asked, so a template
-    // cannot be used to make the render worker fetch arbitrary URLs.
-    ...(options.allowRemoteImages ? {} : { loadAdditionalAsset: async () => '' }),
+    // Satori would fetch any remaining URL itself, unbounded and untimed.
+    // Callers inline images with `resolveImages` first, so this only ever fires
+    // on a URL that slipped through — and it refuses rather than fetching.
+    loadAdditionalAsset: async () => '',
   })
 
   const png = await sharp(Buffer.from(svg)).png().toBuffer()
@@ -94,11 +89,10 @@ export async function renderCreative(
 export async function renderAllRatios(
   template: TemplateDocument,
   data: CreativeData,
-  options: RenderOptions = {},
 ): Promise<RenderResult[]> {
   const out: RenderResult[] = []
   for (const ratio of template.ratios) {
-    out.push(await renderCreative(template, data, ratio, options))
+    out.push(await renderCreative(template, data, ratio))
   }
   return out
 }

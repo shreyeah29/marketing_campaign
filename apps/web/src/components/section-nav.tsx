@@ -52,3 +52,9 @@ export const CAMPAIGN_SECTION: readonly SectionLink[] = [
   { href: '/app/campaigns', label: 'Campaigns', icon: 'megaphone' },
   { href: '/app/products', label: 'Products', icon: 'grid' },
 ]
+
+/** The Library group: finished creatives, and the layouts that produce them. */
+export const LIBRARY_SECTION: readonly SectionLink[] = [
+  { href: '/app/content', label: 'Creatives', icon: 'image' },
+  { href: '/app/templates', label: 'Templates', icon: 'layout' },
+]

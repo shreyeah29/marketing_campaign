@@ -19,8 +19,10 @@ import { z } from 'zod'
 import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
 import {
   ASPECT_RATIOS,
+  DEFAULT_TEMPLATE_SLUG,
+  findTemplate,
   renderCreative,
-  TRICOLOUR,
+  resolveImages,
   type AspectRatio,
   type CreativeData,
 } from '@vsp/creative-engine'
@@ -77,6 +79,7 @@ const listQuerySchema = z.object({
 const previewQuerySchema = z.object({
   ratio: z.enum(ASPECT_RATIOS).default('1:1'),
   campaignId: z.string().optional(),
+  template: z.string().max(64).default(DEFAULT_TEMPLATE_SLUG),
 })
 
 interface ProductRow {
@@ -243,7 +246,10 @@ export class ProductsController {
   ): Promise<void> {
     const parsed = previewQuerySchema.safeParse(q)
     if (!parsed.success) throw new BadRequestException(parsed.error.issues)
-    const { ratio, campaignId } = parsed.data
+    const { ratio, campaignId, template: slug } = parsed.data
+
+    const template = findTemplate(slug)
+    if (!template) throw new BadRequestException(`Unknown template "${slug}"`)
 
     const { product, campaign, branding } = await withTenantTransaction(this.db, async (tx) => {
       const [productRow, campaignRow, brandingRow] = await Promise.all([
@@ -257,13 +263,10 @@ export class ProductsController {
     })
     if (!product) throw new NotFoundException('Product not found')
 
-    const data = toCreativeData(product, campaign, branding)
-    // Remote images are allowed here because every URL a template can reach is
-    // one we stored ourselves — uploads and generated visuals both land in our
-    // bucket, and nothing user-supplied reaches an image slot unvalidated.
-    const result = await renderCreative(TRICOLOUR, data, ratio as AspectRatio, {
-      allowRemoteImages: true,
-    })
+    // Images are fetched here, on a timeout, and inlined — so the render itself
+    // performs no I/O and a slow bucket cannot stall a poster.
+    const data = await resolveImages(toCreativeData(product, campaign, branding))
+    const result = await renderCreative(template.document, data, ratio as AspectRatio)
 
     void reply
       .header('content-type', 'image/png')

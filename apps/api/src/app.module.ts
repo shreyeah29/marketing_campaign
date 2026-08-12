@@ -63,6 +63,7 @@ import { HealthController } from './modules/health/health.controller.js'
 import { MembersController } from './modules/members/members.controller.js'
 import { OrganizationsController } from './modules/organizations/organizations.controller.js'
 import { ProductsController } from './modules/products/products.controller.js'
+import { DesignTemplatesController } from './modules/templates/design-templates.controller.js'
 import { UploadsController } from './modules/uploads/uploads.controller.js'
 import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
 import { PlatformController } from './modules/platform/platform.controller.js'
@@ -101,6 +102,7 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
     HealthController,
     OrganizationsController,
     ProductsController,
+    DesignTemplatesController,
     UploadsController,
     MembersController,
     ContactsController,

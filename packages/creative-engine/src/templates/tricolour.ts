@@ -104,7 +104,8 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
       z: 3,
       bind: 'product.discountPercent',
       fill: '#E8B33A',
-      area: { x: '40%', y: '24%', w: '13%', h: '13%' },
+      // Pixel height: a percentage would make this circle an ellipse at 9:16.
+      area: { x: '40%', y: '24%', w: 140, h: 140 },
       style: { size: '3.4cqw', weight: 900, color: '#0B3D2E', align: 'center' },
     },
 
@@ -139,7 +140,7 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
       bind: 'campaign.cta',
       fill: '#E8B33A',
       radius: 999,
-      area: { x: '54%', y: '72%', w: '26%', h: '7%' },
+      area: { x: '54%', y: '72%', w: 280, h: 76 },
       style: {
         size: '2.8cqw',
         weight: 900,

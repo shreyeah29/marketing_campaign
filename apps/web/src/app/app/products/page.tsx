@@ -47,6 +47,11 @@ const money = (minor: number | null, currency: string): string => {
   return `${symbols[currency] ?? currency}${(minor / 100).toLocaleString('en-IN')}`
 }
 
+interface DesignTemplate {
+  slug: string
+  name: string
+}
+
 interface Draft {
   name: string
   brand: string
@@ -66,6 +71,11 @@ export default function ProductsPage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  // The template every row previews through. One choice for the whole page:
+  // the question being asked is "which layout suits this catalogue", and
+  // answering it per row would make the rows incomparable.
+  const [templates, setTemplates] = useState<DesignTemplate[]>([])
+  const [template, setTemplate] = useState('tricolour')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(() => {
@@ -79,6 +89,15 @@ export default function ProductsPage() {
   }, [])
 
   useEffect(() => load(), [load])
+
+  useEffect(() => {
+    api
+      .get<{ data: DesignTemplate[] }>('/design-templates')
+      .then((r) => setTemplates(r.data ?? []))
+      // A gallery that will not load is not a reason to hide the catalogue —
+      // the preview simply falls back to the default template.
+      .catch(() => undefined)
+  }, [])
 
   async function pickImage(file: File) {
     setUploading(true)
@@ -165,6 +184,24 @@ export default function ProductsPage() {
       />
 
       <SectionNav links={CAMPAIGN_SECTION} />
+
+      {templates.length > 0 && products && products.length > 0 ? (
+        <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 16 }}>
+          <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>
+            Preview as
+          </span>
+          {templates.map((t) => (
+            <button
+              key={t.slug}
+              type="button"
+              className={`chip ${template === t.slug ? 'on' : ''}`}
+              onClick={() => setTemplate(t.slug)}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {draft ? (
         <FadeIn className="card" style={{ maxWidth: 720, marginBottom: 20 }}>
@@ -304,7 +341,7 @@ export default function ProductsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="product-row__preview"
-                src={`${api.base}/products/${p.id}/preview?ratio=1:1`}
+                src={`${api.base}/products/${p.id}/preview?ratio=1:1&template=${template}`}
                 alt={`Poster preview for ${p.name}`}
                 loading="lazy"
               />

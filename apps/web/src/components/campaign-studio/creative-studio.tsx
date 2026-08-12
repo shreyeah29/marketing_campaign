@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
@@ -76,6 +76,60 @@ export function CreativeStudio({
       setPlatformTab(plats[0] ?? null)
     }
   }, [selectedPiece, platformTab])
+
+  // ── Posters render themselves ────────────────────────────────────────────
+  // You cannot judge a poster from a description, so nothing here waits for a
+  // Generate click. Every poster concept without artwork is sent off as soon as
+  // the tab opens, and the page polls until they land — you watch them arrive
+  // and then decide. Concepts already rejected are left alone; regenerating one
+  // means reopening it, which keeps a rejection meaningful.
+  const startedRef = useRef<Set<string>>(new Set())
+  const [pending, setPending] = useState(0)
+
+  useEffect(() => {
+    const waiting = pieces
+      .map((p) => p.master)
+      .filter(
+        (m): m is Asset =>
+          m != null && m.kind === 'IMAGE_PROMPT' && !m.mediaUrl && m.status !== 'REJECTED',
+      )
+
+    const fresh = waiting.filter((m) => !startedRef.current.has(m.id))
+    setPending(waiting.length)
+    if (fresh.length === 0) return
+
+    fresh.forEach((m) => startedRef.current.add(m.id))
+    let cancelled = false
+
+    void (async () => {
+      // Bounded concurrency: a ten-poster campaign firing at once would hit the
+      // provider's rate limit and fail the lot.
+      const queue = [...fresh]
+      const worker = async (): Promise<void> => {
+        while (queue.length > 0) {
+          const next = queue.shift()
+          if (!next || cancelled) return
+          await api
+            .post(`/campaign-assets/${next.id}/generate-media`, { variants: 1 })
+            .catch(() => undefined)
+        }
+      }
+      await Promise.all([worker(), worker(), worker()])
+      if (!cancelled) reload()
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [pieces, reload])
+
+  // Poll while anything is still rendering, so posters appear as they finish
+  // rather than on the next manual refresh.
+  useEffect(() => {
+    if (pending === 0) return
+    const t = window.setInterval(() => reload(), 5000)
+    return () => window.clearInterval(t)
+  }, [pending, reload])
 
   const activeAdaptation: Asset | null = useMemo(() => {
     if (!selectedPiece) return null
@@ -190,7 +244,8 @@ export function CreativeStudio({
             Creatives
           </h2>
           <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
-            {pieces.length} piece{pieces.length === 1 ? '' : 's'} · one master each
+            {pieces.length} poster{pieces.length === 1 ? '' : 's'}
+            {pending > 0 ? ` · ${String(pending)} rendering` : ''}
           </p>
         </div>
         <div className="cstudio__filters" role="tablist">
@@ -283,23 +338,25 @@ export function CreativeStudio({
                     size={36}
                   />
                   <p className="type-body-strong" style={{ margin: '12px 0 4px' }}>
-                    {selectedPiece.master ? 'Poster ready to generate' : 'Copy-only piece'}
+                    {selectedPiece.master ? 'Rendering this poster…' : 'Copy-only piece'}
                   </p>
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
                     {selectedPiece.master
-                      ? 'Generate it to see the creative, then approve, reject or regenerate. It is reused across every platform tab.'
+                      ? 'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.'
                       : 'This group came back as captions only — the plan produced no image concept for it.'}
                   </p>
+                  {/* Rendering starts on its own; this is the retry for when a
+                      provider call fails, not the way in. */}
                   {selectedPiece.master ? (
                     <button
                       type="button"
-                      className="btn primary"
+                      className="btn"
                       style={{ marginTop: 16 }}
                       disabled={busy}
                       onClick={() => void actOnPiece(selectedPiece, 'generate')}
                     >
-                      {busy ? <Spinner /> : <Icon name="sparkles" size={14} />}
-                      Generate creative
+                      {busy ? <Spinner /> : <Icon name="refresh" size={14} />}
+                      Try again
                     </button>
                   ) : null}
                 </div>

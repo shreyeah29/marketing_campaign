@@ -185,8 +185,17 @@ export class CampaignGenerationService {
           ? `\n\nBUSINESS DETAILS — these are real and will be typeset onto the artwork by the system.\nNever spell them out inside an IMAGE_PROMPT; instead leave clean, uncluttered space for them.\n${kit.join('\n')}`
           : ''
 
-      if (lines.length === 0 && facts === '') return ''
-      return `BRAND PROFILE — write ALL content in this brand's voice, for this audience:\n${lines.join('\n')}${facts}\n\n`
+      // Regulated professions cannot make certain claims, and the reviewer's
+      // check catches these after the fact. Saying so up front is cheaper than
+      // a rewrite, and far cheaper than the claim reaching an audience.
+      const banned = stringList(branding?.bannedClaims)
+      const prohibitions =
+        banned.length > 0
+          ? `\n\nPROHIBITED CLAIMS — this business advertises under professional-conduct rules. Never use these words or phrases, in any form, in any copy, headline, caption or call to action: ${banned.join(', ')}. Rephrase around them rather than approximating them.`
+          : ''
+
+      if (lines.length === 0 && facts === '' && prohibitions === '') return ''
+      return `BRAND PROFILE — write ALL content in this brand's voice, for this audience:\n${lines.join('\n')}${facts}${prohibitions}\n\n`
     } catch {
       return ''
     }

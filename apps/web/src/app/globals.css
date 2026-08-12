@@ -5850,6 +5850,32 @@ a.card:hover {
   color: var(--text-secondary);
 }
 
+/* Advertising rules notice. Amber is reserved for "a human has to decide", and
+   a banned claim in copy about to publish is exactly that — the system will not
+   resolve it, and it should not publish quietly either. */
+.cstudio__compliance {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--amber-100);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.cstudio__compliance-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  font: var(--type-secondary);
+  color: var(--amber-800);
+}
+.cstudio__compliance-line svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 /* ── Creative gallery ──────────────────────────────────────────────────────
    The library's own Posters/Videos tabs. Same underlined treatment as the
    studio rail so the two screens teach the same gesture. */

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
+import { checkCopy, type ComplianceRules } from '@/lib/compliance'
 import { EmptyState, useToast } from '@/components/kit'
 import { Icon } from '@/components/icon'
 import { PlatformIcon } from '@/components/platform-icon'
@@ -188,6 +189,21 @@ export function CreativeStudio({
     return () => window.clearInterval(t)
   }, [pending, reload])
 
+  // ── Advertising rules ────────────────────────────────────────────────────
+  // Fetched once. An organisation that has set no rules gets no banner, and a
+  // failed fetch must never block reviewing — compliance context is additive.
+  const [rules, setRules] = useState<ComplianceRules>({ bannedClaims: [], disclaimers: [] })
+  useEffect(() => {
+    api
+      .get<{ bannedClaims?: string[] | null; disclaimers?: ComplianceRules['disclaimers'] | null }>(
+        '/config/branding',
+      )
+      .then((b) =>
+        setRules({ bannedClaims: b?.bannedClaims ?? [], disclaimers: b?.disclaimers ?? [] }),
+      )
+      .catch(() => undefined)
+  }, [])
+
   const activeAdaptation: Asset | null = useMemo(() => {
     if (!selectedPiece) return null
     if (platformTab) {
@@ -298,6 +314,7 @@ export function CreativeStudio({
   const caption =
     (activeAdaptation?.caption || activeAdaptation?.body || piecePrimaryCaption(selectedPiece!)) ??
     ''
+  const compliance = checkCopy([caption, activeAdaptation?.cta, activeAdaptation?.body], rules)
 
   return (
     <div className={`cstudio${drawer ? ' has-drawer' : ''}`}>
@@ -600,6 +617,36 @@ export function CreativeStudio({
                     ))}
                   </ul>
                 )}
+              </div>
+            ) : null}
+
+            {/* Advertising rules, shown where the decision is made rather than
+                on a settings page nobody revisits. This reports and does not
+                block: the reviewer is the compliance authority, and a check
+                that refuses to publish with no override strands them. */}
+            {!compliance.clean || compliance.disclaimers.length > 0 ? (
+              <div className="cstudio__compliance" role="note">
+                {!compliance.clean ? (
+                  <p className="cstudio__compliance-line">
+                    <Icon name="alert-triangle" size={14} />
+                    <span>
+                      This copy uses {compliance.claims.length === 1 ? 'a phrase' : 'phrases'} you
+                      banned: <strong>{compliance.claims.map((c) => `“${c}”`).join(', ')}</strong>.
+                      Edit the caption or change the rule in your brand kit.
+                    </span>
+                  </p>
+                ) : null}
+                {compliance.disclaimers.length > 0 ? (
+                  <p className="cstudio__compliance-line type-caption">
+                    <Icon name="shield" size={14} />
+                    <span>
+                      Must carry your disclaimer —{' '}
+                      {compliance.disclaimers
+                        .map((d) => (d.label ? `${d.label}: ${d.value}` : d.value))
+                        .join(' · ')}
+                    </span>
+                  </p>
+                ) : null}
               </div>
             ) : null}
 

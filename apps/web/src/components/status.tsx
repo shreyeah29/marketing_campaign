@@ -144,6 +144,21 @@ const KIND_LABELS: Record<string, string> = {
   THREAD: 'Thread',
 }
 
+/** A platform's name as a person writes it — "Instagram", not "INSTAGRAM". */
+export function platformLabel(raw: string | null | undefined): string {
+  if (!raw) return ''
+  const known: Record<string, string> = {
+    INSTAGRAM: 'Instagram',
+    FACEBOOK: 'Facebook',
+    LINKEDIN: 'LinkedIn',
+    X: 'X',
+    GOOGLE: 'Google',
+    WHATSAPP: 'WhatsApp',
+    EMAIL: 'Email',
+  }
+  return known[raw.toUpperCase()] ?? raw.toLowerCase().replace(/^\w/, (c) => c.toUpperCase())
+}
+
 export function kindLabel(raw: string | null | undefined): string {
   if (!raw) return ''
   return (

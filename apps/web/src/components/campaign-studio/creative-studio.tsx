@@ -7,7 +7,7 @@ import { ApiError, api } from '@/lib/api'
 import { EmptyState, useToast } from '@/components/kit'
 import { Icon } from '@/components/icon'
 import { PlatformIcon } from '@/components/platform-icon'
-import { kindLabel, StatusPill, StatusRail, toStatus } from '@/components/status'
+import { kindLabel, platformLabel, StatusPill, StatusRail, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
 
 import { useCampaign } from './campaign-context'
@@ -254,7 +254,7 @@ export function CreativeStudio({
       <aside className="cstudio__rail" aria-label="Posters">
         <div className="cstudio__rail-head">
           <h2 className="type-section" style={{ margin: 0 }}>
-            Creatives
+            Posters
           </h2>
           <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
             {pieces.length} poster{pieces.length === 1 ? '' : 's'}
@@ -308,9 +308,11 @@ export function CreativeStudio({
                   <div className="cstudio__thumb-meta">
                     <span className="cstudio__thumb-title">{p.label}</span>
                     <span className="type-caption">
-                      {piecePlatforms(p).length
-                        ? `${piecePlatforms(p).length} platforms`
-                        : kindLabel(p.master?.kind ?? p.assets[0]?.kind ?? '')}
+                      {piecePlatforms(p).length === 1
+                        ? platformLabel(piecePlatforms(p)[0] ?? '')
+                        : piecePlatforms(p).length > 1
+                          ? `${String(piecePlatforms(p).length)} platforms`
+                          : kindLabel(p.master?.kind ?? p.assets[0]?.kind ?? '')}
                     </span>
                     <StatusPill status={toStatus(pieceStatus(p))} />
                   </div>

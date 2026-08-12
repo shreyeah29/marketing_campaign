@@ -5642,7 +5642,7 @@ a.card:hover {
 }
 .cstudio__title {
   margin: 4px 0 0;
-  font-size: clamp(20px, 2.2vw, 26px);
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
@@ -5652,7 +5652,7 @@ a.card:hover {
 .cstudio__preview {
   width: 100%;
   aspect-ratio: 1 / 1;
-  max-height: min(62vh, 720px);
+  max-height: min(58vh, 640px);
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--surface-sunken);
@@ -5747,4 +5747,41 @@ a.card:hover {
   .cstudio__preview {
     max-height: 420px;
   }
+}
+
+/* Creative studio: the poster sits beside its copy rather than above it.
+   Stacked, the image pushed the caption and the approve controls below the
+   fold, so you scrolled past the poster to reach the button that judges it.
+   The poster now holds still while its copy scrolls next to it. */
+@media (min-width: 1080px) {
+  .cstudio__canvas {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    column-gap: var(--space-7);
+    align-items: start;
+  }
+
+  .cstudio__canvas > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .cstudio__preview {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: 12px;
+    margin-bottom: 0;
+    align-self: start;
+  }
+}
+
+/* With the drawer open there is already a third column; splitting the canvas
+   again would leave three narrow strips. */
+.cstudio.has-drawer .cstudio__canvas {
+  display: block;
+}
+.cstudio.has-drawer .cstudio__preview {
+  position: static;
+  margin-bottom: var(--space-5);
 }

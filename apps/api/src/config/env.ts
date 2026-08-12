@@ -81,11 +81,17 @@ export const envSchema = z.object({
   OPENAI_MODEL: z.string().optional(),
 
   /**
-   * Runway media generation (video, and image when preferred). Operator-level and
-   * env-only, exactly like OPENAI_API_KEY: it is never a per-tenant setting and
-   * never surfaces in any configuration UI. When unset, video is unavailable and
-   * image falls back to the OpenAI model. The model overrides are optional escape
-   * hatches if Runway renames a model — the adapter has sensible defaults.
+   * Runway media generation. Operator-level and env-only, exactly like
+   * OPENAI_API_KEY: never a per-tenant setting, never surfaced in any
+   * configuration UI.
+   *
+   * REQUIRED for campaign posters as well as video — there is no fallback. An
+   * earlier version of this comment promised that images would fall back to the
+   * OpenAI model, which was never implemented and misled configuration. It is
+   * not a small omission: gpt-image-1 returns inline base64 rather than a hosted
+   * URL, so an OpenAI path needs object storage to put the bytes somewhere
+   * first. Until that exists, unset means no posters. The model overrides are
+   * escape hatches if Runway renames a model — the adapter has defaults.
    */
   RUNWAY_API_KEY: z.string().optional(),
   RUNWAY_VIDEO_MODEL: z.string().optional(),

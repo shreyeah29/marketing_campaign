@@ -292,9 +292,16 @@ export class ReviewQueueController {
       throw new BadRequestException('This concept was rejected — reopen it before generating media')
     }
 
+    // "Temporarily unavailable" sent people hunting for an outage when the real
+    // answer was an unset key. Say which, and say it differently for the two
+    // cases, because only one of them is worth waiting out.
     const runway = this.ai.platformRunwayKey()
     if (!runway) {
-      throw new ServiceUnavailableException('Media generation is temporarily unavailable')
+      throw new ServiceUnavailableException(
+        asset.kind === 'VIDEO_PROMPT'
+          ? 'Video generation is not set up on this deployment yet.'
+          : 'Poster generation is not set up on this deployment yet.',
+      )
     }
 
     // The slow Runway round-trip happens OUTSIDE any transaction; holding a

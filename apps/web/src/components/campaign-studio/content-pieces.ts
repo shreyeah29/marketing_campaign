@@ -119,6 +119,22 @@ export function groupIntoContentPieces(assets: Asset[]): ContentPiece[] {
   return pieces.sort((a, b) => a.index - b.index)
 }
 
+/**
+ * What kind of thing this piece is, which decides the tab it belongs under.
+ *
+ * The three behave differently enough that mixing them in one list made the
+ * screen hard to read: posters render themselves and are judged on sight,
+ * videos cost minutes and money so they wait for an explicit go-ahead, and
+ * copy-only pieces have no artwork to judge at all.
+ */
+export type PieceMedium = 'poster' | 'video' | 'copy'
+
+export function pieceMedium(piece: ContentPiece): PieceMedium {
+  if (piece.master?.kind === 'VIDEO_PROMPT') return 'video'
+  if (piece.master?.kind === 'IMAGE_PROMPT') return 'poster'
+  return 'copy'
+}
+
 /** Most actionable status across a piece (failed/rejected before approved). */
 export function pieceStatus(piece: ContentPiece): string {
   let worst = piece.assets[0]?.status ?? 'DRAFT'

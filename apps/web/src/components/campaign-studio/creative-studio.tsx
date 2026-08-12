@@ -14,13 +14,21 @@ import { useCampaign } from './campaign-context'
 import { approveCampaignAsset } from './approve-asset'
 import {
   groupIntoContentPieces,
+  pieceMedium,
   piecePlatforms,
   piecePreviewUrl,
   piecePrimaryCaption,
   pieceStatus,
+  type PieceMedium,
 } from './content-pieces'
 import { readAssetVersions } from './asset-versions'
 import type { Asset, ContentPiece } from './types'
+
+const MEDIUMS: readonly (readonly [PieceMedium, string])[] = [
+  ['poster', 'Posters'],
+  ['video', 'Videos'],
+  ['copy', 'Copy'],
+]
 
 /**
  * Campaign-centric Creative Studio — large previews, platform adaptations,
@@ -38,25 +46,61 @@ export function CreativeStudio({
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState<'all' | 'review' | 'approved'>('review')
+  const [medium, setMedium] = useState<PieceMedium>('poster')
   const [platformTab, setPlatformTab] = useState<string | null>(null)
   const [panel, setPanel] = useState<'copy' | 'comments' | 'versions'>('copy')
 
   const pieces = useMemo(() => groupIntoContentPieces(assets ?? []), [assets])
 
+  // Posters, videos and copy-only pieces are counted separately so each tab can
+  // show its own number and empty tabs can be hidden rather than offered.
+  const byMedium = useMemo(() => {
+    const groups: Record<PieceMedium, typeof pieces> = { poster: [], video: [], copy: [] }
+    for (const p of pieces) groups[pieceMedium(p)].push(p)
+    return groups
+  }, [pieces])
+
+  // Land on a tab that has something in it. A campaign of videos only should
+  // not open on an empty Posters tab and read as "nothing was generated".
+  const settledRef = useRef(false)
+  useEffect(() => {
+    if (settledRef.current || pieces.length === 0) return
+    settledRef.current = true
+    if (byMedium.poster.length > 0) return
+    setMedium(byMedium.video.length > 0 ? 'video' : 'copy')
+  }, [pieces, byMedium])
+
+  // Following a link straight to one asset must show it, even when it lives
+  // under a tab other than the one currently open.
+  //
+  // Honoured once per asset id, not on every `pieces` change: while posters are
+  // rendering this page reloads every five seconds, and re-running the switch
+  // would drag you back off the Videos tab a few seconds after you opened it.
+  const honouredRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!selectedAssetId || honouredRef.current === selectedAssetId) return
+    const owner = pieces.find((p) => p.assets.some((a) => a.id === selectedAssetId))
+    // Assets may not have arrived yet — leave it unhonoured and retry when they do.
+    if (!owner) return
+    honouredRef.current = selectedAssetId
+    setMedium(pieceMedium(owner))
+  }, [selectedAssetId, pieces])
+
   const filtered = useMemo(() => {
-    if (filter === 'all') return pieces
+    const scoped = byMedium[medium]
+    if (filter === 'all') return scoped
     if (filter === 'approved') {
-      return pieces.filter((p) =>
+      return scoped.filter((p) =>
         p.assets.every(
           (a) => a.status === 'APPROVED' || a.status === 'PUBLISHED' || a.status === 'SCHEDULED',
         ),
       )
     }
-    return pieces.filter((p) => {
+    return scoped.filter((p) => {
       const s = pieceStatus(p)
       return ['GENERATED', 'NEEDS_REVIEW', 'DRAFT', 'REJECTED'].includes(s)
     })
-  }, [pieces, filter])
+  }, [byMedium, medium, filter])
 
   const selectedPiece = useMemo(() => {
     if (!filtered.length) return null
@@ -171,7 +215,12 @@ export function CreativeStudio({
         const target = piece.master
         if (!target) return
         await api.post(`/campaign-assets/${target.id}/generate-media`, { variants: 1 })
-        toast.push('success', 'Generating the creative — this takes a moment')
+        toast.push(
+          'success',
+          target.kind === 'VIDEO_PROMPT'
+            ? 'Rendering the video — this takes a few minutes'
+            : 'Generating the creative — this takes a moment',
+        )
       } else if (action === 'approve') {
         // Poster first (may chain Runway), then adaptations
         const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
@@ -243,6 +292,7 @@ export function CreativeStudio({
   }
 
   const previewUrl = selectedPiece ? piecePreviewUrl(selectedPiece) : null
+  const isVideo = selectedPiece?.master?.kind === 'VIDEO_PROMPT'
   const status = selectedPiece ? pieceStatus(selectedPiece) : 'DRAFT'
   const versions = activeAdaptation ? readAssetVersions(activeAdaptation.id) : []
   const caption =
@@ -251,14 +301,39 @@ export function CreativeStudio({
 
   return (
     <div className={`cstudio${drawer ? ' has-drawer' : ''}`}>
-      <aside className="cstudio__rail" aria-label="Posters">
+      <aside className="cstudio__rail" aria-label="Creatives">
+        {/* Posters and videos are separate tabs, not one mixed list: a poster is
+            already rendered and waiting to be judged, a video has not been made
+            yet and costs minutes to make. Showing them together meant the two
+            most different actions on this screen sat side by side. */}
+        <div className="cstudio__mediums" role="tablist" aria-label="Creative type">
+          {MEDIUMS.filter(([id]) => byMedium[id].length > 0 || id === 'poster').map(
+            ([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                className={`cstudio__medium${medium === id ? ' is-on' : ''}`}
+                aria-selected={medium === id}
+                onClick={() => setMedium(id)}
+              >
+                <Icon
+                  name={id === 'video' ? 'video' : id === 'copy' ? 'file-text' : 'image'}
+                  size={14}
+                />
+                {label}
+                <span className="cstudio__medium-count">{byMedium[id].length}</span>
+              </button>
+            ),
+          )}
+        </div>
         <div className="cstudio__rail-head">
-          <h2 className="type-section" style={{ margin: 0 }}>
-            Posters
-          </h2>
-          <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
-            {pieces.length} poster{pieces.length === 1 ? '' : 's'}
-            {pending > 0 ? ` · ${String(pending)} rendering` : ''}
+          <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
+            {medium === 'video'
+              ? `${String(byMedium.video.length)} video concept${byMedium.video.length === 1 ? '' : 's'} — ready to render`
+              : medium === 'copy'
+                ? `${String(byMedium.copy.length)} caption-only piece${byMedium.copy.length === 1 ? '' : 's'}`
+                : `${String(byMedium.poster.length)} poster${byMedium.poster.length === 1 ? '' : 's'}${pending > 0 ? ` · ${String(pending)} rendering` : ''}`}
           </p>
         </div>
         <div className="cstudio__filters" role="tablist">
@@ -348,35 +423,41 @@ export function CreativeStudio({
                 )
               ) : (
                 <div className="cstudio__preview-empty">
-                  <Icon
-                    name={selectedPiece.master?.kind === 'VIDEO_PROMPT' ? 'video' : 'image'}
-                    size={36}
-                  />
+                  <Icon name={isVideo ? 'video' : 'image'} size={36} />
                   <p className="type-body-strong" style={{ margin: '12px 0 4px' }}>
                     {!selectedPiece.master
                       ? 'Copy-only piece'
                       : blocked
-                        ? 'This poster could not be rendered'
-                        : 'Rendering this poster…'}
+                        ? `This ${isVideo ? 'video' : 'poster'} could not be rendered`
+                        : isVideo
+                          ? 'Ready to render'
+                          : 'Rendering this poster…'}
                   </p>
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
                     {!selectedPiece.master
                       ? 'This group came back as captions only — the plan produced no image concept for it.'
                       : (blocked ??
-                        'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.')}
+                        (isVideo
+                          ? 'Read the prompt below first. Videos take a few minutes each, so this one waits for you rather than rendering on its own.'
+                          : 'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.'))}
                   </p>
-                  {/* Rendering starts on its own; this is the retry for when a
-                      provider call fails, not the way in. */}
+                  {/* Posters render on their own, so for them this is the retry
+                      after a provider failure. Videos never start by themselves
+                      — here the same button is the way in. */}
                   {selectedPiece.master ? (
                     <button
                       type="button"
-                      className="btn"
+                      className={`btn${isVideo && !blocked ? ' primary' : ''}`}
                       style={{ marginTop: 16 }}
                       disabled={busy}
                       onClick={() => void actOnPiece(selectedPiece, 'generate')}
                     >
-                      {busy ? <Spinner /> : <Icon name="refresh" size={14} />}
-                      Try again
+                      {busy ? (
+                        <Spinner />
+                      ) : (
+                        <Icon name={isVideo && !blocked ? 'play' : 'refresh'} size={14} />
+                      )}
+                      {isVideo && !blocked ? 'Render this video' : 'Try again'}
                     </button>
                   ) : null}
                 </div>
@@ -481,7 +562,7 @@ export function CreativeStudio({
                 {selectedPiece.master && !previewUrl ? (
                   <>
                     <p className="type-label" style={{ marginTop: 20 }}>
-                      Image prompt
+                      {isVideo ? 'Video prompt' : 'Image prompt'}
                     </p>
                     <p className="cstudio__caption type-secondary">{selectedPiece.master.body}</p>
                   </>

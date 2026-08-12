@@ -5806,3 +5806,46 @@ a.card:hover {
   padding: 3px 8px;
   white-space: nowrap;
 }
+
+/* Creative type — the rail's top-level split between posters and videos.
+   Underlined tabs rather than the pill treatment used by the status filters
+   below them, so the two rows read as a hierarchy (which kind → which status)
+   instead of two equal rows of buttons. */
+.cstudio__mediums {
+  display: flex;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.cstudio__medium {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: var(--space-3) var(--space-2);
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font: var(--type-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.cstudio__medium:hover {
+  color: var(--text-primary);
+}
+.cstudio__medium.is-on {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+  font-weight: 600;
+}
+.cstudio__medium-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+}
+.cstudio__medium.is-on .cstudio__medium-count {
+  color: var(--text-secondary);
+}

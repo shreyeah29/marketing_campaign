@@ -37,6 +37,14 @@ export interface CreativeData {
   visual?: {
     url?: string | null
   }
+  /**
+   * The AI-generated background. Deliberately separate from `visual`: the scene
+   * is generated and shared across a campaign, the visual is the real product
+   * photograph. Conflating them is how a generated product ends up published.
+   */
+  scene?: {
+    url?: string | null
+  }
 }
 
 /**
@@ -125,6 +133,8 @@ export function resolvePath(path: BindablePath, data: CreativeData): string | nu
       return trim(data.brand?.disclaimer)
     case 'visual.url':
       return trim(data.visual?.url)
+    case 'scene.url':
+      return trim(data.scene?.url)
   }
 }
 

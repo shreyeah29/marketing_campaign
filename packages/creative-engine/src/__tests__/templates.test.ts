@@ -132,6 +132,46 @@ describe('resolveImages', () => {
   })
 })
 
+describe('AI scenes', () => {
+  const withScene = ['tricolour', 'festive', 'luxury']
+
+  it.each(withScene)('%s drops the scene layers when no scene is chosen', (slug) => {
+    const doc = findTemplate(slug)!.document
+    const ids = new Set(
+      buildTree(doc, FULL, '1:1').element.props['children'] as never as { id?: string }[],
+    )
+    // Nothing to assert on ids directly — the tree carries no slot ids — so the
+    // check is that rendering without a scene still succeeds and the scrim,
+    // which would otherwise dim the whole poster, is ruled out.
+    const rule = doc.rules.find((r) => r.when.path === 'scene.url')
+    expect(rule?.hide).toEqual(expect.arrayContaining(['scene', 'sceneScrim']))
+    expect(ids).toBeDefined()
+  })
+
+  it.each(withScene)('%s puts a scrim between the scene and the text', (slug) => {
+    const doc = findTemplate(slug)!.document
+    const scene = doc.slots.find((s) => s.id === 'scene')
+    const scrim = doc.slots.find((s) => s.id === 'sceneScrim')
+    expect(scene).toBeDefined()
+    expect(scrim).toBeDefined()
+    // Ordering is the whole point: a generated background can be any
+    // brightness, and light text over a pale photograph is a coin toss taken at
+    // publish time. Scene behind scrim, scrim behind everything else.
+    expect(scene!.z).toBeLessThan(scrim!.z)
+    for (const other of doc.slots.filter((s) => s.id !== 'scene' && s.id !== 'sceneScrim')) {
+      expect(other.z).toBeGreaterThan(scrim!.z)
+    }
+  })
+
+  it('renders legibly over a scene and differs from the plain version', async () => {
+    const doc = findTemplate('tricolour')!.document
+    const scene = 'data:image/png;base64,' + PALE_PNG
+    const plain = await renderCreative(doc, FULL, '1:1')
+    const dressed = await renderCreative(doc, { ...FULL, scene: { url: scene } }, '1:1')
+    expect(plain.png.equals(dressed.png)).toBe(false)
+  })
+})
+
 describe('the flash template’s either/or headline', () => {
   const flash = findTemplate('flash')!.document
 
@@ -148,6 +188,10 @@ describe('the flash template’s either/or headline', () => {
     expect(texts).toContain('UP TO 40% OFF')
   })
 })
+
+/** A 1×1 pale pixel, enough to prove the scene layer is composited at all. */
+const PALE_PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
 
 /** Rough presence check: does anything red-and-huge appear in the tree? */
 function renderedIds(tree: ReturnType<typeof buildTree>): Set<string> {

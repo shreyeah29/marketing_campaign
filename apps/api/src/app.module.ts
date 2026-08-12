@@ -44,6 +44,7 @@ import {
   WorkflowRunsController,
 } from './modules/automation/workflow-engine.controller.js'
 import { AiController } from './modules/ai/ai.controller.js'
+import { ScenesController } from './modules/ai/scenes.controller.js'
 import { AiService } from './modules/ai/ai.service.js'
 import { CampaignGenerationService } from './modules/ai/campaign-generation.service.js'
 import { KnowledgeService } from './modules/ai/knowledge.service.js'
@@ -127,6 +128,7 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
     WorkflowEngineController,
     WorkflowRunsController,
     AiController,
+    ScenesController,
     PromptsController,
     KnowledgeController,
     ApiKeysController,

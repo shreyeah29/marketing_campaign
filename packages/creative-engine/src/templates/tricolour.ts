@@ -22,6 +22,28 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
   palette: { ink: '#FFFFFF', accent: '#E8B33A', muted: '#CFE3D8' },
 
   slots: [
+    // ── The AI scene ────────────────────────────────────────────────────
+    // A generated *background* only; the product is the real photograph,
+    // composited above. Full-bleed and behind everything, with a scrim over it.
+    {
+      id: 'scene',
+      type: 'image',
+      z: -2,
+      bind: 'scene.url',
+      fit: 'cover',
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
+    // Text on this template is light, and a generated scene can be any
+    // brightness. The scrim is what keeps a price legible over a photograph we
+    // have not seen; without it, contrast is a coin toss taken at publish time.
+    {
+      id: 'sceneScrim',
+      type: 'shape',
+      z: -1,
+      fill: '#0B3D2E',
+      opacity: 0.62,
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
     // Warm plate behind the product, so a cutout with a soft edge still reads
     // as deliberate rather than as a failed mask.
     {
@@ -193,6 +215,7 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
 
   // Ragged catalogues are the normal case, not the exception.
   rules: [
+    { when: { path: 'scene.url', is: 'empty' }, hide: ['scene', 'sceneScrim'] },
     { when: { path: 'product.discountPercent', is: 'empty' }, hide: ['discountBadge'] },
     { when: { path: 'campaign.couponCode', is: 'empty' }, hide: ['coupon'] },
     { when: { path: 'visual.url', is: 'empty' }, hide: ['productPlate'] },

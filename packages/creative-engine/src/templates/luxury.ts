@@ -19,6 +19,28 @@ export const LUXURY: TemplateDocument = parseTemplate({
   palette: { ink: '#F3EFE7', accent: '#C6A664', muted: '#8C8880' },
 
   slots: [
+    // ── The AI scene ────────────────────────────────────────────────────
+    // A generated *background* only; the product is the real photograph,
+    // composited above. Full-bleed and behind everything, with a scrim over it.
+    {
+      id: 'scene',
+      type: 'image',
+      z: -2,
+      bind: 'scene.url',
+      fit: 'cover',
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
+    // Text on this template is light, and a generated scene can be any
+    // brightness. The scrim is what keeps a price legible over a photograph we
+    // have not seen; without it, contrast is a coin toss taken at publish time.
+    {
+      id: 'sceneScrim',
+      type: 'shape',
+      z: -1,
+      fill: '#0E0E0F',
+      opacity: 0.62,
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
     // Four hairlines rather than a bordered box: a shape with a border is not
     // in the schema, and four rectangles are honest about what they are.
     {
@@ -159,5 +181,10 @@ export const LUXURY: TemplateDocument = parseTemplate({
     },
   ],
 
-  rules: [{ when: { path: 'brand.displayName', is: 'empty' }, hide: ['brand'] }],
+  rules: [
+    { when: { path: 'brand.displayName', is: 'empty' }, hide: ['brand'] },
+    // Without this the scrim renders as a flat wash over the whole poster when
+    // no scene is chosen, dimming a template whose entire character is contrast.
+    { when: { path: 'scene.url', is: 'empty' }, hide: ['scene', 'sceneScrim'] },
+  ],
 })

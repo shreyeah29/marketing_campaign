@@ -74,10 +74,11 @@ export async function resolveImages(
     return inlined
   }
 
-  const [visual, productImage, logo] = await Promise.all([
+  const [visual, productImage, logo, scene] = await Promise.all([
     resolve(data.visual?.url),
     resolve(data.product?.imageUrl),
     resolve(data.brand?.logoUrl),
+    resolve(data.scene?.url),
   ])
 
   return {
@@ -85,5 +86,6 @@ export async function resolveImages(
     ...(data.product ? { product: { ...data.product, imageUrl: productImage } } : {}),
     ...(data.brand ? { brand: { ...data.brand, logoUrl: logo } } : {}),
     visual: { url: visual },
+    scene: { url: scene },
   }
 }

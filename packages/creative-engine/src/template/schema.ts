@@ -51,6 +51,7 @@ export const BINDABLE_PATHS = [
   'brand.logoUrl',
   'brand.disclaimer',
   'visual.url',
+  'scene.url',
 ] as const
 export type BindablePath = (typeof BINDABLE_PATHS)[number]
 

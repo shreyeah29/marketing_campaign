@@ -18,6 +18,28 @@ export const FESTIVE: TemplateDocument = parseTemplate({
   palette: { ink: '#FFF6E8', accent: '#F2C14E', muted: '#D9A9A9' },
 
   slots: [
+    // ── The AI scene ────────────────────────────────────────────────────
+    // A generated *background* only; the product is the real photograph,
+    // composited above. Full-bleed and behind everything, with a scrim over it.
+    {
+      id: 'scene',
+      type: 'image',
+      z: -2,
+      bind: 'scene.url',
+      fit: 'cover',
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
+    // Text on this template is light, and a generated scene can be any
+    // brightness. The scrim is what keeps a price legible over a photograph we
+    // have not seen; without it, contrast is a coin toss taken at publish time.
+    {
+      id: 'sceneScrim',
+      type: 'shape',
+      z: -1,
+      fill: '#5B1220',
+      opacity: 0.62,
+      area: { x: 0, y: 0, w: '100%', h: '100%' },
+    },
     {
       id: 'brand',
       type: 'text',
@@ -170,6 +192,7 @@ export const FESTIVE: TemplateDocument = parseTemplate({
   ],
 
   rules: [
+    { when: { path: 'scene.url', is: 'empty' }, hide: ['scene', 'sceneScrim'] },
     { when: { path: 'product.discountPercent', is: 'empty' }, hide: ['discountBadge'] },
     { when: { path: 'visual.url', is: 'empty' }, hide: ['medallion'] },
   ],

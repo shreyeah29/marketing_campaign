@@ -1,6 +1,44 @@
 # Creative Engine — Architecture Proposal
 
-Status: **approved 2026-08-12**. Phase 1 in progress.
+Status: **approved 2026-08-12**. Phases 1–3 shipped; 4–6 outstanding.
+
+## Shipped
+
+| Phase | What                                                             | Commits             |
+| ----- | ---------------------------------------------------------------- | ------------------- |
+| 1     | `@vsp/creative-engine`, uploads, Product catalogue, live preview | `f68f0c7` `a3c0842` |
+| 2     | Five templates, gallery, I/O-free rendering                      | `ac14032`           |
+| 3     | AI scene generation, scrim, product composite                    | `0dec474`           |
+
+**Working end to end:** upload a product photo → enter two prices → the poster
+renders in ~200ms through any of five layouts, at three aspect ratios, with the
+prices typeset exactly as entered. Generate a background scene for a campaign and
+every product in it renders over that scene, with the real product photograph on
+top.
+
+**Not built yet:** batch generation with progress (Phase 4), the approval and
+scheduling path for `Creative` rows (Phase 5), per-creative analytics (Phase 6).
+The scenes API is complete but has no UI — a campaign screen needs a scene
+picker; `GET /products/:id/preview` already accepts `sceneId`.
+
+**Deliberately deferred:** the `Creative` and `DesignTemplate` tables. Templates
+ship as code, which is why they cannot drift between environments; persisting a
+rendered creative only becomes necessary when approval and scheduling need
+something to attach to, which is Phase 5.
+
+### Things learned by rendering posters and looking at them
+
+Four defects that no amount of reading would have surfaced, recorded because they
+are the class of bug this system is most prone to:
+
+- Inter's `latin` subset has no ₹ (U+20B9 sits in `latin-ext`). Every rupee price
+  rendered as a NO-GLYPH box, and nothing errored.
+- Satori converts text to vector paths, so asserting on the output SVG's markup
+  proves nothing.
+- A percentage height is a share of a canvas that changes with the ratio, so
+  `w: 50%, h: 50%` is a circle at 1:1 and an ellipse at 9:16.
+- Rendering fetched images itself, untimed, which made the fast half of the
+  system depend on a bucket responding.
 
 ## Decisions taken
 

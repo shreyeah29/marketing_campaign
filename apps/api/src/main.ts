@@ -301,7 +301,7 @@ async function bootstrap(): Promise<void> {
 bootstrap().catch((error: unknown) => {
   // Fail loudly and exit non-zero. An orchestrator must see a crash, not a
   // process that lingers in a broken state and passes its health check.
-  // eslint-disable-next-line no-console
+  // The logger may not exist yet at this point, so console is the only channel.
   console.error('API failed to start:', error)
   process.exit(1)
 })

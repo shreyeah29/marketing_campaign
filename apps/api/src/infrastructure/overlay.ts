@@ -199,9 +199,53 @@ export function buildBandSvg(
 </svg>`
 }
 
+/**
+ * Does this host have a font that can actually draw glyphs?
+ *
+ * Text in an SVG is rasterised through the system's font stack. A host with no
+ * font installed does not error — it produces the band with nothing written in
+ * it, which looks like a design choice and is the one failure here that would
+ * ship silently to a customer's poster.
+ *
+ * The probe renders one glyph on a transparent canvas and asks whether any
+ * pixel became opaque. Exported so a test can prove the probe itself works.
+ */
+export async function canRenderText(): Promise<boolean> {
+  try {
+    const svg = `<svg width="60" height="40" xmlns="http://www.w3.org/2000/svg"><text x="2" y="30" font-family="${FONT_STACK}" font-size="32" fill="#ffffff">A</text></svg>`
+    const { data } = await sharp(Buffer.from(svg))
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    // RGBA: every fourth byte is alpha. Any opaque pixel means a glyph landed.
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
 @Injectable()
 export class OverlayService {
   constructor(@Inject(LOGGER) private readonly logger: AppLogger) {}
+
+  /**
+   * Resolved once per process. The answer cannot change while the host runs,
+   * and a per-poster probe would be pure waste.
+   */
+  private fontCheck: Promise<boolean> | null = null
+
+  private async warnIfNoFont(): Promise<void> {
+    this.fontCheck ??= canRenderText()
+    if (await this.fontCheck) return
+    this.logger.error(
+      {},
+      'No usable font on this host — poster contact bands will render blank. ' +
+        'Install a font package (e.g. fonts-dejavu-core) in the deployment image.',
+    )
+  }
 
   /**
    * Composite the contact band onto `bytes`.
@@ -212,6 +256,10 @@ export class OverlayService {
   async apply(bytes: Uint8Array, contentType: string, facts: BrandFacts): Promise<Composited> {
     if (!contentType.startsWith('image/')) return { bytes, contentType }
     if (!hasAnythingToStamp(facts)) return { bytes, contentType }
+
+    // Logged rather than thrown: a band with no text is still better than no
+    // band, and this must never be the reason a poster fails to appear.
+    await this.warnIfNoFont()
 
     try {
       const base = sharp(bytes, { failOn: 'error' })

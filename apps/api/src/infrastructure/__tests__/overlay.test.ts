@@ -5,6 +5,7 @@ import type { AppLogger } from '@vsp/observability'
 
 import {
   buildBandSvg,
+  canRenderText,
   contactLines,
   escapeXml,
   fit,
@@ -152,6 +153,14 @@ describe('buildBandSvg', () => {
     const without = buildBandSvg(1280, 140, { displayName: 'VSP' }, 0)
     const x = (svg: string) => Number(/<text x="(\d+)"/.exec(svg)?.[1])
     expect(x(withLogo)).toBeGreaterThan(x(without))
+  })
+})
+
+describe('canRenderText', () => {
+  it('detects a working font on this machine', async () => {
+    // Also proves the probe is not trivially true: it inspects real pixels, so
+    // a host without fonts would fail here rather than pass by construction.
+    expect(await canRenderText()).toBe(true)
   })
 })
 

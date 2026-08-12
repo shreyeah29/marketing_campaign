@@ -308,6 +308,14 @@ export class AiController {
         succeeded: false,
         errorCode: 'provider_error',
       })
+      // The usage row records *that* it failed; only the log records why. An
+      // operator debugging "AI is down" needs to tell a bad key from a quota
+      // from an outage, and this handler was discarding that distinction
+      // entirely — matching what the image and video handlers already do.
+      this.logger.error(
+        { err, operation, provider: resolved.providerId, model: chosenModel },
+        'AI completion failed',
+      )
       // A provider-side failure (bad key, quota, outage) is a generic 503 — never
       // the provider's error text.
       throw aiUnavailable()

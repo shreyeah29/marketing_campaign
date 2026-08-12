@@ -98,6 +98,24 @@ export const envSchema = z.object({
   RUNWAY_IMAGE_MODEL: z.string().optional(),
 
   /**
+   * Object storage for generated creatives (Supabase Storage over its REST API —
+   * no SDK, same reasoning as the Resend mailer).
+   *
+   * This is not an optimisation. Runway returns *ephemeral* URLs: a poster
+   * generated today is a dead link within days, and the campaign that used it
+   * silently loses its artwork. Every generated image and video is therefore
+   * copied into a bucket we own and the durable URL is what gets persisted.
+   *
+   * Unset means the copy is skipped and the raw provider URL is stored instead —
+   * the system keeps working, but its media expires. The service key is a
+   * server-only secret: it bypasses row-level security, so it belongs in the API
+   * and worker environments and nowhere near the browser.
+   */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_KEY: z.string().optional(),
+  SUPABASE_BUCKET: z.string().default('creatives'),
+
+  /**
    * Meta (Facebook/Instagram) ads + WhatsApp — the platform's single operator-owned
    * Meta App. These identify the *app*; a client's per-tenant access token is a
    * delegated OAuth grant stored encrypted per organisation, never here. All

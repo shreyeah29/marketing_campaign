@@ -24,6 +24,7 @@ import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
+import { StorageService } from '../../infrastructure/storage.js'
 import { generateRunwayImage, generateRunwayVideo } from '../ai/adapters/runway.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
@@ -103,6 +104,7 @@ export class ReviewQueueController {
     @Inject(CampaignGenerationService) private readonly generation: CampaignGenerationService,
     @Inject(WorkflowEngineService) private readonly workflows: WorkflowEngineService,
     @Inject(AiService) private readonly ai: AiService,
+    @Inject(StorageService) private readonly storage: StorageService,
   ) {}
 
   // ── Generation ─────────────────────────────────────────────────────────────
@@ -335,19 +337,29 @@ export class ReviewQueueController {
       urls = [result.url]
     }
 
-    const primary = urls[0]
+    // Runway's URLs expire. Copy the bytes into our own bucket before anything
+    // is persisted, so what the database holds still resolves next month. Also
+    // outside the transaction — it is more network I/O.
+    const stored = await this.storage.persistMany(urls, `${p.organizationId}/${id}/${Date.now()}`)
+    const durableUrls = stored.map((s) => s.url)
+
+    const primary = durableUrls[0]
     if (!primary) throw new ServiceUnavailableException('Media generation failed — try again')
 
     return withTenantTransaction(this.db, async (tx) => {
       // Every generated creative also lands in the media library, so the
       // Creative Library can browse everything ever made — approved or not.
-      for (const url of urls) {
+      for (const [i, item] of stored.entries()) {
         await tx.mediaAsset.create({
           data: {
             organizationId: p.organizationId,
             type: asset.kind === 'IMAGE_PROMPT' ? 'IMAGE' : 'VIDEO',
-            storageKey: `runway/${id}/${Date.now()}-${urls.indexOf(url)}`,
-            url,
+            // Indexed from the loop, not `urls.indexOf(url)`: two variants can
+            // come back identical, and indexOf would give them the same key.
+            storageKey: item.persisted
+              ? item.storageKey
+              : `runway/${id}/${Date.now()}-${String(i)}`,
+            url: item.url,
             prompt,
             generatorProvider: 'RUNWAY',
             ...(runway.imageModel || runway.videoModel
@@ -365,7 +377,7 @@ export class ReviewQueueController {
           mediaUrl: primary,
           status: 'NEEDS_REVIEW',
           // All variants ride on the asset so the reviewer can pick the winner.
-          aiVersions: { variants: urls },
+          aiVersions: { variants: durableUrls },
         },
       })
       await this.comment(

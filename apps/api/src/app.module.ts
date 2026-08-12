@@ -20,6 +20,7 @@ import { IdentityService } from './modules/auth/identity.service.js'
 import { AuthController } from './modules/auth/auth.controller.js'
 import { emailTransportProvider } from './modules/auth/email.port.js'
 import { MailerService } from './infrastructure/mailer.js'
+import { StorageService } from './infrastructure/storage.js'
 import { AgentRunsController } from './modules/agents/agent-runs.controller.js'
 import { ConfigController } from './modules/config/config.controller.js'
 import { AnalyticsController, AuditController } from './modules/analytics/analytics.controller.js'
@@ -145,6 +146,7 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
     EncryptionService,
     // Tenant authentication and identity (Better Auth + org/role resolution).
     MailerService,
+    StorageService,
     emailTransportProvider,
     AuthService,
     IdentityService,

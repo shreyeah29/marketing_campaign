@@ -137,7 +137,47 @@ function problemMessage(data: unknown, status: number): string {
   return `Request failed (${String(status)})`
 }
 
+/**
+ * Upload a file.
+ *
+ * Separate from `request` because a multipart body must NOT carry an explicit
+ * `Content-Type`: the browser sets it, including the boundary token that
+ * separates the parts. Setting it by hand produces a header with no boundary,
+ * and the server then cannot parse a body that looks perfectly valid on the
+ * wire.
+ */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const viewAs = getViewAsToken()
+  const res = await fetch(`${API_BASE}/v1${path}`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      ...(viewAs ? { 'x-vsp-view-as': viewAs } : {}),
+    },
+    body: form,
+    credentials: 'include',
+  })
+
+  const text = await res.text()
+  const data: unknown = text ? JSON.parse(text) : null
+  if (!res.ok) {
+    const problem = (data ?? {}) as Partial<Problem>
+    throw new ApiError(
+      problemMessage(data, res.status),
+      res.status,
+      problem.code ?? 'unknown',
+      data as Problem,
+    )
+  }
+  return data as T
+}
+
 export const api = {
+  /**
+   * The versioned API root, for URLs the browser fetches directly rather than
+   * through this client — an `<img src>` pointing at a render endpoint, say.
+   */
+  base: `${API_BASE}/v1`,
   get: <T>(path: string, opts?: Omit<RequestOptions, 'method' | 'body'>) =>
     request<T>(path, { ...opts, method: 'GET' }),
   post: <T>(path: string, body?: unknown, opts?: Omit<RequestOptions, 'method' | 'body'>) =>

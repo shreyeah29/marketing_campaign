@@ -124,41 +124,74 @@ export class StorageService {
         ? await transform(raw, sourceType)
         : { bytes: raw, contentType: sourceType }
 
-      const objectPath = `${keyPrefix}.${EXTENSIONS[contentType] ?? 'bin'}`
-      const bucket = env.SUPABASE_BUCKET
-      const endpoint = `${base.replace(/\/$/, '')}/storage/v1/object/${bucket}/${objectPath}`
-
-      const upload = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          authorization: `Bearer ${key}`,
-          apikey: key,
-          'content-type': contentType || 'application/octet-stream',
-          // Regenerating into the same key should replace, not 409.
-          'x-upsert': 'true',
-          // Browsers and Meta's scraper both re-fetch these; a year is safe
-          // because the path is unique per generation and never rewritten.
-          'cache-control': 'public, max-age=31536000, immutable',
-        },
-        body: bytes,
-      })
-
-      if (!upload.ok) {
-        const detail = await upload.text().catch(() => '')
-        throw new Error(`upload responded ${String(upload.status)} ${detail.slice(0, 200)}`)
-      }
-
-      return {
-        url: `${base.replace(/\/$/, '')}/storage/v1/object/public/${bucket}/${objectPath}`,
-        storageKey: objectPath,
-        persisted: true,
-      }
+      return await this.put(bytes, contentType, keyPrefix)
     } catch (err) {
       this.logger.error(
         { keyPrefix, err: err instanceof Error ? err.message : String(err) },
         'Could not copy generated media into storage — falling back to the expiring provider URL',
       )
       return { url: sourceUrl, storageKey: keyPrefix, persisted: false }
+    }
+  }
+
+  /**
+   * Store bytes we already hold.
+   *
+   * The upload path, and the tail of `persist`. Unlike `persist` this **throws**
+   * on failure rather than degrading: there is no source URL to fall back to, so
+   * "it did not store" has to reach the caller as an error instead of a result
+   * that looks almost like success.
+   */
+  async persistBytes(
+    bytes: Uint8Array,
+    contentType: string,
+    keyPrefix: string,
+  ): Promise<PersistResult> {
+    if (!this.configured()) {
+      return { url: '', storageKey: keyPrefix, persisted: false }
+    }
+    if (bytes.byteLength > MAX_BYTES) {
+      throw new Error(`payload is ${String(bytes.byteLength)} bytes, over the cap`)
+    }
+    return this.put(bytes, contentType, keyPrefix)
+  }
+
+  /** The single upload call. Both entry points funnel through it. */
+  private async put(
+    bytes: Uint8Array,
+    contentType: string,
+    keyPrefix: string,
+  ): Promise<PersistResult> {
+    const env = loadEnv()
+    const base = (env.SUPABASE_URL ?? '').replace(/\/$/, '')
+    const key = env.SUPABASE_SERVICE_KEY ?? ''
+    const bucket = env.SUPABASE_BUCKET
+
+    const objectPath = `${keyPrefix}.${EXTENSIONS[contentType] ?? 'bin'}`
+    const upload = await fetch(`${base}/storage/v1/object/${bucket}/${objectPath}`, {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${key}`,
+        apikey: key,
+        'content-type': contentType || 'application/octet-stream',
+        // Regenerating into the same key should replace, not 409.
+        'x-upsert': 'true',
+        // Browsers and Meta's scraper both re-fetch these; a year is safe
+        // because the path is unique per write and never rewritten.
+        'cache-control': 'public, max-age=31536000, immutable',
+      },
+      body: bytes,
+    })
+
+    if (!upload.ok) {
+      const detail = await upload.text().catch(() => '')
+      throw new Error(`upload responded ${String(upload.status)} ${detail.slice(0, 200)}`)
+    }
+
+    return {
+      url: `${base}/storage/v1/object/public/${bucket}/${objectPath}`,
+      storageKey: objectPath,
+      persisted: true,
     }
   }
 

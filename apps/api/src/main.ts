@@ -3,6 +3,7 @@ import 'reflect-metadata'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
+import multipart from '@fastify/multipart'
 import helmet from '@fastify/helmet'
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
@@ -28,6 +29,7 @@ import { mountBetterAuth } from './modules/auth/fastify-mount.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
 import { assertPermissionMatrixValid } from './common/rbac/permissions.js'
 import { registerRateLimit } from './infrastructure/rate-limit.js'
+import { MAX_UPLOAD_BYTES } from './modules/uploads/uploads.constants.js'
 import { createRedis } from './infrastructure/redis.js'
 
 /**
@@ -163,6 +165,13 @@ async function bootstrap(): Promise<void> {
     // Capture the raw request body so inbound webhooks (Meta / WhatsApp) can verify
     // their X-Hub-Signature-256 against the exact bytes that were signed.
     rawBody: true,
+  })
+
+  // File uploads. Registered with a hard byte ceiling rather than relying on the
+  // route to check afterwards — by the time a handler runs, an unbounded upload
+  // has already been buffered, which is the whole attack.
+  await app.register(multipart, {
+    limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 8 },
   })
 
   await app.register(helmet, {

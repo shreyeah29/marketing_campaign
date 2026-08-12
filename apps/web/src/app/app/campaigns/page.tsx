@@ -10,6 +10,7 @@ import { FadeIn } from '@/components/motion'
 import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
 import { fetchCampaigns, type Campaign } from '@/components/campaign-studio'
+import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
 
 export default function CampaignsListPage() {
   const router = useRouter()
@@ -23,13 +24,14 @@ export default function CampaignsListPage() {
     <FadeIn>
       <PageHeader
         title="Campaigns"
-        subtitle="Open a campaign to review strategy, assets, schedule and performance."
         actions={
           <Link className="btn primary" href="/app/create">
             <Icon name="sparkles" size={15} /> New campaign
           </Link>
         }
       />
+
+      <SectionNav links={CAMPAIGN_SECTION} />
 
       {campaigns === null ? (
         <div className="row" style={{ gap: 8, padding: 24 }}>

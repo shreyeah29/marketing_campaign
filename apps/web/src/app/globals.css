@@ -6049,3 +6049,29 @@ a.card:hover {
   padding-top: var(--space-4);
   border-top: 1px solid var(--border-subtle);
 }
+
+/* Product row: the live poster preview sits beside its data, because the point
+   of separating the visual from the composition is that you can see the result
+   of a price change immediately. */
+.product-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+}
+.product-row__preview {
+  width: 96px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  display: block;
+}
+@media (max-width: 640px) {
+  .product-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .product-row__preview {
+    width: 64px;
+  }
+}

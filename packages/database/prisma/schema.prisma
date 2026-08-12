@@ -649,6 +649,8 @@ model Organization {
   campaigns              Campaign[]
   contentDocuments       ContentDocument[]
   mediaAssets            MediaAsset[]
+  products               Product[]
+  campaignProducts       CampaignProduct[]
   brandKits              BrandKit[]
   emailCampaigns         EmailCampaign[]
   emailSequences         EmailSequence[]
@@ -1229,6 +1231,15 @@ model Campaign {
   targetAudience Json?    @map("target_audience")
   tags           String[] @default([])
 
+  // The offer, as it is printed on creative. Held on the campaign rather than
+  // per-creative because "UP TO 40% OFF" is one promise made once — fifty
+  // posters restating it in fifty rows is fifty chances to disagree.
+  theme          String?
+  primaryOffer   String? @map("primary_offer")
+  secondaryOffer String? @map("secondary_offer")
+  couponCode     String? @map("coupon_code")
+  cta            String?
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -1242,6 +1253,7 @@ model Campaign {
   emailCampaigns   EmailCampaign[]
   metricDailies    MetricDaily[]
   campaignAssets   CampaignAsset[]
+  products         CampaignProduct[]
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, status, startsAt])
@@ -1350,6 +1362,75 @@ model ContentApproval {
 // ═══════════════════════════════════════════════════════════════════════════════
 // MEDIA
 // ═══════════════════════════════════════════════════════════════════════════════
+
+/// A product in the organisation's creative catalogue.
+///
+/// Deliberately not an ecommerce record: no inventory, no variants, no feed
+/// sync. It holds exactly what a poster needs to print — a name, a brand, two
+/// prices and a picture — and stops there. Widening it later into a catalogue
+/// integration is a decision to take on its own merits, not one to drift into.
+model Product {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+
+  name        String
+  brand       String?
+  sku         String?
+  description String?
+  productUrl  String? @map("product_url")
+
+  /// Money in MINOR units — paise, cents. Never a float and never a Decimal
+  /// rendered through one: a price that has been through binary floating point
+  /// can print as ₹1,869.99 on an advertisement, and there is no taking that
+  /// back once it has published.
+  mrpMinor       Int?   @map("mrp_minor")
+  salePriceMinor Int?   @map("sale_price_minor")
+  currency       String @default("INR")
+
+  /// The uploaded original, and the background-removed cutout derived from it.
+  /// Discount is deliberately absent — it is derived from the two prices at
+  /// render time, so a stored value can never contradict them.
+  imageUrl  String? @map("image_url")
+  cutoutUrl String? @map("cutout_url")
+
+  /// Shade, size, variant — addressable by templates without a schema change.
+  attributes Json?
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    CampaignProduct[]
+
+  @@index([organizationId, deletedAt])
+  @@index([organizationId, brand])
+  @@map("product")
+}
+
+/// Which products a campaign generates creative for.
+///
+/// Many-to-many because the same product appears in the Diwali sale and the
+/// clearance sale, and neither should own it.
+model CampaignProduct {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  campaignId     String @map("campaign_id")
+  productId      String @map("product_id")
+
+  /// Display order in the campaign, so "generate all" is predictable.
+  position Int @default(0)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, productId])
+  @@index([organizationId])
+  @@map("campaign_product")
+}
 
 model MediaAsset {
   id             String           @id @default(uuid(7))

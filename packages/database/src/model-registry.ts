@@ -26,6 +26,8 @@ export const TENANT_SCOPED_MODELS = [
   'Campaign',
   'ContentDocument',
   'MediaAsset',
+  'Product',
+  'CampaignProduct',
   'BrandKit',
   'EmailCampaign',
   'EmailSequence',

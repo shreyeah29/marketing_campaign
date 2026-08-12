@@ -478,7 +478,11 @@ const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Gi
   ]
 }
 Produce at least one POST per platform (Instagram, Facebook, LinkedIn, X, Google) plus a few ad-copy assets. Keep captions platform-appropriate.
-ALSO produce 2-4 IMAGE_PROMPT assets (poster/visual concepts) and 1-2 VIDEO_PROMPT assets (short clip concepts). For these, "title" is the concept name and "body" is a rich, detailed generation prompt for an AI image/video model — subject, composition, lighting, mood, colours, style — written to match the brand. Return valid JSON only.`
+ALSO produce 2-4 IMAGE_PROMPT assets (poster/visual concepts) and 1-2 VIDEO_PROMPT assets (short clip concepts). For these, "title" is the concept name and "body" is a rich, detailed generation prompt for an AI image/video model — subject, composition, lighting, mood, colours, style — written to match the brand.
+
+CRITICAL for every IMAGE_PROMPT: the artwork must contain NO text, NO lettering, NO numbers, NO logos, NO signage and NO watermarks of any kind. Image models cannot spell, and a poster with an invented phone number is unusable. Describe only the picture, and end every IMAGE_PROMPT body with: "No text, letters, numbers or logos anywhere in the image. Leave the lower quarter visually calm and uncluttered — a plain surface, sky, gradient or shadow — with no important subject matter there." The real name, phone numbers, email and logo are typeset onto that space afterwards by the system.
+
+Return valid JSON only.`
 
 function parsePlan(raw: string): GeneratedPlan {
   // Models sometimes wrap JSON in prose or code fences — extract the object.

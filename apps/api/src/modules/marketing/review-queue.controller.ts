@@ -24,6 +24,7 @@ import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
+import { OverlayService, type BrandFacts } from '../../infrastructure/overlay.js'
 import { StorageService } from '../../infrastructure/storage.js'
 import { generateRunwayImage, generateRunwayVideo } from '../ai/adapters/runway.js'
 import { AiService } from '../ai/ai.service.js'
@@ -105,7 +106,54 @@ export class ReviewQueueController {
     @Inject(WorkflowEngineService) private readonly workflows: WorkflowEngineService,
     @Inject(AiService) private readonly ai: AiService,
     @Inject(StorageService) private readonly storage: StorageService,
+    @Inject(OverlayService) private readonly overlay: OverlayService,
   ) {}
+
+  /**
+   * The brand kit's facts, shaped for the artwork stamp.
+   *
+   * Returns empty on any failure, which the overlay treats as "nothing to
+   * stamp" — an organisation that has not filled in its brand kit gets plain
+   * artwork rather than an error.
+   */
+  private async brandFacts(): Promise<BrandFacts> {
+    try {
+      const b = await withTenantTransaction(this.db, (tx) => tx.branding.findFirst())
+      if (!b) return {}
+
+      // contactPhones is JSON: [{ label: "India", value: "+91 …" }]. Labels are
+      // kept because a poster aimed at two countries needs to say which is which.
+      const rows = Array.isArray(b.contactPhones)
+        ? (b.contactPhones as { label?: unknown; value?: unknown }[])
+        : []
+      const phones = rows
+        .map((r) => {
+          const value = typeof r?.value === 'string' ? r.value.trim() : ''
+          if (!value) return ''
+          const label = typeof r?.label === 'string' ? r.label.trim() : ''
+          return label ? `${label} ${value}` : value
+        })
+        .filter((p) => p.length > 0)
+
+      // One disclaimer fits a band; the first is the one that gets stamped.
+      const disclaimers = Array.isArray(b.disclaimers)
+        ? (b.disclaimers as { value?: unknown }[])
+        : []
+      const disclaimer = disclaimers
+        .map((d) => (typeof d?.value === 'string' ? d.value.trim() : ''))
+        .find((d) => d.length > 0)
+
+      return {
+        displayName: b.displayName,
+        logoUrl: b.logoUrl,
+        contactEmail: b.contactEmail,
+        phones,
+        ...(disclaimer ? { disclaimer } : {}),
+      }
+    } catch {
+      return {}
+    }
+  }
 
   // ── Generation ─────────────────────────────────────────────────────────────
   @Post('plan')
@@ -340,7 +388,17 @@ export class ReviewQueueController {
     // Runway's URLs expire. Copy the bytes into our own bucket before anything
     // is persisted, so what the database holds still resolves next month. Also
     // outside the transaction — it is more network I/O.
-    const stored = await this.storage.persistMany(urls, `${p.organizationId}/${id}/${Date.now()}`)
+    //
+    // The brand details are stamped on during that same copy. The model was
+    // told to leave space and draw no text, because image models render a phone
+    // number as something that merely looks like one — so the real number goes
+    // on here, from the brand kit, on the only copy that gets stored.
+    const facts = await this.brandFacts()
+    const stored = await this.storage.persistMany(
+      urls,
+      `${p.organizationId}/${id}/${Date.now()}`,
+      (bytes, contentType) => this.overlay.apply(bytes, contentType, facts),
+    )
     const durableUrls = stored.map((s) => s.url)
 
     const primary = durableUrls[0]

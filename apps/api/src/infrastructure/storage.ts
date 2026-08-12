@@ -26,6 +26,16 @@ import { LOGGER } from './database.module.js'
  * the caller what happened, and a warning is logged once per attempt.
  */
 
+/**
+ * Runs on downloaded bytes before upload. Must not throw — it sits between a
+ * successful generation and permanent storage, and a poster that cannot be
+ * transformed should still be kept.
+ */
+export type Transform = (
+  bytes: Uint8Array,
+  contentType: string,
+) => Promise<{ bytes: Uint8Array; contentType: string }>
+
 export interface PersistResult {
   /** The URL to store. Durable when `persisted`, the provider's own otherwise. */
   readonly url: string
@@ -64,12 +74,22 @@ export class StorageService {
    * Copies `sourceUrl` into the bucket under `keyPrefix` and returns the durable
    * URL.
    *
+   * `transform` runs on the downloaded bytes before they are uploaded, so a
+   * creative is stamped exactly once, on its way into permanent storage. Doing
+   * it here rather than at render time means the stored file and the file the
+   * customer sees are the same file — there is no second, unstamped copy to
+   * leak out through a download button.
+   *
    * Never throws. A creative that failed to copy is still a creative the user
    * generated and is waiting to see — losing durability is bad, losing the
    * poster outright is worse. Failures degrade to the provider URL and are
    * logged with enough context to diagnose.
    */
-  async persist(sourceUrl: string, keyPrefix: string): Promise<PersistResult> {
+  async persist(
+    sourceUrl: string,
+    keyPrefix: string,
+    transform?: Transform,
+  ): Promise<PersistResult> {
     const env = loadEnv()
     const base = env.SUPABASE_URL
     const key = env.SUPABASE_SERVICE_KEY
@@ -89,14 +109,20 @@ export class StorageService {
         throw new Error(`source responded ${String(source.status)}`)
       }
 
-      const contentType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? ''
-      const bytes = new Uint8Array(await source.arrayBuffer())
-      if (bytes.byteLength === 0) throw new Error('source returned an empty body')
-      if (bytes.byteLength > MAX_BYTES) {
+      const sourceType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? ''
+      const raw = new Uint8Array(await source.arrayBuffer())
+      if (raw.byteLength === 0) throw new Error('source returned an empty body')
+      if (raw.byteLength > MAX_BYTES) {
         throw new Error(
-          `source is ${String(bytes.byteLength)} bytes, over the ${String(MAX_BYTES)} cap`,
+          `source is ${String(raw.byteLength)} bytes, over the ${String(MAX_BYTES)} cap`,
         )
       }
+
+      // The transform owns its own failure handling and returns the input
+      // unchanged when it cannot run, so an unstamped poster still gets stored.
+      const { bytes, contentType } = transform
+        ? await transform(raw, sourceType)
+        : { bytes: raw, contentType: sourceType }
 
       const objectPath = `${keyPrefix}.${EXTENSIONS[contentType] ?? 'bin'}`
       const bucket = env.SUPABASE_BUCKET
@@ -142,7 +168,13 @@ export class StorageService {
    * Order matters to the caller: variant 0 is the one promoted onto the asset,
    * and the reviewer picks the rest by position.
    */
-  async persistMany(sourceUrls: readonly string[], keyPrefix: string): Promise<PersistResult[]> {
-    return Promise.all(sourceUrls.map((url, i) => this.persist(url, `${keyPrefix}-${String(i)}`)))
+  async persistMany(
+    sourceUrls: readonly string[],
+    keyPrefix: string,
+    transform?: Transform,
+  ): Promise<PersistResult[]> {
+    return Promise.all(
+      sourceUrls.map((url, i) => this.persist(url, `${keyPrefix}-${String(i)}`, transform)),
+    )
   }
 }

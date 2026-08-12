@@ -31,10 +31,17 @@ CREATE TABLE IF NOT EXISTS "product" (
     "cutout_url"       TEXT,
     "attributes"       JSONB,
     "created_at"       TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at"       TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- No database default: `@updatedAt` is set by Prisma on every write, and a
+    -- DEFAULT here is drift the schema does not declare.
+    "updated_at"       TIMESTAMP(3) NOT NULL,
     "deleted_at"       TIMESTAMP(3),
     CONSTRAINT "product_pkey" PRIMARY KEY ("id")
 );
+
+-- Idempotent, and a no-op on a fresh create. Present so that a database which
+-- already received the earlier version of this file converges to the same shape
+-- rather than staying permanently drifted.
+ALTER TABLE "product" ALTER COLUMN "updated_at" DROP DEFAULT;
 
 CREATE INDEX IF NOT EXISTS "product_organization_id_deleted_at_idx"
     ON "product" ("organization_id", "deleted_at");

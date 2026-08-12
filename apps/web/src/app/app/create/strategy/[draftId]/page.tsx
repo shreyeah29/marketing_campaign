@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
@@ -36,6 +36,25 @@ export default function StrategyDraftPage() {
   useEffect(() => {
     setDraft(readDraft(draftId))
   }, [draftId])
+
+  // ── Posters start themselves ─────────────────────────────────────────────
+  // Approving a plan you cannot see the results of is a decision made blind, so
+  // generation no longer waits behind that button: as soon as a plan exists the
+  // campaign is created and the posters begin rendering. The plan stays fully
+  // reviewable — it becomes the campaign's Brief tab, and "Request changes"
+  // still regenerates it — but you now judge the work rather than the promise.
+  //
+  // Guarded on `generatedCampaignId`, which is written before navigating, so
+  // coming back here never creates a second campaign or bills twice.
+  const autoStarted = useRef(false)
+  useEffect(() => {
+    if (!draft?.plan) return
+    if (draft.generatedCampaignId || autoStarted.current) return
+    if (generating || planning || regenerating) return
+    autoStarted.current = true
+    void generate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.plan, draft?.generatedCampaignId])
 
   async function ensurePlan(current: CreateDraft): Promise<CampaignPlan | null> {
     if (current.plan) return current.plan
@@ -98,7 +117,9 @@ export default function StrategyDraftPage() {
         '/campaign-assets/generate',
         { brief },
       )
-      toast.push('success', `${res.assetCount} assets queued`)
+      // Recorded before navigating so returning to this screen never bills for
+      // a second campaign.
+      upsertDraft(draftId, { generatedCampaignId: res.campaignId })
       router.push(`/app/create/generating/${res.campaignId}`)
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')

@@ -62,6 +62,12 @@ export interface CreateDraft {
   customEnd?: string | undefined
   budget?: number | undefined
   planApproved?: boolean | undefined
+  /**
+   * Set the moment generation is kicked off for this draft. Guards the
+   * auto-start: revisiting the strategy screen must not create a second
+   * campaign and bill for a second set of posters.
+   */
+  generatedCampaignId?: string | undefined
   /** Content formats: posts, stories, reels, ads */
   formats?: string[] | undefined
   /** Generate AI image posters (Runway via generate-media). */

@@ -143,7 +143,7 @@ export function PlanView({
                         <Spinner /> Generating…
                       </>
                     ) : (
-                      <>Approve & generate creatives</>
+                      <>See the posters</>
                     )}
                   </button>
                   <button

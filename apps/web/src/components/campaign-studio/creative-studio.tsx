@@ -85,6 +85,7 @@ export function CreativeStudio({
   // means reopening it, which keeps a rejection meaningful.
   const startedRef = useRef<Set<string>>(new Set())
   const [pending, setPending] = useState(0)
+  const [blocked, setBlocked] = useState<string | null>(null)
 
   useEffect(() => {
     const waiting = pieces
@@ -105,17 +106,29 @@ export function CreativeStudio({
       // Bounded concurrency: a ten-poster campaign firing at once would hit the
       // provider's rate limit and fail the lot.
       const queue = [...fresh]
+      let firstError: string | null = null
       const worker = async (): Promise<void> => {
         while (queue.length > 0) {
           const next = queue.shift()
           if (!next || cancelled) return
-          await api
-            .post(`/campaign-assets/${next.id}/generate-media`, { variants: 1 })
-            .catch(() => undefined)
+          try {
+            await api.post(`/campaign-assets/${next.id}/generate-media`, { variants: 1 })
+          } catch (e) {
+            // Report the first failure and stop. Swallowing these left posters
+            // silently never appearing, which is indistinguishable from the
+            // provider being slow — and every retry costs money.
+            firstError ??= e instanceof ApiError ? e.message : 'Poster rendering failed'
+            queue.length = 0
+          }
         }
       }
       await Promise.all([worker(), worker(), worker()])
-      if (!cancelled) reload()
+      if (cancelled) return
+      if (firstError) {
+        setBlocked(firstError)
+        toast.push('error', firstError)
+      }
+      reload()
     })()
 
     return () => {
@@ -338,12 +351,17 @@ export function CreativeStudio({
                     size={36}
                   />
                   <p className="type-body-strong" style={{ margin: '12px 0 4px' }}>
-                    {selectedPiece.master ? 'Rendering this poster…' : 'Copy-only piece'}
+                    {!selectedPiece.master
+                      ? 'Copy-only piece'
+                      : blocked
+                        ? 'This poster could not be rendered'
+                        : 'Rendering this poster…'}
                   </p>
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
-                    {selectedPiece.master
-                      ? 'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.'
-                      : 'This group came back as captions only — the plan produced no image concept for it.'}
+                    {!selectedPiece.master
+                      ? 'This group came back as captions only — the plan produced no image concept for it.'
+                      : (blocked ??
+                        'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.')}
                   </p>
                   {/* Rendering starts on its own; this is the retry for when a
                       provider call fails, not the way in. */}

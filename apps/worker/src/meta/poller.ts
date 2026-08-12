@@ -3,7 +3,8 @@ import type { AppLogger } from '@vsp/observability'
 
 import type { WorkerEnv } from '../config.js'
 import { openSealed, type SealedSecret } from '../social/crypto.js'
-import { graphGet, mapLeadFields, MetaApiError } from './graph.js'
+import { graphGet, graphPost, mapLeadFields, MetaApiError } from './graph.js'
+import { buildTemplateMessage, normaliseWhatsAppNumber } from './whatsapp.js'
 
 /**
  * The Meta poller — two jobs on one self-rescheduling loop:
@@ -219,6 +220,64 @@ export class MetaPoller {
       .catch(() => undefined)
 
     this.logger.info({ eventId, organizationId }, 'meta lead captured')
+
+    // Speed to lead. Deliberately last, and deliberately unable to throw: the
+    // lead is already saved, and a WhatsApp outage must not mark the event
+    // FAILED and have it retried — a retry would re-message the person.
+    await this.autoReply(organizationId, phone, firstName ?? fullName, token)
+  }
+
+  /**
+   * Send the organisation's approved WhatsApp template to a fresh lead.
+   *
+   * Every reason to skip is a silent no-op except a genuine send failure, which
+   * is logged: switched off, no template configured, no WhatsApp number on the
+   * connection, or a phone field that is not a phone number are all normal
+   * states, not faults.
+   */
+  private async autoReply(
+    organizationId: string,
+    rawPhone: string | null,
+    firstName: string,
+    token: string,
+  ): Promise<void> {
+    try {
+      const settings = await this.db.organizationSettings.findFirst({
+        where: { organizationId },
+        select: {
+          leadAutoReplyEnabled: true,
+          leadAutoReplyTemplate: true,
+          leadAutoReplyLanguage: true,
+        },
+      })
+      if (!settings?.leadAutoReplyEnabled) return
+
+      const template = settings.leadAutoReplyTemplate?.trim()
+      if (!template) return
+
+      const to = normaliseWhatsAppNumber(rawPhone)
+      if (!to) return
+
+      const connection = await this.db.metaConnection.findFirst({
+        where: { organizationId },
+        select: { phoneNumberId: true },
+      })
+      if (!connection?.phoneNumberId) return
+
+      await graphPost(
+        {
+          accessToken: token,
+          version: this.env.META_GRAPH_VERSION,
+          appSecret: this.env.META_APP_SECRET,
+        },
+        `${connection.phoneNumberId}/messages`,
+        buildTemplateMessage(to, template, settings.leadAutoReplyLanguage ?? 'en_US', [firstName]),
+      )
+
+      this.logger.info({ organizationId, template }, 'lead auto-reply sent')
+    } catch (err) {
+      this.logger.error({ err, organizationId }, 'lead auto-reply failed')
+    }
   }
 
   // ── Ad insights sync ───────────────────────────────────────────────────────

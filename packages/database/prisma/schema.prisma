@@ -734,6 +734,17 @@ model OrganizationSettings {
   monthlyReportEnabled Boolean @default(false) @map("monthly_report_enabled")
   reportRecipientEmail String? @map("report_recipient_email")
 
+  // WhatsApp reply sent the moment a Meta lead ad is submitted. Off by default:
+  // it messages a real person automatically, so it is opted into deliberately.
+  //
+  // It must be a pre-approved template, not free text. The lead has not
+  // messaged us, so this is a business-initiated conversation and WhatsApp only
+  // permits templates outside the 24-hour service window — free text would be
+  // rejected by the Cloud API every time.
+  leadAutoReplyEnabled  Boolean @default(false) @map("lead_auto_reply_enabled")
+  leadAutoReplyTemplate String? @map("lead_auto_reply_template")
+  leadAutoReplyLanguage String? @map("lead_auto_reply_language")
+
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("organization_settings")

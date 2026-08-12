@@ -31,6 +31,16 @@ const updateSettingsSchema = z
     // set the report goes to the organisation owner's email.
     monthlyReportEnabled: z.boolean().optional(),
     reportRecipientEmail: z.string().email().max(320).nullish(),
+    // WhatsApp reply sent the instant a Meta lead ad is submitted. The template
+    // name must match one Meta has approved on the organisation's WABA — the
+    // send is business-initiated, so free text is not permitted.
+    leadAutoReplyEnabled: z.boolean().optional(),
+    leadAutoReplyTemplate: z.string().max(512).nullish(),
+    // BCP-47-ish codes as Meta writes them: en_US, hi_IN, te_IN.
+    leadAutoReplyLanguage: z
+      .string()
+      .regex(/^[a-z]{2,3}(_[A-Z]{2})?$/, 'Use a WhatsApp language code such as en_US')
+      .nullish(),
   })
   .strict()
 
@@ -76,6 +86,9 @@ export class OrganizationsController {
         hardStopOnBudget: org.settings.hardStopOnBudget,
         monthlyReportEnabled: org.settings.monthlyReportEnabled,
         reportRecipientEmail: org.settings.reportRecipientEmail,
+        leadAutoReplyEnabled: org.settings.leadAutoReplyEnabled,
+        leadAutoReplyTemplate: org.settings.leadAutoReplyTemplate,
+        leadAutoReplyLanguage: org.settings.leadAutoReplyLanguage,
       },
     }
   }
@@ -115,6 +128,15 @@ export class OrganizationsController {
           ...(input.reportRecipientEmail === undefined
             ? {}
             : { reportRecipientEmail: input.reportRecipientEmail }),
+          ...(input.leadAutoReplyEnabled === undefined
+            ? {}
+            : { leadAutoReplyEnabled: input.leadAutoReplyEnabled }),
+          ...(input.leadAutoReplyTemplate === undefined
+            ? {}
+            : { leadAutoReplyTemplate: input.leadAutoReplyTemplate }),
+          ...(input.leadAutoReplyLanguage === undefined
+            ? {}
+            : { leadAutoReplyLanguage: input.leadAutoReplyLanguage }),
         },
       })
 

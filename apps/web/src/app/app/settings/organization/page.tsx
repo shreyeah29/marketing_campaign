@@ -14,6 +14,9 @@ interface OrgSettings {
   targetAudience?: string | null
   monthlyReportEnabled?: boolean
   reportRecipientEmail?: string | null
+  leadAutoReplyEnabled?: boolean
+  leadAutoReplyTemplate?: string | null
+  leadAutoReplyLanguage?: string | null
 }
 
 interface Organization {
@@ -47,6 +50,9 @@ export default function OrganizationSettingsPage() {
         targetAudience: res?.settings?.targetAudience ?? '',
         monthlyReportEnabled: res?.settings?.monthlyReportEnabled ?? false,
         reportRecipientEmail: res?.settings?.reportRecipientEmail ?? '',
+        leadAutoReplyEnabled: res?.settings?.leadAutoReplyEnabled ?? false,
+        leadAutoReplyTemplate: res?.settings?.leadAutoReplyTemplate ?? '',
+        leadAutoReplyLanguage: res?.settings?.leadAutoReplyLanguage ?? 'en_US',
       })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to load organization')
@@ -71,6 +77,9 @@ export default function OrganizationSettingsPage() {
         targetAudience: form.targetAudience || null,
         monthlyReportEnabled: form.monthlyReportEnabled ?? false,
         reportRecipientEmail: form.reportRecipientEmail?.trim() || null,
+        leadAutoReplyEnabled: form.leadAutoReplyEnabled ?? false,
+        leadAutoReplyTemplate: form.leadAutoReplyTemplate?.trim() || null,
+        leadAutoReplyLanguage: form.leadAutoReplyLanguage?.trim() || null,
       })
       toast.push('success', 'Organization updated')
     } catch (err) {
@@ -157,7 +166,58 @@ export default function OrganizationSettingsPage() {
             ) : null}
           </div>
 
-          <div className="row" style={{ marginTop: 8 }}>
+          {/* Speed to lead — sent by the worker seconds after a form comes in. */}
+          <div
+            style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 16, marginTop: 16 }}
+          >
+            <label className="row" style={{ gap: 8, marginBottom: 8 }}>
+              <input
+                type="checkbox"
+                checked={form.leadAutoReplyEnabled ?? false}
+                onChange={(e) => setForm({ ...form, leadAutoReplyEnabled: e.target.checked })}
+              />
+              <span>WhatsApp every new lead the moment they enquire</span>
+            </label>
+            <p
+              className="type-caption"
+              style={{ color: 'var(--text-tertiary)', margin: '0 0 12px 24px' }}
+            >
+              Replying within a minute is the difference between a conversation and a missed one.
+            </p>
+
+            {form.leadAutoReplyEnabled ? (
+              <>
+                <Field
+                  label="Approved template name"
+                  hint="WhatsApp only allows pre-approved templates for a message you send first. Create one in Meta Business Manager, wait for approval, then paste its exact name here. Give it a single {{1}} placeholder — we fill it with the lead's first name."
+                >
+                  <input
+                    className="input"
+                    value={form.leadAutoReplyTemplate ?? ''}
+                    onChange={(e) => setForm({ ...form, leadAutoReplyTemplate: e.target.value })}
+                    placeholder="lead_welcome"
+                  />
+                </Field>
+                <Field
+                  label="Template language"
+                  hint="Exactly as Meta lists it — en_US, hi_IN, te_IN."
+                >
+                  <input
+                    className="input"
+                    value={form.leadAutoReplyLanguage ?? ''}
+                    onChange={(e) => setForm({ ...form, leadAutoReplyLanguage: e.target.value })}
+                    placeholder="en_US"
+                  />
+                </Field>
+                <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
+                  Needs a connected WhatsApp number on your Meta connection below. Leads without a
+                  phone number are skipped.
+                </p>
+              </>
+            ) : null}
+          </div>
+
+          <div className="row" style={{ marginTop: 16 }}>
             <button className="btn primary" onClick={save} disabled={saving}>
               {saving ? 'Saving…' : 'Save changes'}
             </button>

@@ -61,6 +61,43 @@ export async function graphGet<T>(
   return body
 }
 
+/**
+ * Authenticated POST. Added for WhatsApp sends — the only write the worker
+ * makes against the Graph API.
+ *
+ * `appsecret_proof` stays in the query string as it does for GET; Meta accepts
+ * it there for both verbs, and keeping the two paths identical means the auth
+ * story is one story.
+ */
+export async function graphPost<T>(auth: GraphAuth, path: string, body: unknown): Promise<T> {
+  const url = new URL(`https://graph.facebook.com/${auth.version}/${path.replace(/^\//, '')}`)
+  url.searchParams.set('access_token', auth.accessToken)
+  if (auth.appSecret) {
+    url.searchParams.set(
+      'appsecret_proof',
+      createHmac('sha256', auth.appSecret).update(auth.accessToken).digest('hex'),
+    )
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  })
+  const parsed = (await res.json().catch(() => ({}))) as {
+    error?: { message?: string; code?: number }
+  } & T
+  if (!res.ok || parsed.error) {
+    throw new MetaApiError(
+      parsed.error?.message ?? `Graph API request failed (${String(res.status)})`,
+      res.status,
+      parsed.error?.code,
+    )
+  }
+  return parsed
+}
+
 /** Meta lead field_data → flat map keyed by field name (full_name, email, …). */
 export function mapLeadFields(
   fieldData: ReadonlyArray<{ name?: string; values?: unknown[] }> | undefined,

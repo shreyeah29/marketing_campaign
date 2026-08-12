@@ -22,6 +22,7 @@ import { createLogger } from '@vsp/observability'
 
 import { AppModule } from './app.module.js'
 import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
+import { VIEW_AS_HEADER } from './modules/platform/view-as.service.js'
 import { AuthService } from './modules/auth/auth.service.js'
 import { mountBetterAuth } from './modules/auth/fastify-mount.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
@@ -188,7 +189,22 @@ async function bootstrap(): Promise<void> {
     origin: origins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Request-Id'],
+    // Every custom header the client actually sends must appear here, or the
+    // browser blocks the request during preflight — before it is sent, with no
+    // response and no status code. That failure surfaces as a bare network
+    // error, which is indistinguishable from the API being down and sends you
+    // looking in entirely the wrong place.
+    //
+    // `x-vsp-view-as` was the omission: it is set on every tenant call once an
+    // operator enters a workspace read-only, so a single view-as visit made the
+    // whole app unreachable in that tab until the tab was closed.
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Idempotency-Key',
+      'X-Request-Id',
+      VIEW_AS_HEADER,
+    ],
     exposedHeaders: ['X-Request-Id', 'Retry-After'],
     maxAge: 86_400,
   })

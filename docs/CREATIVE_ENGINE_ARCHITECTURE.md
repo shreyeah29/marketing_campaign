@@ -1,6 +1,20 @@
 # Creative Engine — Architecture Proposal
 
-Status: **awaiting approval**. Nothing in this document is built yet.
+Status: **approved 2026-08-12**. Phase 1 in progress.
+
+## Decisions taken
+
+1. **Two entry paths, not one.** Compositing a real product photo onto a
+   generated background is what happens **when the user uploads a product
+   image** — it is an option, not a replacement. A user with no product photo
+   still gets a fully AI-generated visual, as today. The pipeline branches on
+   whether `Product.imageUrl` exists; §7's tiers become user-selectable rather
+   than a single mandated strategy.
+2. **Navigation:** five top-level items with nesting, as recommended.
+3. **Design-reference upload:** deferred past MVP.
+4. **Products:** a lightweight catalogue for creative generation. No ecommerce
+   sync, no feed ingestion, no inventory.
+5. **Phase 1 first.**
 
 A response to the "Automated Marketing Campaign Operating System" brief:
 product data → AI visual → composed poster → copy → approval → schedule →

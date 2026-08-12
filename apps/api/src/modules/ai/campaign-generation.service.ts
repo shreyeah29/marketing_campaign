@@ -24,6 +24,66 @@ import { AiService } from './ai.service.js'
 
 const PLATFORMS = ['INSTAGRAM', 'FACEBOOK', 'LINKEDIN', 'X', 'GOOGLE'] as const
 
+/** A `{ label, value }` row from the brand kit's JSON columns. */
+interface LabelledValue {
+  label?: unknown
+  value?: unknown
+}
+
+/** Reads a JSON column as `{ label, value }` rows, discarding malformed entries. */
+function labelledRows(raw: unknown): { label: string; value: string }[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .map((entry) => {
+      const row = (entry ?? {}) as LabelledValue
+      const label = typeof row.label === 'string' ? row.label.trim() : ''
+      const value = typeof row.value === 'string' ? row.value.trim() : ''
+      return { label, value }
+    })
+    .filter((row) => row.value.length > 0)
+    .slice(0, 8)
+}
+
+/** Reads a JSON column as a plain string list. */
+function stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+    .slice(0, 12)
+}
+
+/** The brand kit's factual block, rendered as prompt lines. */
+function brandKitLines(
+  branding: {
+    contactEmail?: string | null
+    contactPhones?: unknown
+    offices?: unknown
+    services?: unknown
+    disclaimers?: unknown
+  } | null,
+): string[] {
+  if (!branding) return []
+  const fmt = (rows: { label: string; value: string }[]): string =>
+    rows.map((r) => (r.label ? `${r.label}: ${r.value}` : r.value)).join(' · ')
+
+  const phones = labelledRows(branding.contactPhones)
+  const offices = labelledRows(branding.offices)
+  const disclaimers = labelledRows(branding.disclaimers)
+  const services = stringList(branding.services)
+
+  return [
+    branding.contactEmail ? `Email: ${branding.contactEmail}` : null,
+    phones.length > 0 ? `Phone: ${fmt(phones)}` : null,
+    offices.length > 0 ? `Offices: ${fmt(offices)}` : null,
+    services.length > 0 ? `Services offered: ${services.join(', ')}` : null,
+    disclaimers.length > 0
+      ? `Required advertising disclaimers (the system stamps these; do not invent your own): ${fmt(disclaimers)}`
+      : null,
+  ].filter((line): line is string => line !== null)
+}
+
 interface GeneratedPlan {
   campaignName: string
   objective: string
@@ -113,8 +173,20 @@ export class CampaignGenerationService {
           ? `AVOID — feedback from recently rejected content: ${avoid.join('; ')}`
           : null,
       ].filter(Boolean)
-      if (lines.length === 0) return ''
-      return `BRAND PROFILE — write ALL content in this brand's voice, for this audience:\n${lines.join('\n')}\n\n`
+
+      // The factual block. These are printed onto the artwork afterwards, so the
+      // model is told they exist — to leave room and to stay consistent with
+      // them — and told explicitly not to draw them. Image models render text as
+      // plausible-looking gibberish, and a flyer with a mangled phone number is
+      // worse than no flyer.
+      const kit = brandKitLines(branding)
+      const facts =
+        kit.length > 0
+          ? `\n\nBUSINESS DETAILS — these are real and will be typeset onto the artwork by the system.\nNever spell them out inside an IMAGE_PROMPT; instead leave clean, uncluttered space for them.\n${kit.join('\n')}`
+          : ''
+
+      if (lines.length === 0 && facts === '') return ''
+      return `BRAND PROFILE — write ALL content in this brand's voice, for this audience:\n${lines.join('\n')}${facts}\n\n`
     } catch {
       return ''
     }

@@ -50,6 +50,18 @@ const setAgentSchema = z.object({
   config: z.record(z.unknown()).optional(),
 })
 
+/**
+ * A labelled fact — "USA" / "+1 317 449 2654". Labelled because the same
+ * business advertises in several countries and the poster picks the entry
+ * matching the campaign's region.
+ */
+const labelledValue = z
+  .object({
+    label: z.string().trim().max(40).default(''),
+    value: z.string().trim().min(1).max(200),
+  })
+  .strict()
+
 const brandingSchema = z
   .object({
     displayName: z.string().max(200).nullish(),
@@ -73,6 +85,18 @@ const brandingSchema = z
     loginTagline: z.string().max(200).nullish(),
     emailFromName: z.string().max(100).nullish(),
     emailFooter: z.string().max(1000).nullish(),
+
+    // ── Brand kit: the factual block printed onto posters ────────────────────
+    // Additive only — every field is optional, so an older client that never
+    // sends them keeps working unchanged.
+    contactEmail: z.string().email().max(200).nullish(),
+    contactPhones: z.array(labelledValue).max(8).nullish(),
+    offices: z.array(labelledValue).max(8).nullish(),
+    services: z.array(z.string().trim().min(1).max(80)).max(12).nullish(),
+
+    // Advertising compliance, per jurisdiction.
+    disclaimers: z.array(labelledValue).max(8).nullish(),
+    bannedClaims: z.array(z.string().trim().min(1).max(40)).max(40).nullish(),
   })
   .strict()
 

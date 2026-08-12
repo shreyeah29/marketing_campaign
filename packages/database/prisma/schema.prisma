@@ -2761,6 +2761,33 @@ model Branding {
   emailFooter   String? @map("email_footer")
   loginTagline  String? @map("login_tagline")
 
+  // ── The contact block ────────────────────────────────────────────────────
+  // These are FACTS, not story. Everything above shapes what the AI writes;
+  // these get typeset onto the poster itself. No image model can be trusted to
+  // render a phone number, so the artwork is generated and this text is drawn
+  // over it — which is the only way a flyer comes out with the right number on
+  // it every time.
+  //
+  // Phones and offices are arrays because the same business advertises in
+  // several countries with a different number and address in each; the poster
+  // picks the entry matching the campaign's region.
+  //   contactPhones: [{ label: "USA", value: "+1 317 449 2654" }, …]
+  //   offices:       [{ label: "Dallas", value: "…, Texas, USA" }, …]
+  //   services:      ["Business Law", "Immigration Support", …]
+  contactEmail  String? @map("contact_email")
+  contactPhones Json?   @map("contact_phones")
+  offices       Json?   @map("offices")
+  services      Json?
+
+  // ── Advertising compliance ───────────────────────────────────────────────
+  // Regulated professions advertise under different rules per jurisdiction, so
+  // the disclaimer is per-region and stamped automatically rather than
+  // remembered. `bannedClaims` are words the copy must never use — "best",
+  // "guaranteed", "number one" — checked before anything publishes.
+  //   disclaimers: [{ label: "India", value: "…" }, …]
+  disclaimers  Json?
+  bannedClaims Json? @map("banned_claims")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -3250,8 +3277,8 @@ model AdCampaign {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  connection   MetaConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  organization      Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  connection        MetaConnection       @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   adSets            AdSet[]
   creatives         AdCreative[]
   ads               Ad[]

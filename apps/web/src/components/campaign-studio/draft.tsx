@@ -142,7 +142,7 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
       'DELIVERABLES (exact — do not invent extra):',
       `- Social post concepts: exactly ${postCount} unique creative concepts.`,
       wantImages
-        ? `- Images: exactly ${postCount} IMAGE_PROMPT assets (ONE master creative per concept). Title each "Concept 1:", "Concept 2:", …`
+        ? `- Images: exactly ${postCount} IMAGE_PROMPT assets (ONE poster per concept). Title each "Concept 1:", "Concept 2:", …`
         : '- Images: none — do not produce IMAGE_PROMPT assets.',
       videoCount > 0
         ? `- Videos: exactly ${videoCount} VIDEO_PROMPT assets. Title "Concept V1:", "Concept V2:", …`
@@ -171,7 +171,7 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
       `3) Platform adaptations: additional POST assets for each of [${(draft.channels ?? []).join(', ') || 'Instagram'}], each titled with the SAME "Concept N:" prefix, adapting tone/length/hashtags per platform.`,
       'Do NOT generate a separate image or video per platform.',
       'Do NOT duplicate IMAGE_PROMPT rows across Instagram/Facebook/LinkedIn/X.',
-      'Reuse the same Concept N master creative conceptually across all platform adaptations.',
+      'Reuse the same Concept N poster conceptually across all platform adaptations.',
     ].join('\n'),
   )
 

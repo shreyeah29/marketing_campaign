@@ -155,7 +155,7 @@ export default function OnboardingStepPage() {
           step: 'objective',
           updatedAt: new Date().toISOString(),
         })
-        router.push(`/app/create/intake/${draftId}?step=objective`)
+        router.push(`/app/create/wizard/${draftId}?step=platforms`)
       }
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Could not save')

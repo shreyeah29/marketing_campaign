@@ -38,7 +38,7 @@ export function CampaignStudioHome({
         <h1 className="wiz__title">What campaign are we building?</h1>
         <p className="wiz__sub type-secondary">
           Describe it in plain language. Next we pick platforms, exact deliverables, and audience —
-          then one master creative per concept, reused across channels.
+          then one poster per concept, reused across channels.
         </p>
       </header>
 

@@ -177,8 +177,8 @@ function PlatformsStep({
     <section className="wiz__panel">
       <h1 className="wiz__title">Where should it publish?</h1>
       <p className="wiz__sub type-secondary">
-        One master creative is reused across these platforms. Copy is adapted per channel — not
-        regenerated as separate images.
+        One poster is reused across these platforms. Copy is adapted per channel — not regenerated
+        as separate images.
       </p>
 
       <p className="type-label" style={{ marginTop: 20 }}>

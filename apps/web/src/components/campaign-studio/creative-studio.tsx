@@ -24,7 +24,7 @@ import type { Asset, ContentPiece } from './types'
 
 /**
  * Campaign-centric Creative Studio — large previews, platform adaptations,
- * full captions. Groups flat API assets into Content Pieces (one master creative).
+ * full captions. Groups flat API assets into Content Pieces (one poster).
  */
 export function CreativeStudio({
   selectedAssetId,
@@ -106,7 +106,7 @@ export function CreativeStudio({
         await api.post(`/campaign-assets/${target.id}/generate-media`, { variants: 1 })
         toast.push('success', 'Generating the creative — this takes a moment')
       } else if (action === 'approve') {
-        // Master creative first (may chain Runway), then adaptations
+        // Poster first (may chain Runway), then adaptations
         const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
         let generated = 0
         for (const a of ordered) {
@@ -116,7 +116,7 @@ export function CreativeStudio({
         }
         toast.push(
           'success',
-          generated > 0 ? 'Master creative generating — adaptations approved' : 'Piece approved',
+          generated > 0 ? 'Poster generating — adaptations approved' : 'Piece approved',
         )
       } else if (action === 'reject') {
         for (const a of piece.assets) {
@@ -169,7 +169,7 @@ export function CreativeStudio({
         <EmptyState
           icon="image"
           title="No creatives yet"
-          hint="Generate from Create. Each piece is one master creative reused across platforms."
+          hint="Generate from Create. Each piece is one poster reused across platforms."
         />
       </div>
     )
@@ -184,7 +184,7 @@ export function CreativeStudio({
 
   return (
     <div className={`cstudio${drawer ? ' has-drawer' : ''}`}>
-      <aside className="cstudio__rail" aria-label="Content pieces">
+      <aside className="cstudio__rail" aria-label="Posters">
         <div className="cstudio__rail-head">
           <h2 className="type-section" style={{ margin: 0 }}>
             Creatives
@@ -261,7 +261,7 @@ export function CreativeStudio({
             <header className="cstudio__stage-head">
               <div>
                 <p className="type-label" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
-                  Content piece {String(selectedPiece.index).padStart(2, '0')}
+                  Poster {String(selectedPiece.index).padStart(2, '0')}
                 </p>
                 <h1 className="cstudio__title">{selectedPiece.label}</h1>
               </div>
@@ -283,7 +283,7 @@ export function CreativeStudio({
                     size={36}
                   />
                   <p className="type-body-strong" style={{ margin: '12px 0 4px' }}>
-                    {selectedPiece.master ? 'Master creative ready to generate' : 'Copy-only piece'}
+                    {selectedPiece.master ? 'Poster ready to generate' : 'Copy-only piece'}
                   </p>
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
                     {selectedPiece.master

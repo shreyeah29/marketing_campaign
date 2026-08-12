@@ -187,6 +187,8 @@ function BrandMark({ logoUrl, name }: { logoUrl: string | null; name: string }) 
 
 type Status =
   | { kind: 'loading' }
+  /** The API is asleep and being waited on — distinct from failing. */
+  | { kind: 'waking' }
   | { kind: 'no-org'; session: AuthSession }
   | { kind: 'ready'; data: ShellData }
   | { kind: 'error'; message: string }
@@ -228,6 +230,36 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
     writeSidebarCollapsed(next)
   }, [])
 
+  /**
+   * Retries a cold API before giving up.
+   *
+   * The API instance sleeps when idle and takes the better part of a minute to
+   * come back. The first request into a sleeping instance fails at the network
+   * layer — no response, so no `ApiError` and no status code — and the shell
+   * showed its last-resort "Failed to load workspace" for what was really "the
+   * server is waking up". That message is a dead end: nothing about it suggests
+   * that waiting ten seconds and trying again is the entire fix.
+   *
+   * Only network failures are retried. An `ApiError` is the server answering,
+   * and 401 or 403 will say the same thing however many times it is asked.
+   */
+  const bootstrapWithWake = useCallback(
+    async <T,>(call: () => Promise<T>, onWaking: () => void): Promise<T> => {
+      const delays = [2_000, 5_000, 9_000]
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await call()
+        } catch (err) {
+          const delay = delays[attempt]
+          if (err instanceof ApiError || delay === undefined) throw err
+          if (attempt === 0) onWaking()
+          await new Promise((resolve) => setTimeout(resolve, delay))
+        }
+      }
+    },
+    [],
+  )
+
   const load = useCallback(async () => {
     // Render the last known-good shell immediately (optimistic), then revalidate.
     // Never from cache in view-as mode — the cache belongs to whatever tenant
@@ -256,10 +288,20 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
       }
 
       // Fetch session + workspace concurrently so a cold API is paid once, not twice.
-      const [sessionRes, wsRes] = await Promise.allSettled([
-        authClient.session(),
-        workspaceApi.bootstrap(),
-      ])
+      const [sessionRes, wsRes] = await bootstrapWithWake(
+        () =>
+          Promise.allSettled([authClient.session(), workspaceApi.bootstrap()]).then((settled) => {
+            // Promise.allSettled never rejects, so a sleeping API would look
+            // like two ordinary failures and skip the retry entirely. Surface
+            // the network failure so the wake-up path can see it.
+            const networkFailure = settled.find(
+              (r) => r.status === 'rejected' && !(r.reason instanceof ApiError),
+            )
+            if (networkFailure?.status === 'rejected') throw networkFailure.reason
+            return settled
+          }),
+        () => setStatus({ kind: 'waking' }),
+      )
       if (sessionRes.status === 'rejected') throw sessionRes.reason
       const session = sessionRes.value
 
@@ -291,11 +333,17 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
       if (!cached) {
         setStatus({
           kind: 'error',
-          message: err instanceof ApiError ? err.message : 'Failed to load workspace',
+          // A network failure that survived the retries is the server being
+          // unreachable, not the workspace being broken. Say which, so the
+          // next step is obvious instead of alarming.
+          message:
+            err instanceof ApiError
+              ? err.message
+              : 'Could not reach the server. It may still be starting up — wait a few seconds and try again.',
         })
       }
     }
-  }, [router])
+  }, [router, bootstrapWithWake])
 
   useEffect(() => {
     void load()
@@ -358,6 +406,7 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   }, [status.kind])
 
   if (status.kind === 'loading') return <ShellBooting />
+  if (status.kind === 'waking') return <ShellBooting waking />
   if (status.kind === 'error')
     return (
       <div className="center-screen">
@@ -774,12 +823,19 @@ function NoOrganization({ session }: { session: AuthSession }) {
  * cold-starts on the current hosting tier, so the very first request can be slow.
  * Repeat loads render from the shell cache and never reach this.
  */
-function ShellBooting() {
-  const [slow, setSlow] = useState(false)
+/**
+ * @param waking Skip the four-second grace period. Set once a request has
+ *   already failed at the network layer, where the server being asleep is no
+ *   longer a guess — showing the explanation immediately beats a spinner that
+ *   looks identical to a hang.
+ */
+function ShellBooting({ waking = false }: { waking?: boolean }) {
+  const [slow, setSlow] = useState(waking)
   useEffect(() => {
+    if (waking) return
     const t = setTimeout(() => setSlow(true), 4000)
     return () => clearTimeout(t)
-  }, [])
+  }, [waking])
   return (
     <div className="center-screen">
       <div style={{ textAlign: 'center', maxWidth: 320 }}>

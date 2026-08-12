@@ -430,16 +430,44 @@ export function CreativeStudio({
 
             {panel === 'copy' ? (
               <div className="cstudio__copy">
-                <p className="type-label">Caption</p>
+                <div className="cstudio__copy-head">
+                  <p className="type-label" style={{ margin: 0 }}>
+                    Caption
+                  </p>
+                  {caption ? (
+                    <button
+                      type="button"
+                      className="btn sm"
+                      onClick={() => {
+                        const tags = (activeAdaptation?.hashtags ?? [])
+                          .map((h) => `#${h.replace(/^#/, '')}`)
+                          .join(' ')
+                        void navigator.clipboard
+                          .writeText([caption, tags].filter(Boolean).join('\n\n'))
+                          .then(() => toast.push('success', 'Caption and hashtags copied'))
+                          .catch(() => toast.push('error', 'Could not copy'))
+                      }}
+                    >
+                      <Icon name="copy" size={13} /> Copy
+                    </button>
+                  ) : null}
+                </div>
                 <p className="cstudio__caption">{caption || '—'}</p>
                 {activeAdaptation?.hashtags && activeAdaptation.hashtags.length > 0 ? (
                   <>
                     <p className="type-label" style={{ marginTop: 20 }}>
                       Hashtags
                     </p>
-                    <p className="cstudio__tags">
-                      {activeAdaptation.hashtags.map((h) => `#${h.replace(/^#/, '')}`).join('  ')}
-                    </p>
+                    {/* Chips, not one run-on line. You scan these to judge them
+                        and copy them as a block to paste — both are harder when
+                        thirty tags are glued into a paragraph. */}
+                    <ul className="cstudio__tags">
+                      {activeAdaptation.hashtags.map((h) => (
+                        <li key={h} className="cstudio__tag">
+                          #{h.replace(/^#/, '')}
+                        </li>
+                      ))}
+                    </ul>
                   </>
                 ) : null}
                 {activeAdaptation?.cta ? (

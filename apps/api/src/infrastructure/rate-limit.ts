@@ -61,7 +61,7 @@ export async function registerRateLimit(
     redis,
     // Namespaced so a shared Redis cannot collide with cache or queue keys, and
     // so limiter state can be inspected or cleared independently.
-    nameSpace: 'vsp:rl:',
+    nameSpace: 'mos:rl:',
 
     // The global ceiling is the anonymous one; authenticated requests are raised
     // per organisation by keyGenerator + max below.

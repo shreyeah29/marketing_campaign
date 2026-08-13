@@ -15,8 +15,8 @@ import { z } from 'zod'
 
 import { createHash } from 'node:crypto'
 
-import { cursorPaginationSchema, type Paginated } from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { cursorPaginationSchema, type Paginated } from '@marketing-os/contracts'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CrudService } from '../../common/crud/crud.service.js'

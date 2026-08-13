@@ -49,7 +49,7 @@ export const envSchema = z.object({
   APP_URL: z.string().url().default('http://localhost:3000'),
 
   /** The From address on auth + marketing emails. Optional in dev, where email is logged. */
-  EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
+  EMAIL_FROM: z.string().default('Marketing OS <no-reply@marketing-os.local>'),
 
   /**
    * Email delivery via Resend's REST API (no SMTP library, works on any host).

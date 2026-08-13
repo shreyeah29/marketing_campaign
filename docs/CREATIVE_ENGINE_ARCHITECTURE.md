@@ -4,12 +4,12 @@ Status: **approved 2026-08-12**. All six phases shipped 2026-08-13.
 
 ## Shipped
 
-| Phase | What                                                             | Commits             |
-| ----- | ---------------------------------------------------------------- | ------------------- |
-| 1     | `@vsp/creative-engine`, uploads, Product catalogue, live preview | `f68f0c7` `a3c0842` |
-| 2     | Five templates, gallery, I/O-free rendering                      | `ac14032`           |
-| 3     | AI scene generation, scrim, product composite                    | `0dec474`           |
-| 4–6   | Batch generation, approval, publishing, campaign summary         | `81446b9`           |
+| Phase | What                                                                      | Commits             |
+| ----- | ------------------------------------------------------------------------- | ------------------- |
+| 1     | `@marketing-os/creative-engine`, uploads, Product catalogue, live preview | `f68f0c7` `a3c0842` |
+| 2     | Five templates, gallery, I/O-free rendering                               | `ac14032`           |
+| 3     | AI scene generation, scrim, product composite                             | `0dec474`           |
+| 4–6   | Batch generation, approval, publishing, campaign summary                  | `81446b9`           |
 
 **Working end to end:** upload a product photo → enter two prices → the poster
 renders in ~200ms through any of five layouts, at three aspect ratios, with the

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/websockets'
 import type { Server, Socket } from 'socket.io'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { can } from '../../common/auth/principal.js'

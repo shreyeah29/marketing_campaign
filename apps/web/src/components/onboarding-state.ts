@@ -1,6 +1,6 @@
 'use client'
 
-const ONBOARD_KEY = 'vsp:onboarding:v1'
+const ONBOARD_KEY = 'mos:onboarding:v1'
 
 export type OnboardStep = 'business' | 'brand' | 'connect' | 'goals'
 

@@ -6,8 +6,8 @@ import {
   createDatabaseClient,
   type DatabaseClient,
   type PrismaClient,
-} from '@vsp/database'
-import { createLogger, type AppLogger } from '@vsp/observability'
+} from '@marketing-os/database'
+import { createLogger, type AppLogger } from '@marketing-os/observability'
 
 import { loadEnv } from '../config/env.js'
 import { createRedis } from './redis.js'

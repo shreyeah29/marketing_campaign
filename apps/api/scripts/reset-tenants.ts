@@ -33,7 +33,7 @@
  *
  * Without `--i-understand` it prints what it would delete and exits.
  */
-import { createAdminClient } from '@vsp/database'
+import { createAdminClient } from '@marketing-os/database'
 
 const CONFIRMED = process.argv.includes('--i-understand')
 

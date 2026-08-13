@@ -6,8 +6,8 @@ import {
   withTenant,
   type DatabaseClient,
   type EntitlementSnapshot,
-} from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+} from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { DATABASE, LOGGER, REDIS } from '../../infrastructure/database.module.js'
 
@@ -29,7 +29,7 @@ export class EntitlementService {
   // 60s: long enough that a burst of requests from one org shares a resolution,
   // short enough that a missed invalidation self-heals within a minute.
   private static readonly TTL_SECONDS = 60
-  private static readonly PREFIX = 'vsp:ent:'
+  private static readonly PREFIX = 'mos:ent:'
 
   constructor(
     @Inject(DATABASE) private readonly db: DatabaseClient,

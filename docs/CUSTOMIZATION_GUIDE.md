@@ -39,6 +39,6 @@ billing, audit, limits and multi-tenancy automatically. Core untouched.
 Every provider (OpenAI, Anthropic, Gemini, xAI, DeepSeek, Mistral, OpenRouter,
 Vapi, Retell, ElevenLabs, Deepgram, Cartesia, Flux, Ideogram, DALL·E, Runway,
 Luma, Pika, R2, S3, Supabase, Resend, SendGrid, SES, Stripe, Razorpay) implements
-a port from `@vsp/ai-core` and is selected per organisation via
+a port from `@marketing-os/ai-core` and is selected per organisation via
 `provider_configuration`. Business logic depends on the port, never the SDK — so
 swapping a provider is a config change, not a code change.

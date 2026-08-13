@@ -1,9 +1,9 @@
 import { Queue } from 'bullmq'
 import type { Redis } from 'ioredis'
 
-import { isKnownEventName, type EventName } from '@vsp/contracts'
-import { claimOutboxBatch, requeueOutboxEvent, type PrismaClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { isKnownEventName, type EventName } from '@marketing-os/contracts'
+import { claimOutboxBatch, requeueOutboxEvent, type PrismaClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { QUEUES, type QueueName } from './queues.js'
 

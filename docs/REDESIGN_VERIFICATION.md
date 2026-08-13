@@ -52,7 +52,7 @@ rg -n 'var\(--bg\b|var\(--text-muted|var\(--text-dim|var\(--ok\b|var\(--danger\b
 | `backdrop-filter` / `radius-pill` / `glass-blur` | **0 live**; `grad-text` comment-only in `globals.css` |
 | Legacy alias consumers                           | **0 matches**                                         |
 | Legacy alias block in `globals.css`              | **Deleted**                                           |
-| `@vsp/web` typecheck / lint / build              | Run at Phase 6 close                                  |
+| `@marketing-os/web` typecheck / lint / build     | Run at Phase 6 close                                  |
 
 ## Contract honesty (no mocks)
 

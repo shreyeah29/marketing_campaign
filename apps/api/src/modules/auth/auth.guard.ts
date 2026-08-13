@@ -1,11 +1,15 @@
 import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common'
 import { fromNodeHeaders } from 'better-auth/node'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { effectivePermissions } from '../../common/rbac/permissions.js'
 import { LOGGER } from '../../infrastructure/database.module.js'
-import { ViewAsService, VIEW_AS_HEADER } from '../platform/view-as.service.js'
+import {
+  LEGACY_VIEW_AS_HEADER,
+  ViewAsService,
+  VIEW_AS_HEADER,
+} from '../platform/view-as.service.js'
 
 import { AuthService } from './auth.service.js'
 import { IdentityService } from './identity.service.js'
@@ -50,7 +54,9 @@ export class AuthGuard implements CanActivate {
     // read-only; the ReadOnlySessionGuard and the read-only tenant transaction
     // enforce that mark. Checked first — a view-as request must not fall
     // through to any tenant cookie the browser happens to hold.
-    const viewAsToken = request.headers[VIEW_AS_HEADER]
+    // Either header, for the one release in which a browser may still be
+    // running the pre-rebrand bundle.
+    const viewAsToken = request.headers[VIEW_AS_HEADER] ?? request.headers[LEGACY_VIEW_AS_HEADER]
     if (typeof viewAsToken === 'string' && viewAsToken.length > 0) {
       try {
         const claims = this.viewAs.verify(viewAsToken)

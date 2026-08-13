@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { cursorPaginationSchema } from '@vsp/contracts'
+import { cursorPaginationSchema } from '@marketing-os/contracts'
 
 /**
  * Contact request and response schemas.

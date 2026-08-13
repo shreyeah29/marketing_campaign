@@ -14,7 +14,7 @@ import type { Redis } from 'ioredis'
  * cooldown with no cleanup job. A successful login clears it immediately.
  */
 export class LockoutService {
-  private static readonly PREFIX = 'vsp:auth:lockout:'
+  private static readonly PREFIX = 'mos:auth:lockout:'
   /** Failures within the window before the account is frozen. */
   private static readonly MAX_ATTEMPTS = 5
   /** Window and cooldown, in seconds. */

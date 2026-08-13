@@ -30,7 +30,7 @@ const TABS = [
   { href: '/app/analytics/revenue', label: 'Revenue' },
 ]
 
-const STORAGE = 'vsp:analytics-filters:v1'
+const STORAGE = 'mos:analytics-filters:v1'
 
 /**
  * Analytics shell — four tabs with persisted date + campaign filter (brief §14).

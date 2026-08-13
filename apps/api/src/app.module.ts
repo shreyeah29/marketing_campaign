@@ -2,7 +2,7 @@ import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { EncryptionService } from './common/crypto/encryption.service.js'
 import { EntitlementService } from './common/entitlements/entitlement.service.js'

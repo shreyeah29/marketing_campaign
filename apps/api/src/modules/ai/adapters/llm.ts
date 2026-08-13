@@ -4,9 +4,9 @@
  * Each adapter turns the platform-neutral `{ apiKey, model, messages }` request
  * into a real HTTP call to a concrete provider's chat endpoint and returns the
  * assistant's text plus token accounting. The set mirrors the LLM providers in
- * `@vsp/contracts` (`packages/contracts/src/providers.ts`).
+ * `@marketing-os/contracts` (`packages/contracts/src/providers.ts`).
  *
- * These deliberately live under the API app rather than in `@vsp/providers`, so
+ * These deliberately live under the API app rather than in `@marketing-os/providers`, so
  * no workspace packaging is required — the registry is a plain lookup the AI
  * module consumes directly. Business code still depends on the neutral shape
  * below, so swapping a provider stays a configuration change.

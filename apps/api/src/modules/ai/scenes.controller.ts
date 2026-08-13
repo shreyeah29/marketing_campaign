@@ -11,8 +11,8 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
-import { ASPECT_RATIOS } from '@vsp/creative-engine'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
+import { ASPECT_RATIOS } from '@marketing-os/creative-engine'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

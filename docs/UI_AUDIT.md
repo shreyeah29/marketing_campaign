@@ -248,7 +248,7 @@ Phase 3 must replace all of the above with the brief's 11-state
 | DataTable          | ✓       | `kit.tsx:183-271` — sort, row-click, selection, actions. Missing: density toggle, sticky header, text-glyph sort indicator (`:235`)                                                                                                        |
 | Skeletons          | ✓       | `TableSkeleton` + `.skeleton` shimmer (gradient — replace), ~20 call sites. Only table shape; needs card/tile/chart variants                                                                                                               |
 | Command palette ⌘K | ✗       | Nothing. Only `metaKey` use is ⌘↵ prompt submit (`campaigns:299`)                                                                                                                                                                          |
-| Density toggle     | ✗       | Nothing. `ThemeToggle` (`app/app/layout.tsx:440-456`, `vsp:theme`) is the persistence pattern to copy                                                                                                                                      |
+| Density toggle     | ✗       | Nothing. `ThemeToggle` (`app/app/layout.tsx:440-456`, `mos:theme`) is the persistence pattern to copy                                                                                                                                      |
 
 Current exported vocabulary — `ui.tsx`: Badge, Spinner, Banner, Stat, Field,
 LoadingScreen · `kit.tsx`: PageHeader, EmptyState, ErrorState, TableSkeleton,
@@ -370,17 +370,17 @@ From `lib/api.ts` / `lib/workspace.ts` / `lib/platform.ts` (contract surface —
 see `API_CONTRACT.md`):
 
 - **Auth realms:** tenant = cookie via `credentials:'include'` (`api.ts:90`);
-  platform = bearer from `localStorage['vsp.platform.token']` only when
-  `opts.platformAuth` (`:75-78`); view-as = `x-vsp-view-as` from
-  `sessionStorage['vsp.viewas.token']` on every non-platform call (`:80-84`),
+  platform = bearer from `localStorage['mos.platform.token']` only when
+  `opts.platformAuth` (`:75-78`); view-as = `x-mos-view-as` from
+  `sessionStorage['mos.viewas.token']` on every non-platform call (`:80-84`),
   mutually exclusive with bearer by construction.
 - **Quirks:** `Content-Type` only set when a body exists (`:74`) — bodyless
   POST verbs depend on it; `ApiError`/`problemMessage` zod flattening
   (`:118-138`); sign-out lands on `/`, not `/login`.
-- **Storage keys:** `vsp.platform.token`, `vsp.viewas.token` (sessionStorage,
-  same-tab by design), `vsp:shell:v1` (shell cache + its 5 invalidation
+- **Storage keys:** `mos.platform.token`, `mos.viewas.token` (sessionStorage,
+  same-tab by design), `mos:shell:v1` (shell cache + its 5 invalidation
   points: 401, org switch, sign-out, needsOrganization, exit view-as),
-  `vsp:theme` (read by pre-paint script).
+  `mos:theme` (read by pre-paint script).
 - **View-as:** suppresses shell cache, skips `GET /v1/auth/session`
   (`app/app/layout.tsx:112-133`), 401 → `/platform` not `/login`; banner
   currently scrolls with content (`:301,314-351`) — may be restyled/pinned but

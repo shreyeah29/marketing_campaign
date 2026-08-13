@@ -9,8 +9,8 @@ import {
 import { createHash } from 'node:crypto'
 import { from, Observable } from 'rxjs'
 
-import type { DatabaseClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import type { DatabaseClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { Principal } from '../auth/principal.js'
 import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'

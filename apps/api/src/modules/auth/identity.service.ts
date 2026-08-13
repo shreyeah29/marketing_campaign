@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 
 import { Inject, Injectable } from '@nestjs/common'
 
-import type { PrismaClient } from '@vsp/database'
+import type { PrismaClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { effectivePermissions, type MemberRole } from '../../common/rbac/permissions.js'

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Inject, NotFoundException, Param, Post, Put } fr
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

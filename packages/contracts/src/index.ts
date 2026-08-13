@@ -1,5 +1,5 @@
 /**
- * `@vsp/contracts` is the shared boundary between the API, the workers and the
+ * `@marketing-os/contracts` is the shared boundary between the API, the workers and the
  * frontend. Zod schemas here are the single source of truth: request and response
  * types are inferred from them, the OpenAPI document is generated from them, and
  * the frontend imports the same types. Nothing is declared twice, so nothing can

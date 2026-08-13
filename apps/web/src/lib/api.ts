@@ -12,10 +12,31 @@ const API_BASE = (
   'http://localhost:4000'
 ).replace(/\/+$/, '')
 
-const PLATFORM_TOKEN_KEY = 'vsp.platform.token'
+const PLATFORM_TOKEN_KEY = 'mos.platform.token'
 // View-as-client bridge token. sessionStorage on purpose: the read-only visit
 // is confined to its tab and dies with it, never outliving the operator's look.
-const VIEW_AS_TOKEN_KEY = 'vsp.viewas.token'
+const VIEW_AS_TOKEN_KEY = 'mos.viewas.token'
+
+/**
+ * The pre-rebrand key names.
+ *
+ * Read once and migrated, so the rename does not sign every operator out of a
+ * console they are already using. Removable after a release or two — by then no
+ * browser still holds one.
+ */
+const LEGACY_PLATFORM_TOKEN_KEY = 'vsp.platform.token'
+const LEGACY_VIEW_AS_TOKEN_KEY = 'vsp.viewas.token'
+
+/** Move a value from an old storage key to its replacement, once. */
+function migrateKey(store: Storage, from: string, to: string): string | null {
+  const current = store.getItem(to)
+  if (current !== null) return current
+  const legacy = store.getItem(from)
+  if (legacy === null) return null
+  store.setItem(to, legacy)
+  store.removeItem(from)
+  return legacy
+}
 
 export interface Problem {
   type: string
@@ -41,7 +62,7 @@ export class ApiError extends Error {
 
 export function getPlatformToken(): string | null {
   if (typeof window === 'undefined') return null
-  return window.localStorage.getItem(PLATFORM_TOKEN_KEY)
+  return migrateKey(window.localStorage, LEGACY_PLATFORM_TOKEN_KEY, PLATFORM_TOKEN_KEY)
 }
 
 export function setPlatformToken(token: string | null): void {
@@ -52,7 +73,7 @@ export function setPlatformToken(token: string | null): void {
 
 export function getViewAsToken(): string | null {
   if (typeof window === 'undefined') return null
-  return window.sessionStorage.getItem(VIEW_AS_TOKEN_KEY)
+  return migrateKey(window.sessionStorage, LEGACY_VIEW_AS_TOKEN_KEY, VIEW_AS_TOKEN_KEY)
 }
 
 export function setViewAsToken(token: string | null): void {
@@ -80,7 +101,7 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     // the API then resolves a read-only VIEWER principal for that org and
     // ignores any tenant cookie also present.
     const viewAs = getViewAsToken()
-    if (viewAs) headers['x-vsp-view-as'] = viewAs
+    if (viewAs) headers['x-mos-view-as'] = viewAs
   }
 
   // `credentials: 'include'` so the Better Auth session cookie is sent on tenant
@@ -152,7 +173,7 @@ export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
     method: 'POST',
     headers: {
       Accept: 'application/json',
-      ...(viewAs ? { 'x-vsp-view-as': viewAs } : {}),
+      ...(viewAs ? { 'x-mos-view-as': viewAs } : {}),
     },
     body: form,
     credentials: 'include',

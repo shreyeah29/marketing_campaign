@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react'
 
-const THEME_KEY = 'vsp:theme'
+const THEME_KEY = 'mos:theme'
 
 const SURFACES = [
   ['--surface-canvas', 'Page background'],

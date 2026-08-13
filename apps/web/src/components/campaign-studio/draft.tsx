@@ -3,7 +3,7 @@
 import type { CreateDraft } from './types'
 import { INTAKE_OBJECTIVES } from './constants'
 
-const DRAFT_KEY = (id: string) => `vsp:draft:${id}`
+const DRAFT_KEY = (id: string) => `mos:draft:${id}`
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
@@ -16,7 +16,7 @@ export function listDrafts(): CreateDraft[] {
   try {
     for (let i = 0; i < window.sessionStorage.length; i++) {
       const key = window.sessionStorage.key(i)
-      if (!key?.startsWith('vsp:draft:')) continue
+      if (!key?.startsWith('mos:draft:')) continue
       const raw = window.sessionStorage.getItem(key)
       if (!raw) continue
       const parsed = JSON.parse(raw) as CreateDraft

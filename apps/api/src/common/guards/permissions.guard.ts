@@ -11,8 +11,8 @@ import { Reflector } from '@nestjs/core'
 import { can, type Principal } from '../auth/principal.js'
 import type { Permission } from '../rbac/permissions.js'
 
-export const PERMISSIONS_METADATA = 'vsp:required-permissions'
-export const PUBLIC_METADATA = 'vsp:public'
+export const PERMISSIONS_METADATA = 'mos:required-permissions'
+export const PUBLIC_METADATA = 'mos:public'
 
 /**
  * Declares the permissions a route requires.

@@ -6,7 +6,7 @@
  * the modular-platform promise honest on the client: nothing here asserts that a
  * feature, page or agent always exists.
  *
- * The app is self-contained — it has no `@vsp/*` workspace imports — so it builds
+ * The app is self-contained — it has no `@marketing-os/*` workspace imports — so it builds
  * standalone on Vercel without needing the rest of the monorepo resolved.
  */
 

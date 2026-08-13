@@ -1,4 +1,4 @@
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { WorkerEnv } from './config.js'
 

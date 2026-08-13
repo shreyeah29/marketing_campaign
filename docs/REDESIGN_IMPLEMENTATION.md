@@ -51,9 +51,9 @@ Status display goes through `StatusPill` / `StatusRail` once they exist (Phase
 
 ```bash
 corepack pnpm exec prettier --write <files you touched>
-corepack pnpm --filter @vsp/web typecheck
-corepack pnpm --filter @vsp/web lint
-corepack pnpm --filter @vsp/web build
+corepack pnpm --filter @marketing-os/web typecheck
+corepack pnpm --filter @marketing-os/web lint
+corepack pnpm --filter @marketing-os/web build
 ```
 
 The turbo wrapper fails locally — always use the `--filter` form. CI is
@@ -444,7 +444,7 @@ glyph and type label, caption truncated to two lines, `StatusPill`, hover action
 
 Keep the sort, row-click, selection and actions behaviour. Add: a density toggle
 (44px comfortable / 36px compact) persisted in `localStorage` under
-`vsp:density`, copying the `ThemeToggle` pattern at `app/app/layout.tsx:440-456`;
+`mos:density`, copying the `ThemeToggle` pattern at `app/app/layout.tsx:440-456`;
 a sticky header; and a real sort indicator glyph instead of the text arrow at
 `:235`.
 
@@ -703,7 +703,7 @@ chart for comparison; a toast where an inline error belongs; a spinner where a
 skeleton belongs; a mock anywhere.
 
 **Frozen and easy to break** (audit §7) — the tenant cookie / platform bearer /
-`x-vsp-view-as` auth realms and their mutual exclusivity; `Content-Type` set only
-when a body exists; sign-out landing on `/`; storage keys `vsp.platform.token`,
-`vsp.viewas.token`, `vsp:shell:v1` and its five invalidation points, `vsp:theme`
+`x-mos-view-as` auth realms and their mutual exclusivity; `Content-Type` set only
+when a body exists; sign-out landing on `/`; storage keys `mos.platform.token`,
+`mos.viewas.token`, `mos:shell:v1` and its five invalidation points, `mos:theme`
 (read by the pre-paint script); `applyBranding`'s response shape.

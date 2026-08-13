@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@vsp/database'
+import type { PrismaClient } from '@marketing-os/database'
 
 import { getPublisher } from './adapters.js'
 import { openSealed } from './crypto.js'

@@ -7,14 +7,14 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 
-import { ERROR_CODES } from '@vsp/contracts'
-import type { EntitlementSnapshot } from '@vsp/database'
+import { ERROR_CODES } from '@marketing-os/contracts'
+import type { EntitlementSnapshot } from '@marketing-os/database'
 
 import type { Principal } from '../auth/principal.js'
 import { EntitlementService } from '../entitlements/entitlement.service.js'
 import { PUBLIC_METADATA } from './permissions.guard.js'
 
-export const FEATURE_METADATA = 'vsp:required-feature'
+export const FEATURE_METADATA = 'mos:required-feature'
 
 /**
  * Declares the feature a route belongs to.

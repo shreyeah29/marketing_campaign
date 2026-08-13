@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto'
 
 import type { Job } from 'bullmq'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { WorkerEnv } from '../config.js'
 

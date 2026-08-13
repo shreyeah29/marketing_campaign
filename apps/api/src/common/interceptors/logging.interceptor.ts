@@ -1,7 +1,7 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
 import { Observable, tap } from 'rxjs'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { Principal } from '../auth/principal.js'
 

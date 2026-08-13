@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 
 import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { EncryptionService } from '../../common/crypto/encryption.service.js'

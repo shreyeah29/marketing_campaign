@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import type { Redis } from 'ioredis'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { AuthService } from './auth.service.js'
 import { LockoutService } from './lockout.service.js'

@@ -1,4 +1,4 @@
-# VSP AI Marketing OS
+# Marketing OS
 
 > **Your AI Marketing Team in One Platform.**
 
@@ -130,7 +130,7 @@ These are enforced by ESLint and CI, not left to reviewer memory.
 2. **`ai-core` never imports `providers`.** It defines ports; DI supplies implementations.
 3. **Packages never import from `apps/`.** Dependencies point inward.
 4. **Never import `@prisma/client` directly.** Use the tenant-scoped client from
-   `@vsp/database`, which cannot be made to return another organisation's rows.
+   `@marketing-os/database`, which cannot be made to return another organisation's rows.
 5. **Every tenant-scoped table carries `organizationId`**, with composite indexes leading
    on it and a row-level security policy behind it.
 6. **No `useEffect` fetching, no `alert()`** in the frontend.

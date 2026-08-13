@@ -71,19 +71,19 @@ importers:
       '@nestjs/websockets':
         specifier: ^11.0.1
         version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.28)(@nestjs/platform-socket.io@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
-      '@vsp/ai-core':
+      '@marketing-os/ai-core':
         specifier: workspace:*
         version: link:../../packages/ai-core
-      '@vsp/contracts':
+      '@marketing-os/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@vsp/creative-engine':
+      '@marketing-os/creative-engine':
         specifier: workspace:*
         version: link:../../packages/creative-engine
-      '@vsp/database':
+      '@marketing-os/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@vsp/observability':
+      '@marketing-os/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       better-auth:
@@ -175,19 +175,19 @@ importers:
 
   apps/worker:
     dependencies:
-      '@vsp/ai-core':
+      '@marketing-os/ai-core':
         specifier: workspace:*
         version: link:../../packages/ai-core
-      '@vsp/contracts':
+      '@marketing-os/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
-      '@vsp/creative-engine':
+      '@marketing-os/creative-engine':
         specifier: workspace:*
         version: link:../../packages/creative-engine
-      '@vsp/database':
+      '@marketing-os/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@vsp/observability':
+      '@marketing-os/observability':
         specifier: workspace:*
         version: link:../../packages/observability
       bullmq:
@@ -303,7 +303,7 @@ importers:
       '@prisma/client':
         specifier: ^6.10.1
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
-      '@vsp/contracts':
+      '@marketing-os/contracts':
         specifier: workspace:*
         version: link:../contracts
     devDependencies:

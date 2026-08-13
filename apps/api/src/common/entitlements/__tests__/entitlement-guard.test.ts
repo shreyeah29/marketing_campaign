@@ -24,7 +24,7 @@ import {
 import { APP_GUARD, Reflector } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { Test } from '@nestjs/testing'
-import type { EntitlementSnapshot } from '@vsp/database'
+import type { EntitlementSnapshot } from '@marketing-os/database'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { Principal } from '../../auth/principal.js'

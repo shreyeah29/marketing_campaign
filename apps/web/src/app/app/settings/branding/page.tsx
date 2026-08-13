@@ -263,7 +263,7 @@ export default function BrandKitPage() {
               <input
                 className="input"
                 value={kit.displayName ?? ''}
-                placeholder="VSP Law Associates"
+                placeholder="Your business name"
                 onChange={(e) => setKit({ ...kit, displayName: e.target.value })}
               />
             </Field>
@@ -282,7 +282,7 @@ export default function BrandKitPage() {
                 className="input"
                 type="email"
                 value={kit.contactEmail ?? ''}
-                placeholder="info@vsplawassociates.com"
+                placeholder="hello@yourbusiness.com"
                 onChange={(e) => setKit({ ...kit, contactEmail: e.target.value })}
               />
             </Field>

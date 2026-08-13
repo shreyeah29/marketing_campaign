@@ -107,7 +107,7 @@ interface OperationParams {
 
 export function createTenantScopeExtension() {
   return {
-    name: 'vsp-tenant-scope',
+    name: 'tenant-scope',
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }: OperationParams): Promise<unknown> {

@@ -26,7 +26,7 @@ const plexMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: 'VSP AI Marketing OS',
+  title: 'Marketing OS',
   description: 'Modular multi-tenant AI business operating system',
 }
 
@@ -38,7 +38,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             light flash. Light is the default (no attribute needed). */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(localStorage.getItem('vsp:theme')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}`,
+            __html: `try{if(localStorage.getItem('mos:theme')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}`,
           }}
         />
       </head>

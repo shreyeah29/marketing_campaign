@@ -20,8 +20,8 @@
  *
  * Add `--dry-run` to report what would move without writing anything.
  */
-import type { AppLogger } from '@vsp/observability'
-import { createAdminClient } from '@vsp/database'
+import type { AppLogger } from '@marketing-os/observability'
+import { createAdminClient } from '@marketing-os/database'
 
 import { loadEnv } from '../src/config/env.js'
 import { StorageService } from '../src/infrastructure/storage.js'

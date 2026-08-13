@@ -1,11 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 
-import { buildPage, decodeCursor, type Paginated } from '@vsp/contracts'
+import { buildPage, decodeCursor, type Paginated } from '@marketing-os/contracts'
 import {
   withTenantTransaction,
   type DatabaseClient,
   type TenantTransactionClient,
-} from '@vsp/database'
+} from '@marketing-os/database'
 
 import type { Principal } from '../auth/principal.js'
 

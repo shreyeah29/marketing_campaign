@@ -484,7 +484,7 @@ export function ReviewQueue({
               onClick={() => {
                 try {
                   sessionStorage.setItem(
-                    `vsp:schedule-pick:${campaignId}`,
+                    `mos:schedule-pick:${campaignId}`,
                     JSON.stringify([...selected]),
                   )
                 } catch {

@@ -44,7 +44,7 @@ const schema = z.object({
   ENCRYPTION_MASTER_KEY: z.string().min(32, 'ENCRYPTION_MASTER_KEY must be at least 32 characters'),
   /** Email delivery (Resend REST). Unset → the mailer logs instead of sending. */
   RESEND_API_KEY: z.string().optional(),
-  EMAIL_FROM: z.string().default('VSP <no-reply@vsp.local>'),
+  EMAIL_FROM: z.string().default('Marketing OS <no-reply@marketing-os.local>'),
   /** Platform OpenAI key — used to embed knowledge-base documents. Unset → the
    *  embeddings handler fails the document with a clear reason (never fakes it). */
   OPENAI_API_KEY: z.string().optional(),

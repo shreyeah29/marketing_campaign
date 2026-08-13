@@ -60,9 +60,9 @@ async function main(): Promise<void> {
     create: {
       id: ORG_ID,
       name: 'VSP Law Associates',
-      slug: 'vsp-law',
+      slug: 'northwind',
       industry: 'Legal Services',
-      website: 'https://vsplawassociates.com',
+      website: 'https://northwind.example.com',
       timezone: 'America/Chicago',
     },
   })
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
     create: {
       id: USER_ID,
       name: 'Sarah Mitchell',
-      email: 'sarah@vsplawassociates.com',
+      email: 'sarah@northwind.example.com',
       emailVerified: true,
       jobTitle: 'Head of Marketing',
       timezone: 'America/Chicago',
@@ -129,7 +129,7 @@ async function main(): Promise<void> {
     create: {
       id: TEAMMATE_ID,
       name: 'Dev Anand',
-      email: 'dev@vsplawassociates.com',
+      email: 'dev@northwind.example.com',
       emailVerified: true,
       jobTitle: 'Content Lead',
     },
@@ -552,7 +552,7 @@ async function main(): Promise<void> {
       subject: 'Your NRI property questions, answered',
       status: CampaignStatus.ACTIVE,
       fromName: 'VSP Law Associates',
-      fromEmail: 'hello@vsplawassociates.com',
+      fromEmail: 'hello@northwind.example.com',
       generatedBy: AgentId.EMAIL_SPECIALIST,
       recipientCount: 1_240,
       sentCount: 1_240,

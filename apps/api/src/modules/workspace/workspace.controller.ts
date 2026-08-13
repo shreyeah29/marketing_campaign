@@ -1,13 +1,13 @@
 import { Controller, Get, Inject } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import { FEATURES, findLimit, findPlan, type NavEntry } from '@vsp/contracts'
+import { FEATURES, findLimit, findPlan, type NavEntry } from '@marketing-os/contracts'
 import {
   applicableLimits as applicableLimitIds,
   withTenantTransaction,
   type DatabaseClient,
   type EntitlementSnapshot,
-} from '@vsp/database'
+} from '@marketing-os/database'
 
 import { can, type Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

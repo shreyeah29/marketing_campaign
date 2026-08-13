@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, ServiceUnavailableException } from '@nestjs/common'
 import { ApiExcludeController } from '@nestjs/swagger'
 
-import type { DatabaseClient } from '@vsp/database'
+import type { DatabaseClient } from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
 import { DATABASE } from '../../infrastructure/database.module.js'

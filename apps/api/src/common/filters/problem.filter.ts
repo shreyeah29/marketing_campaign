@@ -8,14 +8,19 @@ import {
 } from '@nestjs/common'
 import { ZodError } from 'zod'
 
-import { createProblem, ERROR_CODES, toValidationIssues, type ErrorCode } from '@vsp/contracts'
+import {
+  createProblem,
+  ERROR_CODES,
+  toValidationIssues,
+  type ErrorCode,
+} from '@marketing-os/contracts'
 import {
   MissingTenantContextError,
   RowLevelSecurityNotEnforcedError,
   TenantMismatchError,
   UnscopableOperationError,
-} from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+} from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 interface FastifyLikeReply {
   status(code: number): FastifyLikeReply

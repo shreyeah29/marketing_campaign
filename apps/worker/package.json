@@ -1,5 +1,5 @@
 {
-  "name": "@vsp/worker",
+  "name": "@marketing-os/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,11 +12,11 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@vsp/ai-core": "workspace:*",
-    "@vsp/contracts": "workspace:*",
-    "@vsp/creative-engine": "workspace:*",
-    "@vsp/database": "workspace:*",
-    "@vsp/observability": "workspace:*",
+    "@marketing-os/ai-core": "workspace:*",
+    "@marketing-os/contracts": "workspace:*",
+    "@marketing-os/creative-engine": "workspace:*",
+    "@marketing-os/database": "workspace:*",
+    "@marketing-os/observability": "workspace:*",
     "bullmq": "^5.34.5",
     "ioredis": "^5.4.2",
     "zod": "^3.24.1"

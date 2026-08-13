@@ -1,4 +1,9 @@
-import { buildPage, cursorPaginationSchema, decodeCursor, type Paginated } from '@vsp/contracts'
+import {
+  buildPage,
+  cursorPaginationSchema,
+  decodeCursor,
+  type Paginated,
+} from '@marketing-os/contracts'
 
 /**
  * Shared cursor-list helper.

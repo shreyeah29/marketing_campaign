@@ -3,8 +3,8 @@ import { Redis } from 'ioredis'
 
 import { Inject, Injectable } from '@nestjs/common'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { loadEnv } from '../../config/env.js'
 import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'

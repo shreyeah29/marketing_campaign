@@ -88,7 +88,7 @@ export const problemSchema = z.object({
 
 export type Problem = z.infer<typeof problemSchema>
 
-const PROBLEM_TYPE_BASE = 'https://docs.vsp-marketing-os.com/errors'
+const PROBLEM_TYPE_BASE = 'https://docs.marketing-os.com/errors'
 
 export interface CreateProblemOptions {
   readonly status: number

@@ -3,8 +3,8 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 
 import { Inject, Injectable } from '@nestjs/common'
 
-import { createAdminClient, type PrismaClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { createAdminClient, type PrismaClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { corsOrigins, loadEnv, requireEmailVerification } from '../../config/env.js'
 import { LOGGER } from '../../infrastructure/database.module.js'
@@ -151,7 +151,10 @@ function createBetterAuthInstance(owner: PrismaClient, email: EmailPort) {
     },
 
     advanced: {
-      cookiePrefix: 'vsp',
+      // Renaming this invalidates every existing session cookie, so changing it
+      // again signs the whole tenant out. Worth knowing before it looks like a
+      // bug rather than a deliberate one-time cost.
+      cookiePrefix: 'mos',
       useSecureCookies: env.NODE_ENV === 'production',
       // HttpOnly always. In production the frontend (e.g. a *.vercel.app domain)
       // and this API are different origins, so the session cookie must be

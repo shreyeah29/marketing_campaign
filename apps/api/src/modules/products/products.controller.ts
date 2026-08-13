@@ -16,7 +16,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import type { FastifyReply } from 'fastify'
 import { z } from 'zod'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 import {
   ASPECT_RATIOS,
   DEFAULT_TEMPLATE_SLUG,
@@ -25,7 +25,7 @@ import {
   resolveImages,
   type AspectRatio,
   type CreativeData,
-} from '@vsp/creative-engine'
+} from '@marketing-os/creative-engine'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

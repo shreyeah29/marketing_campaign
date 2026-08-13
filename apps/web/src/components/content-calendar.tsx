@@ -191,9 +191,9 @@ export function ContentCalendar({
   useEffect(() => {
     if (!campaignId) return
     try {
-      const raw = sessionStorage.getItem(`vsp:schedule-pick:${campaignId}`)
+      const raw = sessionStorage.getItem(`mos:schedule-pick:${campaignId}`)
       if (!raw) return
-      sessionStorage.removeItem(`vsp:schedule-pick:${campaignId}`)
+      sessionStorage.removeItem(`mos:schedule-pick:${campaignId}`)
       const ids = JSON.parse(raw) as string[]
       if (Array.isArray(ids) && ids.length) setPickIds(ids)
     } catch {

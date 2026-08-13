@@ -11,9 +11,9 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { AGENT_IDS, isAgentId } from '@vsp/ai-core'
-import type { Paginated } from '@vsp/contracts'
-import { publishEvent, withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { AGENT_IDS, isAgentId } from '@marketing-os/ai-core'
+import type { Paginated } from '@marketing-os/contracts'
+import { publishEvent, withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

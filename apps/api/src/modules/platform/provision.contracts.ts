@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { FEATURE_CATEGORIES } from '@vsp/contracts'
+import { FEATURE_CATEGORIES } from '@marketing-os/contracts'
 
 /**
  * Provisioning contracts — the shape of the "create organisation" wizard.

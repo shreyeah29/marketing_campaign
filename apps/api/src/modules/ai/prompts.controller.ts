@@ -13,8 +13,8 @@ import {
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { cursorPaginationSchema, type Paginated } from '@vsp/contracts'
-import { type DatabaseClient } from '@vsp/database'
+import { cursorPaginationSchema, type Paginated } from '@marketing-os/contracts'
+import { type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CrudService } from '../../common/crud/crud.service.js'

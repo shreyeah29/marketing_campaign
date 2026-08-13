@@ -43,9 +43,9 @@ export function LandingView() {
       <LandingMotionBackground pointer={pointer} reduce={Boolean(reduce)} />
 
       <header className="landing__nav">
-        <Link href="/" className="landing__brand" aria-label="VSP home">
+        <Link href="/" className="landing__brand" aria-label="Marketing OS home">
           <span className="landing__mark" aria-hidden />
-          <span className="landing__brand-name">VSP</span>
+          <span className="landing__brand-name">Marketing OS</span>
         </Link>
         <nav className="landing__logins" aria-label="Sign in">
           <Link href="/login" className="landing__login-link">
@@ -65,7 +65,7 @@ export function LandingView() {
 
       <main className="landing__hero">
         <div className="landing__copy">
-          <p className="landing__brand-hero">VSP</p>
+          <p className="landing__brand-hero">Marketing OS</p>
           <h1 className="landing__headline">Your AI marketing team in one platform</h1>
           <p className="landing__sub">
             Generate campaigns, approve every asset, publish across channels, and measure what
@@ -122,7 +122,7 @@ export function LandingView() {
         </div>
       </main>
 
-      <section className="landing__loop" aria-label="How VSP works">
+      <section className="landing__loop" aria-label="How Marketing OS works">
         <p className="type-label landing__loop-kicker">The loop</p>
         <h2 className="landing__loop-title">From brief to results without leaving the OS</h2>
         <ol className="landing__loop-list">
@@ -148,7 +148,7 @@ export function LandingView() {
       </section>
 
       <footer className="landing__foot">
-        <p className="type-caption">VSP — AI Marketing OS</p>
+        <p className="type-caption">Marketing OS</p>
         <div className="landing__foot-links">
           <Link href="/login">Workspace sign in</Link>
           <Link href="/register">Create account</Link>

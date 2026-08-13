@@ -1,5 +1,5 @@
 {
-  "name": "@vsp/database",
+  "name": "@marketing-os/database",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
-    "@vsp/contracts": "workspace:*"
+    "@marketing-os/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

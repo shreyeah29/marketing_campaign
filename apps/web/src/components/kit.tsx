@@ -209,7 +209,7 @@ export interface Column<T> {
   width?: string
 }
 
-const DENSITY_KEY = 'vsp:density'
+const DENSITY_KEY = 'mos:density'
 type Density = 'comfortable' | 'compact'
 
 function useDensity(): [Density, (d: Density) => void] {

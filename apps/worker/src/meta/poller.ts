@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import type { PrismaClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { WorkerEnv } from '../config.js'
 import { openSealed, type SealedSecret } from '../social/crypto.js'

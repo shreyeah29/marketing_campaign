@@ -232,7 +232,7 @@ const youtube: SocialPublisher = {
       status: { privacyStatus: 'public' },
     }
 
-    const boundary = 'vsp_yt_boundary_0xA1B2C3'
+    const boundary = 'mos_yt_boundary_0xA1B2C3'
     const head =
       `--${boundary}\r\n` +
       'Content-Type: application/json; charset=UTF-8\r\n\r\n' +

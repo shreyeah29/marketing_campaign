@@ -21,8 +21,8 @@ import {
   findPlan,
   resolveDependencies,
   validateFeatureConfig,
-} from '@vsp/contracts'
-import { createAdminClient, type PrismaClient } from '@vsp/database'
+} from '@marketing-os/contracts'
+import { createAdminClient, type PrismaClient } from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
 import { EntitlementService } from '../../common/entitlements/entitlement.service.js'

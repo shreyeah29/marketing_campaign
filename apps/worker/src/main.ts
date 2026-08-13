@@ -7,8 +7,8 @@ import {
   createDatabaseClient,
   withTenant,
   type DatabaseClient,
-} from '@vsp/database'
-import { createLogger, withLogContext, type AppLogger } from '@vsp/observability'
+} from '@marketing-os/database'
+import { createLogger, withLogContext, type AppLogger } from '@marketing-os/observability'
 
 import { loadWorkerEnv } from './config.js'
 import { createCreativeRenderHandler } from './creative/render.handler.js'

@@ -10,8 +10,8 @@ import {
 } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import type { Paginated } from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import type { Paginated } from '@marketing-os/contracts'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { KEYSET_ORDER, keysetWhere, parseKeyset, toPage } from '../../common/http/pagination.js'

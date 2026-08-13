@@ -7,7 +7,7 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { createAdminClient } from '@vsp/database'
+import { createAdminClient } from '@marketing-os/database'
 
 const STAGES = [
   { name: 'New', position: 0, probability: 10, isWon: false, isLost: false },

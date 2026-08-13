@@ -13,7 +13,11 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import type { FastifyRequest } from 'fastify'
 import { z } from 'zod'
 
-import { withTenantTransaction, type DatabaseClient, type PrismaClient } from '@vsp/database'
+import {
+  withTenantTransaction,
+  type DatabaseClient,
+  type PrismaClient,
+} from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
 import { DATABASE, SYSTEM_DB } from '../../infrastructure/database.module.js'

@@ -2,7 +2,7 @@ import { Body, Controller, Get, Inject, NotFoundException, Patch } from '@nestjs
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'

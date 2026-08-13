@@ -11,8 +11,8 @@
  *
  *   DATABASE_URL=<owner conn> npx tsx scripts/grant-features.ts
  */
-import { FEATURES, findFeature } from '@vsp/contracts'
-import { createAdminClient } from '@vsp/database'
+import { FEATURES, findFeature } from '@marketing-os/contracts'
+import { createAdminClient } from '@marketing-os/database'
 
 const GRANT: readonly string[] = [
   // CRM (closure: leads→contacts, deals→pipelines)

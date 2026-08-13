@@ -19,7 +19,7 @@ import {
   withTenantTransaction,
   type DatabaseClient,
   type TenantTransactionClient,
-} from '@vsp/database'
+} from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

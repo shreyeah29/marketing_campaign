@@ -1,8 +1,8 @@
 import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
 import { from, Observable } from 'rxjs'
 
-import { withTenant } from '@vsp/database'
-import { withLogContext, type AppLogger } from '@vsp/observability'
+import { withTenant } from '@marketing-os/database'
+import { withLogContext, type AppLogger } from '@marketing-os/observability'
 
 import type { Principal } from '../auth/principal.js'
 

@@ -1,12 +1,12 @@
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 import {
   findTemplate,
   renderCreative,
   resolveImages,
   type AspectRatio,
   type CreativeData,
-} from '@vsp/creative-engine'
+} from '@marketing-os/creative-engine'
 
 import type { WorkerEnv } from '../config.js'
 

@@ -12,7 +12,7 @@ tenant realm stays completely separate from the platform-admin realm.
 | Who        | A customer's users                              | The platform operator          |
 | Store      | `user` / `session` / `account` / `verification` | `platform_admin`               |
 | Credential | Better Auth (scrypt), cookie session            | Salted hash, HMAC bearer token |
-| Cookie     | `vsp.session_token` (HttpOnly)                  | none — `Authorization: Bearer` |
+| Cookie     | `mos.session_token` (HttpOnly)                  | none — `Authorization: Bearer` |
 | Entry      | `/api/auth/*`, `/v1/auth/*`                     | `/v1/platform/*`               |
 
 There is **no shared session table, no shared login, no shared cookie**. Nothing

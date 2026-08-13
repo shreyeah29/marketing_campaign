@@ -1,5 +1,5 @@
 /**
- * `@vsp/database` is the only module permitted to import `@prisma/client`.
+ * `@marketing-os/database` is the only module permitted to import `@prisma/client`.
  * Everything else imports from here — enforced as an ESLint error in
  * `packages/config/eslint/base.js`.
  *

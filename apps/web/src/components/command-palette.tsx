@@ -16,7 +16,7 @@ import { Icon } from '@/components/icon'
 /** Dispatch to open the palette from chrome (desktop top bar, etc.). */
 export function openCommandPalette(): void {
   if (typeof window === 'undefined') return
-  window.dispatchEvent(new CustomEvent('vsp:command-palette'))
+  window.dispatchEvent(new CustomEvent('mos:command-palette'))
 }
 
 type PaletteItem = {
@@ -121,10 +121,10 @@ export function CommandPalette() {
       setOpen(true)
     }
     window.addEventListener('keydown', onKey)
-    window.addEventListener('vsp:command-palette', onOpen)
+    window.addEventListener('mos:command-palette', onOpen)
     return () => {
       window.removeEventListener('keydown', onKey)
-      window.removeEventListener('vsp:command-palette', onOpen)
+      window.removeEventListener('mos:command-palette', onOpen)
     }
   }, [])
 

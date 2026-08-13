@@ -1,5 +1,5 @@
 /**
- * @vsp/creative-engine — turning campaign data into finished poster pixels.
+ * @marketing-os/creative-engine — turning campaign data into finished poster pixels.
  *
  * Deliberately shared rather than app-local: the API renders the authoritative
  * creative and the web app renders the live preview, and both must resolve the

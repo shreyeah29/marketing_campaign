@@ -15,7 +15,7 @@
  */
 import { randomUUID } from 'node:crypto'
 
-import { createAdminClient, type Prisma } from '@vsp/database'
+import { createAdminClient, type Prisma } from '@marketing-os/database'
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

@@ -139,4 +139,4 @@ jobs:
       # so that would be red on every run and would end up disabled. The script
       # allowlists those specific objects and fails on everything else.
       - name: Verify schema matches migrations
-        run: pnpm --filter @vsp/database run migrate:check
+        run: pnpm --filter @marketing-os/database run migrate:check

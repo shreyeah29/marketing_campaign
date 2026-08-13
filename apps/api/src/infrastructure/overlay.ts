@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import sharp, { type OverlayOptions } from 'sharp'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { LOGGER } from './database.module.js'
 
@@ -50,7 +50,7 @@ const LOGO_MAX_BYTES = 8 * 1024 * 1024
 /**
  * XML-escape text bound for an SVG.
  *
- * Not cosmetic: an ampersand in a business name ("Vsp Law & Associates") makes
+ * Not cosmetic: an ampersand in a business name ("Northwind Tea & Coffee") makes
  * the SVG unparseable, and sharp fails the whole composite rather than dropping
  * the character. Every one of these appears in real brand kits.
  */

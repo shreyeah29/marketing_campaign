@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, NotFoundException, Param } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import type { PrismaClient } from '@vsp/database'
+import type { PrismaClient } from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
 import { SYSTEM_DB } from '../../infrastructure/database.module.js'

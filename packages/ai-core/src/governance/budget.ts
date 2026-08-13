@@ -184,7 +184,7 @@ export interface UsageRecord {
 }
 
 /**
- * Persists usage. Implemented against `@vsp/database` by the host.
+ * Persists usage. Implemented against `@marketing-os/database` by the host.
  *
  * A port rather than a direct write so `ai-core` stays free of Prisma, and so
  * metering can be tested without a database.

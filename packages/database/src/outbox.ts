@@ -1,4 +1,4 @@
-import { parseEventPayload, type EventName, type EventPayload } from '@vsp/contracts'
+import { parseEventPayload, type EventName, type EventPayload } from '@marketing-os/contracts'
 
 import type { TenantTransactionClient } from './client.js'
 import { getTenantContext } from './tenant-context.js'

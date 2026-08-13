@@ -10,7 +10,7 @@ A package that registers manifests into the existing registries:
 - **Feature manifests** → `FEATURES` (via a registration hook), synced to the
   `feature` table. Gives the plugin navigation, permissions, billing category,
   API/frontend routes.
-- **Provider adapters** (optional) → implement a port from `@vsp/ai-core`,
+- **Provider adapters** (optional) → implement a port from `@marketing-os/ai-core`,
   register in the provider registry. Gives per-org selectability.
 - **Custom agents** (optional) → `CustomAgent` rows or manifest registration.
 - **Tools** (optional) → `ToolDefinition`s registered into the tool registry.

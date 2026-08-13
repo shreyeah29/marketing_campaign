@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 
-import { createProblem, ERROR_CODES } from '@vsp/contracts'
-import { withinLimit, type EntitlementSnapshot } from '@vsp/database'
+import { createProblem, ERROR_CODES } from '@marketing-os/contracts'
+import { withinLimit, type EntitlementSnapshot } from '@marketing-os/database'
 
 /**
  * Enforces per-organisation usage limits.

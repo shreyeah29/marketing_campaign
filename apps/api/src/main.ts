@@ -10,20 +10,20 @@ import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 
-import { assertRosterValid, AGENT_IDS, assertCatalogFresh } from '@vsp/ai-core'
-import { assertFeatureRegistryValid } from '@vsp/contracts'
+import { assertRosterValid, AGENT_IDS, assertCatalogFresh } from '@marketing-os/ai-core'
+import { assertFeatureRegistryValid } from '@marketing-os/contracts'
 import {
   assertRowLevelSecurityEnforced,
   assertTenantRegistryComplete,
   createAdminClient,
   syncRegistries,
   TENANT_SCOPED_MODELS,
-} from '@vsp/database'
-import { createLogger } from '@vsp/observability'
+} from '@marketing-os/database'
+import { createLogger } from '@marketing-os/observability'
 
 import { AppModule } from './app.module.js'
 import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
-import { VIEW_AS_HEADER } from './modules/platform/view-as.service.js'
+import { LEGACY_VIEW_AS_HEADER, VIEW_AS_HEADER } from './modules/platform/view-as.service.js'
 import { AuthService } from './modules/auth/auth.service.js'
 import { mountBetterAuth } from './modules/auth/fastify-mount.js'
 import { corsOrigins, loadEnv, swaggerEnabled } from './config/env.js'
@@ -61,7 +61,7 @@ function applyMigrations(logger: Logger): void {
   }
   const repoRoot = fileURLToPath(new URL('../../..', import.meta.url))
   logger.log('Applying database migrations…')
-  execSync('pnpm --filter @vsp/database exec prisma migrate deploy', {
+  execSync('pnpm --filter @marketing-os/database exec prisma migrate deploy', {
     cwd: repoRoot,
     stdio: 'inherit',
   })
@@ -204,7 +204,7 @@ async function bootstrap(): Promise<void> {
     // error, which is indistinguishable from the API being down and sends you
     // looking in entirely the wrong place.
     //
-    // `x-vsp-view-as` was the omission: it is set on every tenant call once an
+    // The view-as header was the omission: it is set on every tenant call once an
     // operator enters a workspace read-only, so a single view-as visit made the
     // whole app unreachable in that tab until the tab was closed.
     allowedHeaders: [
@@ -213,6 +213,7 @@ async function bootstrap(): Promise<void> {
       'Idempotency-Key',
       'X-Request-Id',
       VIEW_AS_HEADER,
+      LEGACY_VIEW_AS_HEADER,
     ],
     exposedHeaders: ['X-Request-Id', 'Retry-After'],
     maxAge: 86_400,
@@ -227,7 +228,7 @@ async function bootstrap(): Promise<void> {
   mountBetterAuth(app.getHttpAdapter().getInstance(), app.get(AuthService), appLogger, limiterRedis)
 
   // No global ValidationPipe. Validation is Zod at the controller boundary, and
-  // the schemas in @vsp/contracts are the single source of truth for request
+  // the schemas in @marketing-os/contracts are the single source of truth for request
   // shapes, response shapes, inferred types and the OpenAPI document.
   //
   // Nest's ValidationPipe would mean a second validation system built on
@@ -245,7 +246,7 @@ async function bootstrap(): Promise<void> {
     const document = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .setTitle('VSP AI Marketing OS')
+        .setTitle('Marketing OS')
         .setDescription(
           'Multi-tenant AI marketing platform. Every endpoint is organisation-scoped: the ' +
             'tenant is derived from the authenticated session, never from a request parameter.',

@@ -6,9 +6,9 @@ import {
   resolveDependencies,
   resolvePreset,
   validateFeatureConfig,
-} from '@vsp/contracts'
-import { createAdminClient, type PrismaClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+} from '@marketing-os/contracts'
+import { createAdminClient, type PrismaClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { loadEnv } from '../../config/env.js'
 import { LOGGER } from '../../infrastructure/database.module.js'

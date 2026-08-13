@@ -13,7 +13,7 @@ export type AssetVersion = {
   note?: string
 }
 
-const PREFIX = 'vsp:asset-versions:'
+const PREFIX = 'mos:asset-versions:'
 
 function key(assetId: string) {
   return `${PREFIX}${assetId}`

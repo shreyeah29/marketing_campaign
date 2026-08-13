@@ -2,15 +2,15 @@ import { Body, Controller, Get, Inject, NotFoundException, Put } from '@nestjs/c
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
-import { AGENT_MANIFESTS, isAgentId } from '@vsp/ai-core'
+import { AGENT_MANIFESTS, isAgentId } from '@marketing-os/ai-core'
 import {
   findProvider,
   PROVIDER_CAPABILITIES,
   providersFor,
   validateProviderCredential,
   type ProviderCapability,
-} from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+} from '@marketing-os/contracts'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { EncryptionService } from '../../common/crypto/encryption.service.js'

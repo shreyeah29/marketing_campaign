@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import sharp from 'sharp'
 
-import type { AppLogger } from '@vsp/observability'
+import type { AppLogger } from '@marketing-os/observability'
 
 import {
   buildBandSvg,
@@ -35,7 +35,7 @@ describe('escapeXml', () => {
   it('escapes the characters that would break the SVG', () => {
     // "&" is the one that matters in practice: it appears in half the business
     // names we will ever see, and an unescaped one makes the SVG unparseable.
-    expect(escapeXml('Vsp Law & Associates')).toBe('Vsp Law &amp; Associates')
+    expect(escapeXml('Northwind Tea & Coffee')).toBe('Northwind Tea &amp; Coffee')
     expect(escapeXml('<script>')).toBe('&lt;script&gt;')
     expect(escapeXml(`"quoted" 'single'`)).toBe('&quot;quoted&quot; &apos;single&apos;')
   })
@@ -65,9 +65,9 @@ describe('contactLines', () => {
     expect(
       contactLines({
         phones: ['India +91 99084 11129', 'USA +1 317 449 2654', 'Canada +1 000'],
-        contactEmail: 'info@vsp.com',
+        contactEmail: 'hello@northwind.example.com',
       }),
-    ).toEqual(['India +91 99084 11129   ·   USA +1 317 449 2654', 'info@vsp.com'])
+    ).toEqual(['India +91 99084 11129   ·   USA +1 317 449 2654', 'hello@northwind.example.com'])
   })
 
   it('skips blanks rather than printing empty lines', () => {
@@ -82,17 +82,17 @@ describe('hasAnythingToStamp', () => {
   })
 
   it('is true as soon as one fact exists', () => {
-    expect(hasAnythingToStamp({ displayName: 'VSP' })).toBe(true)
+    expect(hasAnythingToStamp({ displayName: 'Northwind' })).toBe(true)
     expect(hasAnythingToStamp({ phones: ['+91 1'] })).toBe(true)
   })
 })
 
 describe('measureBand', () => {
   it('grows with the amount of detail', () => {
-    const minimal = measureBand(1280, { displayName: 'VSP' })
+    const minimal = measureBand(1280, { displayName: 'Northwind' })
     const full = measureBand(1280, {
-      displayName: 'Vsp Law & Associates',
-      contactEmail: 'info@vsp.com',
+      displayName: 'Northwind Tea & Coffee',
+      contactEmail: 'hello@northwind.example.com',
       phones: ['India +91 99084 11129'],
       disclaimer: 'This is not an advertisement.',
     })
@@ -103,8 +103,8 @@ describe('measureBand', () => {
 
   it('leaves room for every row it was asked to hold', () => {
     const facts = {
-      displayName: 'Vsp Law & Associates',
-      contactEmail: 'info@vsp.com',
+      displayName: 'Northwind Tea & Coffee',
+      contactEmail: 'hello@northwind.example.com',
       phones: ['India +91 99084 11129'],
       disclaimer: 'This is not an advertisement.',
     }
@@ -118,8 +118,8 @@ describe('measureBand', () => {
   })
 
   it('scales type with image width, not band height', () => {
-    expect(measureBand(2048, { displayName: 'VSP' })).toBeGreaterThan(
-      measureBand(640, { displayName: 'VSP' }),
+    expect(measureBand(2048, { displayName: 'Northwind' })).toBeGreaterThan(
+      measureBand(640, { displayName: 'Northwind' }),
     )
   })
 })
@@ -130,16 +130,16 @@ describe('buildBandSvg', () => {
       1280,
       140,
       {
-        displayName: 'Vsp Law & Associates',
-        contactEmail: 'info@vsp.com',
+        displayName: 'Northwind Tea & Coffee',
+        contactEmail: 'hello@northwind.example.com',
         phones: ['India +91 99084 11129'],
         disclaimer: 'This is not an advertisement or solicitation.',
       },
       0,
     )
 
-    expect(svg).toContain('Vsp Law &amp; Associates')
-    expect(svg).toContain('info@vsp.com')
+    expect(svg).toContain('Northwind Tea &amp; Coffee')
+    expect(svg).toContain('hello@northwind.example.com')
     expect(svg).toContain('not an advertisement')
 
     // The real assertion: sharp can parse and rasterise it. A malformed SVG
@@ -149,8 +149,8 @@ describe('buildBandSvg', () => {
   })
 
   it('shifts the text right to clear a logo', () => {
-    const withLogo = buildBandSvg(1280, 140, { displayName: 'VSP' }, 120)
-    const without = buildBandSvg(1280, 140, { displayName: 'VSP' }, 0)
+    const withLogo = buildBandSvg(1280, 140, { displayName: 'Northwind' }, 120)
+    const without = buildBandSvg(1280, 140, { displayName: 'Northwind' }, 0)
     const x = (svg: string) => Number(/<text x="(\d+)"/.exec(svg)?.[1])
     expect(x(withLogo)).toBeGreaterThan(x(without))
   })
@@ -168,8 +168,8 @@ describe('OverlayService', () => {
   it('stamps the band and returns a larger, still-valid PNG', async () => {
     const base = await canvas()
     const result = await new OverlayService(logger).apply(base, 'image/png', {
-      displayName: 'Vsp Law & Associates',
-      contactEmail: 'info@vsp.com',
+      displayName: 'Northwind Tea & Coffee',
+      contactEmail: 'hello@northwind.example.com',
       phones: ['India +91 99084 11129'],
     })
 
@@ -191,7 +191,7 @@ describe('OverlayService', () => {
   it('leaves video alone', async () => {
     const bytes = new Uint8Array([1, 2, 3])
     const result = await new OverlayService(logger).apply(bytes, 'video/mp4', {
-      displayName: 'VSP',
+      displayName: 'Northwind',
     })
     expect(result.bytes).toBe(bytes)
     expect(result.contentType).toBe('video/mp4')
@@ -200,7 +200,7 @@ describe('OverlayService', () => {
   it('keeps the original image when the bytes are not an image at all', async () => {
     const junk = new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7])
     const result = await new OverlayService(logger).apply(junk, 'image/png', {
-      displayName: 'VSP',
+      displayName: 'Northwind',
     })
     // Degrades to the plain input rather than throwing — a creative the user is
     // waiting on must not be lost to a decoding failure.
@@ -215,7 +215,7 @@ describe('OverlayService', () => {
     try {
       const base = await canvas()
       const result = await new OverlayService(logger).apply(base, 'image/png', {
-        displayName: 'VSP',
+        displayName: 'Northwind',
         logoUrl: 'https://example.com/logo.png',
         phones: ['+91 99084 11129'],
       })
@@ -230,7 +230,7 @@ describe('OverlayService', () => {
   it('skips images too small to carry a band', async () => {
     const tiny = await canvas(120, 120)
     const result = await new OverlayService(logger).apply(tiny, 'image/png', {
-      displayName: 'VSP',
+      displayName: 'Northwind',
     })
     expect(result.bytes).toBe(tiny)
   })

@@ -23,7 +23,7 @@ capability a module provides. Several features can share a module.
 ## Rule
 
 A module never imports another module's internals. Cross-module communication is
-**events only** (`@vsp/contracts` event registry → transactional outbox). This is
+**events only** (`@marketing-os/contracts` event registry → transactional outbox). This is
 what lets a module be extracted into its own service later without renegotiating
 its interface — and what lets a feature be toggled per organisation without a
 module knowing which other features are on.

@@ -13,8 +13,8 @@ import { ToastProvider } from '@/components/kit'
 import { Icon, type IconName } from '@/components/icon'
 import { CommandPalette, openCommandPalette } from '@/components/command-palette'
 
-const THEME_KEY = 'vsp:theme'
-const SIDEBAR_KEY = 'vsp:sidebar:collapsed'
+const THEME_KEY = 'mos:theme'
+const SIDEBAR_KEY = 'mos:sidebar:collapsed'
 
 /**
  * The navigation, in full.
@@ -111,7 +111,7 @@ interface NavIndicators {
  * cached shell shows immediately while a fresh copy is fetched in the background.
  * This is what makes the app feel fast even when the API is cold-starting.
  */
-const SHELL_CACHE_KEY = 'vsp:shell:v1'
+const SHELL_CACHE_KEY = 'mos:shell:v1'
 function readShellCache(): { workspace: Workspace; session: AuthSession } | null {
   if (typeof window === 'undefined') return null
   try {
@@ -795,7 +795,7 @@ function NoOrganization({ session }: { session: AuthSession }) {
       <div className="card" style={{ textAlign: 'center', width: '100%', maxWidth: 420 }}>
         <div className="brand" style={{ justifyContent: 'center', padding: '0 0 16px' }}>
           <span className="dot" />
-          <strong>VSP</strong>
+          <strong>Marketing OS</strong>
         </div>
         <h1 style={{ fontSize: 18, marginBottom: 8 }}>No workspace yet</h1>
         <p className="muted" style={{ fontSize: 13, marginBottom: 18 }}>
@@ -841,7 +841,7 @@ function ShellBooting({ waking = false }: { waking?: boolean }) {
       <div style={{ textAlign: 'center', maxWidth: 320 }}>
         <div className="brand" style={{ justifyContent: 'center', marginBottom: 20 }}>
           <span className="dot" />
-          <strong>VSP</strong>
+          <strong>Marketing OS</strong>
         </div>
         <Spinner />
         {slow ? (

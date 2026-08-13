@@ -31,7 +31,20 @@ interface TokenPayload extends ViewAsClaims {
 }
 
 /** Header the web app presents the bridge token in. */
-export const VIEW_AS_HEADER = 'x-vsp-view-as'
+export const VIEW_AS_HEADER = 'x-mos-view-as'
+
+/**
+ * The pre-rebrand header name, still accepted.
+ *
+ * The API and the web app deploy separately, so for one release a browser may be
+ * running the old bundle against the new API or the reverse. Accepting both
+ * removes that window entirely — and the failure it would otherwise cause is a
+ * CORS preflight rejection, which surfaces as a bare network error with no
+ * status code and is miserable to diagnose.
+ *
+ * Safe to delete once both sides have been deployed for a release.
+ */
+export const LEGACY_VIEW_AS_HEADER = 'x-vsp-view-as'
 
 @Injectable()
 export class ViewAsService {

@@ -71,7 +71,7 @@ super-admin as an isolated route group.
 
 ### Slice 5 — verified
 
-The `@vsp/web` Next.js 15 (App Router) frontend. The governing rule: the client
+The `@marketing-os/web` Next.js 15 (App Router) frontend. The governing rule: the client
 **never hardcodes what exists**. Features, plans, presets, navigation and limits
 are all read from the API at runtime — `/platform/catalog` and `/me/workspace` —
 so a new module or a re-skinned org needs no frontend change.
@@ -101,11 +101,11 @@ on the business plan) → list → detail → suspend → 401 without a token. E
 response shape matched the frontend's declared types. Also added `featureIds` to
 the catalog's plans and presets so the wizard can seed and diff the selection.
 
-To run locally: API on :4000, then `pnpm --filter @vsp/web dev` (:3000).
+To run locally: API on :4000, then `pnpm --filter @marketing-os/web dev` (:3000).
 
 ### Slice 4 — verified
 
-- **Provider registry** (`@vsp/contracts`): 27 providers across 11 capabilities
+- **Provider registry** (`@marketing-os/contracts`): 27 providers across 11 capabilities
   (LLM: Anthropic/OpenAI/Gemini/xAI/DeepSeek/Mistral/OpenRouter; voice, telephony,
   image, video, embedding, storage, email, payment). Metadata only — the choice is
   config, the adapters (Phase-later) implement the ai-core ports. `credentialFields`
@@ -127,7 +127,7 @@ To run locally: API on :4000, then `pnpm --filter @vsp/web dev` (:3000).
 Follow-up: the model router should consult per-org `ProviderConfiguration` to
 resolve which provider fills a capability (the resolver already accepts
 `availableProviders`); wiring that, plus the provider adapters in
-`@vsp/providers`, is downstream of the frontend slice.
+`@marketing-os/providers`, is downstream of the frontend slice.
 
 ### Slice 3 — verified (the "onboard a client without code" goal)
 
@@ -194,7 +194,7 @@ feature_not_enabled` with the feature id and `upgradeable: true` (an upgrade
 
 ### Slice 1 — verified
 
-- **Feature registry** (`@vsp/contracts`): 44 features, 9 categories, per-feature
+- **Feature registry** (`@marketing-os/contracts`): 44 features, 9 categories, per-feature
   Zod config, dependency resolution. `assertFeatureRegistryValid()` in preflight.
 - **Plans** reference features (5 plans, additive tiers, enterprise = full
   registry, custom supported). **Limits** registry (13 metrics). **Presets**: 6
@@ -305,9 +305,9 @@ DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/vsp_marketing 
 REDIS_URL=redis://localhost:6379 \
 BETTER_AUTH_SECRET=local-dev-better-auth-secret-32chars-min \
 ENCRYPTION_MASTER_KEY=local-dev-encryption-master-key-32chars \
-pnpm --filter @vsp/api dev
+pnpm --filter @marketing-os/api dev
 
 # Worker (12 queues + outbox dispatcher)
 DATABASE_URL=... DIRECT_DATABASE_URL=... REDIS_URL=... ENCRYPTION_MASTER_KEY=... \
-pnpm --filter @vsp/worker dev
+pnpm --filter @marketing-os/worker dev
 ```

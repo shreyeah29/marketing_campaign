@@ -10,7 +10,7 @@ import {
   renderCreative,
   type AspectRatio,
   type CreativeData,
-} from '@vsp/creative-engine'
+} from '@marketing-os/creative-engine'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'

@@ -4,7 +4,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common'
 
-import type { EntitlementSnapshot } from '@vsp/database'
+import type { EntitlementSnapshot } from '@marketing-os/database'
 
 /**
  * Injects the entitlement snapshot the guard resolved for this request.

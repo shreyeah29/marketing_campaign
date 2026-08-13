@@ -94,7 +94,7 @@ export default function OrganizationDetailPage() {
                 const res = await platform.startViewSession(id)
                 setViewAsToken(res.token)
                 try {
-                  window.sessionStorage.removeItem('vsp:shell:v1')
+                  window.sessionStorage.removeItem('mos:shell:v1')
                 } catch {
                   /* ignore */
                 }

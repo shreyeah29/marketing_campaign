@@ -13,8 +13,8 @@ import {
 import { ApiExcludeController } from '@nestjs/swagger'
 import type { FastifyRequest } from 'fastify'
 
-import type { AppLogger } from '@vsp/observability'
-import type { DatabaseClient } from '@vsp/database'
+import type { AppLogger } from '@marketing-os/observability'
+import type { DatabaseClient } from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
 import { loadEnv } from '../../config/env.js'

@@ -1,9 +1,9 @@
 /**
- * `@vsp/ai-core` — the AI operating system's contracts.
+ * `@marketing-os/ai-core` — the AI operating system's contracts.
  *
  * This package contains no vendor SDK and never will. It defines what the
  * platform needs from a model, an image generator, a telephony provider; adapters
- * live in `@vsp/providers`. ESLint fails the build on a vendor import here, and on
+ * live in `@marketing-os/providers`. ESLint fails the build on a vendor import here, and on
  * `ai-core` importing `providers` — that inversion is what makes providers
  * swappable rather than merely abstracted on paper.
  */

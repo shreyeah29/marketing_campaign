@@ -1,4 +1,4 @@
-# VSP AI Marketing OS — Developer Guide
+# Marketing OS — Developer Guide
 
 Complete developer documentation for the platform: a multi-tenant AI marketing SaaS
 built as a pnpm + Turborepo monorepo (NestJS/Fastify API, Next.js frontend, BullMQ
@@ -301,27 +301,27 @@ Health         /health                                            (@Public)
 
 ### API (`apps/api/src/config/env.ts`) — Zod-validated; the API refuses to boot if invalid
 
-| Variable                     | Required | Default                    | Purpose                                                    |
-| ---------------------------- | -------- | -------------------------- | ---------------------------------------------------------- |
-| `NODE_ENV`                   | no       | `development`              | Runtime mode                                               |
-| `LOG_LEVEL`                  | no       | `info`                     | Pino level                                                 |
-| `API_PORT`                   | no       | `4000`                     | Listen port                                                |
-| `API_HOST`                   | no       | `0.0.0.0`                  | Listen host                                                |
-| `DATABASE_URL`               | **yes**  | —                          | App role (`vsp_app`), RLS-subject                          |
-| `DIRECT_DATABASE_URL`        | no*      | —                          | Owner role — migrations, public slug lookups (SYSTEM_DB)   |
-| `REDIS_URL`                  | **yes**  | —                          | BullMQ / cache                                             |
-| `CORS_ALLOWED_ORIGINS`       | no       | `http://localhost:3000`    | Comma-separated origins                                    |
-| `BETTER_AUTH_SECRET`         | **yes**  | —                          | Session signing (≥32 chars)                                |
-| `BETTER_AUTH_URL`            | no       | —                          | API base for auth links                                    |
-| `APP_URL`                    | no       | `http://localhost:3000`    | Frontend base for email links                              |
-| `EMAIL_FROM`                 | no       | `VSP <no-reply@vsp.local>` | Mail From                                                  |
-| `RESEND_API_KEY`             | no       | —                          | Email delivery (Resend REST); unset → mailer logs          |
-| `REQUIRE_EMAIL_VERIFICATION` | no       | prod=on                    | Gate first login on verified email                         |
-| `ENCRYPTION_MASTER_KEY`      | **yes**  | —                          | Envelope encryption of provider creds (≥32 chars)          |
-| `OPENAI_API_KEY`             | no       | —                          | Platform AI (chat/copywriter/image/voice/embeddings query) |
-| `OPENAI_MODEL`               | no       | —                          | LLM model id (e.g. `gpt-5.4-mini`)                         |
-| `SWAGGER_ENABLED`            | no       | —                          | Expose `/docs`                                             |
-| `SENTRY_DSN`                 | no       | —                          | Error reporting                                            |
+| Variable                     | Required | Default                                      | Purpose                                                    |
+| ---------------------------- | -------- | -------------------------------------------- | ---------------------------------------------------------- |
+| `NODE_ENV`                   | no       | `development`                                | Runtime mode                                               |
+| `LOG_LEVEL`                  | no       | `info`                                       | Pino level                                                 |
+| `API_PORT`                   | no       | `4000`                                       | Listen port                                                |
+| `API_HOST`                   | no       | `0.0.0.0`                                    | Listen host                                                |
+| `DATABASE_URL`               | **yes**  | —                                            | App role (`vsp_app`), RLS-subject                          |
+| `DIRECT_DATABASE_URL`        | no*      | —                                            | Owner role — migrations, public slug lookups (SYSTEM_DB)   |
+| `REDIS_URL`                  | **yes**  | —                                            | BullMQ / cache                                             |
+| `CORS_ALLOWED_ORIGINS`       | no       | `http://localhost:3000`                      | Comma-separated origins                                    |
+| `BETTER_AUTH_SECRET`         | **yes**  | —                                            | Session signing (≥32 chars)                                |
+| `BETTER_AUTH_URL`            | no       | —                                            | API base for auth links                                    |
+| `APP_URL`                    | no       | `http://localhost:3000`                      | Frontend base for email links                              |
+| `EMAIL_FROM`                 | no       | `Marketing OS <no-reply@marketing-os.local>` | Mail From                                                  |
+| `RESEND_API_KEY`             | no       | —                                            | Email delivery (Resend REST); unset → mailer logs          |
+| `REQUIRE_EMAIL_VERIFICATION` | no       | prod=on                                      | Gate first login on verified email                         |
+| `ENCRYPTION_MASTER_KEY`      | **yes**  | —                                            | Envelope encryption of provider creds (≥32 chars)          |
+| `OPENAI_API_KEY`             | no       | —                                            | Platform AI (chat/copywriter/image/voice/embeddings query) |
+| `OPENAI_MODEL`               | no       | —                                            | LLM model id (e.g. `gpt-5.4-mini`)                         |
+| `SWAGGER_ENABLED`            | no       | —                                            | Expose `/docs`                                             |
+| `SENTRY_DSN`                 | no       | —                                            | Error reporting                                            |
 
 \* Strongly recommended in production; required for public form/page resolution
 (`SYSTEM_DB`) and for running migrations.
@@ -565,8 +565,8 @@ top-k chunks with scores
 pnpm install
 
 # 2. Bring up Postgres + Redis (Docker example)
-docker run -d --name vsp-pg  -e POSTGRES_PASSWORD=postgres -p 5432:5432 pgvector/pgvector:pg16
-docker run -d --name vsp-redis -p 6379:6379 redis:7
+docker run -d --name mos-pg  -e POSTGRES_PASSWORD=postgres -p 5432:5432 pgvector/pgvector:pg16
+docker run -d --name mos-redis -p 6379:6379 redis:7
 
 # 3. Configure env (copy and fill)
 cp .env.example .env          # root / package envs as needed
@@ -576,7 +576,7 @@ cp .env.example .env          # root / package envs as needed
 #   apps/web/.env(.local)  : NEXT_PUBLIC_API_URL=http://localhost:4000
 
 # 4. Apply migrations (owner connection) + generate client
-pnpm --filter @vsp/database migrate:deploy
+pnpm --filter @marketing-os/database migrate:deploy
 pnpm db:generate
 
 # 5. Create the RLS-subject app role (vsp_app) and point DATABASE_URL at it
@@ -591,9 +591,9 @@ pnpm db:seed
 # 7. Run everything
 pnpm dev                      # turbo: api (:4000) + web (:3000) + worker
 #   or individually:
-pnpm --filter @vsp/api dev
-pnpm --filter @vsp/web dev
-pnpm --filter @vsp/worker dev
+pnpm --filter @marketing-os/api dev
+pnpm --filter @marketing-os/web dev
+pnpm --filter @marketing-os/worker dev
 ```
 
 Useful root scripts: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:studio`,
@@ -623,7 +623,7 @@ Useful root scripts: `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm db:studi
    the owner connection before/with the code deploy:
    ```bash
    DATABASE_URL="$OWNER_URL" DIRECT_DATABASE_URL="$OWNER_URL" \
-     pnpm --filter @vsp/database migrate:deploy
+     pnpm --filter @marketing-os/database migrate:deploy
    # (or apply the migration.sql via psql, then record it in _prisma_migrations)
    ```
 3. **Registry sync** happens automatically on API boot (`syncRegistries` upserts

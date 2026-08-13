@@ -6,10 +6,10 @@
  * an organisation actually uses for a capability is data (`ProviderConfiguration`),
  * and the secret is a separate envelope-encrypted row (`ProviderCredential`).
  *
- * This lives in `@vsp/contracts` — metadata only, never an SDK — so the frontend
+ * This lives in `@marketing-os/contracts` — metadata only, never an SDK — so the frontend
  * can render a provider picker and the backend can validate a selection from the
- * same source. The actual adapters implement the `@vsp/ai-core` ports and live in
- * `@vsp/providers`; business logic depends on the port, so a provider is a
+ * same source. The actual adapters implement the `@marketing-os/ai-core` ports and live in
+ * `@marketing-os/providers`; business logic depends on the port, so a provider is a
  * configuration choice, not a code change.
  */
 

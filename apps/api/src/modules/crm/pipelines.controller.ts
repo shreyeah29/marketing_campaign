@@ -1,8 +1,8 @@
 import { Controller, Get, Inject, Param, Query } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import { cursorPaginationSchema, type Paginated } from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { cursorPaginationSchema, type Paginated } from '@marketing-os/contracts'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'

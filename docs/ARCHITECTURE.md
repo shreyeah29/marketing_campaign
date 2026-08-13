@@ -1,4 +1,4 @@
-# VSP AI Marketing OS — Architecture
+# Marketing OS — Architecture
 
 > **Your AI Marketing Team in One Platform.**
 >
@@ -66,7 +66,7 @@ The API never performs long-running work inline; it enqueues and streams progres
 ## 3. Repository layout
 
 ```
-vsp-ai-marketing-os/
+marketing-os/
 ├── apps/
 │   ├── web/                  Next.js 15 App Router frontend
 │   ├── api/                  NestJS + Fastify HTTP + realtime

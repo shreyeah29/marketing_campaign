@@ -8,7 +8,7 @@ import { getPlatformToken } from '@/lib/api'
 import { Icon } from '@/components/icon'
 import { platform } from '@/lib/platform'
 
-const SIDEBAR_KEY = 'vsp:platform:sidebar:collapsed'
+const SIDEBAR_KEY = 'mos:platform:sidebar:collapsed'
 
 function readCollapsed(): boolean {
   if (typeof window === 'undefined') return false
@@ -103,7 +103,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
         </button>
         <div className="brand" style={{ padding: 0 }}>
           <span className="dot" />
-          <span>VSP Platform</span>
+          <span>Marketing OS</span>
         </div>
       </header>
 
@@ -112,7 +112,7 @@ export default function PlatformLayout({ children }: { children: ReactNode }) {
       <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
         <div className="brand">
           <span className="dot" />
-          <span className="brand-name">VSP Platform</span>
+          <span className="brand-name">Marketing OS</span>
           <button
             className="sidebar-close"
             onClick={() => setNavOpen(false)}

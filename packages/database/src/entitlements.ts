@@ -1,4 +1,11 @@
-import { FEATURES, findPlan, isUnlimited, LIMITS, PLANS, resolveDependencies } from '@vsp/contracts'
+import {
+  FEATURES,
+  findPlan,
+  isUnlimited,
+  LIMITS,
+  PLANS,
+  resolveDependencies,
+} from '@marketing-os/contracts'
 
 import type { PrismaClient } from '../generated/client/index.js'
 import { withTenantTransaction, type DatabaseClient } from './client.js'

@@ -31,7 +31,7 @@ properties:
 | ------------------ | ----------------------------------------------------------------------------------- |
 | Password storage   | scrypt (Better Auth), shared with provisioning — never plaintext                    |
 | Sessions           | database-backed, HttpOnly cookie, 7-day expiry, sliding 1-day rotation              |
-| Cookie flags       | `HttpOnly`, `SameSite=Lax`, `Secure` in production, `vsp` prefix                    |
+| Cookie flags       | `HttpOnly`, `SameSite=Lax`, `Secure` in production, `mos` prefix                    |
 | CSRF               | state-changing requests accepted only from the trusted-origin allowlist             |
 | Session revocation | `list-sessions`, `revoke-session`, `revoke-other-sessions`                          |
 | Rate limiting      | per-IP (anon) / per-org global limiter + per-endpoint limits on credentials         |

@@ -1,4 +1,4 @@
-# Design Brief — VSP AI Marketing OS
+# Design Brief — Marketing OS
 
 This is the approved design system, information architecture and per-screen
 specification for the product's frontend. Every design session refers back to

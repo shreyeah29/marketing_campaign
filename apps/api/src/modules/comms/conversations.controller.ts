@@ -12,8 +12,13 @@ import {
 import { z } from 'zod'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
-import { buildPage, cursorPaginationSchema, decodeCursor, type Paginated } from '@vsp/contracts'
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import {
+  buildPage,
+  cursorPaginationSchema,
+  decodeCursor,
+  type Paginated,
+} from '@marketing-os/contracts'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'

@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
 
-import { withTenantTransaction, type DatabaseClient } from '@vsp/database'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { DATABASE } from '../../infrastructure/database.module.js'

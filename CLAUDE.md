@@ -32,7 +32,7 @@ contract shape: **STOP and ask the owner.** Do not work around it with mocks.
 
 Every shape recorded in `docs/API_CONTRACT.md` — paths, methods, field names,
 casing, types, headers, auth flows (tenant cookie, platform bearer,
-`x-vsp-view-as`), polling behaviours — is frozen. Redesign work rearranges
+`x-mos-view-as`), polling behaviours — is frozen. Redesign work rearranges
 presentation around these calls; it never changes what is sent or how a
 response is read. If markup and data logic are tangled, separate them without
 changing behaviour.
@@ -64,7 +64,7 @@ the platform console (operator realm, incl. view-as) adopts the same system.
   asking; report what shipped. Multiple sessions may run concurrently —
   always `git fetch` + rebase before pushing.
 - pnpm via `corepack pnpm`; per-package scripts
-  (`corepack pnpm --filter @vsp/web typecheck|build|lint`). The turbo wrapper
+  (`corepack pnpm --filter @marketing-os/web typecheck|build|lint`). The turbo wrapper
   fails locally.
 - Prettier is CI-enforced: `corepack pnpm exec prettier --write <files>`
   before committing.

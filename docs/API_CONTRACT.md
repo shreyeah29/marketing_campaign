@@ -32,13 +32,13 @@ traceId?, errors?: {path,message}[] }`. `problemMessage()` flattens NestJS/zod
 
 **Three auth realms**
 
-1. **Tenant** — Better Auth session cookie (`vsp.session_token`, HttpOnly).
+1. **Tenant** — Better Auth session cookie (`mos.session_token`, HttpOnly).
    Default for all `/v1` calls.
 2. **Platform** — `Authorization: Bearer <token>` from
-   `localStorage['vsp.platform.token']`, attached only when the call passes
+   `localStorage['mos.platform.token']`, attached only when the call passes
    `{ platformAuth: true }`. Never combined with the view-as header.
-3. **View-as** — `x-vsp-view-as: <token>` from
-   `sessionStorage['vsp.viewas.token']`, attached on every **non**-platformAuth
+3. **View-as** — `x-mos-view-as: <token>` from
+   `sessionStorage['mos.viewas.token']`, attached on every **non**-platformAuth
    call when present. API resolves a read-only VIEWER principal for the named
    org and ignores any tenant cookie; all mutating verbs are rejected 403.
 
@@ -46,10 +46,10 @@ traceId?, errors?: {path,message}[] }`. `problemMessage()` flattens NestJS/zod
 
 | Key                  | Store          | Purpose                                                                                                                                                                             |
 | -------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vsp.platform.token` | localStorage   | Platform bearer. Cleared client-side by `platform.logout()` (no network call).                                                                                                      |
-| `vsp.viewas.token`   | sessionStorage | View-as bridge token (same-tab by design). Cleared by Exit view and by a 401 in view-as mode (→ `/platform`). Presence suppresses the shell cache and skips `GET /v1/auth/session`. |
-| `vsp:shell:v1`       | sessionStorage | Optimistic cache of `{ session, workspace }`. Cleared on 401, org switch, sign-out, needsOrganization, exit view-as.                                                                |
-| `vsp:theme`          | localStorage   | `'light'                                                                                                                                                                            | 'dark'`; read by an inline pre-paint script in the root layout. |
+| `mos.platform.token` | localStorage   | Platform bearer. Cleared client-side by `platform.logout()` (no network call).                                                                                                      |
+| `mos.viewas.token`   | sessionStorage | View-as bridge token (same-tab by design). Cleared by Exit view and by a 401 in view-as mode (→ `/platform`). Presence suppresses the shell cache and skips `GET /v1/auth/session`. |
+| `mos:shell:v1`       | sessionStorage | Optimistic cache of `{ session, workspace }`. Cleared on 401, org switch, sign-out, needsOrganization, exit view-as.                                                                |
+| `mos:theme`          | localStorage   | `'light'                                                                                                                                                                            | 'dark'`; read by an inline pre-paint script in the root layout. |
 
 **List envelope** — `lib/resource.ts`: every generic list endpoint returns
 `Page<T> = { data: T[], hasMore: boolean, nextCursor: string | null }`.
@@ -383,7 +383,7 @@ organizations: PortfolioOrg[] }` — money as strings; "dormant" (>14d) is a
   client-side derivation.
 - POST `/platform/organizations/{id}/view-session` (bodyless; SUPER_ADMIN
   only) → `{ token, expiresAt, organization{id,name} }` — only `token` read;
-  → sessionStorage + clear `vsp:shell:v1` + same-tab `router.push('/app')`.
+  → sessionStorage + clear `mos:shell:v1` + same-tab `router.push('/app')`.
   Dual audit server-side (platform log + tenant append-only log).
 - PUT `/platform/organizations/{id}/features` `{ features[], featureConfig? }`
   — full replacement set. **Defined in lib/platform.ts but currently has no
@@ -402,7 +402,7 @@ These are behaviours, not bugs to silently "clean up" — several are relied on:
   prompts, notifications, conversations, ai/history, pipelines/options.
 - DELETE-with-body bulk deletes; bodyless POST/PATCH action verbs.
 - `?provisioned=1` success signalling; `history.replaceState` before the Meta
-  OAuth exchange; `x-vsp-view-as` never on platformAuth calls.
+  OAuth exchange; `x-mos-view-as` never on platformAuth calls.
 - `403` on `/conversations` = feature gate, not an error.
 - Optimistic updates with revert: lead kanban move, agent toggle.
 - The `'Campaign template'` literal category string.

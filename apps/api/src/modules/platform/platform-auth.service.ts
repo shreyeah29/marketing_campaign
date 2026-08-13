@@ -2,8 +2,8 @@ import { createHmac, timingSafeEqual, hash as nodeHash } from 'node:crypto'
 
 import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 
-import { createAdminClient, type PrismaClient } from '@vsp/database'
-import type { AppLogger } from '@vsp/observability'
+import { createAdminClient, type PrismaClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import { loadEnv } from '../../config/env.js'
 import { LOGGER } from '../../infrastructure/database.module.js'

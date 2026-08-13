@@ -14,6 +14,7 @@
   "dependencies": {
     "@vsp/ai-core": "workspace:*",
     "@vsp/contracts": "workspace:*",
+    "@vsp/creative-engine": "workspace:*",
     "@vsp/database": "workspace:*",
     "@vsp/observability": "workspace:*",
     "bullmq": "^5.34.5",

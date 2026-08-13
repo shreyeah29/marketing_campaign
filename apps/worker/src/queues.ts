@@ -23,6 +23,13 @@ export const QUEUES = {
   AGENT_RUNS: 'agent-runs',
   CONTENT_GENERATION: 'content-generation',
   MEDIA_GENERATION: 'media-generation',
+  /**
+   * Composing a poster from a template and stored data. Pure CPU, no model
+   * call — kept apart from MEDIA_GENERATION precisely so a provider outage
+   * stalls generation while re-renders keep working, and so fifty cheap render
+   * jobs cannot starve the handful of expensive ones.
+   */
+  CREATIVE_RENDER: 'creative-render',
   EMAIL_SEND: 'email-send',
   SOCIAL_PUBLISH: 'social-publish',
   WHATSAPP_SEND: 'whatsapp-send',
@@ -98,6 +105,16 @@ export const QUEUE_POLICIES: readonly QueuePolicy[] = [
     rationale:
       'Image and video generation are the most expensive operations per attempt and the slowest. ' +
       'Low concurrency also respects provider rate limits.',
+  },
+  {
+    name: QUEUES.CREATIVE_RENDER,
+    // High, unlike its neighbours: this queue costs CPU rather than money, and a
+    // fifty-product batch should finish in seconds rather than trickle.
+    concurrency: 8,
+    jobOptions: { ...RETAIN, attempts: 5, backoff: backoff(2_000) },
+    rationale:
+      'Deterministic, cheap and side-effect-free — an identical re-render produces identical bytes ' +
+      'to the same key, so retrying costs nothing and is always safe.',
   },
   {
     name: QUEUES.EMAIL_SEND,

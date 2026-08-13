@@ -51,6 +51,7 @@ export function SectionNav({ links }: { links: readonly SectionLink[] }) {
 export const CAMPAIGN_SECTION: readonly SectionLink[] = [
   { href: '/app/campaigns', label: 'Campaigns', icon: 'megaphone' },
   { href: '/app/products', label: 'Products', icon: 'grid' },
+  { href: '/app/creatives', label: 'Creatives', icon: 'image' },
 ]
 
 /** The Library group: finished creatives, and the layouts that produce them. */

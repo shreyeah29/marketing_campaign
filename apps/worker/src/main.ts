@@ -11,6 +11,7 @@ import {
 import { createLogger, withLogContext, type AppLogger } from '@vsp/observability'
 
 import { loadWorkerEnv } from './config.js'
+import { createCreativeRenderHandler } from './creative/render.handler.js'
 import { createEmbeddingsHandler } from './embeddings/indexer.js'
 import { OutboxDispatcher } from './outbox-dispatcher.js'
 import {
@@ -225,12 +226,14 @@ async function bootstrap(): Promise<void> {
   const workflowQueue = new Queue(QUEUES.WORKFLOW_EXECUTION, { connection: bullRedis })
   const workflowHandler = createWorkflowHandler(workflowQueue)
   const embeddingsHandler = createEmbeddingsHandler(env)
+  const creativeRenderHandler = createCreativeRenderHandler(env, db, logger)
 
   // Each queue gets its handler. Queues without a real handler acknowledge (never
   // with fake side effects) until their module lands.
   const handlerFor = (policy: QueuePolicy): JobHandler => {
     if (policy.name === QUEUES.WORKFLOW_EXECUTION) return workflowHandler
     if (policy.name === QUEUES.EMBEDDINGS) return embeddingsHandler
+    if (policy.name === QUEUES.CREATIVE_RENDER) return creativeRenderHandler
     return acknowledge
   }
 

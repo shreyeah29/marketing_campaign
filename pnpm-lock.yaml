@@ -181,6 +181,9 @@ importers:
       '@vsp/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@vsp/creative-engine':
+        specifier: workspace:*
+        version: link:../../packages/creative-engine
       '@vsp/database':
         specifier: workspace:*
         version: link:../../packages/database

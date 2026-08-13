@@ -33,6 +33,14 @@ const schema = z.object({
    */
   DIRECT_DATABASE_URL: z.string().url(),
   REDIS_URL: z.string().url(),
+  /**
+   * Object storage for rendered creatives. The worker writes posters directly
+   * rather than handing bytes back to the API, so it needs the same bucket.
+   * Unset means the render queue cannot store its output and says so.
+   */
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_KEY: z.string().optional(),
+  SUPABASE_BUCKET: z.string().default('creatives'),
   ENCRYPTION_MASTER_KEY: z.string().min(32, 'ENCRYPTION_MASTER_KEY must be at least 32 characters'),
   /** Email delivery (Resend REST). Unset → the mailer logs instead of sending. */
   RESEND_API_KEY: z.string().optional(),

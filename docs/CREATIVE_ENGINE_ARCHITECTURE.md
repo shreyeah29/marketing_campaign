@@ -1,6 +1,6 @@
 # Creative Engine — Architecture Proposal
 
-Status: **approved 2026-08-12**. Phases 1–3 shipped; 4–6 outstanding.
+Status: **approved 2026-08-12**. All six phases shipped 2026-08-13.
 
 ## Shipped
 
@@ -9,6 +9,7 @@ Status: **approved 2026-08-12**. Phases 1–3 shipped; 4–6 outstanding.
 | 1     | `@vsp/creative-engine`, uploads, Product catalogue, live preview | `f68f0c7` `a3c0842` |
 | 2     | Five templates, gallery, I/O-free rendering                      | `ac14032`           |
 | 3     | AI scene generation, scrim, product composite                    | `0dec474`           |
+| 4–6   | Batch generation, approval, publishing, campaign summary         | `81446b9`           |
 
 **Working end to end:** upload a product photo → enter two prices → the poster
 renders in ~200ms through any of five layouts, at three aspect ratios, with the
@@ -16,15 +17,37 @@ prices typeset exactly as entered. Generate a background scene for a campaign an
 every product in it renders over that scene, with the real product photograph on
 top.
 
-**Not built yet:** batch generation with progress (Phase 4), the approval and
-scheduling path for `Creative` rows (Phase 5), per-creative analytics (Phase 6).
-The scenes API is complete but has no UI — a campaign screen needs a scene
-picker; `GET /products/:id/preview` already accepts `sceneId`.
+**Also working:** _Generate all_ over a campaign creates one `BatchJob` and one
+`Creative` per product, enqueues them on `creative-render`, and returns
+immediately; the UI polls `/batches/:id` and posters appear as they land.
+Approve or reject in bulk, then publish — which produces a `SocialPost` with
+targets, the same rows the worker's existing platform adapters consume.
 
-**Deliberately deferred:** the `Creative` and `DesignTemplate` tables. Templates
-ship as code, which is why they cannot drift between environments; persisting a
-rendered creative only becomes necessary when approval and scheduling need
-something to attach to, which is Phase 5.
+**Not built yet:** a scene picker in the UI. The scenes API is complete and
+`POST /campaigns/:id/creatives/batch` already accepts `sceneId`, but nothing on
+screen calls it — batches currently render on the template's own background.
+Design-reference upload remains deferred, as agreed.
+
+**Deliberately not built:** a `DesignTemplate` table. Templates ship as code,
+which is exactly why they cannot drift between environments; a database-backed
+table becomes necessary when organisations author their own, not before. There
+is likewise no creative-level attribution table — the campaign summary reads the
+metrics the analytics pollers already write, and a second store for numbers that
+are already collected is a second thing to disagree.
+
+## Deployment note
+
+The worker now renders posters and writes them to object storage, so it needs
+the same three variables the API already has:
+
+```
+SUPABASE_URL
+SUPABASE_SERVICE_KEY
+SUPABASE_BUCKET      (defaults to "creatives")
+```
+
+Without them the render queue fails every job with a clear message rather than
+producing blank posters.
 
 ### Things learned by rendering posters and looking at them
 

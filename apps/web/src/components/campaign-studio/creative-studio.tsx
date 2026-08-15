@@ -128,6 +128,12 @@ export function CreativeStudio({
   // the tab opens, and the page polls until they land — you watch them arrive
   // and then decide. Concepts already rejected are left alone; regenerating one
   // means reopening it, which keeps a rejection meaningful.
+  //
+  // This ref only avoids a duplicate *request*; it is not what keeps artwork
+  // stable. It empties on every mount, so navigating away and back mid-render
+  // used to start a second generation and silently replace the poster. The
+  // server refuses to regenerate over existing media unless asked — that is the
+  // guarantee. See `generate-media` in review-queue.controller.ts.
   const startedRef = useRef<Set<string>>(new Set())
   const [pending, setPending] = useState(0)
   const [blocked, setBlocked] = useState<string | null>(null)
@@ -184,10 +190,21 @@ export function CreativeStudio({
   // Poll while anything is still rendering, so posters appear as they finish
   // rather than on the next manual refresh.
   useEffect(() => {
-    if (pending === 0) return
-    const t = window.setInterval(() => reload(), 5000)
+    if (pending === 0 || blocked) return
+    // Bounded. A poster that fails permanently leaves `pending` above zero
+    // forever, and without a ceiling this polls every five seconds for as long
+    // as the tab is open — a request loop with nothing left to discover.
+    let ticks = 0
+    const t = window.setInterval(() => {
+      ticks += 1
+      if (ticks > 60) {
+        window.clearInterval(t)
+        return
+      }
+      reload()
+    }, 5000)
     return () => window.clearInterval(t)
-  }, [pending, reload])
+  }, [pending, blocked, reload])
 
   // ── Advertising rules ────────────────────────────────────────────────────
   // Fetched once. An organisation that has set no rules gets no banner, and a
@@ -230,7 +247,13 @@ export function CreativeStudio({
         // not approve anything — the reviewer decides after seeing it.
         const target = piece.master
         if (!target) return
-        await api.post(`/campaign-assets/${target.id}/generate-media`, { variants: 1 })
+        // `force` because this is a deliberate click asking for something
+        // different. The automatic path below never sends it, which is what
+        // makes a remount cost nothing instead of a new generation.
+        await api.post(`/campaign-assets/${target.id}/generate-media`, {
+          variants: 1,
+          force: true,
+        })
         toast.push(
           'success',
           target.kind === 'VIDEO_PROMPT'

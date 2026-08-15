@@ -50,7 +50,14 @@ const publishSchema = z
   .strict()
 const rejectSchema = z.object({ reason: z.string().max(1000).optional() }).strict()
 const generateMediaSchema = z
-  .object({ variants: z.number().int().min(1).max(3).optional() })
+  .object({
+    variants: z.number().int().min(1).max(3).optional(),
+    /**
+     * Replace artwork that already exists. Without it the call is idempotent —
+     * see the guard in `generateMedia` for why that matters.
+     */
+    force: z.boolean().optional(),
+  })
   .strict()
 const chooseVariantSchema = z.object({ url: z.string().url() }).strict()
 const bulkSchema = z
@@ -340,6 +347,29 @@ export class ReviewQueueController {
     // reopening it first, which keeps the rejection meaningful.
     if (asset.status === 'REJECTED') {
       throw new BadRequestException('This concept was rejected — reopen it before generating media')
+    }
+
+    /**
+     * An asset that already has artwork keeps it.
+     *
+     * The studio auto-generates any poster concept without media as soon as the
+     * screen opens, and it tracked "already started" in a React ref — which dies
+     * with the component. Navigating away and back, or reloading, while a
+     * generation was still in flight started a *second* one. Runway is
+     * non-deterministic, so the poster you had been looking at was replaced by a
+     * different picture, and whichever request happened to finish last won. That
+     * is how artwork changed after it had been created.
+     *
+     * The guard belongs here, not in the client: the browser's memory is not a
+     * safe place to record that an expensive, irreversible thing has begun. It
+     * also makes the call idempotent, so a retry costs nothing rather than
+     * another generation.
+     *
+     * `force` is the explicit "give me a different one" path, used by the retry
+     * button — a deliberate click, not an effect firing on mount.
+     */
+    if (asset.mediaUrl && !input.force) {
+      return asset
     }
 
     // "Temporarily unavailable" sent people hunting for an outage when the real

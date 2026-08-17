@@ -31,6 +31,13 @@ const MEDIUMS: readonly (readonly [PieceMedium, string])[] = [
   ['copy', 'Copy'],
 ]
 
+/** Lower-case for use mid-sentence in the empty states. */
+const MEDIUM_NOUN: Record<PieceMedium, string> = {
+  poster: 'posters',
+  video: 'videos',
+  copy: 'copy',
+}
+
 /**
  * Campaign-centric Creative Studio — large previews, platform adaptations,
  * full captions. Groups flat API assets into Content Pieces (one poster).
@@ -334,9 +341,20 @@ export function CreativeStudio({
   const isVideo = selectedPiece?.master?.kind === 'VIDEO_PROMPT'
   const status = selectedPiece ? pieceStatus(selectedPiece) : 'DRAFT'
   const versions = activeAdaptation ? readAssetVersions(activeAdaptation.id) : []
+  /**
+   * No `!` on selectedPiece.
+   *
+   * This is the line that white-screened the whole route. `selectedPiece` is
+   * legitimately null whenever the filter matches nothing — which is the normal
+   * end state of a campaign, because the default filter is "Needs review" and
+   * approving everything empties it. The assertion turned that into
+   * `null.adaptations`, and an exception thrown during render takes the route
+   * down instead of rendering the empty state twenty lines below.
+   */
   const caption =
-    (activeAdaptation?.caption || activeAdaptation?.body || piecePrimaryCaption(selectedPiece!)) ??
-    ''
+    activeAdaptation?.caption ||
+    activeAdaptation?.body ||
+    (selectedPiece ? piecePrimaryCaption(selectedPiece) : '')
   const compliance = checkCopy([caption, activeAdaptation?.cta, activeAdaptation?.body], rules)
 
   return (
@@ -439,8 +457,38 @@ export function CreativeStudio({
       </aside>
 
       <main className="cstudio__stage">
+        {/* Nothing selected has three causes, and "Pick a piece from the left"
+            was only true for one of them. With the list empty that hint asks for
+            something impossible, and the most common way to get here is the good
+            outcome: everything in this tab is approved, so the default "Needs
+            review" filter matches nothing. Say which, and offer the way out. */}
         {!selectedPiece ? (
-          <EmptyState icon="layout" title="Select a creative" hint="Pick a piece from the left." />
+          byMedium[medium].length === 0 ? (
+            <EmptyState
+              icon={medium === 'video' ? 'video' : medium === 'copy' ? 'file-text' : 'image'}
+              title={`No ${MEDIUM_NOUN[medium]} in this campaign`}
+              hint="The plan produced none of these. Other tabs may still have work in them."
+            />
+          ) : (
+            <EmptyState
+              icon={filter === 'review' ? 'check-circle' : 'layout'}
+              title={
+                filter === 'review'
+                  ? 'Nothing is waiting for review'
+                  : `No ${MEDIUM_NOUN[medium]} are approved yet`
+              }
+              hint={
+                filter === 'review'
+                  ? `Every ${MEDIUM_NOUN[medium] === 'copy' ? 'piece' : MEDIUM_NOUN[medium].replace(/s$/, '')} in this tab has been decided on.`
+                  : 'Approve one from Needs review and it appears here.'
+              }
+              action={
+                <button type="button" className="btn" onClick={() => setFilter('all')}>
+                  Show all {byMedium[medium].length}
+                </button>
+              }
+            />
+          )
         ) : (
           <StatusRail status={toStatus(status)} className="cstudio__canvas">
             <header className="cstudio__stage-head">

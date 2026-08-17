@@ -101,3 +101,14 @@ export {
   type ProviderCapability,
   type ProviderManifest,
 } from './providers.js'
+
+export {
+  ALLOWANCE_ALERT_THRESHOLDS,
+  allowanceUsedPct,
+  majorToMinor,
+  monthBounds,
+  monthKey,
+  nextResetDate,
+  thresholdsReached,
+  type AllowanceThreshold,
+} from './ad-allowance.js'

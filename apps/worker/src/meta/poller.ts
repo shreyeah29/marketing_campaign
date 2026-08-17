@@ -1,6 +1,8 @@
 import type { PrismaClient } from '@marketing-os/database'
 import type { AppLogger } from '@marketing-os/observability'
 
+import { reconcileAllOrgs } from './allowance-accumulator.js'
+
 import type { WorkerEnv } from '../config.js'
 import { openSealed, type SealedSecret } from '../social/crypto.js'
 import { graphGet, graphPost, mapLeadFields, MetaApiError } from './graph.js'
@@ -75,6 +77,12 @@ export class MetaPoller {
       if (Date.now() - this.lastSyncAt > SYNC_INTERVAL_MS) {
         this.lastSyncAt = Date.now()
         await this.syncInsights()
+        // Straight after the sync, and only after it: the accumulator reads the
+        // rows the sync just refreshed, so running it first would reconcile
+        // against yesterday's figures. It is cheap — one aggregate per
+        // organisation — and reconciling rather than summing means running it
+        // more often than necessary costs nothing but a query.
+        await reconcileAllOrgs(this.db, new Date(), this.logger)
       }
     } catch (err) {
       this.logger.error({ err }, 'meta poller tick failed')

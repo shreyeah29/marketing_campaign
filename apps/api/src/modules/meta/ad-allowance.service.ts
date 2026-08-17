@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
 
 import { createAdminClient, type PrismaClient } from '@marketing-os/database'
+import { allowanceUsedPct, monthKey, nextResetDate } from '@marketing-os/contracts'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { loadEnv } from '../../config/env.js'
@@ -42,42 +43,6 @@ export interface AllowanceView {
   paused: boolean
   /** The month being measured, `YYYY-MM`, so a stale page is obvious. */
   month: string
-}
-
-/** `YYYY-MM` for a date in a given IANA timezone. */
-export function monthKey(at: Date, timezone: string): string {
-  try {
-    // en-CA gives YYYY-MM-DD, which slices cleanly and does not depend on locale.
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-    })
-      .format(at)
-      .slice(0, 7)
-  } catch {
-    return at.toISOString().slice(0, 7)
-  }
-}
-
-/** First day of the month after the one containing `at`, as `YYYY-MM-DD`. */
-function nextReset(at: Date, timezone: string): string {
-  const [y, m] = monthKey(at, timezone).split('-').map(Number)
-  const year = m === 12 ? (y as number) + 1 : (y as number)
-  const month = m === 12 ? 1 : (m as number) + 1
-  return `${String(year)}-${String(month).padStart(2, '0')}-01`
-}
-
-/**
- * Percentage of allowance consumed.
- *
- * An allocation of zero means "not configured", not "everything is spent". The
- * distinction matters: returning 100 for an unconfigured organisation would pause
- * every ad flight it has the moment this ships.
- */
-export function usedPercent(allocationMinor: number, spentMinor: number): number {
-  if (allocationMinor <= 0) return 0
-  return Math.round((spentMinor / allocationMinor) * 100)
 }
 
 @Injectable()
@@ -131,7 +96,7 @@ export class AdAllowanceService {
       return {
         configured: false,
         usedPct: 0,
-        resetsOn: nextReset(now, 'UTC'),
+        resetsOn: nextResetDate(now, 'UTC'),
         paused: false,
         month: monthKey(now, 'UTC'),
       }
@@ -141,11 +106,11 @@ export class AdAllowanceService {
     // being trusted: the roll has not happened yet, and last month's spend must
     // not pause this month's ads.
     const spent = row.month === current ? row.spent : 0
-    const usedPct = usedPercent(row.allocation, spent)
+    const usedPct = allowanceUsedPct(row.allocation, spent)
     return {
       configured: row.allocation > 0,
       usedPct,
-      resetsOn: nextReset(now, row.timezone),
+      resetsOn: nextResetDate(now, row.timezone),
       paused: row.allocation > 0 && usedPct >= 100,
       month: current,
     }

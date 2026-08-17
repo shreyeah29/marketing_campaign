@@ -4,6 +4,7 @@ import { ApiExcludeController } from '@nestjs/swagger'
 import type { DatabaseClient } from '@marketing-os/database'
 
 import { Public } from '../../common/guards/permissions.guard.js'
+import { loadEnv } from '../../config/env.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
 
 /**
@@ -27,10 +28,19 @@ import { DATABASE } from '../../infrastructure/database.module.js'
 export class HealthController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
 
+  /**
+   * `commit` is the build actually running, not the build you last pushed. The
+   * two diverge silently whenever a deploy fails or never fires, and the
+   * process stays perfectly healthy while serving month-old code.
+   */
   @Public()
   @Get()
-  live(): { status: 'ok'; uptimeSeconds: number } {
-    return { status: 'ok', uptimeSeconds: Math.round(process.uptime()) }
+  live(): { status: 'ok'; uptimeSeconds: number; commit: string } {
+    return {
+      status: 'ok',
+      uptimeSeconds: Math.round(process.uptime()),
+      commit: loadEnv().RENDER_GIT_COMMIT?.slice(0, 7) ?? 'unknown',
+    }
   }
 
   @Public()

@@ -98,6 +98,21 @@ export const envSchema = z.object({
   RUNWAY_IMAGE_MODEL: z.string().optional(),
 
   /**
+   * Set by Render on every deploy; surfaced on `/health`.
+   *
+   * A failed or never-triggered deploy keeps serving the previous build
+   * happily — the process is healthy, it is just old. That failure is invisible
+   * from outside, and it has now cost two debugging sessions: the symptom is
+   * whatever feature shipped since (a 404 on a route that exists in `main`, a
+   * CORS header that is missing from a list that contains it), which sends you
+   * hunting through application code that was never running.
+   *
+   * One commit sha on the liveness response answers "is my deploy actually
+   * live?" in a single request. Unset outside Render, which is honest.
+   */
+  RENDER_GIT_COMMIT: z.string().optional(),
+
+  /**
    * Object storage for generated creatives (Supabase Storage over its REST API —
    * no SDK, same reasoning as the Resend mailer).
    *

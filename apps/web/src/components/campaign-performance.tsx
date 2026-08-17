@@ -17,10 +17,9 @@ interface MetaSummary {
   impressions: number
   reach: number
   clicks: number
-  spend: number
   leads: number
   ctr: number
-  cpl: number
+  leadsPer1kImpressions: number
 }
 
 interface TrendPoint {
@@ -28,10 +27,9 @@ interface TrendPoint {
   impressions: number
   clicks: number
   leads: number
-  spend: number
 }
 
-type MetricKey = 'reach' | 'clicks' | 'conversions' | 'leads' | 'revenue' | 'roas'
+type MetricKey = 'reach' | 'clicks' | 'conversions' | 'leads'
 
 const RANGES = [
   { key: '1', label: '24h', days: 1 },
@@ -125,10 +123,9 @@ export default function CampaignPerformancePage() {
     [trend],
   )
 
-  const roas =
-    summary && summary.spend > 0 && summary.leads > 0
-      ? summary.leads / (summary.spend / 1000 || 1)
-      : undefined
+  // Leads per 1,000 impressions, from the server. Previously computed here from
+  // spend, which is no longer served to a tenant — and was never really ROAS.
+  const leadsPer1k = summary?.leadsPer1kImpressions
 
   const channelBars = useMemo(() => {
     const m = new Map<string, number>()
@@ -159,9 +156,7 @@ export default function CampaignPerformancePage() {
         ? 'clicks'
         : metric === 'leads' || metric === 'conversions'
           ? 'leads'
-          : metric === 'revenue' || metric === 'roas'
-            ? 'spend'
-            : 'impressions'
+          : 'impressions'
     return [
       {
         name: metric === 'reach' ? 'Impressions' : key.charAt(0).toUpperCase() + key.slice(1),
@@ -215,8 +210,8 @@ export default function CampaignPerformancePage() {
           </header>
 
           <p className="type-caption" style={{ color: 'var(--text-secondary)', marginBottom: 12 }}>
-            Reach, clicks, leads and spend come from org Meta insights (not campaign-scoped in the
-            API). Channel and asset sections below are this campaign only.
+            Reach, clicks and leads come from org Meta insights (not campaign-scoped in the API).
+            Channel and asset sections below are this campaign only.
           </p>
 
           {error ? <ErrorState message={error} onRetry={load} /> : null}
@@ -247,11 +242,10 @@ export default function CampaignPerformancePage() {
                 sparkline={spark('leads')}
                 onClick={() => setMetric('leads')}
               />
-              <MetricTile label="Revenue" value="—" onClick={() => setMetric('revenue')} />
               <MetricTile
-                label="ROAS"
-                value={roas != null ? roas.toFixed(2) : '—'}
-                onClick={() => setMetric('roas')}
+                label="Leads per 1,000 impressions"
+                value={typeof leadsPer1k === 'number' ? leadsPer1k.toFixed(2) : '—'}
+                onClick={() => setMetric('leads')}
               />
             </div>
           )}

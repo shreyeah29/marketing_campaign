@@ -25,6 +25,15 @@ import { loadEnv } from '../../config/env.js'
  */
 
 export interface AllowanceView {
+  /**
+   * Whether an allocation has been set at all.
+   *
+   * `usedPct` is 0 both for an organisation with a fresh allowance and for one
+   * with no allowance configured, and those need opposite treatment in the UI: a
+   * pace selector priced in "% of your allowance" is meaningless without one.
+   * Boolean rather than the figure, so nothing about the amount crosses.
+   */
+  configured: boolean
   /** Rounded integer, 0-100+. The only allowance figure a tenant ever receives. */
   usedPct: number
   /** ISO date the allowance resets — the 1st of next month, tenant's timezone. */
@@ -120,6 +129,7 @@ export class AdAllowanceService {
     const row = await this.row(principal.organizationId)
     if (!row) {
       return {
+        configured: false,
         usedPct: 0,
         resetsOn: nextReset(now, 'UTC'),
         paused: false,
@@ -133,6 +143,7 @@ export class AdAllowanceService {
     const spent = row.month === current ? row.spent : 0
     const usedPct = usedPercent(row.allocation, spent)
     return {
+      configured: row.allocation > 0,
       usedPct,
       resetsOn: nextReset(now, row.timezone),
       paused: row.allocation > 0 && usedPct >= 100,

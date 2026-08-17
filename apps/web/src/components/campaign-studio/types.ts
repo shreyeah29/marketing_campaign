@@ -60,6 +60,18 @@ export interface CreateDraft {
   durationDays?: number | undefined
   customStart?: string | undefined
   customEnd?: string | undefined
+  /**
+   * How hard the campaign pushes — `light` | `standard` | `heavy`. Replaces the
+   * rupee budget a client used to type; see CAMPAIGN_PACES for why.
+   */
+  pace?: string | undefined
+  /**
+   * Derived from `pace` and the organisation's allocation, in minor units.
+   *
+   * Kept so the brief, the plan and the ad flight still have a figure to work
+   * with — but derived, never typed, and never rendered to a tenant. It is the
+   * operator-visible half of the same decision.
+   */
   budget?: number | undefined
   planApproved?: boolean | undefined
   /**

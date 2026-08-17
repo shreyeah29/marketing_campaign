@@ -11,7 +11,7 @@ const LOOP = [
   { label: 'Plan', detail: 'Strategy from a single brief' },
   { label: 'Approve', detail: 'Every asset reviewed by you' },
   { label: 'Publish', detail: 'Channels on one calendar' },
-  { label: 'Measure', detail: 'Reach, leads, and ROAS' },
+  { label: 'Measure', detail: 'Reach, leads, and what converts' },
 ] as const
 
 /**

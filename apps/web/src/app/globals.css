@@ -6756,6 +6756,65 @@ a:hover {
   font-size: 12.5px;
 }
 
+/* ── Campaign pace ────────────────────────────────────────────────────────── */
+
+/* Stacked rather than side by side: each option carries a sentence explaining
+   what it does, and three of those in a row is unreadable at rail width. */
+.pace-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+.pace-option:hover:not(:disabled) {
+  border-color: var(--border-signal);
+}
+.pace-option[aria-pressed='true'] {
+  border-color: var(--border-signal);
+  background: var(--jade-100);
+}
+/* A pace that will not fit is shown and refused, not hidden. Removing it would
+   leave someone wondering where Heavy went. */
+.pace-option:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.pace-option__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.pace-option__label {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.pace-option[aria-pressed='true'] .pace-option__label {
+  color: var(--cobalt-600);
+}
+.pace-option__share {
+  margin-left: auto;
+  font-family: var(--font-heading);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.pace-option[aria-pressed='true'] .pace-option__share {
+  color: var(--slate-500);
+}
+.pace-option__blurb {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
 /* ── Brief coach ──────────────────────────────────────────────────────────── */
 
 .coach {

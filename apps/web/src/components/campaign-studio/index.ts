@@ -15,10 +15,14 @@ export {
   INTAKE_INTEREST_SUGGESTIONS,
   INTAKE_LANGUAGES,
   INTAKE_DURATIONS,
+  CAMPAIGN_PACES,
+  DEFAULT_PACE,
+  paceById,
+  paceFits,
   INTAKE_TONES,
   normalizeIntakeStep,
 } from './constants'
-export type { IntakeStep } from './constants'
+export type { IntakeStep, CampaignPaceId } from './constants'
 export {
   createDraftId,
   readDraft,

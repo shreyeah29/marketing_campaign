@@ -24,7 +24,6 @@ interface Overview {
   assetsApproved: number
   workflowRuns: number
   emailsSent: number
-  aiSpendUsd: string
 }
 
 interface TimeseriesPoint {
@@ -241,7 +240,7 @@ export default function AnalyticsOverviewPage() {
           <MetricTile label="Active campaigns" value={num(overview.activeCampaigns)} />
         </StaggerItem>
         <StaggerItem>
-          <MetricTile label="AI spend" value={money(overview.aiSpendUsd)} />
+          <MetricTile label="Bookings" value={money(String(totalRevenue))} />
         </StaggerItem>
       </Stagger>
 

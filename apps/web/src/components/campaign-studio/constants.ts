@@ -263,6 +263,60 @@ export const INTAKE_LANGUAGES = ['English', 'Hindi', 'Tamil', 'Telugu', 'Marathi
 
 export const INTAKE_DURATIONS = [7, 15, 30, 90] as const
 
+/**
+ * How hard a campaign pushes, as a share of the monthly ad allowance.
+ *
+ * This replaced a rupee budget field. A client typing ₹25,000 stopped meaning
+ * anything the moment we began funding the media: the allowance governs what a
+ * flight can spend, so a number they type is either ignored or contradicts it.
+ *
+ * The generator still needs a signal — deliverable counts key off it, and a heavy
+ * push wants more concepts than a light one — so the question is asked in the one
+ * unit a client is allowed to see. The rupee figure is derived from the share and
+ * kept operator-visible, so nothing downstream that expects a budget breaks.
+ */
+export const CAMPAIGN_PACES = [
+  {
+    id: 'light',
+    label: 'Light',
+    sharePct: 15,
+    blurb: 'A steady presence. Fewer concepts, spread across the month.',
+  },
+  {
+    id: 'standard',
+    label: 'Standard',
+    sharePct: 35,
+    blurb: 'The default. Enough reach to read the results.',
+  },
+  {
+    id: 'heavy',
+    label: 'Heavy',
+    sharePct: 60,
+    blurb: 'A hard push for a short window — a launch or a sale weekend.',
+  },
+] as const
+
+export type CampaignPaceId = (typeof CAMPAIGN_PACES)[number]['id']
+
+export const DEFAULT_PACE: CampaignPaceId = 'standard'
+
+export function paceById(id: string | undefined): (typeof CAMPAIGN_PACES)[number] {
+  return CAMPAIGN_PACES.find((p) => p.id === id) ?? CAMPAIGN_PACES[1]
+}
+
+/**
+ * Whether a pace fits in what is left of the month.
+ *
+ * Compared in percentage points, never in currency: `usedPct` is the only
+ * allowance figure the tenant plane receives, and a share is the same unit. A
+ * pace that does not fit is refused rather than silently trimmed — a campaign
+ * that quietly runs at half the push someone chose is worse than being told why
+ * it cannot.
+ */
+export function paceFits(sharePct: number, allowanceUsedPct: number): boolean {
+  return sharePct <= Math.max(0, 100 - allowanceUsedPct)
+}
+
 /** @deprecated Old drafts may still store a tone string. */
 export const INTAKE_TONES = [
   'Professional',

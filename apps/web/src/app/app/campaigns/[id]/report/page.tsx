@@ -23,10 +23,9 @@ interface MetaSummary {
   impressions?: number
   reach?: number
   clicks?: number
-  spend?: number
   leads?: number
   ctr?: number
-  cpl?: number
+  leadsPer1kImpressions?: number
 }
 
 function fmtMoney(raw: string | number | null | undefined): string {
@@ -100,11 +99,10 @@ export default function CampaignReportPage() {
   const wonRevenue = revenue?.summary?.wonRevenueUsd
   const metaReach = meta?.reach
   const metaLeads = meta?.leads
-  const metaSpend = meta?.spend
-  const roas =
-    metaSpend && Number(metaSpend) > 0 && wonRevenue
-      ? (Number(wonRevenue) / Number(metaSpend)).toFixed(1)
-      : null
+  // No ROAS. It is revenue over spend, and spend is ours — publishing the ratio
+  // alongside revenue hands back the spend in one step of algebra, which is the
+  // same reason ROI came off the analytics overview.
+  const metaLeadsPer1k = meta?.leadsPer1kImpressions
 
   const dateRange = campaign.createdAt
     ? `Started ${new Date(campaign.createdAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}`
@@ -220,10 +218,12 @@ export default function CampaignReportPage() {
               </span>
             </div>
             <div className="rpt__metric">
-              <span className="rpt__metric-label">ROAS (est.)</span>
-              <span className="mono rpt__metric-value">{roas ? `${roas}×` : '—'}</span>
+              <span className="rpt__metric-label">Leads per 1,000 impressions</span>
+              <span className="mono rpt__metric-value">
+                {typeof metaLeadsPer1k === 'number' ? metaLeadsPer1k.toFixed(2) : '—'}
+              </span>
               <span className="dim" style={{ fontSize: 11 }}>
-                When Meta spend and org revenue both exist
+                How efficiently the ads turned reach into leads
               </span>
             </div>
             <div className="rpt__metric">

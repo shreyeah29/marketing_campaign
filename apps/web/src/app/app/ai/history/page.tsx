@@ -11,7 +11,6 @@ interface UsageRow {
   model?: string | null
   inputTokens?: number | null
   outputTokens?: number | null
-  costUsd?: string | number | null
   createdAt?: string
 }
 
@@ -47,7 +46,6 @@ export default function AiHistoryPage() {
             { key: 'model', header: 'Model', render: (r) => r.model ?? r.provider ?? '—' },
             { key: 'in', header: 'Input tokens', render: (r) => r.inputTokens ?? 0 },
             { key: 'out', header: 'Output tokens', render: (r) => r.outputTokens ?? 0 },
-            { key: 'cost', header: 'Cost', render: (r) => `$${Number(r.costUsd ?? 0).toFixed(4)}` },
             {
               key: 'when',
               header: 'When',

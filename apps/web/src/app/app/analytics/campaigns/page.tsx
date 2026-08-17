@@ -11,18 +11,16 @@ interface Summary {
   impressions: number
   reach: number
   clicks: number
-  spend: number
   leads: number
   activeCampaigns: number
   ctr: number
-  cpl: number
+  leadsPer1kImpressions: number
 }
 interface Bucket {
   value: string
   reach: number
   impressions: number
   leads: number
-  spend: number
 }
 interface Demographics {
   age: Bucket[]
@@ -33,7 +31,6 @@ interface TrendPoint {
   impressions: number
   clicks: number
   leads: number
-  spend: number
 }
 interface FunnelStage {
   stage: string
@@ -57,10 +54,6 @@ const GENDER_COLORS: Record<string, string> = {
 function num(v: number | undefined): string {
   if (v === undefined || !Number.isFinite(v)) return '—'
   return v.toLocaleString()
-}
-function money(v: number | undefined): string {
-  if (v === undefined || !Number.isFinite(v)) return '—'
-  return `₹${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 }
 function pct(v: number | undefined): string {
   if (v === undefined || !Number.isFinite(v)) return '—'
@@ -168,13 +161,20 @@ export default function CampaignInsightsPage() {
               <StatCard label="Leads" value={num(summary?.leads)} />
             </StaggerItem>
             <StaggerItem>
-              <StatCard label="Ad spend" value={money(summary?.spend)} />
-            </StaggerItem>
-            <StaggerItem>
               <StatCard label="Click-through rate" value={pct(summary?.ctr)} />
             </StaggerItem>
+            {/* Leads per 1,000 impressions replaces cost per lead. It ranks the
+                same campaigns in the same order — only the denominator changed —
+                and the media cost is ours, not the client's. */}
             <StaggerItem>
-              <StatCard label="Cost per lead" value={money(summary?.cpl)} />
+              <StatCard
+                label="Leads per 1,000 impressions"
+                value={
+                  typeof summary?.leadsPer1kImpressions === 'number'
+                    ? summary.leadsPer1kImpressions.toFixed(2)
+                    : '—'
+                }
+              />
             </StaggerItem>
             <StaggerItem>
               <StatCard label="Active campaigns" value={num(summary?.activeCampaigns)} />

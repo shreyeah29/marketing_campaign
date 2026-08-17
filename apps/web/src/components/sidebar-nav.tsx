@@ -143,7 +143,6 @@ export const NAV_GROUPS: NavGroupDef[] = [
       { label: 'Voice', href: '/app/ai/voice' },
       { label: 'Prompt library', href: '/app/ai/prompts' },
       { label: 'Knowledge base', href: '/app/ai/knowledge' },
-      { label: 'Usage & cost', href: '/app/analytics/ai-usage' },
     ],
   },
   {

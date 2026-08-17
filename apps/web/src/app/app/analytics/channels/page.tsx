@@ -20,11 +20,10 @@ interface MetaSummary {
   impressions: number
   reach: number
   clicks: number
-  spend: number
   leads: number
   activeCampaigns: number
   ctr: number
-  cpl: number
+  leadsPer1kImpressions: number
 }
 
 function fromDate(days: string): string {
@@ -34,11 +33,6 @@ function fromDate(days: string): string {
 function num(v: number | undefined): string {
   if (v === undefined || !Number.isFinite(v)) return '—'
   return v.toLocaleString()
-}
-
-function money(v: number | undefined): string {
-  if (v === undefined || !Number.isFinite(v)) return '—'
-  return `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`
 }
 
 function pct(v: number | undefined): string {
@@ -135,13 +129,7 @@ export default function AnalyticsChannelsPage() {
 
   const metaConnected =
     metaSummary !== null &&
-    (metaSummary.impressions > 0 ||
-      metaSummary.clicks > 0 ||
-      metaSummary.spend > 0 ||
-      metaSummary.leads > 0)
-
-  const metaCpc =
-    metaSummary && metaSummary.clicks > 0 ? metaSummary.spend / metaSummary.clicks : undefined
+    (metaSummary.impressions > 0 || metaSummary.clicks > 0 || metaSummary.leads > 0)
 
   const hasEmail =
     channels.email.sent > 0 || channels.email.opened > 0 || channels.email.clicked > 0
@@ -183,10 +171,10 @@ export default function AnalyticsChannelsPage() {
           {metaSummary && metaConnected ? (
             <Stagger className="cols-3 grid" style={{ gap: 12 }} interval={0.04}>
               <StaggerItem>
-                <MetricTile label="Spend" value={money(metaSummary.spend)} />
+                <MetricTile label="Impressions" value={num(metaSummary.impressions)} />
               </StaggerItem>
               <StaggerItem>
-                <MetricTile label="CPC" value={money(metaCpc)} />
+                <MetricTile label="Reach" value={num(metaSummary.reach)} />
               </StaggerItem>
               <StaggerItem>
                 <MetricTile label="CTR" value={pct(metaSummary.ctr)} />
@@ -198,7 +186,14 @@ export default function AnalyticsChannelsPage() {
                 <MetricTile label="Clicks" value={num(metaSummary.clicks)} />
               </StaggerItem>
               <StaggerItem>
-                <MetricTile label="Cost per lead" value={money(metaSummary.cpl)} />
+                <MetricTile
+                  label="Leads per 1,000 impressions"
+                  value={
+                    typeof metaSummary.leadsPer1kImpressions === 'number'
+                      ? metaSummary.leadsPer1kImpressions.toFixed(2)
+                      : '—'
+                  }
+                />
               </StaggerItem>
             </Stagger>
           ) : null}

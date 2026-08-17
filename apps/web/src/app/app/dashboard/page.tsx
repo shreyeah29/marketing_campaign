@@ -31,7 +31,7 @@ interface Overview {
   activeCampaigns: number
   assetsGenerated: number
   assetsApproved: number
-  aiSpendUsd: string
+  revenue: string
 }
 
 interface TimeseriesPoint {
@@ -110,6 +110,12 @@ export default function DashboardPage() {
   const [flights, setFlights] = useState<CampaignFlight[]>([])
   const [fresh, setFresh] = useState<Creative[]>([])
   const [aiCalls, setAiCalls] = useState<number | null>(null)
+  const [allowance, setAllowance] = useState<{
+    configured: boolean
+    usedPct: number
+    resetsOn: string
+    paused: boolean
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,13 +134,17 @@ export default function DashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [ovRes, seriesRes, campsRes, creativesRes, usageRes] = await Promise.allSettled([
-        api.get<Overview>('/analytics/overview'),
-        api.get<{ days: TimeseriesPoint[] }>('/analytics/timeseries?days=30'),
-        api.get<Campaign[] | { data: Campaign[] }>('/campaigns'),
-        api.get<{ data: Creative[] }>('/creatives'),
-        api.get<{ totalCalls?: number }>('/analytics/ai-usage'),
-      ])
+      const [ovRes, seriesRes, campsRes, creativesRes, usageRes, allowanceRes] =
+        await Promise.allSettled([
+          api.get<Overview>('/analytics/overview'),
+          api.get<{ days: TimeseriesPoint[] }>('/analytics/timeseries?days=30'),
+          api.get<Campaign[] | { data: Campaign[] }>('/campaigns'),
+          api.get<{ data: Creative[] }>('/creatives'),
+          api.get<{ totalCalls?: number }>('/analytics/ai-usage'),
+          api.get<{ configured: boolean; usedPct: number; resetsOn: string; paused: boolean }>(
+            '/me/ad-allowance',
+          ),
+        ])
 
       // Overview is the only one whose failure leaves the screen without a
       // subject; the rest degrade to an empty panel rather than an error page.
@@ -153,6 +163,7 @@ export default function DashboardPage() {
       }
 
       if (usageRes.status === 'fulfilled') setAiCalls(usageRes.value.totalCalls ?? null)
+      if (allowanceRes.status === 'fulfilled') setAllowance(allowanceRes.value)
 
       if (creativesRes.status === 'fulfilled') {
         setFresh((creativesRes.value.data ?? []).filter((c) => c.renderedUrl).slice(0, 5))
@@ -332,9 +343,11 @@ export default function DashboardPage() {
               <div className="k">{leads7d === null ? 'Leads' : 'Leads · 7d'}</div>
               <div className="v">{num(leads7d ?? overview?.leads)}</div>
             </div>
+            {/* Bookings, not AI spend. What the client earned is theirs to see;
+                what we paid to generate it is not. */}
             <div className="card kpi">
-              <div className="k">AI spend</div>
-              <div className="v">{compactMoney(overview?.aiSpendUsd)}</div>
+              <div className="k">Bookings</div>
+              <div className="v">{compactMoney(overview?.revenue)}</div>
             </div>
           </div>
         )}
@@ -533,6 +546,34 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
+
+        {/* Ad allowance. A bar and a percentage — the rupees behind it are our
+            cost of media, and a client cannot act on them. What they can act on
+            is how much room is left this month. */}
+        {allowance?.configured ? (
+          <div className="card">
+            <div className="panel-head__title" style={{ marginBottom: 12 }}>
+              Ad allowance
+            </div>
+            <div className="spread" style={{ marginBottom: 5, fontSize: 12 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Used this month</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{allowance.usedPct}%</span>
+            </div>
+            <div className="batch-bar" style={{ height: 5 }}>
+              <div
+                className="batch-bar__fill"
+                style={{ width: `${String(Math.min(100, allowance.usedPct))}%` }}
+                {...(allowance.paused ? { 'data-done': '' } : {})}
+              />
+            </div>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+              {allowance.paused
+                ? 'Allowance reached — new ad flights are paused until it resets.'
+                : `${String(Math.max(0, 100 - allowance.usedPct))}% still unused.`}{' '}
+              Resets {allowance.resetsOn}.
+            </p>
+          </div>
+        ) : null}
 
         <div className="card">
           <div className="panel-head__title" style={{ marginBottom: 12 }}>

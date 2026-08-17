@@ -90,6 +90,9 @@ export default function AnalyticsLayout({ children }: { children: ReactNode }) {
     if (pathname === '/app/analytics/leads') router.replace('/app/analytics/overview')
     if (pathname === '/app/analytics/campaigns') router.replace('/app/analytics/channels')
     if (pathname === '/app/analytics/reports') router.replace('/app/analytics/overview')
+    // The usage-and-cost screen is gone: clients see capacity on Plan & limits,
+    // and cost lives on the operator plane. The redirect stays so a bookmark or
+    // an old email link lands somewhere rather than 404ing.
     if (pathname === '/app/analytics/ai-usage') router.replace('/app/analytics/overview')
   }, [pathname, router])
 

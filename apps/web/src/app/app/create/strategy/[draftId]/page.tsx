@@ -10,7 +10,9 @@ import { Icon, type IconName } from '@/components/icon'
 import { Spinner } from '@/components/ui'
 import {
   BrowserDraftBanner,
+  DEFAULT_PACE,
   buildBriefFromDraft,
+  paceById,
   readDraft,
   upsertDraft,
   type CampaignPlan,
@@ -153,11 +155,6 @@ function mergeSection(current: CampaignPlan, fresh: CampaignPlan, key: SectionKe
   return next
 }
 
-function money(v: number | undefined | null): string | null {
-  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return null
-  return `₹${v.toLocaleString('en-IN')}`
-}
-
 export default function PlanApprovalPage() {
   const params = useParams<{ draftId: string }>()
   const router = useRouter()
@@ -169,6 +166,14 @@ export default function PlanApprovalPage() {
   const [planning, setPlanning] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [note, setNote] = useState('')
+  const [allowance, setAllowance] = useState<{ configured: boolean; usedPct: number } | null>(null)
+
+  useEffect(() => {
+    api
+      .get<{ configured: boolean; usedPct: number }>('/me/ad-allowance')
+      .then(setAllowance)
+      .catch(() => setAllowance({ configured: false, usedPct: 0 }))
+  }, [])
   /** Which block has its rewrite box open, and the note typed into it. */
   const [openSection, setOpenSection] = useState<SectionKey | null>(null)
   const [sectionNote, setSectionNote] = useState('')
@@ -361,9 +366,10 @@ export default function PlanApprovalPage() {
   }
 
   const plan = draft.plan
+  const pace = paceById(draft.pace ?? DEFAULT_PACE)
+  const monthName = new Date().toLocaleString('en-GB', { month: 'long' })
   const rows = deliverablesFor(draft)
   const totalAssets = rows.reduce((n, r) => n + r.count, 0)
-  const adSpend = money(draft.budget ?? plan.suggestedBudget)
   const goals = plan.strategy
     .split('\n')
     .map((l) => l.replace(/^[-•*]\s*/, '').trim())
@@ -412,9 +418,18 @@ export default function PlanApprovalPage() {
             <div className="plan-tile__k">DURATION</div>
             <div className="plan-tile__v">{plan.durationDays || draft.durationDays || 15} days</div>
           </div>
+          {/* Push, not budget. The tile answers the only question a client can
+              act on here: will this campaign leave room for the rest of the
+              month. No currency — the rupees behind the share are ours. */}
           <div className="plan-tile">
-            <div className="plan-tile__k">AD BUDGET</div>
-            <div className="plan-tile__v">{adSpend ?? 'Not set'}</div>
+            <div className="plan-tile__k">AD PUSH</div>
+            <div className="plan-tile__v">{allowance?.configured ? pace.label : 'Not set'}</div>
+            {allowance?.configured ? (
+              <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 5 }}>
+                ~{pace.sharePct}% of {monthName} allowance ·{' '}
+                {String(Math.max(0, 100 - allowance.usedPct))}% still unused
+              </div>
+            ) : null}
           </div>
           <div className="plan-tile" data-attention="">
             <div className="plan-tile__k">WILL GENERATE</div>
@@ -593,18 +608,36 @@ export default function PlanApprovalPage() {
 
         <div className="card">
           <div className="block-head">
-            <span className="panel-head__title">Ad spend</span>
+            <span className="panel-head__title">Ad allowance</span>
             <RewriteControl section="budget" />
           </div>
-          <div className="cost-line">
-            <span>Campaign budget</span>
-            <span style={{ color: 'var(--text-primary)' }}>{adSpend ?? 'Not set'}</span>
-          </div>
-          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
-            {adSpend
-              ? `${adSpend} is billed by Meta directly, not by us. It is separate from the cost of generating the assets above.`
-              : 'No budget was set during intake. Ad spend is billed by Meta directly, never by us.'}
-          </p>
+          {allowance?.configured ? (
+            <>
+              <div className="cost-line">
+                <span>This campaign</span>
+                <span style={{ color: 'var(--text-primary)' }}>~{pace.sharePct}%</span>
+              </div>
+              <div className="cost-line" style={{ marginTop: 6 }}>
+                <span>Used so far in {monthName}</span>
+                <span style={{ color: 'var(--text-primary)' }}>{allowance.usedPct}%</span>
+              </div>
+              <div className="batch-bar" style={{ height: 5, marginTop: 9 }}>
+                <div
+                  className="batch-bar__fill"
+                  style={{ width: `${String(Math.min(100, allowance.usedPct))}%` }}
+                />
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+                Ad spend is billed to us, never to you. The allowance resets at the start of next
+                month.
+              </p>
+            </>
+          ) : (
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>
+              No monthly ad allowance is set for this workspace yet, so this campaign will publish
+              organically until one is.
+            </p>
+          )}
         </div>
 
         <div className="card">

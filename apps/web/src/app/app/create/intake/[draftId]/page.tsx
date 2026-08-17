@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
+import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 
 import { Icon } from '@/components/icon'
@@ -9,12 +11,15 @@ import { LoadingScreen } from '@/components/ui'
 import { useToast } from '@/components/kit'
 import {
   BrowserDraftBanner,
+  CAMPAIGN_PACES,
+  DEFAULT_PACE,
   INTAKE_CHANNELS,
   INTAKE_DURATIONS,
   INTAKE_INTEREST_SUGGESTIONS,
   INTAKE_LANGUAGES,
   INTAKE_LOCATIONS,
   INTAKE_OBJECTIVES,
+  paceFits,
   readDraft,
   upsertDraft,
   type CreateDraft,
@@ -58,6 +63,24 @@ export default function GuidedIntakePage() {
 
   const [draft, setDraft] = useState<CreateDraft | null>(null)
   const [missing, setMissing] = useState(false)
+
+  /**
+   * The allowance, in the only unit that crosses: a percentage used.
+   *
+   * The pace selector is priced as a share of it, so a Heavy push that would not
+   * fit in what is left of the month can be refused before it is chosen rather
+   * than trimmed afterwards.
+   */
+  const [allowance, setAllowance] = useState<{ configured: boolean; usedPct: number } | null>(null)
+
+  useEffect(() => {
+    api
+      .get<{ configured: boolean; usedPct: number }>('/me/ad-allowance')
+      .then(setAllowance)
+      // A failed read hides the selector rather than guessing: offering shares of
+      // an allowance we could not measure is worse than not asking.
+      .catch(() => setAllowance({ configured: false, usedPct: 0 }))
+  }, [])
 
   useEffect(() => {
     const d = readDraft(draftId)
@@ -127,11 +150,14 @@ export default function GuidedIntakePage() {
   }
 
   function buildPlan() {
+    if (!draft) return
     if (!ready) {
       toast.push('error', 'Pick an objective and at least one channel first')
       return
     }
-    patch({ step: 'duration' })
+    // A pace is always recorded, even when the selector was hidden: the brief and
+    // the deliverable counts key off it, and "unset" is not a pace.
+    patch({ step: 'duration', pace: draft.pace ?? DEFAULT_PACE })
     router.push(`/app/create/strategy/${draftId}`)
   }
 
@@ -370,28 +396,57 @@ export default function GuidedIntakePage() {
             ))}
           </div>
 
-          <div className="field-label" style={{ margin: '16px 0 7px' }}>
-            TOTAL BUDGET
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <span style={{ color: 'var(--text-muted)' }}>₹</span>
-            <input
-              className="input"
-              type="number"
-              min={0}
-              step={1000}
-              aria-label="Total budget in rupees"
-              placeholder="25000"
-              value={draft.budget ?? ''}
-              onChange={(e) =>
-                patch({ budget: e.target.value === '' ? undefined : Number(e.target.value) })
-              }
-              style={{ flex: 1 }}
-            />
-          </div>
-          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
-            Split 60 / 40 between prospecting and retargeting.
-          </p>
+          {/* Pace, not a budget.
+              A client typing a rupee figure stopped meaning anything once we
+              began funding the media — the allowance governs what a flight can
+              spend. The generator still needs to know how hard to push, so the
+              question is asked as a share of the allowance, which is the one
+              allowance unit a tenant is allowed to see.
+
+              Hidden entirely when no allocation is configured: a picker offering
+              "35% of your allowance" is noise without an allowance. */}
+          {allowance?.configured ? (
+            <>
+              <div className="field-label" style={{ margin: '16px 0 7px' }}>
+                HOW HARD SHOULD THIS PUSH?
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {CAMPAIGN_PACES.map((pc) => {
+                  const fits = paceFits(pc.sharePct, allowance.usedPct)
+                  const chosen = (draft.pace ?? DEFAULT_PACE) === pc.id
+                  return (
+                    <button
+                      key={pc.id}
+                      type="button"
+                      className="pace-option"
+                      aria-pressed={chosen}
+                      disabled={!fits}
+                      onClick={() => patch({ pace: pc.id })}
+                      title={
+                        fits
+                          ? `${pc.label} — about ${String(pc.sharePct)}% of this month's allowance`
+                          : `${pc.label} needs about ${String(pc.sharePct)}% of the allowance and only ${String(Math.max(0, 100 - allowance.usedPct))}% is left this month`
+                      }
+                    >
+                      <span className="pace-option__head">
+                        <span className="pace-option__label">{pc.label}</span>
+                        <span className="pace-option__share">~{pc.sharePct}% of allowance</span>
+                      </span>
+                      <span className="pace-option__blurb">
+                        {fits
+                          ? pc.blurb
+                          : `Not enough allowance left this month — ${String(Math.max(0, 100 - allowance.usedPct))}% remains. Standard fits.`}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
+                {String(Math.max(0, 100 - allowance.usedPct))}% of this month&apos;s allowance is
+                still unused. Ad spend is billed to us, never to you.
+              </p>
+            </>
+          ) : null}
 
           <div className="row" style={{ flexWrap: 'wrap', gap: 9, marginTop: 20 }}>
             <button type="button" className="btn primary" onClick={buildPlan} disabled={!ready}>

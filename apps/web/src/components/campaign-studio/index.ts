@@ -32,7 +32,6 @@ export {
   BrowserDraftBanner,
 } from './draft'
 export { PromptView } from './prompt-view'
-export { CampaignStudioHome } from './studio-home'
 export {
   CampaignWizard,
   normalizeWizardStep,

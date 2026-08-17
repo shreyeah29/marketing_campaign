@@ -6830,3 +6830,121 @@ a:hover {
 .rail-link:hover {
   color: var(--cobalt-600);
 }
+
+/* ── Guided intake ────────────────────────────────────────────────────────── */
+
+/* Four questions on one screen rather than four screens. Each still announces
+   its number, because seeing all four at once is what makes it feel like a
+   form you can finish instead of a corridor you are walking down. */
+.intake-section {
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.intake-section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.intake-step {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--jade-600);
+}
+.intake-section__title {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 15px;
+}
+.intake-section__note {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* An objective card states its consequence. Choosing "Awareness" and getting
+   retargeting-weighted spend is the kind of surprise that costs money, so the
+   trade is printed on the card rather than left to the plan. */
+.objective-card {
+  padding: 12px 13px;
+  border: 1px solid var(--border-default);
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  width: 100%;
+}
+.objective-card:hover {
+  border-color: var(--border-signal);
+}
+.objective-card[aria-pressed='true'] {
+  border-color: var(--border-signal);
+  background: var(--jade-100);
+}
+.objective-card__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.objective-card[aria-pressed='true'] .objective-card__label {
+  color: var(--cobalt-600);
+}
+.objective-card__label .ico {
+  color: var(--text-tertiary);
+}
+.objective-card[aria-pressed='true'] .objective-card__label .ico {
+  color: var(--cobalt-600);
+}
+.objective-card__why {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 5px;
+}
+.objective-card[aria-pressed='true'] .objective-card__why {
+  color: var(--slate-500);
+}
+
+.field-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.mini-input {
+  width: 64px;
+  padding: 6px 8px;
+  background: var(--surface-rail);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+}
+.mini-input:focus {
+  border-color: var(--cobalt-600);
+  outline: none;
+}
+
+/* A dashed chip is an offer, not a selection: "+ Bengaluru" adds it. Solid
+   means chosen. The difference has to survive being read quickly. */
+.chip[data-suggest] {
+  border-style: dashed;
+  border-color: var(--border-hover);
+  color: var(--text-tertiary);
+}
+.chip[data-suggest]:hover {
+  border-style: solid;
+  border-color: var(--border-signal);
+  color: var(--cobalt-600);
+}
+.chip.sm {
+  padding: 5px 10px;
+  font-size: 12.5px;
+}

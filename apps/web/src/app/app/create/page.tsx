@@ -4,19 +4,24 @@ import { Suspense, useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import {
-  CampaignStudioHome,
+  PromptView,
   createDraftId,
-  writeDraft,
-  listDrafts,
   fetchCampaigns,
+  listDrafts,
+  writeDraft,
   wizardPathForDraft,
   type Campaign,
   type CreateDraft,
 } from '@/components/campaign-studio'
 
 /**
- * Campaign studio — `/app/create`.
- * Step 1: prompt → wizard (platforms → deliverables → audience) → strategy.
+ * Studio brief — `/app/create`, step 1 of six.
+ *
+ * Continue creates a browser draft and hands it to guided intake, which asks
+ * objective, channels, audience and duration. Deliverables are not asked for
+ * any more: the plan proposes them and you approve the proposal, which is what
+ * the plan step is for. The defaults written here are what
+ * `buildBriefFromDraft` falls back to if the plan is generated untouched.
  */
 export default function CreatePage() {
   return (
@@ -31,28 +36,29 @@ function CreateInner() {
   const search = useSearchParams()
   const [recent, setRecent] = useState<Campaign[]>([])
   const [drafts, setDrafts] = useState<CreateDraft[]>([])
-  const [seedPrompt, setSeedPrompt] = useState('')
+  const [prompt, setPrompt] = useState('')
 
   const refreshLists = useCallback(() => {
-    fetchCampaigns().then(setRecent)
+    void fetchCampaigns().then(setRecent)
     setDrafts(listDrafts().filter((d) => d.brief.trim() || d.prompt?.trim() || d.plan))
   }, [])
 
   useEffect(refreshLists, [refreshLists])
 
+  // A brief can arrive by link — from Today's "start something", or a shared
+  // URL. It seeds the field rather than submitting, so it stays editable.
   useEffect(() => {
     const q = search.get('prompt')
-    if (q?.trim()) setSeedPrompt(q.trim())
+    if (q?.trim()) setPrompt(q.trim())
   }, [search])
 
-  function continueFromPrompt(prompt: string) {
-    const text = seedPrompt ? `${prompt}\n\nExtra context from link: ${seedPrompt}` : prompt
+  function start(brief: string) {
     const draftId = createDraftId()
     writeDraft({
       id: draftId,
-      brief: text,
-      prompt: text,
-      step: 'platforms',
+      brief,
+      prompt: brief,
+      step: 'objective',
       formats: ['posts'],
       wantPosters: true,
       wantVideos: false,
@@ -63,13 +69,18 @@ function CreateInner() {
       wantLanding: false,
       updatedAt: new Date().toISOString(),
     })
-    router.push(`/app/create/wizard/${draftId}?step=platforms`)
+    router.push(`/app/create/intake/${draftId}`)
   }
 
   return (
-    <CampaignStudioHome
-      initialPrompt={seedPrompt}
-      onContinue={continueFromPrompt}
+    <PromptView
+      prompt={prompt}
+      setPrompt={setPrompt}
+      planning={false}
+      onSubmit={() => {
+        const text = prompt.trim()
+        if (text.length >= 4) start(text)
+      }}
       recent={recent}
       onOpen={(id) => router.push(`/app/campaigns/${id}/assets`)}
       drafts={drafts}
@@ -77,6 +88,11 @@ function CreateInner() {
         const d = drafts.find((x) => x.id === id)
         if (!d) return
         router.push(wizardPathForDraft(d))
+      }}
+      onGuidedIntake={() => {
+        // Skipping the brief is allowed: intake asks the structured questions,
+        // and a brief is composed from those answers alone.
+        start(prompt.trim())
       }}
     />
   )

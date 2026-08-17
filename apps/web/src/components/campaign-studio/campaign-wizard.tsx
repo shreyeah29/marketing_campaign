@@ -461,8 +461,18 @@ export function normalizeWizardStep(raw: string | null | undefined): WizardStep 
   return 'platforms'
 }
 
+/**
+ * Where a draft resumes.
+ *
+ * Guided intake replaced this wizard: one screen asking objective, channels,
+ * audience and duration, instead of three asking platforms, deliverables and
+ * audience. Deliverables are no longer asked for at all — the plan proposes
+ * them and you approve the proposal, which is the whole point of the plan step.
+ *
+ * The wizard route stays reachable so a part-finished draft from before the
+ * change still opens, but nothing sends a draft there any more.
+ */
 export function wizardPathForDraft(d: CreateDraft): string {
   if (d.plan) return `/app/create/strategy/${d.id}`
-  if (!d.channels?.length) return `/app/create/wizard/${d.id}?step=platforms`
-  return `/app/create/wizard/${d.id}?step=${normalizeWizardStep(d.step)}`
+  return `/app/create/intake/${d.id}`
 }

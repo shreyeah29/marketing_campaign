@@ -1,142 +1,221 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
-import { useToast, EmptyState, CardSkeleton } from '@/components/kit'
-import { Icon } from '@/components/icon'
+import { useToast, CardSkeleton, EmptyState } from '@/components/kit'
+import { FadeIn } from '@/components/motion'
+import { Icon, type IconName } from '@/components/icon'
+import { Spinner } from '@/components/ui'
 import {
   BrowserDraftBanner,
-  PlanView,
   buildBriefFromDraft,
   readDraft,
   upsertDraft,
   type CampaignPlan,
   type CreateDraft,
-  type SectionId,
 } from '@/components/campaign-studio'
 
 /**
- * Strategy review for a browser draft. Generate uses the same
- * POST /campaign-assets/generate contract, then routes to the generating screen.
- * Request-changes re-calls plan and merges only the commented section.
+ * Plan approval — step 3 of six.
+ *
+ * Nothing is generated until Approve is pressed.
+ *
+ * This screen used to start generation the moment a plan existed, on the
+ * reasoning that you cannot judge a plan you have not seen output for. The
+ * concern is real; billing first and asking afterwards is not the answer to it.
+ * The answer is a plan specific enough to judge before it is paid for — every
+ * asset itemised by kind, the cost of producing them stated separately from the
+ * ad spend, and ad spend named as Meta's rather than ours.
+ *
+ * So Approve is the only lime button on the page: it is the only irreversible
+ * one. Regenerating the plan costs nothing and says so.
  */
-export default function StrategyDraftPage() {
+
+const STEPS = ['Brief', 'Intake', 'Plan', 'Generate', 'Review', 'Publish'] as const
+
+/** One line of the deliverables table, derived from the draft the plan was built from. */
+interface Deliverable {
+  key: string
+  icon: IconName
+  label: string
+  qualifier: string
+  count: number
+  /** True when producing it spends generation credit rather than only tokens. */
+  billed: boolean
+}
+
+/**
+ * What will actually be produced.
+ *
+ * Read from the draft rather than the plan's free-text `deliverables`, because
+ * the draft is what `buildBriefFromDraft` turns into the generator's
+ * instructions — so these counts are the ones the run will honour, not a
+ * paraphrase of them.
+ */
+function deliverablesFor(draft: CreateDraft): Deliverable[] {
+  const posts = draft.postCount ?? 5
+  const videos = draft.videoCount ?? (draft.wantVideos ? 1 : 0)
+  const ads = draft.adPlatforms?.length ?? 0
+  const rows: Deliverable[] = []
+
+  if (draft.wantPosters !== false) {
+    rows.push({
+      key: 'posters',
+      icon: 'image',
+      label: 'Poster concepts',
+      qualifier: 'one per concept, feed and story crops',
+      count: posts,
+      billed: true,
+    })
+  }
+  if (videos > 0) {
+    rows.push({
+      key: 'videos',
+      icon: 'video',
+      label: 'Video concepts',
+      qualifier: 'reels 9:16',
+      count: videos,
+      billed: true,
+    })
+  }
+  rows.push({
+    key: 'copy',
+    icon: 'message-square',
+    label: 'Captions & hashtags',
+    qualifier: 'per concept',
+    count: posts,
+    billed: false,
+  })
+  if (ads > 0) {
+    rows.push({
+      key: 'ads',
+      icon: 'zap',
+      label: 'Ad copy sets',
+      qualifier: draft.adPlatforms?.join(', ') ?? '',
+      count: ads,
+      billed: false,
+    })
+  }
+  if (draft.wantEmails) {
+    rows.push({
+      key: 'email',
+      icon: 'mail',
+      label: 'Email sequence',
+      qualifier: 'announce, remind, last call',
+      count: 3,
+      billed: false,
+    })
+  }
+  if (draft.wantLanding) {
+    rows.push({
+      key: 'landing',
+      icon: 'browser',
+      label: 'Landing page copy',
+      qualifier: 'headline, body, CTA',
+      count: 1,
+      billed: false,
+    })
+  }
+  return rows
+}
+
+function money(v: number | undefined | null): string | null {
+  if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return null
+  return `₹${v.toLocaleString('en-IN')}`
+}
+
+export default function PlanApprovalPage() {
   const params = useParams<{ draftId: string }>()
   const router = useRouter()
   const toast = useToast()
   const draftId = params.draftId
 
   const [draft, setDraft] = useState<CreateDraft | null>(null)
-  const [generating, setGenerating] = useState(false)
+  const [missing, setMissing] = useState(false)
   const [planning, setPlanning] = useState(false)
-  const [regenerating, setRegenerating] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [note, setNote] = useState('')
 
   useEffect(() => {
-    setDraft(readDraft(draftId))
+    const d = readDraft(draftId)
+    if (!d) {
+      setMissing(true)
+      return
+    }
+    setDraft(d)
   }, [draftId])
 
-  // ── Posters start themselves ─────────────────────────────────────────────
-  // Approving a plan you cannot see the results of is a decision made blind, so
-  // generation no longer waits behind that button: as soon as a plan exists the
-  // campaign is created and the posters begin rendering. The plan stays fully
-  // reviewable — it becomes the campaign's Brief tab, and "Request changes"
-  // still regenerates it — but you now judge the work rather than the promise.
-  //
-  // Guarded on `generatedCampaignId`, which is written before navigating, so
-  // coming back here never creates a second campaign or bills twice.
-  const autoStarted = useRef(false)
-  useEffect(() => {
-    if (!draft?.plan) return
-    if (draft.generatedCampaignId || autoStarted.current) return
-    if (generating || planning || regenerating) return
-    autoStarted.current = true
-    void generate()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft?.plan, draft?.generatedCampaignId])
-
-  async function ensurePlan(current: CreateDraft): Promise<CampaignPlan | null> {
-    if (current.plan) return current.plan
-    const brief = buildBriefFromDraft(current)
-    if (brief.trim().length < 4) return null
-    setPlanning(true)
-    try {
-      const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
-      const next = upsertDraft(draftId, { brief, plan })
-      setDraft(next)
-      return plan
-    } catch (e) {
-      toast.push('error', e instanceof ApiError ? e.message : 'Could not create the plan')
-      return null
-    } finally {
-      setPlanning(false)
-    }
-  }
+  /**
+   * Build the plan if there isn't one. This is a copywriter-class call and
+   * costs a fraction of a rupee — it is not the expensive step, and it does not
+   * create a campaign or render anything.
+   */
+  const buildPlan = useCallback(
+    async (current: CreateDraft, feedback?: string) => {
+      const base = buildBriefFromDraft(current)
+      if (base.trim().length < 4) return
+      const brief = feedback?.trim()
+        ? `${base}\n\nRevision request: ${feedback.trim()}\nKeep everything the brief already fixes; change only what the request asks for.`
+        : base
+      setPlanning(true)
+      try {
+        const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
+        setDraft(upsertDraft(draftId, { plan, brief: base, planApproved: false }))
+        setNote('')
+      } catch (e) {
+        toast.push('error', e instanceof ApiError ? e.message : 'Could not build the plan')
+      } finally {
+        setPlanning(false)
+      }
+    },
+    [draftId, toast],
+  )
 
   useEffect(() => {
     if (!draft || draft.plan || planning) return
-    void ensurePlan(draft)
+    void buildPlan(draft)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id])
 
-  function persistPlan(plan: CampaignPlan) {
+  /**
+   * The irreversible step. Guarded on `generatedCampaignId` so returning to
+   * this screen after approving never creates a second campaign — the guard
+   * that mattered when generation started itself still matters now that a
+   * person starts it.
+   */
+  async function approve() {
     if (!draft) return
-    const brief = buildBriefFromDraft({ ...draft, plan })
-    const next = upsertDraft(draftId, { plan, brief })
-    setDraft(next)
-  }
-
-  async function requestChanges(section: SectionId, comment: string) {
-    if (!draft?.plan) return
-    const baseBrief = buildBriefFromDraft(draft)
-    const brief = `${baseBrief}\n\nRevision request — regenerate ONLY the "${section}" section. Keep every other section unchanged.\nFeedback: ${comment}`
-    setRegenerating(true)
-    try {
-      const fresh = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
-      const merged = mergeSection(draft.plan, fresh, section)
-      const next = upsertDraft(draftId, { plan: merged, brief: baseBrief, planApproved: false })
-      setDraft(next)
-    } catch (e) {
-      toast.push('error', e instanceof ApiError ? e.message : 'Could not regenerate that section')
-    } finally {
-      setRegenerating(false)
-    }
-  }
-
-  async function generate() {
-    if (!draft) return
-    const brief = buildBriefFromDraft(draft)
-    if (brief.trim().length < 4) {
-      toast.push('error', 'Add more detail before generating')
+    if (draft.generatedCampaignId) {
+      router.push(`/app/create/generating/${draft.generatedCampaignId}`)
       return
     }
+    const brief = buildBriefFromDraft(draft)
     setGenerating(true)
     try {
       const res = await api.post<{ campaignId: string; assetCount: number }>(
         '/campaign-assets/generate',
         { brief },
       )
-      // Recorded before navigating so returning to this screen never bills for
-      // a second campaign.
-      upsertDraft(draftId, { generatedCampaignId: res.campaignId })
+      upsertDraft(draftId, { generatedCampaignId: res.campaignId, planApproved: true })
       router.push(`/app/create/generating/${res.campaignId}`)
     } catch (e) {
-      toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')
+      toast.push('error', e instanceof ApiError ? e.message : 'Generation could not start')
       setGenerating(false)
     }
   }
 
-  if (!draft) {
+  if (missing) {
     return (
       <div style={{ maxWidth: 720, margin: '40px auto', padding: 16 }}>
         <EmptyState
           icon="file-text"
           title="Draft not found"
-          hint="This draft lives in this browser only. Start again from the Command Center."
+          hint="Drafts live in this browser only. Start again from the brief."
           action={
             <button className="btn primary" onClick={() => router.push('/app/create')}>
-              Back to Create
+              New brief
             </button>
           }
         />
@@ -144,88 +223,282 @@ export default function StrategyDraftPage() {
     )
   }
 
+  if (!draft) return <CardSkeleton count={2} />
+
   if (!draft.plan) {
     return (
-      <div className="strat" style={{ maxWidth: 960, margin: '40px auto' }}>
+      <div style={{ maxWidth: 960, margin: '40px auto' }}>
         <BrowserDraftBanner />
         <CardSkeleton count={2} />
         <p className="type-secondary" style={{ textAlign: 'center', marginTop: 16 }}>
-          {planning ? 'Building your plan…' : 'Preparing strategy…'}
+          {planning ? 'Building your plan — nothing is generated yet.' : 'Preparing…'}
         </p>
       </div>
     )
   }
 
+  const plan = draft.plan
+  const rows = deliverablesFor(draft)
+  const totalAssets = rows.reduce((n, r) => n + r.count, 0)
+  const adSpend = money(draft.budget ?? plan.suggestedBudget)
+  const goals = plan.strategy
+    .split('\n')
+    .map((l) => l.replace(/^[-•*]\s*/, '').trim())
+    .filter((l) => l.length > 0)
+
   return (
-    <div style={{ padding: '16px 0 48px' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 16px' }}>
-        <div className="spread" style={{ marginBottom: 12 }}>
-          <BrowserDraftBanner />
+    <FadeIn className="today-layout">
+      <div className="today-main">
+        <div className="step-rail">
+          {STEPS.map((label, i) => (
+            <span
+              key={label}
+              className="step-chip"
+              data-state={i < 2 ? 'done' : i === 2 ? 'current' : 'todo'}
+            >
+              {i + 1} {label.toUpperCase()}
+              {i < 2 ? ' ✓' : ''}
+            </span>
+          ))}
         </div>
-        <PlanView
-          plan={draft.plan}
-          draft={draft}
-          approved={Boolean(draft.planApproved)}
-          generating={generating}
-          regenerating={regenerating}
-          onBack={() => router.push(`/app/create/wizard/${draftId}?step=audience`)}
-          onPlanChange={persistPlan}
-          onApprove={() => {
-            const next = upsertDraft(draftId, { planApproved: true, plan: draft.plan })
-            setDraft(next)
+
+        <h1 className="brief-title" style={{ maxWidth: 'none' }}>
+          {plan.campaignName}
+        </h1>
+        <p className="brief-sub" style={{ maxWidth: '62ch', marginBottom: 22 }}>
+          Nothing has been generated yet. Approve the plan and the run starts — you will be billed
+          for exactly the assets listed here.
+        </p>
+
+        <BrowserDraftBanner />
+
+        {/* ── Four summary tiles ────────────────────────────────────────── */}
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+            gap: 10,
+            marginBottom: 16,
           }}
-          onRequestChanges={(section, comment) => void requestChanges(section, comment)}
-          onGenerate={() => void generate()}
-        />
-        <button
-          type="button"
-          className="btn ghost sm"
-          style={{ marginTop: 16 }}
-          onClick={() => router.push('/app/create')}
         >
-          <Icon name="arrow-left" size={14} /> Back to Create
-        </button>
+          <div className="plan-tile">
+            <div className="plan-tile__k">OBJECTIVE</div>
+            <div className="plan-tile__v">{plan.objective}</div>
+          </div>
+          <div className="plan-tile">
+            <div className="plan-tile__k">DURATION</div>
+            <div className="plan-tile__v">{plan.durationDays || draft.durationDays || 15} days</div>
+          </div>
+          <div className="plan-tile">
+            <div className="plan-tile__k">AD BUDGET</div>
+            <div className="plan-tile__v">{adSpend ?? 'Not set'}</div>
+          </div>
+          <div className="plan-tile" data-attention="">
+            <div className="plan-tile__k">WILL GENERATE</div>
+            <div className="plan-tile__v">{totalAssets} assets</div>
+          </div>
+        </div>
+
+        {/* ── Strategy ──────────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: 18, marginBottom: 14 }}>
+          <div className="intake-section__title" style={{ marginBottom: 10 }}>
+            Strategy
+          </div>
+          <p
+            style={{
+              margin: '0 0 14px',
+              color: 'var(--text-secondary)',
+              fontSize: 14,
+              lineHeight: 1.6,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {plan.strategy}
+          </p>
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}
+          >
+            <div>
+              <div className="field-label">CHANNELS</div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>
+                {plan.platforms.length > 0 ? plan.platforms.join(', ') : 'Not set'}
+              </p>
+            </div>
+            <div>
+              <div className="field-label">AUDIENCE</div>
+              <p
+                style={{
+                  margin: 0,
+                  color: 'var(--text-secondary)',
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                }}
+              >
+                {plan.audience}
+              </p>
+            </div>
+          </div>
+          {goals.length > 1 ? (
+            <div style={{ marginTop: 12 }}>
+              <div className="field-label">SCHEDULE</div>
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>
+                Runs {plan.durationDays || draft.durationDays || 15} days across{' '}
+                {plan.platforms.length || 1} channel
+                {plan.platforms.length === 1 ? '' : 's'}.
+              </p>
+            </div>
+          ) : null}
+        </div>
+
+        {/* ── Deliverables ──────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="panel-head">
+            <span className="panel-head__title">Deliverables</span>
+            <span className="coach__status" style={{ marginLeft: 'auto' }}>
+              {totalAssets} in total
+            </span>
+          </div>
+          {rows.map((r) => (
+            <div key={r.key} className="deliv-row" {...(r.billed ? { 'data-billed': '' } : {})}>
+              <Icon name={r.icon} size={17} className="ico" />
+              <span className="deliv-row__what">
+                {r.label} <span className="deliv-row__qual">· {r.qualifier}</span>
+              </span>
+              <span className="deliv-row__n">{r.count}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* ── The decision ──────────────────────────────────────────────── */}
+        <div className="row" style={{ flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => void approve()}
+            disabled={generating || planning}
+          >
+            {generating ? (
+              <Spinner />
+            ) : (
+              <>
+                <Icon name="check" size={15} />
+                Approve &amp; generate
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={generating}
+            onClick={() => router.push(`/app/create/intake/${draftId}`)}
+          >
+            Adjust the intake
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={planning || generating}
+            onClick={() => void buildPlan(draft, note)}
+          >
+            {planning ? <Spinner /> : 'Regenerate plan'}
+          </button>
+        </div>
+
+        <div style={{ marginTop: 10, maxWidth: 620 }}>
+          <input
+            className="input"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Optional: what should the next plan do differently?"
+            aria-label="Feedback for the regenerated plan"
+            disabled={planning || generating}
+          />
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
+            Regenerating is free — it rewrites the plan and generates nothing. Only Approve starts
+            the run and spends credit.
+          </p>
+        </div>
       </div>
-    </div>
+
+      {/* ── Cost rail ────────────────────────────────────────────────────── */}
+      <div className="today-rail">
+        <div className="card">
+          <div className="panel-head__title" style={{ marginBottom: 12 }}>
+            Estimated cost
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            {rows
+              .filter((r) => r.billed)
+              .map((r) => (
+                <div key={r.key} className="cost-line">
+                  <span>
+                    {r.count} {r.label.toLowerCase()}
+                  </span>
+                  {/* No per-asset price is recorded anywhere in this system, so
+                      none is shown. A dash is honest; a plausible number is not,
+                      and this is the figure someone decides on. */}
+                  <span className="cost-line__unknown">—</span>
+                </div>
+              ))}
+            <div className="cost-line">
+              <span>Copy, captions and ad text</span>
+              <span className="cost-line__unknown">—</span>
+            </div>
+            <div className="cost-line cost-line__total">
+              <span>Generation total</span>
+              <span className="cost-line__unknown">Not priced yet</span>
+            </div>
+            <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>
+              Per-asset generation pricing is not recorded in this workspace yet, so no figure is
+              shown. Actual spend appears in AI Studio ▸ Usage after the run.
+            </p>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="panel-head__title" style={{ marginBottom: 10 }}>
+            Ad spend
+          </div>
+          <div className="cost-line">
+            <span>Campaign budget</span>
+            <span style={{ color: 'var(--text-primary)' }}>{adSpend ?? 'Not set'}</span>
+          </div>
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
+            {adSpend
+              ? `${adSpend} is billed by Meta directly, not by us. It is separate from the cost of generating the assets above.`
+              : 'No budget was set during intake. Ad spend is billed by Meta directly, never by us.'}
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="panel-head__title" style={{ marginBottom: 10 }}>
+            What Approve does
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+              fontSize: 12.5,
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              <Icon name="check-circle" size={15} style={{ color: 'var(--jade-600)' }} />
+              <span>Creates the campaign and starts rendering {totalAssets} assets.</span>
+            </div>
+            <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              <Icon name="check-circle" size={15} style={{ color: 'var(--jade-600)' }} />
+              <span>Every asset still needs your approval before it publishes.</span>
+            </div>
+            <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
+              <Icon name="alert-triangle" size={15} style={{ color: 'var(--amber-600)' }} />
+              <span>Generation spends credit and cannot be undone.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </FadeIn>
   )
 }
-
-/** Merge only fields belonging to the requested section — preserve user edits elsewhere. */
-function mergeSection(
-  current: CampaignPlan,
-  fresh: CampaignPlan,
-  section: SectionId,
-): CampaignPlan {
-  switch (section) {
-    case 'overview':
-      return {
-        ...current,
-        campaignName: fresh.campaignName,
-        objective: fresh.objective,
-        strategy: fresh.strategy,
-      }
-    case 'audience':
-      return { ...current, audience: fresh.audience }
-    case 'channels':
-    case 'funnel':
-      return {
-        ...current,
-        platforms: fresh.platforms,
-        deliverables: fresh.deliverables,
-        estimatedAssets: fresh.estimatedAssets,
-      }
-    case 'budget':
-      return { ...current, suggestedBudget: fresh.suggestedBudget }
-    case 'timeline':
-      return { ...current, durationDays: fresh.durationDays }
-    case 'metrics':
-      return {
-        ...current,
-        estimatedAssets: fresh.estimatedAssets,
-        deliverables: fresh.deliverables,
-      }
-  }
-}
-
-// Re-export for PlanView prop typing when imported from page path only.
-export type { SectionId }

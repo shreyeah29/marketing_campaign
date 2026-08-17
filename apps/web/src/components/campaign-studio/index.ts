@@ -39,8 +39,6 @@ export {
   WIZARD_STEPS,
 } from './campaign-wizard'
 export type { WizardStep } from './campaign-wizard'
-export { PlanView } from './plan-view'
-export type { SectionId } from './plan-view'
 export { WorkspaceView } from './workspace-view'
 export { AssetEditor, PublishDialog } from './asset-editor'
 export { CreativeStudio, ReviewQueue } from './creative-studio'

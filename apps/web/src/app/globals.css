@@ -5823,7 +5823,11 @@ a.card:hover {
   aspect-ratio: 1 / 1;
   border-radius: 10px;
   background: var(--surface-sunken);
+  /* Column, because the not-rendered state pairs the glyph with a label. A
+     lone spinner still centres identically. */
   display: flex;
+  flex-direction: column;
+  gap: 7px;
   align-items: center;
   justify-content: center;
   color: var(--text-tertiary);

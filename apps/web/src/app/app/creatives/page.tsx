@@ -431,8 +431,23 @@ export default function CreativesPage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={c.renderedUrl} alt={c.product?.name ?? 'Creative'} loading="lazy" />
                 ) : (
+                  /* A spinner is a promise that something is happening. Only
+                     RENDERING is actually happening — a DRAFT row is a creative
+                     that was never sent to render, and it spun forever, which
+                     reads as "the system is slow" instead of "press Generate".
+                     The status pill below already says DRAFT; the tile agrees
+                     with it now. */
                   <div className="creative-tile__pending">
-                    {c.status === 'FAILED' ? <Icon name="alert-triangle" size={20} /> : <Spinner />}
+                    {c.status === 'FAILED' ? (
+                      <Icon name="alert-triangle" size={20} />
+                    ) : c.status === 'RENDERING' ? (
+                      <Spinner />
+                    ) : (
+                      <>
+                        <Icon name="image" size={20} />
+                        <span className="type-caption">Not rendered yet</span>
+                      </>
+                    )}
                   </div>
                 )}
               </button>

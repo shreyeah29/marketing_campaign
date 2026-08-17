@@ -2,13 +2,15 @@
   "name": "marketing-os",
   "version": "0.1.0",
   "private": true,
-  "description": "VSP AI Marketing OS — your AI marketing team in one platform",
+  "description": "Marketing OS — your AI marketing team in one platform",
   "packageManager": "pnpm@10.11.0",
   "engines": {
     "node": ">=22.11.0",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
+    "start:api": "pnpm --filter @marketing-os/api exec tsx src/main.ts",
+    "start:worker": "pnpm --filter @marketing-os/worker exec tsx src/main.ts",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",

@@ -1,4 +1,4 @@
-// Minimal, deliberately lenient ESLint setup for @vsp/api.
+// Minimal, deliberately lenient ESLint setup for @marketing-os/api.
 //
 // This package had no eslint config or dependency, so the `eslint src` lint step
 // could never run — which is what kept CI's Lint stage red. This gets it running

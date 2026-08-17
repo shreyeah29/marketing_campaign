@@ -2749,7 +2749,7 @@ model IdempotencyKey {
 //
 // This is the configuration layer that turns the app into an AI Business OS: which
 // organisation gets which modules, providers, agents, limits and branding. The
-// code registries in @vsp/contracts define WHAT exists; these tables record what
+// code registries in @marketing-os/contracts define WHAT exists; these tables record what
 // each organisation HAS. Global tables (Plan, Feature, PlatformAdmin) have no
 // tenant column and no RLS policy; per-organisation tables do, and are registered
 // in TENANT_SCOPED_MODELS + the row_level_security migration like every other.
@@ -2825,7 +2825,7 @@ model FeatureAssignment {
   featureKey     String                  @map("feature_key")
   enabled        Boolean                 @default(true)
   source         FeatureAssignmentSource @default(PLAN)
-  // Per-feature config validated against the feature's schema in @vsp/contracts.
+  // Per-feature config validated against the feature's schema in @marketing-os/contracts.
   // This is where "each module has its own settings, providers and limits" lives.
   config         Json?
   // For time-boxed grants and trials; null means indefinite.

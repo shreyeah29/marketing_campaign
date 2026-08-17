@@ -11,19 +11,24 @@ import tseslint from 'typescript-eslint'
  * dependency rule nobody enforces is a dependency rule that will be broken.
  */
 export const architectureBoundaries = {
-  name: 'vsp/architecture-boundaries',
+  name: 'marketing-os/architecture-boundaries',
   rules: {
     'no-restricted-imports': [
       'error',
       {
         patterns: [
           {
-            group: ['@vsp/providers', '@vsp/providers/*'],
+            group: ['@marketing-os/providers', '@marketing-os/providers/*'],
             message:
               'ai-core defines ports; it must never import a provider adapter. Depend on the port interface and let DI supply the implementation.',
           },
           {
-            group: ['../../../apps/*', '@vsp/web', '@vsp/api', '@vsp/worker'],
+            group: [
+              '../../../apps/*',
+              '@marketing-os/web',
+              '@marketing-os/api',
+              '@marketing-os/worker',
+            ],
             message:
               'A package must never import from an application. Dependencies point inward only.',
           },
@@ -43,7 +48,7 @@ export const architectureBoundaries = {
           {
             group: ['**/prisma/client', '@prisma/client'],
             message:
-              'Import the tenant-scoped client from @vsp/database instead. The raw Prisma client bypasses tenant isolation.',
+              'Import the tenant-scoped client from @marketing-os/database instead. The raw Prisma client bypasses tenant isolation.',
           },
         ],
       },
@@ -100,7 +105,7 @@ export default tseslint.config(
         'error',
         {
           groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index', 'type'],
-          pathGroups: [{ pattern: '@vsp/**', group: 'internal', position: 'before' }],
+          pathGroups: [{ pattern: '@marketing-os/**', group: 'internal', position: 'before' }],
           'newlines-between': 'always',
           alphabetize: { order: 'asc', caseInsensitive: true },
         },

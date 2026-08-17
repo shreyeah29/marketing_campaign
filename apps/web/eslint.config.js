@@ -1,4 +1,4 @@
-// Minimal, deliberately lenient ESLint setup for @vsp/web.
+// Minimal, deliberately lenient ESLint setup for @marketing-os/web.
 //
 // Replaces the deprecated `next lint` (which prompts interactively and fails in
 // CI) with a direct eslint run. Light touch: the TypeScript parser with JSX so

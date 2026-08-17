@@ -70,6 +70,7 @@ export type IconName =
   | 'send'
   | 'sparkles'
   | 'arrow-left'
+  | 'arrow-right'
   | 'upload'
   | 'sun'
   | 'moon'
@@ -368,6 +369,12 @@ const P: Record<string, ReactNode> = {
   ),
   sparkles: (
     <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+  ),
+  'arrow-right': (
+    <>
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </>
   ),
   'arrow-left': (
     <>

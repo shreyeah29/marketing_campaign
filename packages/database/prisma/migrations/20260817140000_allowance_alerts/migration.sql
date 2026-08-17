@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS "ad_allowance_alert" (
   "threshold"          INTEGER      NOT NULL,
   -- Every threshold crossed in the same run. A jump from 60% to 92% crosses 70
   -- and 85 at once, and two independent rows would lose that they were one event.
-  "fired_with"         INTEGER[]    NOT NULL DEFAULT ARRAY[]::INTEGER[],
+  -- No default: every write supplies it, and a default the schema does not
+  -- declare is drift the migration check will catch.
+  "fired_with"         INTEGER[]    NOT NULL,
   "used_pct_at_fire"   INTEGER      NOT NULL,
   "ad_set_named"       TEXT,
   -- Null means recorded but not sent: the dry-run state.
@@ -31,9 +33,9 @@ CREATE TABLE IF NOT EXISTS "ad_allowance_alert" (
 -- This index IS the "fire once per threshold per month" guarantee. Without it a
 -- poller at 86% re-notifies every fifteen minutes and the sender gets filtered
 -- long before the 100% alert matters.
-CREATE UNIQUE INDEX IF NOT EXISTS "ad_allowance_alert_org_month_threshold_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "ad_allowance_alert_organization_id_month_threshold_key"
   ON "ad_allowance_alert" ("organization_id", "month", "threshold");
-CREATE INDEX IF NOT EXISTS "ad_allowance_alert_org_month_idx"
+CREATE INDEX IF NOT EXISTS "ad_allowance_alert_organization_id_month_idx"
   ON "ad_allowance_alert" ("organization_id", "month");
 
 DO $$

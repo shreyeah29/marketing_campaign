@@ -54,6 +54,15 @@ const createPostSchema = z.object({
   hashtags: z.array(z.string().trim().min(1)).optional(),
   accountIds: z.array(z.string().min(1)).min(1),
   scheduledAt: z.string().datetime().optional(),
+  /**
+   * Media to publish with the post, as MediaAsset ids.
+   *
+   * The column has always existed and the worker has always resolved it to URLs,
+   * but nothing could set it — so every post was created without media, and
+   * Instagram refuses a post with none. Ids rather than URLs: the publish path
+   * must only ever hand the network a file this organisation owns.
+   */
+  mediaIds: z.array(z.string().min(1)).max(10).optional(),
 })
 
 @ApiTags('Marketing')
@@ -207,12 +216,29 @@ export class SocialController {
         throw new BadRequestException('One or more accountIds are unknown or disconnected')
       }
 
+      // Same rule for media, and for the same reason: the scoped query cannot
+      // find another tenant's asset, so a mismatched count is the check. An
+      // asset with no url is rejected too — the worker would silently drop it,
+      // and the post would go out without the picture it was built around.
+      const mediaIds = input.mediaIds ?? []
+      if (mediaIds.length > 0) {
+        const media = await tx.mediaAsset.findMany({
+          where: { id: { in: mediaIds }, deletedAt: null },
+          select: { id: true, url: true },
+        })
+        const usable = media.filter((m) => typeof m.url === 'string' && m.url.length > 0)
+        if (usable.length !== mediaIds.length) {
+          throw new BadRequestException('One or more mediaIds are unknown or have no stored file')
+        }
+      }
+
       const post = await tx.socialPost.create({
         data: {
           organizationId: principal.organizationId,
           status: 'SCHEDULED',
           body: input.body,
           hashtags: input.hashtags ?? [],
+          mediaIds,
           scheduledAt,
         },
       })

@@ -495,7 +495,6 @@ export default function DashboardPage() {
                     <img
                       src={c.renderedUrl ?? ''}
                       alt={c.product?.name ?? 'Generated creative'}
-                      crossOrigin="use-credentials"
                       loading="lazy"
                     />
                     <span className="media-badge">{c.aspectRatio}</span>

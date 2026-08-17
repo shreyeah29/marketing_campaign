@@ -335,12 +335,7 @@ function RunInner() {
             {ready.map((a) => (
               <div key={a.id} className="run-thumb">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={a.mediaUrl ?? ''}
-                  alt={a.title ?? 'Generated asset'}
-                  crossOrigin="use-credentials"
-                  loading="lazy"
-                />
+                <img src={a.mediaUrl ?? ''} alt={a.title ?? 'Generated asset'} loading="lazy" />
               </div>
             ))}
             {stillRendering > 0 ? (

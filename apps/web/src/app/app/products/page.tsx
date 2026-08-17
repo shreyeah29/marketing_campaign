@@ -3,11 +3,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { ApiError, api, apiUpload } from '@/lib/api'
-import { EmptyState, ErrorState, PageHeader, TableSkeleton, useToast } from '@/components/kit'
+import { downloadUrl, safeFilename } from '@/lib/download'
+import {
+  Drawer,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  TableSkeleton,
+  useToast,
+} from '@/components/kit'
 import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
 import { Field, Spinner } from '@/components/ui'
 import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
+import { PostComposer } from '@/components/post-composer'
 
 /**
  * The product catalogue.
@@ -63,6 +72,14 @@ interface Draft {
 
 const EMPTY: Draft = { name: '', brand: '', sku: '', mrp: '', salePrice: '', imageUrl: '' }
 
+/** The ratios the render endpoint accepts, with what each is for. */
+const RATIOS: readonly (readonly [string, string])[] = [
+  ['1:1', 'Feed'],
+  ['4:5', 'Portrait'],
+  ['9:16', 'Story'],
+  ['16:9', 'Wide'],
+]
+
 export default function ProductsPage() {
   const toast = useToast()
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -77,6 +94,61 @@ export default function ProductsPage() {
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
   const [template, setTemplate] = useState('tricolour')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // The poster drawer: one product, viewed large, at a ratio of its own. The
+  // list's template choice carries in as the starting point, and the drawer can
+  // change both without disturbing the page behind it.
+  const [poster, setPoster] = useState<Product | null>(null)
+  const [posterRatio, setPosterRatio] = useState('1:1')
+  const [posterTemplate, setPosterTemplate] = useState('tricolour')
+  const [downloading, setDownloading] = useState(false)
+  const [posting, setPosting] = useState<Product | null>(null)
+
+  /** The render endpoint, for a given product, template and ratio. */
+  const previewSrc = useCallback(
+    (id: string, ratio: string, slug: string) =>
+      `${api.base}/products/${id}/preview?ratio=${encodeURIComponent(ratio)}&template=${encodeURIComponent(slug)}`,
+    [],
+  )
+
+  /**
+   * Download the poster.
+   *
+   * Fetched with credentials rather than linked: the render requires the session
+   * cookie, and an anchor would send none and save a 401 body as a .png. See
+   * lib/download.ts.
+   */
+  async function download(product: Product, ratio: string, slug: string) {
+    setDownloading(true)
+    try {
+      await downloadUrl(
+        previewSrc(product.id, ratio, slug),
+        safeFilename([product.brand, product.name, slug, ratio.replace(':', 'x')], 'png'),
+        { withCredentials: true },
+      )
+      toast.push('success', 'Saved')
+    } catch (e) {
+      toast.push('error', e instanceof Error ? e.message : 'Could not download the poster')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  /**
+   * Store the poster and hand back its media id.
+   *
+   * Posting needs a file Instagram's servers can fetch, and the preview endpoint
+   * returns bytes without keeping them. This renders the same poster and keeps
+   * it — once per product, template and ratio, because the endpoint reuses an
+   * identical render rather than filling the bucket.
+   */
+  const storePoster = useCallback(async (product: Product, ratio: string, slug: string) => {
+    const res = await api.post<{ mediaId: string; url: string }>(`/products/${product.id}/render`, {
+      ratio,
+      template: slug,
+    })
+    return { mediaId: res.mediaId, url: res.url }
+  }, [])
 
   const load = useCallback(() => {
     setError(null)
@@ -383,6 +455,31 @@ export default function ProductsPage() {
               </div>
 
               <div className="row" style={{ gap: 6 }}>
+                {/* The poster is the point of this row, so its actions come
+                    first. View opens it large and at any ratio; the other two
+                    are the things people actually wanted to do with it. */}
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    setPosterTemplate(template)
+                    setPosterRatio('1:1')
+                    setPoster(p)
+                  }}
+                >
+                  <Icon name="eye" size={13} /> View
+                </button>
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={downloading}
+                  onClick={() => void download(p, '1:1', template)}
+                >
+                  <Icon name="download" size={13} /> Download
+                </button>
+                <button type="button" className="btn sm" onClick={() => setPosting(p)}>
+                  <Icon name="send" size={13} /> Post
+                </button>
                 <button type="button" className="btn sm" onClick={() => edit(p)}>
                   <Icon name="edit" size={13} /> Edit
                 </button>
@@ -399,6 +496,106 @@ export default function ProductsPage() {
           ))}
         </div>
       )}
+
+      {/* ── The poster, large ───────────────────────────────────────────────
+          Ratio and template are chosen here rather than on the page, because
+          this is where a person is looking at one poster and deciding whether
+          it works. The list stays comparable; the drawer gets to experiment. */}
+      <Drawer
+        open={poster !== null}
+        title={poster ? `Poster — ${poster.name}` : 'Poster'}
+        onClose={() => setPoster(null)}
+        footer={
+          poster ? (
+            <>
+              <button
+                type="button"
+                className="btn"
+                disabled={downloading}
+                onClick={() => void download(poster, posterRatio, posterTemplate)}
+              >
+                {downloading ? <Spinner /> : <Icon name="download" size={14} />} Download
+              </button>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  const target = poster
+                  setPoster(null)
+                  setPosting(target)
+                }}
+              >
+                <Icon name="send" size={14} /> Post this
+              </button>
+            </>
+          ) : null
+        }
+      >
+        {poster ? (
+          <>
+            <Field label="Ratio">
+              <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {RATIOS.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`chip ${posterRatio === value ? 'on' : ''}`}
+                    onClick={() => setPosterRatio(value)}
+                  >
+                    {value} · {label}
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            {templates.length > 0 ? (
+              <Field label="Template">
+                <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {templates.map((t) => (
+                    <button
+                      key={t.slug}
+                      type="button"
+                      className={`chip ${posterTemplate === t.slug ? 'on' : ''}`}
+                      onClick={() => setPosterTemplate(t.slug)}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            ) : null}
+
+            {/* Keyed on every input, so switching ratio replaces the image
+                rather than leaving the previous one on screen while the next
+                request is in flight. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={`${poster.id}-${posterRatio}-${posterTemplate}`}
+              src={previewSrc(poster.id, posterRatio, posterTemplate)}
+              alt={`Poster for ${poster.name}`}
+              crossOrigin="use-credentials"
+              style={{
+                width: '100%',
+                borderRadius: 10,
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--surface-sunken)',
+              }}
+            />
+          </>
+        ) : null}
+      </Drawer>
+
+      {/* ── Post it ─────────────────────────────────────────────────────────
+          The media is stored only when Post is pressed — see storePoster. */}
+      {posting ? (
+        <PostComposer
+          open
+          subject={posting.name}
+          initialCaption={posting.name}
+          resolveMedia={() => storePoster(posting, posterRatio, posterTemplate)}
+          onClose={() => setPosting(null)}
+        />
+      ) : null}
     </>
   )
 }

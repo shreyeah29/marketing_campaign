@@ -426,12 +426,7 @@ export function ReviewQueue() {
                 ) : item.mediaUrl ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={item.mediaUrl}
-                      alt={item.title}
-                      crossOrigin="use-credentials"
-                      loading="lazy"
-                    />
+                    <img src={item.mediaUrl} alt={item.title} loading="lazy" />
                     {item.kind === 'video' ? (
                       <span className="review-card__play">
                         <Icon name="play" size={32} />

@@ -11,6 +11,7 @@ import {
   Post,
   Query,
   Res,
+  ServiceUnavailableException,
 } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import type { FastifyReply } from 'fastify'
@@ -33,6 +34,7 @@ import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
+import { StorageService } from '../../infrastructure/storage.js'
 
 /**
  * The product catalogue.
@@ -84,6 +86,15 @@ const previewQuerySchema = z.object({
   sceneId: z.string().optional(),
 })
 
+const renderBodySchema = z
+  .object({
+    ratio: z.enum(ASPECT_RATIOS).default('1:1'),
+    template: z.string().max(64).default(DEFAULT_TEMPLATE_SLUG),
+    campaignId: z.string().optional(),
+    sceneId: z.string().optional(),
+  })
+  .strict()
+
 interface ProductRow {
   id: string
   name: string
@@ -104,7 +115,10 @@ function discountOf(mrp: number | null, sale: number | null): number | null {
 @ApiTags('Products')
 @Controller('products')
 export class ProductsController {
-  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: DatabaseClient,
+    @Inject(StorageService) private readonly storage: StorageService,
+  ) {}
 
   @Get()
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
@@ -293,6 +307,109 @@ export class ProductsController {
       .header('etag', `"${result.hash}"`)
       .header('cache-control', 'private, max-age=0, must-revalidate')
       .send(result.png)
+  }
+
+  /**
+   * Render the same poster, but keep it.
+   *
+   * `preview` returns bytes and stores nothing, which is right for a preview and
+   * useless for anything downstream: a post needs a URL that Instagram's servers
+   * can fetch, and a download needs a file that survives the request. This runs
+   * the identical render, copies the PNG into the bucket, and records a
+   * MediaAsset — so one poster can then be downloaded, attached to a post, or
+   * both, without rendering twice.
+   *
+   * Repeat calls with the same product, template and ratio return the existing
+   * row rather than filling the bucket with identical files. The render is
+   * deterministic and its hash is the key, so "same" is a fact rather than a
+   * guess.
+   */
+  @Post(':id/render')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @ApiOperation({ summary: 'Render and store this product’s poster, returning its media id' })
+  async render(
+    @Param('id') id: string,
+    @Body() rawBody: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ mediaId: string; url: string; reused: boolean }> {
+    const parsed = renderBodySchema.safeParse(rawBody)
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+    const { ratio, template: slug, campaignId, sceneId } = parsed.data
+
+    const template = findTemplate(slug)
+    if (!template) throw new BadRequestException(`Unknown template "${slug}"`)
+
+    const { product, campaign, branding, scene } = await withTenantTransaction(
+      this.db,
+      async (tx) => {
+        const [productRow, campaignRow, brandingRow, sceneRow] = await Promise.all([
+          tx.product.findFirst({ where: { id, deletedAt: null } }),
+          campaignId
+            ? tx.campaign.findFirst({ where: { id: campaignId, deletedAt: null } })
+            : Promise.resolve(null),
+          tx.branding.findFirst(),
+          sceneId
+            ? tx.mediaAsset.findFirst({
+                where: { id: sceneId, deletedAt: null },
+                select: { url: true },
+              })
+            : Promise.resolve(null),
+        ])
+        return {
+          product: productRow,
+          campaign: campaignRow,
+          branding: brandingRow,
+          scene: sceneRow,
+        }
+      },
+    )
+    if (!product) throw new NotFoundException('Product not found')
+
+    const data = await resolveImages({
+      ...toCreativeData(product, campaign, branding),
+      ...(scene?.url ? { scene: { url: scene.url } } : {}),
+    })
+    const result = await renderCreative(template.document, data, ratio as AspectRatio)
+
+    // The hash covers the template, the data and the ratio, so it identifies this
+    // exact poster. Reusing by storage key means a second Post of an unchanged
+    // product attaches the file already in the bucket.
+    const storageKey = `${principal.organizationId}/products/${id}/${slug}-${ratio.replace(':', 'x')}-${result.hash}`
+
+    const existing = await withTenantTransaction(this.db, (tx) =>
+      tx.mediaAsset.findFirst({
+        where: { storageKey, deletedAt: null },
+        select: { id: true, url: true },
+      }),
+    )
+    // A row whose url is null was never usable; fall through and store again
+    // rather than handing back nothing.
+    if (existing?.url) return { mediaId: existing.id, url: existing.url, reused: true }
+
+    const stored = await this.storage.persistBytes(result.png, 'image/png', storageKey)
+    if (!stored.persisted || !stored.url) {
+      throw new ServiceUnavailableException(
+        'Storage is not configured, so a poster cannot be kept — set SUPABASE_URL and SUPABASE_SERVICE_KEY.',
+      )
+    }
+
+    const asset = await withTenantTransaction(this.db, (tx) =>
+      tx.mediaAsset.create({
+        data: {
+          organizationId: principal.organizationId,
+          type: 'IMAGE',
+          storageKey: stored.storageKey,
+          url: stored.url,
+          // No prompt and no provider. A template poster is composed, not
+          // generated — there was no model and no prompt, and `generatorProvider`
+          // only has AI vendors in it. Null is the true answer.
+        },
+        select: { id: true, url: true },
+      }),
+    )
+    // `stored.url` is the same string, and it is non-null by the check above —
+    // used here so the return type needs no assertion on a nullable column.
+    return { mediaId: asset.id, url: stored.url, reused: false }
   }
 
   /**

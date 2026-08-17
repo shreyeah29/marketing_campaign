@@ -221,6 +221,17 @@ NEEDS_REVIEW|APPROVED|REJECTED|SCHEDULED|PUBLISHING|PUBLISHED|FAILED`.
   `{ name, category:'Campaign template', description, isShared: true }` —
   the literal category string is the studio↔library bridge contract.
 
+## 8a. Posters (added 2026-08-17)
+
+- POST `/products/:id/render` `{ ratio?, template?, campaignId?, sceneId? }` →
+  `{ mediaId, url, reused }`. Same render as `GET /products/:id/preview`, but
+  copies the PNG into the bucket and records a MediaAsset, so the poster can be
+  downloaded or attached to a post. Keyed on the render hash: an identical
+  request returns the existing row with `reused: true`. 503 when storage is
+  unconfigured — a poster that cannot be kept must not report success.
+- POST `/creatives/:id/media` → `{ mediaId, url, reused }`. Registers a
+  creative's already-rendered file as a MediaAsset. 400 when it has not rendered.
+
 ## 9. Social
 
 - GET `/social/accounts` → bare array `{ id, platform, handle, displayName,
@@ -243,6 +254,10 @@ platform, status, permalink, failureReason, publishedAt }[] }[]` — per-
 - POST `/social/posts` — hub: `{ body, hashtags[], accountIds[],
 scheduledAt?: ISO }`; calendar: `{ body, accountIds[], scheduledAt }` (no
   hashtags key). Omitted `scheduledAt` = now. Hashtags normalised client-side.
+  - `mediaIds?: string[]` added 2026-08-17 (max 10). MediaAsset ids, validated
+    against the tenant and rejected if any has no stored url. The column and the
+    worker's resolution of it always existed; nothing could set it, so every post
+    was created without media and Instagram refuses a post with none.
 - POST `/social/posts/:id/publish-now` `{}` (SCHEDULED only; enqueues for the
   worker). DELETE `/social/posts/:id` (confirm).
 

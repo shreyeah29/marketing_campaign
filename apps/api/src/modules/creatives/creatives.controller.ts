@@ -443,6 +443,60 @@ export class CreativesController {
     return updated
   }
 
+  /**
+   * Make this creative attachable to a post.
+   *
+   * The rendered PNG is already in the bucket — the render handler put it there
+   * — but no MediaAsset row pointed at it, and a post can only carry media by id.
+   * This records that row (or returns the one already recorded) so a poster can
+   * be published without re-rendering it.
+   */
+  @Post('creatives/:id/media')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @ApiOperation({ summary: 'Register this creative’s rendered file as media, returning its id' })
+  async creativeMedia(
+    @Param('id') id: string,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ mediaId: string; url: string; reused: boolean }> {
+    return withTenantTransaction(this.db, async (tx) => {
+      const row = await tx.creative.findFirst({
+        where: { id, deletedAt: null },
+        select: { renderedUrl: true, status: true, product: { select: { name: true } } },
+      })
+      if (!row) throw new NotFoundException('Creative not found')
+      if (!row.renderedUrl) {
+        throw new BadRequestException(
+          row.status === 'FAILED'
+            ? 'This creative failed to render, so there is no file to publish.'
+            : 'This creative has not been rendered yet.',
+        )
+      }
+
+      // Keyed on the url, which is unique per render: the storage path carries
+      // the render hash, so re-rendering produces a new url and a new row rather
+      // than quietly repointing the old one at different pixels.
+      const existing = await tx.mediaAsset.findFirst({
+        where: { url: row.renderedUrl, deletedAt: null },
+        select: { id: true },
+      })
+      if (existing) return { mediaId: existing.id, url: row.renderedUrl, reused: true }
+
+      const created = await tx.mediaAsset.create({
+        data: {
+          organizationId: p.organizationId,
+          type: 'IMAGE',
+          // The bucket path, recovered from the public url. Not decorative: it is
+          // what a later cleanup would delete by.
+          storageKey: storageKeyFromUrl(row.renderedUrl),
+          url: row.renderedUrl,
+          // No prompt and no provider — a template poster had neither.
+        },
+        select: { id: true },
+      })
+      return { mediaId: created.id, url: row.renderedUrl, reused: false }
+    })
+  }
+
   @Post('creatives/:id/rerender')
   @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
   @ApiOperation({ summary: 'Re-render, optionally through a different template or ratio' })
@@ -552,4 +606,20 @@ function snapshot(
     visual: { url: product.cutoutUrl ?? product.imageUrl },
     ...(sceneUrl ? { scene: { url: sceneUrl } } : {}),
   }
+}
+
+/**
+ * The object path inside a Supabase public url.
+ *
+ * `…/storage/v1/object/public/<bucket>/<path>` → `<path>`. Falls back to the whole
+ * url when the shape is not recognised, which is honest: a wrong key is better
+ * than a confident lie about where the file lives.
+ */
+function storageKeyFromUrl(url: string): string {
+  const marker = '/object/public/'
+  const at = url.indexOf(marker)
+  if (at < 0) return url
+  const rest = url.slice(at + marker.length)
+  const slash = rest.indexOf('/')
+  return slash < 0 ? rest : rest.slice(slash + 1)
 }

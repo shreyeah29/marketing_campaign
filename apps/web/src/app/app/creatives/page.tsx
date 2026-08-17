@@ -11,6 +11,8 @@ import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
 import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
 import { ReviewQueue } from '@/components/review-queue'
+import { PostComposer } from '@/components/post-composer'
+import { downloadUrl, extensionFromUrl, safeFilename } from '@/lib/download'
 
 /**
  * Batch generation and review.
@@ -78,6 +80,18 @@ export default function CreativesPage() {
   const [template, setTemplate] = useState('tricolour')
   const [creatives, setCreatives] = useState<Creative[] | null>(null)
   const [batch, setBatch] = useState<Batch | null>(null)
+  /**
+   * The optional scene prompt.
+   *
+   * Empty means the poster is pure template — the product photograph on the
+   * template's own background, which costs nothing and renders in milliseconds.
+   * Filled means one AI background is generated first and every poster in the
+   * batch is composed on top of it, so a run is one generation rather than one
+   * per product.
+   */
+  const [prompt, setPrompt] = useState('')
+  const [posting, setPosting] = useState<Creative | null>(null)
+  const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -189,9 +203,29 @@ export default function CreativesPage() {
     if (!campaignId) return
     setBusy(true)
     try {
+      // One scene for the whole batch, generated first so every product in this
+      // run shares a background. Asking for one variant rather than three: this
+      // is a "generate now" button, not a scene chooser, and two extra images
+      // nobody looks at still cost two generations.
+      let sceneId: string | null = null
+      const theme = prompt.trim()
+      if (theme) {
+        const scenes = await api.post<{ data: { id: string }[] }>('/scenes', {
+          campaignId,
+          theme,
+          ratio: '1:1',
+          variants: 1,
+        })
+        sceneId = scenes.data[0]?.id ?? null
+        if (!sceneId) {
+          toast.push('error', 'The background could not be generated — nothing was charged twice')
+          return
+        }
+      }
+
       const res = await api.post<{ batchId: string; total: number }>(
         `/campaigns/${campaignId}/creatives/batch`,
-        { template, ratio: '1:1' },
+        { template, ratio: '1:1', ...(sceneId ? { sceneId } : {}) },
       )
       setBatch({
         id: res.batchId,
@@ -224,6 +258,26 @@ export default function CreativesPage() {
       toast.push('error', e instanceof ApiError ? e.message : `Could not ${action}`)
     } finally {
       setBusy(false)
+    }
+  }
+
+  /** The rendered poster is a bucket url, so no credentials — see lib/download. */
+  async function downloadCreative(c: Creative) {
+    if (!c.renderedUrl) return
+    setDownloadingId(c.id)
+    try {
+      await downloadUrl(
+        c.renderedUrl,
+        safeFilename(
+          [c.product?.brand, c.product?.name, c.templateSlug],
+          extensionFromUrl(c.renderedUrl),
+        ),
+      )
+      toast.push('success', 'Saved')
+    } catch (e) {
+      toast.push('error', e instanceof Error ? e.message : 'Could not download the poster')
+    } finally {
+      setDownloadingId(null)
     }
   }
 
@@ -306,6 +360,28 @@ export default function CreativesPage() {
             {busy ? <Spinner /> : <Icon name="sparkles" size={14} />} Generate all
             {attached.size > 0 ? ` (${String(attached.size)})` : ''}
           </button>
+        </div>
+
+        {/* The scene prompt.
+            Optional on purpose, and labelled so that the cost is visible before
+            the click: empty is the free path, filled spends one generation for
+            the whole batch. It sits above the products because it applies to all
+            of them. */}
+        <div style={{ marginTop: 16 }}>
+          <label className="type-label" style={{ display: 'block', marginBottom: 4 }}>
+            Background prompt <span className="type-caption">— optional</span>
+          </label>
+          <input
+            className="input"
+            value={prompt}
+            placeholder="A sunlit marble café table with soft morning shadows"
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+          <p className="type-caption" style={{ margin: '6px 0 0', color: 'var(--text-tertiary)' }}>
+            {prompt.trim()
+              ? 'One background is generated and every poster in this run is composed on top of it. The product photograph and the prices are laid on afterwards, so no text is invented.'
+              : 'Leave this empty and the posters use the template’s own background — instant, and nothing is generated.'}
+          </p>
         </div>
 
         {/* Which products this campaign generates from. Without this the batch
@@ -472,6 +548,25 @@ export default function CreativesPage() {
                   {c.failureReason}
                 </p>
               ) : null}
+
+              {/* Download and Post appear only on a poster that exists. An
+                  action offered on an unrendered tile can only fail. */}
+              {c.renderedUrl ? (
+                <div className="row" style={{ gap: 6, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={downloadingId === c.id}
+                    onClick={() => void downloadCreative(c)}
+                  >
+                    {downloadingId === c.id ? <Spinner /> : <Icon name="download" size={13} />}{' '}
+                    Download
+                  </button>
+                  <button type="button" className="btn sm" onClick={() => setPosting(c)}>
+                    <Icon name="send" size={13} /> Post
+                  </button>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -482,6 +577,25 @@ export default function CreativesPage() {
           Editing a price or coupon re-renders in about a second and costs nothing — only the
           background is ever generated.
         </p>
+      ) : null}
+
+      {/* Registering the media happens on Post, not on render: a poster nobody
+          publishes should not leave a row behind. */}
+      {posting ? (
+        <PostComposer
+          open
+          subject={posting.product?.name ?? 'Poster'}
+          initialCaption={posting.product?.name ?? ''}
+          resolveMedia={async () => {
+            const res = await api.post<{ mediaId: string; url: string }>(
+              `/creatives/${posting.id}/media`,
+              {},
+            )
+            return { mediaId: res.mediaId, url: res.url }
+          }}
+          onClose={() => setPosting(null)}
+          onPosted={loadCreatives}
+        />
       ) : null}
     </>
   )

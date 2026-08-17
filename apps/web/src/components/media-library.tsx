@@ -10,7 +10,12 @@ import { Icon } from '@/components/icon'
 import { Spinner } from '@/components/ui'
 
 /**
- * Images & video — everything the generator has produced, reusable anywhere.
+ * Images & video — the approved shelf, reusable anywhere.
+ *
+ * Approved work only. Anything generated and not yet judged belongs to the
+ * review queue; this screen answers "what may we publish", and a grid that mixed
+ * the two could not answer it. Approval is one direction — scheduled and
+ * published count, so the shelf does not shrink as work succeeds.
  *
  * Two real sources, and no third invented one:
  *
@@ -30,6 +35,15 @@ import { Spinner } from '@/components/ui'
  * file — no thumbnail pipeline, no black rectangles, and nothing that can drift
  * out of sync with the video it represents.
  */
+
+/**
+ * The statuses that mean a person said yes.
+ *
+ * Everything downstream of approval counts too: a scheduled or published asset
+ * was approved to get there, and dropping it would make the library shrink as
+ * work succeeds.
+ */
+const APPROVED = new Set(['APPROVED', 'SCHEDULED', 'PUBLISHING', 'PUBLISHED'])
 
 type Medium = 'image' | 'video' | 'voice'
 type Tab = 'all' | Medium
@@ -145,6 +159,12 @@ export function MediaLibrary() {
           if (a.kind !== 'IMAGE_PROMPT' && a.kind !== 'VIDEO_PROMPT') continue
           // Nothing to show in a library without the media itself.
           if (!a.mediaUrl) continue
+          // Approved work only. This used to show every generation at any status,
+          // which put rejected artwork and half-judged drafts in the same grid as
+          // the finished set — so the library could not be used as the answer to
+          // "what may we publish". Unapproved work lives in the review queue,
+          // which is where the decision is made.
+          if (!APPROVED.has(a.status)) continue
           next.push({
             id: `asset-${a.id}`,
             source: 'asset',
@@ -165,6 +185,7 @@ export function MediaLibrary() {
       if (creativesRes.status === 'fulfilled') {
         for (const c of creativesRes.value.data ?? []) {
           if (!c.renderedUrl) continue
+          if (!APPROVED.has(c.status)) continue
           next.push({
             id: `creative-${c.id}`,
             source: 'creative',
@@ -250,8 +271,8 @@ export function MediaLibrary() {
           </h1>
           <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 14 }}>
             {counts.all === 0
-              ? 'Nothing generated yet. Posters and video concepts land here as they finish.'
-              : `Everything the generator has produced — ${String(counts.image)} ${counts.image === 1 ? 'image' : 'images'}, ${String(counts.video)} video. Reusable in any campaign.`}
+              ? 'Nothing approved yet. Approve work in the review queue and it lands here.'
+              : `Approved and ready to use — ${String(counts.image)} ${counts.image === 1 ? 'image' : 'images'}, ${String(counts.video)} video. Reusable in any campaign.`}
           </p>
         </div>
         <div className="row" style={{ marginLeft: 'auto', flexWrap: 'wrap', gap: 8 }}>
@@ -307,10 +328,10 @@ export function MediaLibrary() {
       ) : visible.length === 0 ? (
         <EmptyState
           icon="image"
-          title={counts.all === 0 ? 'Nothing generated yet' : 'Nothing matches those filters'}
+          title={counts.all === 0 ? 'Nothing approved yet' : 'Nothing matches those filters'}
           hint={
             counts.all === 0
-              ? 'Attach products to a campaign and press Generate all, or write a brief and let the studio produce concepts.'
+              ? 'This shelf holds approved work only. Anything generated and not yet judged is in the review queue.'
               : 'Clear the search or the aspect filter to see everything again.'
           }
         />
@@ -328,6 +349,14 @@ export function MediaLibrary() {
                   onClick={() => setSelectedId(item.id)}
                 >
                   <span className="lib-tile__frame">
+                    {/* No `crossOrigin` on stored media, deliberately.
+
+                      The storage bucket answers `Access-Control-Allow-Origin: *`.
+                      A wildcard and `credentials: include` are mutually exclusive
+                      by spec, so asking for credentials made the browser refuse
+                      every image on this page while the bucket was public and the
+                      files were present. Only the API-origin product preview needs
+                      credentials; a bucket URL must never send them. */}
                     {item.medium === 'video' ? (
                       /* The video element is its own poster frame: `metadata`
                          makes the browser paint frame one without downloading
@@ -338,7 +367,6 @@ export function MediaLibrary() {
                         preload="metadata"
                         muted
                         playsInline
-                        crossOrigin="use-credentials"
                         onLoadedMetadata={(e) => {
                           const v = e.currentTarget
                           note(item.id, {
@@ -355,7 +383,6 @@ export function MediaLibrary() {
                         src={item.url}
                         alt={item.title}
                         loading="lazy"
-                        crossOrigin="use-credentials"
                         onLoad={(e) => {
                           const r = ratioFromPixels(
                             e.currentTarget.naturalWidth,
@@ -393,16 +420,10 @@ export function MediaLibrary() {
             <aside className="lib-rail">
               <div className="lib-rail__preview">
                 {selected.medium === 'video' ? (
-                  <video
-                    src={selected.url}
-                    controls
-                    preload="metadata"
-                    playsInline
-                    crossOrigin="use-credentials"
-                  />
+                  <video src={selected.url} controls preload="metadata" playsInline />
                 ) : (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={selected.url} alt={selected.title} crossOrigin="use-credentials" />
+                  <img src={selected.url} alt={selected.title} />
                 )}
               </div>
               <div style={{ padding: 14 }}>

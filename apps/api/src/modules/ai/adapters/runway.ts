@@ -64,6 +64,26 @@ export const SEED_FRAME_RATIO = new Map([
   ['1584:672', '1808:768'], // 21:9 ultrawide
 ])
 
+/**
+ * Runway's documented ceiling on `promptText`. Exceeding it is a flat 400
+ * "Validation of body failed" — no partial generation, no hint as to which
+ * field was at fault.
+ *
+ * The clamp here is a backstop, not the strategy. A caller with a long prompt
+ * should decide for itself what to keep, because the end of a prompt is often
+ * where its constraints live and blind truncation deletes exactly those. See
+ * `clampImagePrompt` in scene-prompt.ts, which preserves the no-text clause.
+ */
+export const MAX_PROMPT_CHARS = 1000
+
+/** Trim to the limit on a word boundary, so a prompt never ends mid-word. */
+function clampPrompt(text: string): string {
+  if (text.length <= MAX_PROMPT_CHARS) return text
+  const cut = text.slice(0, MAX_PROMPT_CHARS)
+  const lastSpace = cut.lastIndexOf(' ')
+  return lastSpace > 0 ? cut.slice(0, lastSpace) : cut
+}
+
 // Runway asks for no more than one poll per 5s. A Gen-4 image lands in ~10-30s and
 // a short clip in ~60-180s, so we cap generously and then give up cleanly.
 const POLL_INTERVAL_MS = 5_000
@@ -173,7 +193,7 @@ export async function generateRunwayImage(input: RunwayImageInput): Promise<Runw
   const model = input.model ?? DEFAULT_IMAGE_MODEL
   const taskId = await createTask(input.apiKey, '/text_to_image', {
     model,
-    promptText: input.prompt,
+    promptText: clampPrompt(input.prompt),
     ratio: input.ratio ?? DEFAULT_IMAGE_RATIO,
   })
   const [url] = await pollTask(input.apiKey, taskId, IMAGE_TIMEOUT_MS)
@@ -220,7 +240,7 @@ export async function generateRunwayVideo(input: RunwayVideoInput): Promise<Runw
   const taskId = await createTask(input.apiKey, '/image_to_video', {
     model,
     promptImage,
-    promptText: input.prompt,
+    promptText: clampPrompt(input.prompt),
     ratio,
     duration: input.duration ?? DEFAULT_VIDEO_DURATION,
   })

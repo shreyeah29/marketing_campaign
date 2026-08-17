@@ -28,7 +28,12 @@ import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 import { OverlayService, type BrandFacts } from '../../infrastructure/overlay.js'
 import { StorageService } from '../../infrastructure/storage.js'
 import { AdapterError } from '../ai/adapters/llm.js'
-import { generateRunwayImage, generateRunwayVideo } from '../ai/adapters/runway.js'
+import {
+  MAX_PROMPT_CHARS,
+  generateRunwayImage,
+  generateRunwayVideo,
+} from '../ai/adapters/runway.js'
+import { clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
@@ -389,7 +394,11 @@ export class ReviewQueueController {
 
     // The slow Runway round-trip happens OUTSIDE any transaction; holding a
     // connection open for up to minutes would starve the pool.
-    const prompt = [asset.title, asset.body].filter(Boolean).join(' — ')
+    // Not a plain join: these concept bodies run past Runway's 1000-character
+    // promptText limit, and it answers that with a bare 400. See
+    // `clampImagePrompt` for why the trim happens from the middle rather than
+    // the end.
+    const prompt = clampImagePrompt(asset.title, asset.body, MAX_PROMPT_CHARS)
     let urls: string[]
     if (asset.kind === 'IMAGE_PROMPT') {
       // A/B variants: images render concurrently so picking a winner costs no

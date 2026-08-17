@@ -83,10 +83,59 @@ export function buildScenePrompt(input: ScenePromptInput = {}): string {
  *
  * Generated at the poster's own shape so the composite never has to crop the
  * scene — a cropped background loses exactly the calm area it was asked for.
+ *
+ * Every value must appear in gen4_image's published ratio list. `4:5` used to
+ * map to `1080:1350`, which is the right shape and not a ratio Runway offers;
+ * `1080:1440` is the nearest one it does. A value the model does not recognise
+ * is not a degraded image, it is a 400 and no image at all.
  */
 export const RUNWAY_RATIO: Record<string, string> = {
   '1:1': '1080:1080',
-  '4:5': '1080:1350',
+  '4:5': '1080:1440',
   '9:16': '1080:1920',
   '16:9': '1920:1080',
+}
+
+/**
+ * The clause that keeps lettering out of generated artwork.
+ *
+ * The campaign generator is instructed to end every image prompt with this, and
+ * it is the single most important sentence in the prompt: without it the model
+ * invents text, and invented text on an advertisement is a phone number nobody
+ * answers.
+ */
+const NO_TEXT_CLAUSE =
+  'No text, letters, numbers or logos anywhere in the image. Leave the lower quarter visually calm and uncluttered.'
+
+/**
+ * Fit a stored image-concept prompt into Runway's `promptText` budget.
+ *
+ * The concepts written by the campaign generator are long by design — "a rich,
+ * detailed generation prompt: subject, composition, lighting, mood, colours,
+ * style" — and routinely exceed Runway's 1000-character limit, which it answers
+ * with a flat 400 and no indication of which field was wrong. Every poster in
+ * the campaign studio failed this way.
+ *
+ * Trimming from the end would be worse than the failure it fixes: the no-text
+ * instruction lives at the end of these prompts, so a plain truncation deletes
+ * the rule and returns artwork covered in invented lettering. The description is
+ * shortened instead, and the clause is put back.
+ */
+export function clampImagePrompt(
+  title: string | null | undefined,
+  body: string,
+  limit: number,
+): string {
+  const full = [title?.trim(), body.trim()].filter(Boolean).join(' — ')
+  if (full.length <= limit) return full
+
+  const room = limit - NO_TEXT_CLAUSE.length - 1
+  // A limit too small to hold the clause means the clause wins: artwork with no
+  // text and a vague scene beats a detailed scene covered in gibberish.
+  if (room <= 0) return NO_TEXT_CLAUSE.slice(0, limit)
+
+  const cut = full.slice(0, room)
+  const lastSpace = cut.lastIndexOf(' ')
+  const head = (lastSpace > 0 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:—-]+$/, '')
+  return `${head}. ${NO_TEXT_CLAUSE}`
 }

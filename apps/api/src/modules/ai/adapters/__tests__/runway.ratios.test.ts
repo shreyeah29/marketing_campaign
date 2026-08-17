@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_IMAGE_RATIO,
   DEFAULT_VIDEO_RATIO,
+  MAX_PROMPT_CHARS,
   SEED_FRAME_RATIO,
   generateRunwayImage,
 } from '../runway.js'
@@ -111,5 +112,37 @@ describe('generateRunwayImage request', () => {
     expect(sent.model).toBe('gen4_image')
     expect(sent.ratio).toBeDefined()
     expect(GEN4_IMAGE_RATIOS.has(sent.ratio as string)).toBe(true)
+  })
+})
+
+describe('prompt length', () => {
+  it('never sends Runway a promptText over its documented limit', async () => {
+    let sent: { promptText?: string } = {}
+    const huge = 'a detailed marble surface with soft studio lighting '.repeat(80)
+    expect(huge.length).toBeGreaterThan(MAX_PROMPT_CHARS)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_url: string, init?: { body?: string }) => {
+        sent = JSON.parse(init?.body ?? '{}') as { promptText?: string }
+        return Promise.resolve({
+          ok: false,
+          status: 400,
+          json: () => Promise.resolve({ error: 'stopped by test' }),
+        } as Response)
+      }),
+    )
+
+    await expect(generateRunwayImage({ apiKey: 'k', prompt: huge })).rejects.toThrow()
+
+    expect(sent.promptText).toBeDefined()
+    const out = sent.promptText as string
+    expect(out.length).toBeLessThanOrEqual(MAX_PROMPT_CHARS)
+
+    // Trimmed on a word boundary: the result is a prefix of the original, and
+    // the character that follows it in the original is whitespace — so no word
+    // was cut in half.
+    expect(huge.startsWith(out)).toBe(true)
+    expect(huge[out.length]).toMatch(/\s/)
   })
 })

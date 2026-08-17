@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
-import { IBM_Plex_Sans, Space_Grotesk } from 'next/font/google'
+import localFont from 'next/font/local'
 
 import './globals.css'
 
 /**
- * Two faces, split by job.
+ * Two faces, split by job, loaded from disk.
  *
  * Space Grotesk carries the chrome and every figure — headings, section labels,
  * KPI numbers. Its tight tracking and squared terminals are what make the metric
@@ -16,23 +16,44 @@ import './globals.css'
  * fight a paragraph. Plex is quieter and has the taller x-height that keeps 13px
  * secondary text legible on a near-black ground.
  *
- * Both come through next/font/google, which self-hosts the files at build time —
- * so there is no CDN request at runtime and no layout shift from a late swap.
- * The variable names are what globals.css reads: `--font-display` and
- * `--font-body`.
+ * `next/font/local`, not `next/font/google`.
+ *
+ * The Google loader downloads the font at build time, which put
+ * `fonts.gstatic.com` in the critical path of every CI run and every deploy. It
+ * failed three retries once already and passed on a re-run — flaky rather than
+ * broken, which is the version that waits for a demo. These files are in the
+ * repository, so a build needs no network and cannot fail this way again.
+ *
+ * Both are variable fonts: one file per family covering the whole weight range,
+ * so `weight` is a range rather than a list and there is no separate file per
+ * step. The ranges below were read out of each file's `fvar` table rather than
+ * taken from documentation — Space Grotesk carries 300–700, Plex Sans 100–700,
+ * which covers every weight the tokens ask for (400/500/700 and 400/500).
  */
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+const spaceGrotesk = localFont({
+  src: '../../public/fonts/SpaceGrotesk-Variable.ttf',
+  weight: '300 700',
+  style: 'normal',
   variable: '--font-display',
   display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
 })
 
-const plexSans = IBM_Plex_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500'],
+const plexSans = localFont({
+  src: [
+    { path: '../../public/fonts/IBMPlexSans-Variable.ttf', weight: '100 700', style: 'normal' },
+    // The italic is a separate file, and it is used: the media library sets the
+    // "no prompt was recorded" line in italic to mark it as absence rather than
+    // content. Without this face the browser would synthesise a slant.
+    {
+      path: '../../public/fonts/IBMPlexSans-Italic-Variable.ttf',
+      weight: '100 700',
+      style: 'italic',
+    },
+  ],
   variable: '--font-body',
   display: 'swap',
+  fallback: ['system-ui', 'sans-serif'],
 })
 
 export const metadata: Metadata = {

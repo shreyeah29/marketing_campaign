@@ -9,9 +9,7 @@
  * for Phase 2 and the specification the Phase 3 primitives are built against.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-import { useEffect, useState } from 'react'
-
-const THEME_KEY = 'mos:theme'
+import { useState } from 'react'
 
 const SURFACES = [
   ['--surface-canvas', 'Page background'],
@@ -169,24 +167,7 @@ function StatusRow({ status }: { status: (typeof STATUSES)[number] }) {
 }
 
 export default function DesignSystemPage() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [approved, setApproved] = useState(false)
-
-  useEffect(() => {
-    setTheme(document.documentElement.dataset['theme'] === 'dark' ? 'dark' : 'light')
-  }, [])
-
-  function flipTheme() {
-    const next = theme === 'dark' ? 'light' : 'dark'
-    if (next === 'dark') document.documentElement.dataset['theme'] = 'dark'
-    else delete document.documentElement.dataset['theme']
-    try {
-      window.localStorage.setItem(THEME_KEY, next)
-    } catch {
-      /* ignore */
-    }
-    setTheme(next)
-  }
 
   return (
     <main className="ds-page">
@@ -199,9 +180,6 @@ export default function DesignSystemPage() {
             wrong, the token is wrong, not the page.
           </p>
         </div>
-        <button className="btn" onClick={flipTheme}>
-          View in {theme === 'dark' ? 'light' : 'dark'}
-        </button>
       </header>
 
       <section className="ds-section">

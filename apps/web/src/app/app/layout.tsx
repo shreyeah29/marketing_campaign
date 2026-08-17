@@ -13,7 +13,6 @@ import { ToastProvider } from '@/components/kit'
 import { Icon, type IconName } from '@/components/icon'
 import { CommandPalette, openCommandPalette } from '@/components/command-palette'
 
-const THEME_KEY = 'mos:theme'
 const SIDEBAR_KEY = 'mos:sidebar:collapsed'
 
 /**
@@ -40,19 +39,6 @@ const PRIMARY_NAV: {
   { label: 'CRM', href: '/app/leads', icon: 'users', indicator: 'leads' },
   { label: 'Analytics', href: '/app/analytics/overview', icon: 'bar-chart' },
 ]
-
-function toggleTheme(): 'light' | 'dark' {
-  const root = document.documentElement
-  const next = root.dataset['theme'] === 'dark' ? 'light' : 'dark'
-  if (next === 'dark') root.dataset['theme'] = 'dark'
-  else delete root.dataset['theme']
-  try {
-    window.localStorage.setItem(THEME_KEY, next)
-  } catch {
-    /* ignore */
-  }
-  return next
-}
 
 function readSidebarCollapsed(): boolean {
   if (typeof window === 'undefined') return false
@@ -552,7 +538,6 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
                   </div>
                 </span>
               </div>
-              <ThemeToggle />
               {ws.viewOnly ? null : <SignOutButton />}
             </div>
           </aside>
@@ -739,26 +724,6 @@ function OrgSwitcher({
         </div>
       ) : null}
     </div>
-  )
-}
-
-function ThemeToggle() {
-  const [dark, setDark] = useState(false)
-  useEffect(() => {
-    setDark(document.documentElement.dataset['theme'] === 'dark')
-  }, [])
-  const label = dark ? 'Light mode' : 'Dark mode'
-  return (
-    <button
-      className="nav-item"
-      style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}
-      onClick={() => setDark(toggleTheme() === 'dark')}
-      aria-label="Toggle colour theme"
-      title={label}
-    >
-      <Icon name={dark ? 'sun' : 'moon'} size={16} style={{ opacity: 0.9 }} />
-      <span className="nav-label">{label}</span>
-    </button>
   )
 }
 

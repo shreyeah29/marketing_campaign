@@ -1,5 +1,5 @@
 /*
- * VSP AI Marketing OS — design system (docs/DESIGN_BRIEF.md Part 1).
+ * Marketing OS — design system.
  *
  * The product is a decision surface: the AI does the work, the human judges it.
  * Three enforced rules follow — (1) AI output renders provisional (iris) until a
@@ -7,107 +7,109 @@
  * only for "human decision required".
  *
  * Layers in this file:
- *   1. Brief tokens (1.2–1.7) — colour, type ramp, space, radius, elevation,
- *      motion. These are the only values components may consume.
+ *   1. Tokens — colour, type ramp, space, radius, elevation, motion. These are
+ *      the only values components may consume.
  *
- * `:root` is the light theme (default). `:root[data-theme="dark"]` overrides the
- * brief tokens only — components resolve through them.
- * The brief specifies light only; dark is a value-for-value graphite translation
- * that preserves every pairing contract (-600 on -100, -800 on -100).
+ * This system is dark, and dark only. There is no `[data-theme]` override and no
+ * light translation: a single palette means a component cannot be legible in one
+ * theme and unreadable in the other, which is the failure that a second theme
+ * quietly invites. Components resolve through the token names below, so the
+ * palette can be replaced wholesale without touching a component rule.
+ */
+
+/*
+ * Ink & Signal — token sheet for Marketing OS v2.
+ *
+ * Every token NAME here matches what the component rules already consume, so
+ * only the values change.
  */
 
 :root {
-  /* ── Type — one grotesque, tightly tracked. Numbers are the same face with
-     tabular figures, not a mono; the reference sets metrics in the UI font. ── */
-  --font: var(--font-sans, Inter, system-ui, sans-serif);
-  --font-heading: var(--font-sans, Inter, system-ui, sans-serif);
-  --font-code: var(--font-mono, 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace);
+  /* ── Type — Space Grotesk for chrome and figures, IBM Plex Sans for body ── */
+  --font: var(--font-body, 'IBM Plex Sans', system-ui, sans-serif);
+  --font-heading: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+  --font-code: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
 
-  /* Type ramp — font shorthand (weight size/line-height family) + tracking. */
-  --type-display: 700 clamp(40px, 6vw, 68px) / 1.02 var(--font-heading);
-  --type-display-tracking: -0.045em;
-  --type-metric-hero: 600 36px/40px var(--font-heading);
+  --type-display: 700 clamp(38px, 6.4vw, 74px) / 1.02 var(--font-heading);
+  --type-display-tracking: -0.04em;
+  --type-metric-hero: 700 34px/1 var(--font-heading);
   --type-metric-hero-tracking: -0.03em;
-  --type-metric: 600 28px/32px var(--font-heading);
+  --type-metric: 700 29px/1 var(--font-heading);
   --type-metric-tracking: -0.03em;
-  --type-title: 600 22px/28px var(--font-heading);
-  --type-title-tracking: -0.02em;
-  --type-section: 600 18px/24px var(--font-heading);
-  --type-section-tracking: -0.02em;
-  --type-subhead: 600 15px/22px var(--font);
-  --type-body: 400 14px/21px var(--font);
-  --type-body-strong: 500 14px/21px var(--font);
-  --type-secondary: 400 13px/19px var(--font);
-  --type-caption: 400 12px/16px var(--font);
-  --type-label: 600 11px/14px var(--font);
-  --type-label-tracking: 0.08em;
+  --type-title: 700 clamp(24px, 3.2vw, 33px) / 1.06 var(--font-heading);
+  --type-title-tracking: -0.03em;
+  --type-section: 500 15px/1.3 var(--font-heading);
+  --type-section-tracking: -0.01em;
+  --type-subhead: 500 14px/1.3 var(--font-heading);
+  --type-body: 400 14px/1.55 var(--font);
+  --type-body-strong: 500 14px/1.55 var(--font);
+  --type-secondary: 400 13px/1.5 var(--font);
+  --type-caption: 400 11.5px/1.45 var(--font);
+  --type-label: 500 10px/1.3 var(--font-heading);
+  --type-label-tracking: 0.12em;
 
-  /* ── Surfaces — paper white, neutral greys, no colour cast ────────────────── */
-  --surface-canvas: #fafafa;
-  --surface-raised: #ffffff;
-  --surface-sunken: #f4f4f5;
-  --surface-inverse: #0a0a0a;
-  --surface-hover: #f4f4f5;
-  --surface-selected: #f4f4f5;
+  /* ── Surfaces — three steps of near-black, nothing white ────────────────── */
+  --surface-canvas: #0b0b0c;
+  --surface-raised: #101012;
+  --surface-sunken: #141417;
+  --surface-inverse: #f4f4f3;
+  --surface-hover: #16180f; /* lime-tinted, not grey */
+  --surface-selected: #1a1d12;
 
-  /* ── Borders — hairlines carry the structure; shadows barely appear ───────── */
-  --border-subtle: #efeff1;
-  --border-default: #e4e4e7;
-  --border-strong: #d4d4d8;
-  --border-focus: #0a0a0a;
+  /* ── Borders — hairlines carry all the structure here ───────────────────── */
+  --border-subtle: #17171a;
+  --border-default: #1e1e21;
+  --border-strong: #26262a;
+  --border-focus: #d6ff3e;
 
-  /* ── Text ─────────────────────────────────────────────────────────────────── */
-  --text-primary: #0a0a0a;
-  --text-secondary: #52525b;
-  --text-tertiary: #a1a1aa;
-  --text-inverse: #ffffff;
-  --text-link: #0a0a0a;
+  /* ── Text ───────────────────────────────────────────────────────────────── */
+  --text-primary: #f4f4f3;
+  --text-secondary: #b9b9bd;
+  --text-tertiary: #7e7e85;
+  --text-inverse: #0b0b0c;
+  --text-link: #d6ff3e;
 
   /* ── Semantic ramp.
-     This system is monochrome: emphasis is carried by solid ink, not by hue.
-     Primary actions and active nav are black on white; states that used to be
-     cobalt/amber/iris all resolve to the ink pair, so a filled black pill reads
-     as "this one" wherever it appears. The only two hues left are the delta
-     colours, which encode direction on a number and nothing else, plus a single
-     blue reserved for source/platform chips.
-     Token names are unchanged so every existing component keeps resolving. ── */
-  --cobalt-600: #0a0a0a; /* primary action, active nav, selected */
-  --cobalt-100: #f4f4f5;
-  --cobalt-800: #0a0a0a;
+     Lime is the signal: primary action, active nav, anything awaiting you.
+     Coral is the only alarm. Moss is "good/positive". Sky is the rare
+     informational accent (channels, secondary series). Token names are
+     unchanged so existing components keep resolving. ── */
+  --cobalt-600: #d6ff3e; /* primary action, active nav, selected */
+  --cobalt-100: #1a1d12;
+  --cobalt-800: #e6ff7a;
 
-  --amber-600: #0a0a0a; /* attention — ink, not colour, in this system */
-  --amber-100: #f4f4f5;
-  --amber-800: #0a0a0a;
+  --amber-600: #ff8a6b; /* human decision / needs attention */
+  --amber-100: #1e1310;
+  --amber-800: #ffb39b;
 
-  --jade-600: #16a34a; /* positive delta only */
-  --jade-100: #f0fdf4;
-  --jade-800: #14532d;
+  --jade-600: #8fbf5c; /* positive delta, healthy state */
+  --jade-100: #14170c;
+  --jade-800: #c7e39a;
 
-  --crimson-600: #dc2626; /* negative delta, destructive */
-  --crimson-100: #fef2f2;
-  --crimson-800: #7f1d1d;
+  --crimson-600: #ff6b7a; /* destructive, hard failure */
+  --crimson-100: #1e1112;
+  --crimson-800: #ffaeb6;
 
-  --iris-600: #0a0a0a; /* AI output — neutral ink here */
-  --iris-100: #f4f4f5;
-  --iris-050: #fafafa;
-  --iris-800: #0a0a0a;
+  --iris-600: #d6ff3e; /* unreviewed AI output — same signal as primary */
+  --iris-100: #1a1d12;
+  --iris-050: #14170c;
+  --iris-800: #e6ff7a;
 
-  --slate-600: #52525b; /* draft, paused, archived, neutral */
-  --slate-100: #f4f4f5;
+  --slate-600: #8e8e95; /* draft, paused, archived, neutral */
+  --slate-100: #1a1a1d;
 
-  /* The one accent — source and platform chips (LinkedIn, Google Ads…). */
-  --accent-600: #2563eb;
-  --accent-100: #eff6ff;
+  --accent-600: #62c5ee; /* source / platform chips, second data series */
+  --accent-100: #12222b;
 
-  /* ── Chart ramp — stepped by lightness, not hue, with the accent last ─────── */
-  --chart-1: #0a0a0a;
-  --chart-2: #52525b;
-  --chart-3: #a1a1aa;
-  --chart-4: #d4d4d8;
-  --chart-5: #2563eb;
-  --chart-6: #e4e4e7;
+  /* ── Chart ramp — lime first, then moss, sky, grey, coral ──────────────── */
+  --chart-1: #d6ff3e;
+  --chart-2: #9fb05c;
+  --chart-3: #62c5ee;
+  --chart-4: #8e8e95;
+  --chart-5: #ff8a6b;
+  --chart-6: #26262a;
 
-  /* ── Space (brief 1.4) — 4px base unit ────────────────────────────────────── */
+  /* ── Space — unchanged 4px base. This design is dense on purpose. ──────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -119,88 +121,35 @@
   --space-9: 48px;
   --space-10: 64px;
 
-  /* ── Radius ───────────────────────────────────────────────────────────────── */
+  /* ── Radius ─────────────────────────────────────────────────────────────── */
   --radius-sm: 6px; /* pills, badges, tags */
-  --radius-md: 8px; /* inputs, buttons */
-  --radius-lg: 12px; /* cards, panels */
-  --radius-xl: 16px; /* modals, drawers */
+  --radius-md: 7px; /* inputs, buttons, nav items */
+  --radius-lg: 10px; /* cards, KPI tiles */
+  --radius-xl: 14px; /* modals, drawers, command palette */
 
-  /* ── Elevation — borders do the work here; shadows stay almost invisible ──── */
+  /* ── Elevation — flat inside the page, real shadow only on overlays ────── */
   --elev-0: none;
-  --elev-1: 0 1px 2px rgba(10, 10, 10, 0.04);
-  --elev-2: 0 4px 12px rgba(10, 10, 10, 0.06);
-  --elev-3: 0 16px 40px rgba(10, 10, 10, 0.1);
+  --elev-1: none;
+  --elev-2: 0 4px 14px rgba(0, 0, 0, 0.5);
+  --elev-3: 0 24px 60px rgba(0, 0, 0, 0.6);
 
-  /* ── Motion (brief 1.7) ───────────────────────────────────────────────────── */
-  --dur-fast: 120ms; /* hover, focus */
-  --dur-base: 200ms; /* dropdown, tab switch */
-  --dur-slow: 320ms; /* drawer, modal, page transition */
+  /* ── Motion — unchanged ─────────────────────────────────────────────────── */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
-  /* ── Focus ring ───────────────────────────────────────────────────────────── */
-  --ring: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--border-focus);
-}
+  /* ── Focus ──────────────────────────────────────────────────────────────── */
+  --ring: 0 0 0 2px var(--surface-canvas), 0 0 0 4px #d6ff3e;
 
-:root[data-theme='dark'] {
-  --surface-canvas: #0a0a0a;
-  --surface-raised: #141414;
-  --surface-sunken: #000000;
-  --surface-inverse: #fafafa;
-  --surface-hover: #1c1c1c;
-  --surface-selected: #1c1c1c;
-
-  --border-subtle: #1f1f1f;
-  --border-default: #2a2a2a;
-  --border-strong: #3f3f46;
-  --border-focus: #fafafa;
-
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-tertiary: #71717a;
-  --text-inverse: #0a0a0a;
-  --text-link: #fafafa;
-
-  /* Inverted: emphasis is now white ink on near-black. The pairing contract
-     holds — -600 is the mark, -100 the tinted surface, -800 the text on it. */
-  --cobalt-600: #fafafa;
-  --cobalt-100: #1c1c1c;
-  --cobalt-800: #fafafa;
-
-  --amber-600: #fafafa;
-  --amber-100: #1c1c1c;
-  --amber-800: #fafafa;
-
-  --jade-600: #4ade80;
-  --jade-100: #0c1f14;
-  --jade-800: #bbf7d0;
-
-  --crimson-600: #f87171;
-  --crimson-100: #24100f;
-  --crimson-800: #fecaca;
-
-  --iris-600: #fafafa;
-  --iris-100: #1c1c1c;
-  --iris-050: #141414;
-  --iris-800: #fafafa;
-
-  --slate-600: #a1a1aa;
-  --slate-100: #1c1c1c;
-
-  --accent-600: #60a5fa;
-  --accent-100: #0e1a2e;
-
-  --chart-1: #fafafa;
-  --chart-2: #a1a1aa;
-  --chart-3: #71717a;
-  --chart-4: #3f3f46;
-  --chart-5: #60a5fa;
-  --chart-6: #2a2a2a;
-
-  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.55);
-  --elev-3: 0 12px 32px rgba(0, 0, 0, 0.7);
-
-  --ring: 0 0 0 2px var(--surface-canvas), 0 0 0 4px var(--border-focus);
+  /* Not a token — a declaration, and a load-bearing one. It tells the browser to
+     paint everything it owns rather than us: scrollbars, spinner buttons, and
+     crucially the popup list of a native <select>, which the campaign and
+     template pickers use. Without it those render as light panels over a
+     near-black app, and no amount of styling the closed control fixes the open
+     one. It also sets the canvas behind the page, so an over-scroll bounce does
+     not flash white. */
+  color-scheme: dark;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────────── */
@@ -4230,7 +4179,7 @@ a.card:hover {
   cursor: grab;
 }
 .cal-rail-item.is-picked {
-  border-color: var(--amber-500);
+  border-color: var(--amber-600);
 }
 .cal-rail-item__meta {
   display: flex;
@@ -4679,7 +4628,7 @@ a.card:hover {
 }
 
 .lead-score {
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: 13px;
 }
 .lead-score__bar {
@@ -4698,7 +4647,7 @@ a.card:hover {
 }
 .lead-score__fill.is-mid,
 .lead-score__fill.is-low {
-  background: var(--slate-400);
+  background: var(--slate-600);
 }
 
 @media (max-width: 768px) {
@@ -6089,7 +6038,7 @@ a.card:hover {
   align-items: center;
   gap: 8px;
   padding: 7px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-sm);
   background: var(--surface-raised);
   color: var(--text-secondary);

@@ -36,6 +36,8 @@ export const platform = {
   listOrganizations: () =>
     api.get<OrgListItem[]>('/platform/organizations', { platformAuth: true }),
 
+  diagnostics: () => api.get<Diagnostics>('/platform/diagnostics', { platformAuth: true }),
+
   organizationDetail: (id: string) =>
     api.get<OrgDetail>(`/platform/organizations/${id}`, { platformAuth: true }),
 
@@ -76,4 +78,32 @@ export const platform = {
       { features, ...(featureConfig ? { featureConfig } : {}) },
       { platformAuth: true },
     ),
+}
+
+/**
+ * What the running API can reach. Booleans, never values.
+ *
+ * `commit` is the API's build. The console compares it against the frontend's own
+ * build commit, because the failure that has cost the most time here is a current
+ * UI talking to an API several commits behind — routes 404, fields arrive
+ * missing, and nothing says why.
+ */
+export interface Diagnostics {
+  commit: string
+  environment: string
+  providers: {
+    runway: boolean
+    runwayImageModelOverride: boolean
+    runwayVideoModelOverride: boolean
+    openai: boolean
+    resend: boolean
+    metaApp: boolean
+  }
+  storage: { supabase: boolean }
+  infrastructure: { redis: boolean; directDatabaseUrl: boolean }
+  worker: {
+    lastInsightSyncAt: string | null
+    insightRows: number
+    connectedAdAccounts: number
+  }
 }

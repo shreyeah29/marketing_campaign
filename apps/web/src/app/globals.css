@@ -6756,6 +6756,95 @@ a:hover {
   font-size: 12.5px;
 }
 
+/* ── Platform diagnostics ─────────────────────────────────────────────────── */
+
+.diag {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.diag__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-default);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.diag__env {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.diag__group {
+  padding: 11px 15px 5px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+.diag__note {
+  margin: 0;
+  padding: 12px 15px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.diag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 15px;
+  font-size: 12.5px;
+}
+.diag-row[data-state='ok'] {
+  color: var(--text-secondary);
+}
+.diag-row[data-state='ok'] > svg {
+  color: var(--jade-600);
+}
+/* Not-set is a statement, not an alarm: plenty of these are legitimately unset
+   in a given environment. */
+.diag-row[data-state='off'] {
+  color: var(--text-tertiary);
+}
+.diag-row[data-state='off'] > svg {
+  color: var(--text-muted);
+}
+/* Amber is reserved for something needing a human, and a stale API is exactly
+   that — it will not fix itself. */
+.diag-row[data-state='warn'] {
+  color: var(--amber-600);
+  background: var(--amber-100);
+}
+.diag-row[data-state='warn'] > svg {
+  color: var(--amber-600);
+}
+.diag-row__label {
+  flex: 0 0 auto;
+}
+.diag-row__detail {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+.diag-row[data-state='warn'] .diag-row__detail {
+  color: var(--amber-800);
+}
+.diag-row__state {
+  margin-left: auto;
+  flex: none;
+  font-family: var(--font-heading);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+}
+
 /* ── Media library ────────────────────────────────────────────────────────── */
 
 .lib-layout {

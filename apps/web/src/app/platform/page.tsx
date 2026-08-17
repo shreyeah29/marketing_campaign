@@ -11,6 +11,7 @@ import { Banner, LoadingScreen, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { StatusPill, toStatus } from '@/components/status'
 import { Icon } from '@/components/icon'
+import { PlatformDiagnostics } from '@/components/platform-diagnostics'
 
 export default function OrganizationsPage() {
   const router = useRouter()
@@ -63,6 +64,10 @@ export default function OrganizationsPage() {
           <Stat label="Suspended" value={suspended} />
         </StaggerItem>
       </Stagger>
+
+      {/* Above the org table on purpose: when something is wrong with the
+          deployment, that fact outranks the tenant list. */}
+      <PlatformDiagnostics />
 
       <FadeIn delay={0.12} className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {orgs.length === 0 ? (

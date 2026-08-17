@@ -87,6 +87,91 @@ export class PlatformController {
     return { token, admin: principal }
   }
 
+  // ── Diagnostics ──────────────────────────────────────────────────────────────
+
+  /**
+   * What this process can actually reach, as booleans.
+   *
+   * Written after a deploy failed on a missing Runway key, a second failed on a
+   * stale build, and a third on a revoked grant — each diagnosed by reading env
+   * panels and boot logs by eye. This answers "is the key resolving in the
+   * running process" in one authenticated request, which is the question every
+   * one of those incidents started with.
+   *
+   * Booleans, never values. A diagnostics endpoint that echoes a key is a
+   * credential-exfiltration endpoint with a helpful name, and it would be reached
+   * by the same token that reads every organisation's margin. The only non-boolean
+   * fields are the commit, which is the point, and two counts that cannot identify
+   * anything.
+   *
+   * Operator plane only, so `CostRedactionInterceptor` leaves it alone — otherwise
+   * `monthlyFee`-shaped keys here would be stripped and the answer would lie.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Get('diagnostics')
+  @ApiOperation({ summary: 'Whether each dependency resolves in this process' })
+  async diagnostics(): Promise<unknown> {
+    const env = loadEnv()
+
+    /**
+     * Reported as `lastInsightSyncAt`, and precisely: the newest `updatedAt` on
+     * any AdInsight row. That is when the sync last *wrote* something, not when
+     * it last ran — a poller that runs every fifteen minutes against an
+     * organisation with no live ads writes nothing and leaves this null forever.
+     *
+     * `insightRows` is here so those two cases are distinguishable. Null with
+     * zero rows means nothing has ever synced; null with rows would mean
+     * something has gone strange. Without the count the field would be a
+     * question rather than an answer.
+     */
+    const [newest, insightRows, adAccounts] = await Promise.all([
+      this.owner.adInsight.aggregate({ _max: { updatedAt: true } }),
+      this.owner.adInsight.count(),
+      this.owner.metaConnection.count({ where: { status: 'CONNECTED' } }),
+    ])
+
+    return {
+      // The build actually running. Compared against the frontend's own build
+      // commit by the operator console, because a current UI talking to a stale
+      // API has been the root cause more often than anything else here.
+      commit: env.RENDER_GIT_COMMIT?.slice(0, 7) ?? 'unknown',
+      environment: env.NODE_ENV,
+
+      providers: {
+        // Poster and video generation. The one whose absence produced a 503 that
+        // read as an outage.
+        runway: Boolean(env.RUNWAY_API_KEY),
+        runwayImageModelOverride: Boolean(env.RUNWAY_IMAGE_MODEL),
+        runwayVideoModelOverride: Boolean(env.RUNWAY_VIDEO_MODEL),
+        openai: Boolean(env.OPENAI_API_KEY),
+        // Alert email. False here means allowance alerts would log and not send
+        // even with the per-organisation flag on.
+        resend: Boolean(env.RESEND_API_KEY),
+        metaApp: Boolean(env.META_APP_ID && env.META_APP_SECRET),
+      },
+
+      storage: {
+        // False means generated media is stored as the provider's own URL, which
+        // expires within days. Worth seeing before a client asks why last
+        // month's posters are dead links.
+        supabase: Boolean(env.SUPABASE_URL && env.SUPABASE_SERVICE_KEY),
+      },
+
+      infrastructure: {
+        redis: Boolean(env.REDIS_URL),
+        // The owner connection the allowance and the platform plane read through.
+        directDatabaseUrl: Boolean(env.DIRECT_DATABASE_URL),
+      },
+
+      worker: {
+        lastInsightSyncAt: newest._max.updatedAt?.toISOString() ?? null,
+        insightRows,
+        connectedAdAccounts: adAccounts,
+      },
+    }
+  }
+
   // ── Registry browsing (the wizard's source data) ─────────────────────────────
 
   @Public()

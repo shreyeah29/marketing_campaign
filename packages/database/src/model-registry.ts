@@ -35,6 +35,7 @@ export const TENANT_SCOPED_MODELS = [
   // extension scope a query, and a table left off it runs UNSCOPED if a grant is
   // ever restored. Three locks on the ledger, and this is the cheapest.
   'AdSpendLedger',
+  'AdAllowanceAlert',
   'BrandKit',
   'EmailCampaign',
   'EmailSequence',

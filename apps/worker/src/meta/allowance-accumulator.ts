@@ -2,6 +2,9 @@ import { allowanceUsedPct, majorToMinor, monthBounds, monthKey } from '@marketin
 import type { PrismaClient } from '@marketing-os/database'
 import type { AppLogger } from '@marketing-os/observability'
 
+import type { WorkerEnv } from '../config.js'
+import { processAllowanceAlerts } from './allowance-alerts.js'
+
 /**
  * Reconciles each organisation's month-to-date ad spend.
  *
@@ -36,11 +39,13 @@ export interface ReconcileResult {
 
 interface OrgRow {
   id: string
+  name: string
   timezone: string
   adAllocationMonthly: number
   adSpentThisMonth: number
   adSpendMonth: string | null
   monthlyFee: number
+  adAlertsEnabled: boolean
 }
 
 /**
@@ -113,6 +118,7 @@ export async function reconcileOrg(
   org: OrgRow,
   now: Date,
   logger: AppLogger,
+  env?: WorkerEnv,
 ): Promise<ReconcileResult> {
   const month = monthKey(now, org.timezone)
   let closedMonth: string | undefined
@@ -133,12 +139,33 @@ export async function reconcileOrg(
     data: { adSpentThisMonth: spentMinor, adSpendMonth: month },
   })
 
+  const usedPct = allowanceUsedPct(org.adAllocationMonthly, spentMinor)
+
+  // Alerts run off the figure this function just stored, in the same pass, so
+  // there is no window where the percentage and the alert disagree. Only for
+  // organisations with an allocation: 0% of nothing is not a threshold.
+  if (env !== undefined && org.adAllocationMonthly > 0) {
+    await processAllowanceAlerts(
+      db,
+      env,
+      logger,
+      {
+        id: org.id,
+        name: org.name,
+        timezone: org.timezone,
+        adAlertsEnabled: org.adAlertsEnabled,
+      },
+      { month, usedPct, from, to },
+      now,
+    )
+  }
+
   return {
     organizationId: org.id,
     month,
     spentMinor,
     allocationMinor: org.adAllocationMonthly,
-    usedPct: allowanceUsedPct(org.adAllocationMonthly, spentMinor),
+    usedPct,
     ...(closedMonth === undefined ? {} : { closedMonth }),
   }
 }
@@ -148,23 +175,26 @@ export async function reconcileAllOrgs(
   db: PrismaClient,
   now: Date,
   logger: AppLogger,
+  env?: WorkerEnv,
 ): Promise<ReconcileResult[]> {
   const orgs = await db.organization.findMany({
     where: { deletedAt: null },
     select: {
       id: true,
+      name: true,
       timezone: true,
       adAllocationMonthly: true,
       adSpentThisMonth: true,
       adSpendMonth: true,
       monthlyFee: true,
+      adAlertsEnabled: true,
     },
   })
 
   const results: ReconcileResult[] = []
   for (const org of orgs) {
     try {
-      results.push(await reconcileOrg(db, org, now, logger))
+      results.push(await reconcileOrg(db, org, now, logger, env))
     } catch (err) {
       logger.error({ err, organizationId: org.id }, 'ad spend reconciliation failed')
     }

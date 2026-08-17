@@ -82,7 +82,7 @@ export class MetaPoller {
         // against yesterday's figures. It is cheap — one aggregate per
         // organisation — and reconciling rather than summing means running it
         // more often than necessary costs nothing but a query.
-        await reconcileAllOrgs(this.db, new Date(), this.logger)
+        await reconcileAllOrgs(this.db, new Date(), this.logger, this.env)
       }
     } catch (err) {
       this.logger.error({ err }, 'meta poller tick failed')

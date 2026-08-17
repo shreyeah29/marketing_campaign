@@ -657,14 +657,28 @@ model Organization {
   /// rupee figure and mistyping a zero.
   tier String? @db.VarChar(40)
 
+  /// Whether allowance alerts may actually notify this organisation.
+  ///
+  /// Off by default, and deliberately per-organisation rather than one global
+  /// switch. The accumulator has never seen a real ad account — Business Manager
+  /// is still being set up — so the arithmetic is verified against seeded data
+  /// and the *shape* of Meta's data is not. An alert system in that state must
+  /// not be able to reach a client's inbox.
+  ///
+  /// With it off the alert path still runs and still records what it would have
+  /// sent, which is the dry run: turn it on for one organisation once
+  /// `verify-ad-spend.sql` section 4 comes back empty against real spend.
+  adAlertsEnabled Boolean @default(false) @map("ad_alerts_enabled")
+
   /// What we bill this organisation each month, minor units. Operator-only, and
   /// the other half of the margin the console shows.
   monthlyFee Int @default(0) @map("monthly_fee")
 
-  settings      OrganizationSettings?
-  subscription  Subscription?
-  branding      Branding?
-  adSpendLedger AdSpendLedger[]
+  settings          OrganizationSettings?
+  subscription      Subscription?
+  branding          Branding?
+  adSpendLedger     AdSpendLedger[]
+  adAllowanceAlerts AdAllowanceAlert[]
 
   memberships            Membership[]
   invitations            Invitation[]
@@ -3783,4 +3797,48 @@ model AdSpendLedger {
   @@unique([organizationId, month])
   @@index([month])
   @@map("ad_spend_ledger")
+}
+
+/// One allowance threshold, announced once, for one organisation in one month.
+///
+/// The unique index on `(organizationId, month, threshold)` is what makes "fire
+/// once" true rather than intended: a poller running every fifteen minutes at
+/// 86% would otherwise re-notify ninety-six times a day, and the client would
+/// have the sender filtered before the 100% alert ever mattered.
+///
+/// `firedWith` records the whole set announced in the same run, not just this
+/// row's threshold. An organisation can go from 60% to 92% between two runs and
+/// cross both 70 and 85 at once; without this the record would show two
+/// independent events and lose the fact that one reconciliation triggered both.
+model AdAllowanceAlert {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+
+  /// `YYYY-MM`, in the organisation's own timezone.
+  month String @db.VarChar(7)
+
+  /// 70, 85 or 100.
+  threshold Int
+
+  /// Every threshold crossed in the same run, this one included.
+  firedWith Int[] @map("fired_with")
+
+  /// The percentage at the moment of firing — 92, not 85. Kept so a dry run can
+  /// be compared against what the client would have been told.
+  usedPctAtFire Int @map("used_pct_at_fire")
+
+  /// The ad set the 85% alert named as the one to pause, if any. Chosen by leads
+  /// per 1,000 impressions, never by cost per lead.
+  adSetNamed String? @map("ad_set_named")
+
+  /// Null when the alert was recorded but not sent — the dry-run state.
+  notifiedAt DateTime? @map("notified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, month, threshold])
+  @@index([organizationId, month])
+  @@map("ad_allowance_alert")
 }

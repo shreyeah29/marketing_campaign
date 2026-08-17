@@ -175,6 +175,22 @@ export default function CreativesPage() {
     loadCreatives()
   }, [loadCreatives])
 
+  /**
+   * How long this batch has been running without a single item landing.
+   *
+   * A render takes about a second, so nothing moving for the best part of a
+   * minute does not mean "be patient" — it means no worker picked the job up.
+   * Sitting at 0% indefinitely with a hopeful label is the same failure as a
+   * spinner that never resolves: the screen keeps promising while nothing is
+   * happening. After the threshold it says so instead.
+   */
+  const [stalledSince, setStalledSince] = useState<number | null>(null)
+  const stalled =
+    batch?.status === 'RUNNING' &&
+    batch.completed + batch.failed === 0 &&
+    stalledSince !== null &&
+    Date.now() - stalledSince > 45_000
+
   // Poll while a batch is running. Stops the moment it finishes — a poll that
   // outlives its batch is a request every two seconds forever.
   useEffect(() => {
@@ -184,6 +200,8 @@ export default function CreativesPage() {
         .get<Batch>(`/batches/${batch.id}`)
         .then((next) => {
           setBatch(next)
+          // Any movement at all means a worker is consuming; stop watching.
+          if (next.completed + next.failed > 0) setStalledSince(null)
           loadCreatives()
           if (next.status !== 'RUNNING') {
             toast.push(
@@ -235,6 +253,7 @@ export default function CreativesPage() {
         status: 'RUNNING',
         percent: 0,
       })
+      setStalledSince(Date.now())
       toast.push('success', `Generating ${String(res.total)} creatives`)
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Could not start generation')
@@ -438,6 +457,13 @@ export default function CreativesPage() {
             <div className="batch-bar">
               <div className="batch-bar__fill" style={{ width: `${String(batch.percent)}%` }} />
             </div>
+            {stalled ? (
+              <p className="type-caption" style={{ margin: '8px 0 0', color: 'var(--amber-600)' }}>
+                Nothing has started after 45 seconds. The posters are queued but no worker has
+                picked them up — the render service is down or pointed at a different queue. The
+                rows are safe; they render as soon as it is back.
+              </p>
+            ) : null}
           </div>
         ) : null}
       </FadeIn>

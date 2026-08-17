@@ -226,7 +226,7 @@ async function bootstrap(): Promise<void> {
   const workflowQueue = new Queue(QUEUES.WORKFLOW_EXECUTION, { connection: bullRedis })
   const workflowHandler = createWorkflowHandler(workflowQueue)
   const embeddingsHandler = createEmbeddingsHandler(env)
-  const creativeRenderHandler = createCreativeRenderHandler(env, db, logger)
+  const creativeRenderHandler = createCreativeRenderHandler(env)
 
   // Each queue gets its handler. Queues without a real handler acknowledge (never
   // with fake side effects) until their module lands.

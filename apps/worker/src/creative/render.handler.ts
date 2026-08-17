@@ -1,3 +1,5 @@
+import type { Job } from 'bullmq'
+
 import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 import type { AppLogger } from '@marketing-os/observability'
 import {
@@ -45,14 +47,25 @@ function isRenderJob(data: unknown): data is RenderJob {
   return typeof d?.creativeId === 'string' && typeof d.organizationId === 'string'
 }
 
-export function createCreativeRenderHandler(
-  env: WorkerEnv,
-  db: DatabaseClient,
-  logger: AppLogger,
-): (data: unknown) => Promise<void> {
-  return async (data: unknown): Promise<void> => {
-    if (!isRenderJob(data)) throw new Error('creative-render job is missing ids')
-    const { creativeId, organizationId } = data
+/**
+ * `(job, db, logger)` — the same shape as every other handler, and the reason
+ * this queue rendered nothing for weeks.
+ *
+ * It used to be `(data: unknown) => …` and read the ids straight off its first
+ * argument. The worker passes the whole BullMQ `Job`, so what arrived was the
+ * job envelope rather than its payload, `isRenderJob` rejected it, and the throw
+ * happened *before* the try block — so no creative was ever marked FAILED and no
+ * batch counter ever moved. Every poster sat at DRAFT and every batch at 0%,
+ * with nothing anywhere saying why.
+ *
+ * TypeScript could not catch it: a one-parameter function is assignable to a
+ * three-parameter type, and `unknown` accepts a `Job` happily. The signature is
+ * the guard, so it matches the others exactly now.
+ */
+export function createCreativeRenderHandler(env: WorkerEnv) {
+  return async function handle(job: Job, db: DatabaseClient, logger: AppLogger): Promise<void> {
+    if (!isRenderJob(job.data)) throw new Error('creative-render job is missing ids')
+    const { creativeId, organizationId } = job.data
     const ctx = { organizationId }
 
     const creative = await withTenantTransaction(

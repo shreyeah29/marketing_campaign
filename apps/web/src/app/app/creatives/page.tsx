@@ -49,6 +49,13 @@ interface DesignTemplate {
   name: string
 }
 
+interface Product {
+  id: string
+  name: string
+  brand: string | null
+  imageUrl: string | null
+}
+
 export default function CreativesPage() {
   const toast = useToast()
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
@@ -61,17 +68,67 @@ export default function CreativesPage() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
+  // The catalogue, and which of it this campaign generates from.
+  const [catalogue, setCatalogue] = useState<Product[] | null>(null)
+  const [attached, setAttached] = useState<Set<string>>(new Set())
+  const [savingProducts, setSavingProducts] = useState(false)
+
   useEffect(() => {
     Promise.all([
       api.get<{ data: Campaign[] } | Campaign[]>('/campaigns').catch(() => ({ data: [] })),
       api.get<{ data: DesignTemplate[] }>('/design-templates').catch(() => ({ data: [] })),
-    ]).then(([c, t]) => {
+      api.get<{ data: Product[] }>('/products').catch(() => ({ data: [] })),
+    ]).then(([c, t, pr]) => {
       const list = Array.isArray(c) ? c : (c.data ?? [])
       setCampaigns(list)
       setCampaignId((current) => current || (list[0]?.id ?? ''))
       setTemplates(t.data ?? [])
+      setCatalogue(pr.data ?? [])
     })
   }, [])
+
+  // Membership belongs to the campaign, so it reloads when the campaign changes.
+  useEffect(() => {
+    if (!campaignId) return
+    let stale = false
+    api
+      .get<{ productIds: string[] }>(`/campaigns/${campaignId}/products`)
+      .then((r) => {
+        if (!stale) setAttached(new Set(r.productIds))
+      })
+      .catch(() => {
+        if (!stale) setAttached(new Set())
+      })
+    return () => {
+      stale = true
+    }
+  }, [campaignId])
+
+  /**
+   * Toggling saves immediately, and puts the tick back if the save fails.
+   *
+   * The alternative — a Save button — adds a step between "these are my
+   * products" and "generate", which is exactly where someone clicks Generate
+   * all, gets "this campaign has no products", and concludes the feature is
+   * broken. The write is a full-set replace, so it is safe to repeat.
+   */
+  async function toggleProduct(id: string) {
+    const next = new Set(attached)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+
+    const previous = attached
+    setAttached(next)
+    setSavingProducts(true)
+    try {
+      await api.put(`/campaigns/${campaignId}/products`, { productIds: [...next] })
+    } catch (e) {
+      setAttached(previous)
+      toast.push('error', e instanceof ApiError ? e.message : 'Could not update the product list')
+    } finally {
+      setSavingProducts(false)
+    }
+  }
 
   const loadCreatives = useCallback(() => {
     if (!campaignId) return
@@ -211,11 +268,51 @@ export default function CreativesPage() {
           <button
             type="button"
             className="btn primary"
-            disabled={busy || !campaignId || batch?.status === 'RUNNING'}
+            disabled={busy || !campaignId || attached.size === 0 || batch?.status === 'RUNNING'}
             onClick={() => void generateAll()}
           >
             {busy ? <Spinner /> : <Icon name="sparkles" size={14} />} Generate all
+            {attached.size > 0 ? ` (${String(attached.size)})` : ''}
           </button>
+        </div>
+
+        {/* Which products this campaign generates from. Without this the batch
+            endpoint can only answer "no products", which reads as a bug. */}
+        <div style={{ marginTop: 16 }}>
+          <div className="spread" style={{ marginBottom: 8 }}>
+            <label className="type-label">Products in this campaign</label>
+            <span className="type-caption">
+              {savingProducts ? 'Saving…' : `${String(attached.size)} selected`}
+            </span>
+          </div>
+
+          {catalogue === null ? (
+            <Spinner />
+          ) : catalogue.length === 0 ? (
+            <p className="type-caption">
+              No products yet — add them under <a href="/app/products">Products</a> first.
+            </p>
+          ) : (
+            <div className="product-picker">
+              {catalogue.map((p) => {
+                const on = attached.has(p.id)
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`product-picker__item${on ? ' is-on' : ''}`}
+                    aria-pressed={on}
+                    disabled={savingProducts}
+                    onClick={() => void toggleProduct(p.id)}
+                  >
+                    <Icon name={on ? 'check' : 'plus'} size={13} />
+                    <span className="product-picker__name">{p.name}</span>
+                    {p.brand ? <span className="type-caption">{p.brand}</span> : null}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {batch ? (
@@ -270,7 +367,11 @@ export default function CreativesPage() {
         <EmptyState
           icon="image"
           title="No creatives for this campaign yet"
-          hint="Add products to the campaign, then Generate all. Each poster renders in about a second."
+          hint={
+            attached.size === 0
+              ? 'Tick the products above to add them to this campaign, then Generate all.'
+              : `${String(attached.size)} product${attached.size === 1 ? '' : 's'} ready — press Generate all. Each poster renders in about a second.`
+          }
         />
       ) : (
         <div

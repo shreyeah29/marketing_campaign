@@ -337,12 +337,20 @@ export default function ProductsPage() {
             <FadeIn key={p.id} className="card product-row">
               {/* The live preview. A plain <img> because the endpoint is a GET
                   that returns a PNG — no client-side rendering, no drift from
-                  what the server will actually produce. */}
+                  what the server will actually produce.
+
+                  `crossOrigin="use-credentials"` is what makes it load at all.
+                  The API is a different origin from the app, and a bare <img>
+                  sends no cookies cross-origin, so the request arrived
+                  unauthenticated and the route — which requires CONTENT_READ —
+                  answered 401. The browser reports that as nothing more than a
+                  broken image, which is why every row showed alt text. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 className="product-row__preview"
                 src={`${api.base}/products/${p.id}/preview?ratio=1:1&template=${template}`}
                 alt={`Poster preview for ${p.name}`}
+                crossOrigin="use-credentials"
                 loading="lazy"
               />
 

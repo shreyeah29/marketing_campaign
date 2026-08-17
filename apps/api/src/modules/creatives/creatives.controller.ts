@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
 } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
@@ -58,6 +59,20 @@ const batchSchema = z
   })
   .strict()
 
+/**
+ * The whole membership list, not a delta.
+ *
+ * A picker knows which products are ticked, not which were ticked a moment ago,
+ * so add/remove endpoints would make the client reconstruct a diff it never had
+ * — and get it wrong the moment two tabs are open. Sending the full set makes
+ * the write idempotent: replaying it changes nothing.
+ */
+const setProductsSchema = z
+  .object({
+    productIds: z.array(z.string().min(1)).max(500),
+  })
+  .strict()
+
 const listQuerySchema = z.object({
   campaignId: z.string().optional(),
   batchId: z.string().optional(),
@@ -99,6 +114,79 @@ export class CreativesController {
   constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {
     this.connection = createRedis(loadEnv(), 'bullmq')
     this.queue = new Queue('creative-render', { connection: this.connection })
+  }
+
+  // ── Campaign membership ────────────────────────────────────────────────────
+
+  /**
+   * Which products this campaign generates from.
+   *
+   * This is the step that was missing: the catalogue existed, batch generation
+   * existed, and nothing joined them, so "Generate all" could only ever answer
+   * "this campaign has no products" — while the empty state cheerfully told you
+   * to add some.
+   */
+  @Get('campaigns/:id/products')
+  @RequirePermissions(PERMISSIONS.CONTENT_READ)
+  @ApiOperation({ summary: 'Product ids attached to this campaign, in order' })
+  async listProducts(@Param('id') campaignId: string): Promise<{ productIds: string[] }> {
+    const links = await withTenantTransaction(this.db, (tx) =>
+      tx.campaignProduct.findMany({
+        where: { campaignId },
+        orderBy: { position: 'asc' },
+        select: { productId: true },
+      }),
+    )
+    return { productIds: links.map((l) => l.productId) }
+  }
+
+  @Put('campaigns/:id/products')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @ApiOperation({ summary: 'Replace the campaign’s product list' })
+  async setProducts(
+    @Param('id') campaignId: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ productIds: string[] }> {
+    const input = zodBody(setProductsSchema, body ?? {})
+
+    return withTenantTransaction(this.db, async (tx) => {
+      const campaign = await tx.campaign.findFirst({
+        where: { id: campaignId, deletedAt: null },
+        select: { id: true },
+      })
+      if (!campaign) throw new NotFoundException('Campaign not found')
+
+      // Resolve the ids through the tenant-scoped client before writing. RLS
+      // already prevents reaching another organisation's product, but that
+      // failure would arrive as a foreign-key violation — a 500 describing a
+      // constraint. Checking first turns an unknown id into a 400 that names it.
+      const found = await tx.product.findMany({
+        where: { id: { in: input.productIds }, deletedAt: null },
+        select: { id: true },
+      })
+      const known = new Set(found.map((r) => r.id))
+      const missing = input.productIds.filter((id) => !known.has(id))
+      if (missing.length > 0) {
+        throw new BadRequestException(`Unknown product ids: ${missing.join(', ')}`)
+      }
+
+      // Replace wholesale. `position` comes from the submitted order, so the
+      // sequence the reviewer arranged is the sequence the posters generate in.
+      await tx.campaignProduct.deleteMany({ where: { campaignId } })
+      if (input.productIds.length > 0) {
+        await tx.campaignProduct.createMany({
+          data: input.productIds.map((productId, position) => ({
+            organizationId: p.organizationId,
+            campaignId,
+            productId,
+            position,
+          })),
+        })
+      }
+
+      return { productIds: input.productIds }
+    })
   }
 
   // ── Batch ──────────────────────────────────────────────────────────────────

@@ -6123,3 +6123,470 @@ a.card:hover {
   justify-content: center;
   color: var(--text-tertiary);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+ * Ink & Signal — override layer.
+ *
+ * Appended after the component layer, deliberately at low specificity so page
+ * styles still win. Five jobs the tokens alone cannot do:
+ *   1. the dark shell and its hairlines
+ *   2. Space Grotesk chrome and the big figure treatment
+ *   3. the grouped sidebar (see components/sidebar-nav.tsx)
+ *   4. lime-tint hovers instead of grey
+ *   5. flat cards inside the page, shadow only on overlays
+ * ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. Shell ─────────────────────────────────────────────────────────────── */
+
+body {
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+}
+
+.shell {
+  grid-template-columns: 264px 1fr;
+}
+
+.sidebar {
+  background: #0e0e10;
+  border-right: 1px solid var(--border-default);
+  padding: 16px 10px 14px;
+  gap: 1px;
+}
+
+.topbar-desktop,
+.mobile-topbar {
+  background: var(--surface-canvas);
+  border-bottom: 1px solid var(--border-default);
+  height: 52px;
+}
+
+.main {
+  padding: 26px clamp(16px, 2.6vw, 28px) 64px;
+  max-width: 1460px;
+}
+
+/* ── 2. Chrome type ───────────────────────────────────────────────────────── */
+
+h1,
+h2,
+h3,
+h4,
+.page-title,
+.card-title,
+.btn,
+.nav-item,
+.table th,
+.status-pill,
+.chip,
+.type-label,
+.step,
+.stat .v,
+.kpi .v {
+  font-family: var(--font-heading);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.page-title {
+  font: var(--type-title);
+  letter-spacing: var(--type-title-tracking);
+}
+.page-sub {
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+.stat .v,
+.kpi .v {
+  font-weight: 700;
+  font-size: 32px;
+  letter-spacing: -0.03em;
+  margin-top: 8px;
+}
+.stat .k,
+.kpi .k {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+/* ── 3. Grouped sidebar (components/sidebar-nav.tsx) ──────────────────────── */
+
+.nav-rail-label {
+  /* WORK / REACH / PEOPLE / INTELLIGENCE / ADMIN */
+  padding: 14px 9px 5px;
+  font-family: var(--font-heading);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: #4a4a50;
+}
+
+.nav-group-label {
+  /* Studio, Campaigns, Library… */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 9px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13.5px;
+  color: #d2d2d6;
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+.nav-group-label:hover {
+  background: var(--surface-hover);
+}
+.nav-group-label .ico {
+  color: var(--jade-600);
+}
+.nav-group-caret {
+  margin-left: auto;
+  font-size: 11px;
+  color: #55555b;
+}
+
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 9px 5px 34px;
+  border-radius: var(--radius-md);
+  color: #b9b9bd;
+  font-size: 13px;
+  min-height: 30px;
+}
+.nav-subitem:hover {
+  background: var(--surface-hover);
+}
+.nav-subitem.active {
+  background: var(--surface-selected);
+  color: var(--cobalt-600);
+}
+.nav-subitem .nav-count {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: var(--font-heading);
+  font-size: 10.5px;
+}
+/* A count that needs you is the lime pill, not a grey one. */
+.nav-subitem .nav-count[data-attention] {
+  background: var(--cobalt-600);
+  color: var(--text-inverse);
+  border-radius: 4px;
+  padding: 0 5px;
+}
+
+.nav-item {
+  font-size: 13.5px;
+  padding: 7px 9px;
+  min-height: 32px;
+}
+.nav-item:hover {
+  background: var(--surface-hover);
+}
+.nav-item.active {
+  background: var(--surface-selected);
+  color: var(--cobalt-600);
+  font-weight: 500;
+}
+.nav-item .ico {
+  color: var(--jade-600);
+}
+
+/* Collapsed rail (60px). Not in the handoff, but required: sub-items are
+   text-only, so at 60px they would render as invisible slivers and the rail
+   labels as clipped noise. Collapsed, the sidebar shows one icon per group —
+   sidebar-nav.tsx renders those as links to the group's first destination, so
+   nothing becomes a control that does nothing. */
+.shell[data-collapsed] .nav-rail-label,
+.shell[data-collapsed] .nav-subitem,
+.shell[data-collapsed] .nav-group-caret {
+  display: none;
+}
+.shell[data-collapsed] .nav-group-label {
+  justify-content: center;
+  padding: 7px 0;
+}
+
+/* ── 4. Buttons, inputs, hovers ───────────────────────────────────────────── */
+
+.btn {
+  border-radius: var(--radius-md);
+  border-color: var(--border-strong);
+  background: transparent;
+  color: #e4e4e4;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 8px 14px;
+}
+.btn:hover {
+  background: var(--surface-hover);
+  border-color: #3a4718;
+  box-shadow: none;
+}
+.btn:active {
+  transform: none;
+}
+.btn.primary {
+  background: var(--cobalt-600);
+  color: var(--text-inverse);
+  border-color: transparent;
+}
+.btn.primary:hover {
+  background: var(--cobalt-800);
+}
+.btn.ghost {
+  color: var(--cobalt-600);
+  border-color: transparent;
+}
+.btn.ghost:hover {
+  background: var(--surface-hover);
+}
+.btn.danger {
+  color: var(--amber-600);
+  border-color: #4a2a22;
+}
+.btn.danger:hover {
+  background: var(--amber-100);
+}
+
+.input,
+.select,
+textarea.input,
+.auth-input,
+.auth-select {
+  background: #0e0e10;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+.input:focus,
+.select:focus,
+.auth-input:focus,
+.auth-select:focus {
+  border-color: var(--cobalt-600);
+  box-shadow: none;
+}
+.input::placeholder {
+  color: #6c6c72;
+}
+
+/* Filter chips read as outlined pills; the selected one is lime on lime-black. */
+.chip {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  padding: 6px 11px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chip[aria-pressed='true'],
+.chip.active {
+  border-color: #3a4718;
+  background: var(--jade-100);
+  color: var(--cobalt-600);
+}
+
+/* ── 5. Cards, tables, overlays ───────────────────────────────────────────── */
+
+.card,
+.table-wrap,
+.step,
+.cat,
+.home-brief,
+.home-action,
+.home-rail,
+.home-campaign {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+button.card:hover,
+a.card:hover,
+.home-campaign:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #3a4718;
+  background: var(--surface-hover);
+}
+/* KPI tiles: the one that needs you takes the lime-black treatment. */
+.kpi[data-attention],
+.stat[data-attention],
+.card[data-attention] {
+  border-color: #2a3313;
+  background: var(--jade-100);
+}
+.kpi[data-attention] .v,
+.stat[data-attention] .v {
+  color: var(--cobalt-600);
+}
+.kpi[data-attention] .k,
+.stat[data-attention] .k {
+  color: #9fb05c;
+}
+
+.table th {
+  background: transparent;
+  border-bottom: 1px solid var(--border-default);
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  padding: 11px 16px;
+}
+.table td {
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 13px 16px;
+  font-size: 13px;
+}
+.table tr:hover td {
+  background: var(--surface-sunken);
+}
+
+.status-pill {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+}
+.status-pill[data-hue='cobalt'],
+.status-pill[data-hue='iris'] {
+  border-color: #3a4718;
+  color: var(--cobalt-600);
+  background: var(--jade-100);
+}
+.status-pill[data-hue='jade'] {
+  border-color: #2a3313;
+  color: var(--jade-600);
+}
+.status-pill[data-hue='amber'] {
+  border-color: #4a2a22;
+  color: var(--amber-600);
+}
+.status-pill[data-hue='crimson'] {
+  border-color: #4a2222;
+  color: var(--crimson-600);
+}
+.status-pill[data-hue='slate'] {
+  border-color: var(--border-strong);
+  color: var(--slate-600);
+}
+
+.command-palette,
+.modal,
+.drawer,
+.toast {
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elev-3);
+}
+.command-palette-item:hover,
+.command-palette-item.active {
+  background: var(--surface-hover);
+  color: var(--cobalt-600);
+}
+.overlay,
+.nav-backdrop {
+  background: rgba(6, 6, 7, 0.72);
+}
+
+/* ── Focus, links, selection ──────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--cobalt-600);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+::selection {
+  background: rgba(214, 255, 62, 0.28);
+}
+a {
+  color: var(--cobalt-600);
+}
+a:hover {
+  color: var(--cobalt-800);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #33333a;
+}
+
+/* ── Media grids (the library and campaign media sections) ────────────────── */
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.media-tile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.media-tile img,
+.media-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.media-badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  font-family: var(--font-heading);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  background: rgba(11, 11, 12, 0.82);
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: var(--cobalt-600);
+}
+.media-duration {
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  font-size: 10.5px;
+  background: rgba(11, 11, 12, 0.82);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-primary);
+}
+.media-meta {
+  font-size: 12.5px;
+  margin-top: 7px;
+}
+.media-sub {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* KPI rows must never shrink below their own figures. */
+.grid.cols-3,
+.grid.cols-4 {
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+}

@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
@@ -56,8 +57,20 @@ interface Product {
   imageUrl: string | null
 }
 
+/**
+ * Statuses that count as "waiting on a person".
+ *
+ * The sidebar's Review queue is this page with `?status=needs_review` — a
+ * filtered view rather than a second route, so there is one place creatives are
+ * approved and no chance of the two drifting apart. READY means rendered and
+ * unjudged; DRAFT means queued or mid-render and still nobody's decision.
+ */
+const NEEDS_REVIEW = new Set(['READY', 'DRAFT'])
+
 export default function CreativesPage() {
   const toast = useToast()
+  const searchParams = useSearchParams()
+  const needsReviewOnly = searchParams.get('status') === 'needs_review'
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
   const [campaignId, setCampaignId] = useState<string>('')
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
@@ -222,7 +235,12 @@ export default function CreativesPage() {
     })
   }
 
-  const ready = (creatives ?? []).filter((c) => c.renderedUrl)
+  const visible = useMemo(
+    () =>
+      needsReviewOnly ? (creatives ?? []).filter((c) => NEEDS_REVIEW.has(c.status)) : creatives,
+    [creatives, needsReviewOnly],
+  )
+  const ready = (visible ?? []).filter((c) => c.renderedUrl)
 
   return (
     <>
@@ -358,19 +376,23 @@ export default function CreativesPage() {
 
       {error ? (
         <ErrorState message={error} onRetry={loadCreatives} />
-      ) : creatives === null ? (
+      ) : visible === null ? (
         <div className="row" style={{ gap: 8, padding: 24 }}>
           <Spinner />
           <span className="type-secondary">Loading creatives…</span>
         </div>
-      ) : creatives.length === 0 ? (
+      ) : visible.length === 0 ? (
         <EmptyState
           icon="image"
-          title="No creatives for this campaign yet"
+          title={
+            needsReviewOnly ? 'Nothing is waiting on you' : 'No creatives for this campaign yet'
+          }
           hint={
-            attached.size === 0
-              ? 'Tick the products above to add them to this campaign, then Generate all.'
-              : `${String(attached.size)} product${attached.size === 1 ? '' : 's'} ready — press Generate all. Each poster renders in about a second.`
+            needsReviewOnly
+              ? 'Every creative in this campaign has been approved or rejected.'
+              : attached.size === 0
+                ? 'Tick the products above to add them to this campaign, then Generate all.'
+                : `${String(attached.size)} product${attached.size === 1 ? '' : 's'} ready — press Generate all. Each poster renders in about a second.`
           }
         />
       ) : (
@@ -378,7 +400,7 @@ export default function CreativesPage() {
           className="grid"
           style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 14 }}
         >
-          {creatives.map((c) => (
+          {visible.map((c) => (
             <div
               key={c.id}
               className={`card creative-tile${selected.has(c.id) ? ' is-selected' : ''}`}

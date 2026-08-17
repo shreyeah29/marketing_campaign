@@ -41,6 +41,13 @@ export type IconName =
   | 'folder'
   | 'shield'
   | 'settings'
+  | 'images'
+  | 'broadcast'
+  | 'browser'
+  | 'flow-arrow'
+  | 'chats'
+  | 'robot'
+  | 'chart-line-up'
   | 'globe'
   | 'megaphone'
   | 'edit'
@@ -471,6 +478,68 @@ const P: Record<string, ReactNode> = {
       <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
+    </>
+  ),
+  /* ── Grouped-navigation icons (components/sidebar-nav.tsx) ──────────────────
+     Drawn in this file's existing 1.75-stroke, 24x24 style rather than the
+     Phosphor duotone the handoff suggests. Phosphor would mean a dependency and,
+     more to the point, two visual languages side by side — these twelve sit in
+     the same rail as ~70 icons already drawn this way. */
+  images: (
+    <>
+      <rect x="3" y="3" width="13" height="13" rx="2" />
+      <path d="M8 21h11a2 2 0 0 0 2-2V8" />
+      <circle cx="7.5" cy="7.5" r="1.2" />
+      <path d="m3 13 3.5-3.5L11 14" />
+    </>
+  ),
+  broadcast: (
+    <>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M8.5 15.5a5 5 0 0 1 0-7" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M5.6 18.4a9 9 0 0 1 0-12.8" />
+      <path d="M18.4 5.6a9 9 0 0 1 0 12.8" />
+    </>
+  ),
+  browser: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 9h18" />
+      <circle cx="6.4" cy="6.6" r="0.6" />
+      <circle cx="8.8" cy="6.6" r="0.6" />
+    </>
+  ),
+  'flow-arrow': (
+    <>
+      <rect x="3" y="3" width="6" height="5" rx="1.5" />
+      <rect x="15" y="9.5" width="6" height="5" rx="1.5" />
+      <rect x="3" y="16" width="6" height="5" rx="1.5" />
+      <path d="M9 5.5h3a2 2 0 0 1 2 2v3" />
+      <path d="M15 14.5h-3a2 2 0 0 0-2 2v2" />
+    </>
+  ),
+  chats: (
+    <>
+      <path d="M8 13H5.5A1.5 1.5 0 0 1 4 11.5V5.5A1.5 1.5 0 0 1 5.5 4h11A1.5 1.5 0 0 1 18 5.5V8" />
+      <path d="M18.5 10h-9A1.5 1.5 0 0 0 8 11.5v5A1.5 1.5 0 0 0 9.5 18H13l3.5 3v-3h2a1.5 1.5 0 0 0 1.5-1.5v-5A1.5 1.5 0 0 0 18.5 10z" />
+    </>
+  ),
+  robot: (
+    <>
+      <rect x="4" y="8" width="16" height="11" rx="2.5" />
+      <path d="M12 4v4" />
+      <circle cx="9" cy="13" r="1.2" />
+      <circle cx="15" cy="13" r="1.2" />
+      <path d="M10 16.5h4" />
+      <path d="M2.5 12v3M21.5 12v3" />
+    </>
+  ),
+  'chart-line-up': (
+    <>
+      <path d="M4 4v15a1 1 0 0 0 1 1h15" />
+      <path d="m7 15 3.5-4 3 2.5L20 7" />
+      <path d="M16 7h4v4" />
     </>
   ),
 }

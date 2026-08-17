@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 
@@ -10,35 +9,11 @@ import type { Workspace } from '@/lib/types'
 import { applyBranding, workspace as workspaceApi } from '@/lib/workspace'
 import { Banner, Spinner } from '@/components/ui'
 import { ToastProvider } from '@/components/kit'
-import { Icon, type IconName } from '@/components/icon'
+import { Icon } from '@/components/icon'
+import { SidebarNav } from '@/components/sidebar-nav'
 import { CommandPalette, openCommandPalette } from '@/components/command-palette'
 
 const SIDEBAR_KEY = 'mos:sidebar:collapsed'
-
-/**
- * The navigation, in full.
- *
- * Five destinations, one level, no section headers. Studio is where work starts,
- * Campaigns is the container a campaign lives in (its lifecycle is tabs inside
- * the campaign, not siblings out here), Library is every asset across campaigns,
- * CRM is people, Analytics is results.
- *
- * Everything else the feature registry serves — Automation, Support, Documents,
- * Inbox, the AI tool pages, the per-channel Marketing pages — stays routable and
- * simply is not a menu item. Nothing is deleted or ungranted.
- */
-const PRIMARY_NAV: {
-  label: string
-  href: string
-  icon: IconName
-  indicator?: 'assets' | 'leads'
-}[] = [
-  { label: 'Studio', href: '/app/create', icon: 'sparkles' },
-  { label: 'Campaigns', href: '/app/campaigns', icon: 'megaphone', indicator: 'assets' },
-  { label: 'Library', href: '/app/content', icon: 'book' },
-  { label: 'CRM', href: '/app/leads', icon: 'users', indicator: 'leads' },
-  { label: 'Analytics', href: '/app/analytics/overview', icon: 'bar-chart' },
-]
 
 function readSidebarCollapsed(): boolean {
   if (typeof window === 'undefined') return false
@@ -55,10 +30,6 @@ function writeSidebarCollapsed(collapsed: boolean): void {
   } catch {
     /* ignore */
   }
-}
-
-function isActivePath(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`)
 }
 
 function unwrapList<T>(r: T[] | { data: T[] }): T[] {
@@ -473,47 +444,14 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
               />
             )}
 
-            {/* The five destinations. Deliberately fixed rather than rendered from
-                `ws.navigation`: the API serves ~30 entries across 11 sections, which
-                is the structure users get lost in. Everything the registry offers is
-                still routable — it is just no longer a menu. */}
-            {PRIMARY_NAV.map((entry) => {
-              const active = isActivePath(pathname, entry.href)
-              const count =
-                entry.indicator === 'assets'
-                  ? indicators.assetsNeedingReview
-                  : entry.indicator === 'leads'
-                    ? indicators.newLeads
-                    : 0
-              return (
-                <Link
-                  key={entry.href}
-                  href={entry.href}
-                  className={`nav-item ${active ? 'active' : ''}`}
-                  title={entry.label}
-                >
-                  <Icon name={entry.icon} size={18} style={{ opacity: 0.9 }} />
-                  <span className="nav-label">{entry.label}</span>
-                  {count > 0 ? <span className="nav-count">{count}</span> : null}
-                </Link>
-              )
-            })}
+            {/* Five labelled rails over twelve groups. The API's own
+                `ws.navigation` is still not the source: it serves ~30 flat
+                entries across 11 sections, and the grouping — not the list — is
+                what makes that many destinations navigable. Every href in
+                sidebar-nav.tsx was checked to resolve to a real page. */}
+            <SidebarNav pathname={pathname} indicators={indicators} collapsed={collapsed} />
 
-            <div style={{ marginTop: 'auto', paddingTop: 16 }}>
-              {/* Settings is workspace furniture, not a module — always reachable.
-                  Connections folds in here rather than taking a sixth nav slot, so a
-                  broken token still surfaces where the user can act on it. */}
-              <Link
-                href="/app/settings/organization"
-                className={`nav-item ${pathname.startsWith('/app/settings') || isActivePath(pathname, '/app/connections') ? 'active' : ''}`}
-                title="Settings"
-              >
-                <Icon name="settings" size={17} style={{ opacity: 0.9 }} />
-                <span className="nav-label">Settings</span>
-                {indicators.connectionIssue ? (
-                  <span className="nav-dot-danger" aria-label="A connection needs attention" />
-                ) : null}
-              </Link>
+            <div style={{ paddingTop: 8 }}>
               <div
                 className="nav-item"
                 style={{ cursor: 'default' }}

@@ -6849,6 +6849,102 @@ a:hover {
   color: var(--text-secondary);
   white-space: pre-wrap;
 }
+/* ── Review queue ─────────────────────────────────────────────────────────── */
+
+/* The card border carries state: moss for waiting, amber for failed twice,
+   lime once ticked for a bulk approve. Nothing else on the card is coloured. */
+.review-card {
+  border: 1px solid var(--border-positive);
+  border-radius: 11px;
+  background: var(--surface-raised);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.review-card[data-selected] {
+  border-color: var(--cobalt-600);
+}
+.review-card[data-failed] {
+  border-color: var(--border-decision);
+}
+.review-card__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.review-card[data-failed] .review-card__head {
+  color: var(--amber-600);
+}
+.review-card__age {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* The preview is the select target — the biggest thing on the card should be
+   what you click to tick it, not a checkbox in a corner. */
+.review-card__preview {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: var(--surface-sunken);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.review-card__preview:disabled {
+  cursor: default;
+}
+.review-card__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.review-card[data-selected] .review-card__preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 3px var(--cobalt-600);
+}
+.review-card__play {
+  position: absolute;
+  color: var(--cobalt-600);
+  pointer-events: none;
+}
+.review-card__text {
+  margin: 0;
+  padding: 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-rail-item);
+  text-align: left;
+  align-self: flex-start;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.review-card__body {
+  padding: 11px 12px;
+}
+.review-card__title {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 12.5px;
+}
+.review-card__meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-bottom: 9px;
+}
+
 /* ── Generation run ───────────────────────────────────────────────────────── */
 
 .log-row {

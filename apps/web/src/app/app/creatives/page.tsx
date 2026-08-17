@@ -10,6 +10,7 @@ import { Icon } from '@/components/icon'
 import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
 import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
+import { ReviewQueue } from '@/components/review-queue'
 
 /**
  * Batch generation and review.
@@ -241,6 +242,19 @@ export default function CreativesPage() {
     [creatives, needsReviewOnly],
   )
   const ready = (visible ?? []).filter((c) => c.renderedUrl)
+
+  // `?status=needs_review` is the sidebar's Review queue. It is the same route
+  // deliberately: one approval surface, reached either as a filter of the
+  // library or as its own destination, so the badge and the screen can never
+  // count different things.
+  if (needsReviewOnly) {
+    return (
+      <>
+        <SectionNav links={CAMPAIGN_SECTION} />
+        <ReviewQueue />
+      </>
+    )
+  }
 
   return (
     <>

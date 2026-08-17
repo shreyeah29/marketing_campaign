@@ -672,3 +672,41 @@ Per-creative performance; which template and which offer actually convert.
    heading toward real ecommerce sync (Shopify, feeds)? This changes the schema.
 5. **Phase 1 first?** — it is the largest phase and everything else depends on
    it. I would start there on approval.
+
+---
+
+## 16. Backend work deferred until the redesign lands
+
+Recorded here rather than left in a conversation, because both are real and
+neither belongs mid-screen.
+
+### 16.1 Move `generate-media` onto the render queue
+
+`POST /campaign-assets/:id/generate-media` calls Runway synchronously inside the
+request. Two consequences:
+
+- **Retries live in the browser.** The generation-run screen retries a failed
+  asset twice, sequentially. Close the tab and no retry happens — the asset sits
+  `FAILED` until someone opens the review queue. The `creative-render` BullMQ
+  queue already retries five times with backoff; this path simply is not on it.
+- **A slow provider holds an HTTP connection.** A Gen-4 image is 10–30s and a
+  clip is 60–180s, spent occupying a request.
+
+The fix is the shape the poster path already uses: the endpoint enqueues and
+returns, the worker calls Runway, the client polls asset status. That makes
+retries durable, makes the run genuinely server-owned, and removes the only
+place where a user's tab is load-bearing.
+
+Not attempted during the redesign: it changes a contract the frontend polls, and
+doing it between two screens would leave the queue half-migrated.
+
+### 16.2 Per-kind generation pricing
+
+The plan-approval cost rail renders dashes and "Not priced yet" because nothing
+in this system prices a generated asset. `model-catalog.ts` prices LLM tokens per
+million; Runway images and video clips are not priced at all.
+
+This is configuration, not computation — Runway bills per generation, so a small
+table keyed by kind and model closes it. It is worth doing precisely because that
+rail is the screen where someone decides to spend money, and an honest blank
+there is the second-best outcome after a real figure.

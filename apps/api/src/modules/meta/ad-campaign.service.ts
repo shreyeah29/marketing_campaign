@@ -64,7 +64,7 @@ export class AdCampaignService {
   /** Create a DRAFT campaign (and its creative) against the org's Meta connection. */
   async create(principal: Principal, input: CreateCampaignInput): Promise<{ id: string }> {
     return withTenantTransaction(this.db, async (tx) => {
-      const connection = await tx.metaConnection.findUnique({
+      const connection = await tx.metaConnection.findFirst({
         where: { organizationId: principal.organizationId },
       })
       if (!connection || connection.status !== 'CONNECTED') {

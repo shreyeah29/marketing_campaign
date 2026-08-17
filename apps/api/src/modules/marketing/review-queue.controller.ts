@@ -16,6 +16,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
 import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
+import type { AppLogger } from '@marketing-os/observability'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
@@ -23,9 +24,10 @@ import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
-import { DATABASE } from '../../infrastructure/database.module.js'
+import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 import { OverlayService, type BrandFacts } from '../../infrastructure/overlay.js'
 import { StorageService } from '../../infrastructure/storage.js'
+import { AdapterError } from '../ai/adapters/llm.js'
 import { generateRunwayImage, generateRunwayVideo } from '../ai/adapters/runway.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
@@ -114,6 +116,7 @@ export class ReviewQueueController {
     @Inject(AiService) private readonly ai: AiService,
     @Inject(StorageService) private readonly storage: StorageService,
     @Inject(OverlayService) private readonly overlay: OverlayService,
+    @Inject(LOGGER) private readonly logger: AppLogger,
   ) {}
 
   /**
@@ -403,6 +406,25 @@ export class ReviewQueueController {
       )
       urls = results.filter((r) => r.status === 'fulfilled').map((r) => r.value.url)
       if (urls.length === 0) {
+        // `allSettled` collects the reasons and we were discarding every one of
+        // them, so the log said only "Media generation failed" — true, useless,
+        // and identical whether the key was rejected, the credits ran out or the
+        // model name was wrong. Those need different fixes, so record what the
+        // provider actually said. It stays in the log: the client keeps the
+        // generic message, because Runway's error text is not the caller's
+        // business.
+        const reasons = results
+          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+          .map((r) => {
+            const e: unknown = r.reason
+            return e instanceof AdapterError
+              ? { provider: e.providerId, status: e.status, message: e.message }
+              : { message: e instanceof Error ? e.message : String(e) }
+          })
+        this.logger.error(
+          { assetId: id, kind: asset.kind, model: runway.imageModel ?? 'default', reasons },
+          'Runway rejected every image variant',
+        )
         throw new ServiceUnavailableException('Media generation failed — try again')
       }
     } else {

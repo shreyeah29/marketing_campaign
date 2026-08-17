@@ -235,10 +235,20 @@ export class MetaConnectService {
     }
   }
 
-  /** Current connection for the org, without ever returning the token. */
+  /**
+   * Current connection for the org, without ever returning the token.
+   *
+   * `findFirst`, not `findUnique`, on every tenant-scoped model in this file.
+   * Prisma's `findUnique` accepts only unique fields in `where`, so the tenant
+   * extension cannot add its `organizationId` predicate — and rather than run a
+   * query it could not scope, the extension throws. Every one of these was a
+   * hard 500: connection status, disconnect, and `resolve()`, which is the door
+   * to ad publishing, WhatsApp and insights. The guard did its job; the calls
+   * were simply written the one way it refuses.
+   */
   async getConnection(principal: Principal): Promise<MetaConnectionView | null> {
     const conn = await withTenantTransaction(this.db, (tx) =>
-      tx.metaConnection.findUnique({ where: { organizationId: principal.organizationId } }),
+      tx.metaConnection.findFirst({ where: { organizationId: principal.organizationId } }),
     )
     if (!conn) return null
     return {
@@ -279,7 +289,7 @@ export class MetaConnectService {
   /** Disconnect: mark revoked and drop the credential reference. */
   async disconnect(principal: Principal): Promise<void> {
     await withTenantTransaction(this.db, async (tx) => {
-      const conn = await tx.metaConnection.findUnique({
+      const conn = await tx.metaConnection.findFirst({
         where: { organizationId: principal.organizationId },
       })
       if (!conn) return
@@ -302,12 +312,12 @@ export class MetaConnectService {
   async resolve(principal: Principal): Promise<ResolvedMetaConnection | null> {
     const cfg = this.config()
     const conn = await withTenantTransaction(this.db, (tx) =>
-      tx.metaConnection.findUnique({ where: { organizationId: principal.organizationId } }),
+      tx.metaConnection.findFirst({ where: { organizationId: principal.organizationId } }),
     )
     if (!conn || conn.status !== 'CONNECTED' || !conn.credentialId) return null
 
     const cred = await withTenantTransaction(this.db, (tx) =>
-      tx.providerCredential.findUnique({ where: { id: conn.credentialId! } }),
+      tx.providerCredential.findFirst({ where: { id: conn.credentialId! } }),
     )
     if (!cred) return null
 

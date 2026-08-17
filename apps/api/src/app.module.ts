@@ -11,6 +11,7 @@ import { ProblemExceptionFilter } from './common/filters/problem.filter.js'
 import { EntitlementGuard } from './common/guards/entitlement.guard.js'
 import { PermissionsGuard } from './common/guards/permissions.guard.js'
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor.js'
+import { CostRedactionInterceptor } from './common/interceptors/cost-redaction.interceptor.js'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js'
 import { TenantInterceptor } from './common/interceptors/tenant.interceptor.js'
 import { DatabaseModule, LOGGER } from './infrastructure/database.module.js'
@@ -86,6 +87,7 @@ import { ChatbotController } from './modules/meta/chatbot.controller.js'
 import { ChatbotService } from './modules/meta/chatbot.service.js'
 import { AdAnalyticsController } from './modules/meta/ad-analytics.controller.js'
 import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
+import { AdAllowanceService } from './modules/meta/ad-allowance.service.js'
 
 /**
  * Root module.
@@ -173,6 +175,7 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
     AdPublishService,
     ChatbotService,
     AdAnalyticsService,
+    AdAllowanceService,
     WorkflowEngineService,
     PlatformAuthService,
     ProvisioningService,
@@ -230,6 +233,14 @@ import { AdAnalyticsService } from './modules/meta/ad-analytics.service.js'
       // it needs the context open before it can read or write one.
       provide: APP_INTERCEPTOR,
       useClass: IdempotencyInterceptor,
+    },
+    {
+      // Last, so it sees the final body of every tenant response and strips cost
+      // from it. Registered globally rather than per-controller on purpose: the
+      // rule is "no tenant sees money", and a rule applied per route is one a new
+      // route can be added without.
+      provide: APP_INTERCEPTOR,
+      useClass: CostRedactionInterceptor,
     },
     RealtimeGateway,
   ],

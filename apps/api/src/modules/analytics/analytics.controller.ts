@@ -27,40 +27,44 @@ export class AnalyticsController {
   @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
   @ApiOperation({ summary: 'Headline KPIs computed from real data' })
   async dashboard(): Promise<unknown> {
-    const [activeCampaigns, leadCount, qualifiedCount, metricTotals, aiSpend] =
-      await withTenantTransaction(this.db, (tx) =>
+    const [activeCampaigns, leadCount, qualifiedCount, metricTotals] = await withTenantTransaction(
+      this.db,
+      (tx) =>
         Promise.all([
           tx.campaign.count({ where: { status: 'ACTIVE', deletedAt: null } }),
           tx.lead.count({ where: { deletedAt: null } }),
           tx.lead.count({ where: { status: 'QUALIFIED', deletedAt: null } }),
           tx.metricDaily.aggregate({
-            _sum: { spend: true, revenue: true, leads: true, conversions: true, clicks: true },
+            _sum: { revenue: true, leads: true, conversions: true, clicks: true },
           }),
-          tx.aiUsage.aggregate({ _sum: { costUsd: true } }),
         ]),
-      )
+    )
 
     const revenue = metricTotals._sum.revenue?.toString() ?? '0'
-    const spend = metricTotals._sum.spend?.toString() ?? '0'
     const conversions = metricTotals._sum.conversions ?? 0
     const clicks = metricTotals._sum.clicks ?? 0
-
-    // ROI computed only when there was spend. Dividing by zero spend would give
-    // Infinity, which a chart renders as a nonsense spike.
-    const roi =
-      Number(spend) > 0 ? Math.round(((Number(revenue) - Number(spend)) / Number(spend)) * 100) : 0
     const conversionRate = clicks > 0 ? Math.round((conversions / clicks) * 1000) / 10 : 0
 
+    /**
+     * No spend, no ROI, no AI cost.
+     *
+     * Ads are funded by us on the client's own account, so what was spent — and
+     * therefore any ratio computed against it — is our position, not theirs.
+     * ROI went with spend: it is spend in a disguise, and returning it would
+     * hand back the figure it was derived from to anyone willing to rearrange
+     * the equation.
+     *
+     * Revenue stays. It is the client's own money coming in, which is the half
+     * of the picture they are entitled to and the one they actually asked for.
+     */
     return {
       kpis: {
         activeCampaigns,
         leads: leadCount,
         qualifiedLeads: qualifiedCount,
         revenue,
-        spend,
-        roiPercent: roi,
+        conversions,
         conversionRatePercent: conversionRate,
-        aiSpendUsd: aiSpend._sum.costUsd?.toString() ?? '0',
       },
     }
   }
@@ -72,54 +76,65 @@ export class AnalyticsController {
     const grouped = await withTenantTransaction(this.db, (tx) =>
       tx.metricDaily.groupBy({
         by: ['channel'],
-        _sum: { leads: true, conversions: true, spend: true, revenue: true, clicks: true },
+        _sum: { leads: true, conversions: true, revenue: true, clicks: true, impressions: true },
         where: { channel: { not: null } },
       }),
     )
 
+    // Channels are compared by leads per 1,000 impressions, not by cost. It ranks
+    // them in the same order — the denominator is the only thing that changed —
+    // and it is a figure a client is allowed to see.
     return grouped.map((row) => {
-      const spend = row._sum.spend?.toString() ?? '0'
-      const revenue = row._sum.revenue?.toString() ?? '0'
+      const impressions = row._sum.impressions ?? 0
+      const leads = row._sum.leads ?? 0
       return {
         channel: row.channel,
-        leads: row._sum.leads ?? 0,
+        leads,
         conversions: row._sum.conversions ?? 0,
         clicks: row._sum.clicks ?? 0,
-        spend,
-        revenue,
-        roiPercent:
-          Number(spend) > 0
-            ? Math.round(((Number(revenue) - Number(spend)) / Number(spend)) * 100)
-            : 0,
+        impressions,
+        revenue: row._sum.revenue?.toString() ?? '0',
+        leadsPer1kImpressions:
+          impressions > 0 ? Math.round((leads / impressions) * 1000 * 100) / 100 : 0,
       }
     })
   }
 
+  /**
+   * AI capacity, not AI cost.
+   *
+   * The tenant-facing shape is counts and tokens — what "Plan & limits" needs to
+   * draw a capacity bar — with no currency in it. The cost view of the same rows
+   * lives on the platform plane, which is the only place a margin is meaningful.
+   *
+   * Kept on the tenant plane rather than moved wholesale: a client is entitled to
+   * know how much of their allowance they have used, and a count is not money.
+   */
   @Get('ai-usage')
   @RequirePermissions(PERMISSIONS.ANALYTICS_READ)
-  @ApiOperation({ summary: 'AI cost and token usage' })
+  @ApiOperation({ summary: 'AI capacity used — calls and tokens, no cost' })
   async aiUsage(): Promise<unknown> {
     const [byProvider, totals] = await withTenantTransaction(this.db, (tx) =>
       Promise.all([
         tx.aiUsage.groupBy({
           by: ['provider'],
-          _sum: { costUsd: true, inputTokens: true, outputTokens: true },
+          _sum: { inputTokens: true, outputTokens: true },
+          _count: true,
         }),
         tx.aiUsage.aggregate({
-          _sum: { costUsd: true, inputTokens: true, outputTokens: true },
+          _sum: { inputTokens: true, outputTokens: true },
           _count: true,
         }),
       ]),
     )
 
     return {
-      totalCostUsd: totals._sum.costUsd?.toString() ?? '0',
       totalCalls: totals._count,
       totalInputTokens: totals._sum.inputTokens ?? 0,
       totalOutputTokens: totals._sum.outputTokens ?? 0,
       byProvider: byProvider.map((p) => ({
         provider: p.provider,
-        costUsd: p._sum.costUsd?.toString() ?? '0',
+        calls: p._count,
         inputTokens: p._sum.inputTokens ?? 0,
         outputTokens: p._sum.outputTokens ?? 0,
       })),
@@ -143,7 +158,7 @@ export class AnalyticsController {
       assetsApproved,
       workflowRuns,
       emailAgg,
-      aiSpend,
+      aiGenerations,
     ] = await withTenantTransaction(this.db, (tx) =>
       Promise.all([
         tx.contact.count({ where: { deletedAt: null } }),
@@ -158,7 +173,7 @@ export class AnalyticsController {
         tx.campaignAsset.count({ where: { status: 'APPROVED', deletedAt: null } }),
         tx.workflowRun.count(),
         tx.emailCampaign.aggregate({ _sum: { sentCount: true }, where: { deletedAt: null } }),
-        tx.aiUsage.aggregate({ _sum: { costUsd: true } }),
+        tx.aiUsage.count(),
       ]),
     )
 
@@ -175,7 +190,9 @@ export class AnalyticsController {
       assetsApproved,
       workflowRuns,
       emailsSent: emailAgg._sum.sentCount ?? 0,
-      aiSpendUsd: aiSpend._sum.costUsd?.toString() ?? '0',
+      // A count, not a cost. Today's fifth tile is Bookings now; this is what the
+      // capacity bar on Plan & limits reads.
+      aiGenerations,
     }
   }
 

@@ -629,9 +629,42 @@ model Organization {
   // rejected by the SubscriptionGuard before any feature or permission check.
   status OrganizationStatus @default(TRIAL)
 
-  settings     OrganizationSettings?
-  subscription Subscription?
-  branding     Branding?
+  /// ── Commercials. Operator-only; never serialised to a tenant. ──────────────
+  ///
+  /// Ads run on the client's own Meta ad account and are funded by our payment
+  /// method, so the money here is our position, not theirs. A tenant is served
+  /// exactly one figure derived from these — `adAllowanceUsedPct`, a rounded
+  /// integer — and the cost-redaction interceptor strips the fields themselves
+  /// from any tenant response that accidentally carries them.
+  ///
+  /// Minor units (paise) like every other money column in this schema: a rupee
+  /// through floating point comes back as 2499.9999999999995, and this figure
+  /// decides whether a client's ads keep running.
+  adAllocationMonthly Int @default(0) @map("ad_allocation_monthly")
+
+  /// Accumulated from synced Meta insights for the current calendar month, in the
+  /// organisation's own timezone. Reset by the monthly roll, which also writes the
+  /// closing figure to `AdSpendLedger` so a renewal conversation has evidence
+  /// rather than a number that was overwritten.
+  adSpentThisMonth Int @default(0) @map("ad_spent_this_month")
+
+  /// The month `adSpentThisMonth` is accumulating into, as `YYYY-MM`. Compared
+  /// before every accumulation: without it a poller running after midnight on the
+  /// 1st adds August's spend to September's total.
+  adSpendMonth String? @map("ad_spend_month")
+
+  /// Allocation preset. An upgrade is a tier change, so nobody is hand-editing a
+  /// rupee figure and mistyping a zero.
+  tier String? @db.VarChar(40)
+
+  /// What we bill this organisation each month, minor units. Operator-only, and
+  /// the other half of the margin the console shows.
+  monthlyFee Int @default(0) @map("monthly_fee")
+
+  settings      OrganizationSettings?
+  subscription  Subscription?
+  branding      Branding?
+  adSpendLedger AdSpendLedger[]
 
   memberships            Membership[]
   invitations            Invitation[]
@@ -3714,4 +3747,40 @@ model ChatbotSession {
   @@index([organizationId, status])
   @@index([conversationId])
   @@map("chatbot_session")
+}
+
+/// One closed month of ad spend for one organisation.
+///
+/// Written by the monthly roll before `Organization.adSpentThisMonth` is reset,
+/// so a renewal conversation is evidence-based rather than resting on a counter
+/// that has since been overwritten. Operator-only: nothing on the tenant plane
+/// reads this table, and the cost-redaction interceptor would strip its columns
+/// if something tried.
+///
+/// `spentMinor` is what Meta actually charged; `allocationMinor` is what the
+/// allowance was at the time. Storing the allocation as well as the spend means a
+/// past month still makes sense after a tier change — otherwise last August's
+/// 92% silently becomes 46% when the client upgrades.
+model AdSpendLedger {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+
+  /// `YYYY-MM`, in the organisation's own timezone.
+  month String @db.VarChar(7)
+
+  spentMinor      Int @map("spent_minor")
+  allocationMinor Int @map("allocation_minor")
+
+  /// The fee charged that month, so margin is reconstructable without joining
+  /// against a fee that has since changed.
+  monthlyFeeMinor Int @default(0) @map("monthly_fee_minor")
+
+  closedAt  DateTime @default(now()) @map("closed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, month])
+  @@index([month])
+  @@map("ad_spend_ledger")
 }

@@ -13,6 +13,7 @@ import { can, type Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { CurrentEntitlements } from '../../common/decorators/current-entitlements.decorator.js'
 import { DATABASE } from '../../infrastructure/database.module.js'
+import { AdAllowanceService, type AllowanceView } from '../meta/ad-allowance.service.js'
 
 /**
  * Sidebar section order. Marketing-led: the creative/AI surfaces lead, analytics
@@ -60,7 +61,24 @@ const SECTION_ORDER: Record<string, number> = {
 @ApiTags('Workspace')
 @Controller('me')
 export class WorkspaceController {
-  constructor(@Inject(DATABASE) private readonly db: DatabaseClient) {}
+  constructor(
+    @Inject(DATABASE) private readonly db: DatabaseClient,
+    @Inject(AdAllowanceService) private readonly allowance: AdAllowanceService,
+  ) {}
+
+  /**
+   * The client's view of their monthly ad allowance.
+   *
+   * A percentage, a reset date, and whether new flights are paused. Nothing else:
+   * the allocation and the spend behind that percentage are our cost position,
+   * live on columns the tenant plane cannot select, and are stripped from any
+   * response that carries them by name.
+   */
+  @Get('ad-allowance')
+  @ApiOperation({ summary: 'Ad allowance used, as a percentage' })
+  async adAllowance(@CurrentPrincipal() principal: Principal): Promise<AllowanceView> {
+    return this.allowance.view(principal)
+  }
 
   @Get('workspace')
   @ApiOperation({ summary: 'Everything the frontend needs to render for this organisation' })

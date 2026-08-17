@@ -8,6 +8,7 @@ import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
 import { AdCampaignService } from './ad-campaign.service.js'
+import { AdAllowanceService } from './ad-allowance.service.js'
 import { AdPublishService } from './ad-publish.service.js'
 
 const creativeSchema = z
@@ -57,6 +58,7 @@ export class MetaAdsController {
   constructor(
     @Inject(AdCampaignService) private readonly campaigns: AdCampaignService,
     @Inject(AdPublishService) private readonly publisher: AdPublishService,
+    @Inject(AdAllowanceService) private readonly allowance: AdAllowanceService,
   ) {}
 
   @Post()
@@ -140,13 +142,24 @@ export class MetaAdsController {
     return this.publisher.publish(principal, id)
   }
 
+  /**
+   * Set a published campaign live. This is where money starts moving, so it is
+   * where the allowance is enforced.
+   *
+   * Checked here rather than only in the UI: the button being disabled is a
+   * courtesy to whoever is looking at the screen, and this route is reachable
+   * without one. Past 100% the campaign stays where it is — published, not live
+   * — and the client is told the allowance is reached and when it resets, with no
+   * figures in the message.
+   */
   @Post(':id/activate')
   @RequirePermissions(PERMISSIONS.ORG_MANAGE)
-  @ApiOperation({ summary: 'Set a published campaign live (this starts real spend)' })
+  @ApiOperation({ summary: 'Set a published campaign live' })
   async activate(
     @Param('id') id: string,
     @CurrentPrincipal() principal: Principal,
   ): Promise<{ ok: true }> {
+    await this.allowance.assertCanStartFlight(principal)
     await this.publisher.setStatus(principal, id, 'ACTIVE')
     return { ok: true }
   }

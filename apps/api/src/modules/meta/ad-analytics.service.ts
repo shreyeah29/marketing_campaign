@@ -8,9 +8,17 @@ import { DATABASE } from '../../infrastructure/database.module.js'
 /**
  * Client-facing campaign analytics: the "how are my ads doing, and who is seeing
  * them" numbers. Everything is tenant-scoped (RLS), so a client sees only their
- * own reach, spend, leads and audience. Values come from the synced AdInsight /
- * AdInsightBreakdown rows — empty until ads run live, but the shape is stable so
- * the UI renders the same either way.
+ * own reach, leads and audience.
+ *
+ * No cost. Ads run on the client's own ad account but are funded by us, so spend
+ * is our commercial position rather than theirs — and a client-facing service is
+ * the wrong place to compute a number nobody in this plane may see. The rows
+ * still carry `spend`; it is aggregated by the operator plane, and by the
+ * allowance accumulator, neither of which returns it here.
+ *
+ * Efficiency is expressed as leads per 1,000 impressions rather than cost per
+ * lead. It ranks the same ad sets in the same order — the denominator is the only
+ * difference — while being a number a client is allowed to act on.
  */
 
 export interface DateRange {
@@ -24,7 +32,6 @@ interface Bucket {
   impressions: number
   clicks: number
   leads: number
-  spend: number
 }
 
 function toNum(v: unknown): number {
@@ -46,30 +53,30 @@ export class AdAnalyticsService {
     return { gte: from, lte: to }
   }
 
-  /** Headline totals: reach, impressions, clicks, spend, leads, plus CTR and CPL. */
+  /** Headline totals: reach, impressions, clicks, leads, CTR, and leads per 1k. */
   async summary(_principal: Principal, input: DateRange): Promise<Record<string, number>> {
     const { gte, lte } = this.range(input)
     return withTenantTransaction(this.db, async (tx) => {
       const agg = await tx.adInsight.aggregate({
         where: { date: { gte, lte } },
-        _sum: { impressions: true, reach: true, clicks: true, leads: true, spend: true },
+        _sum: { impressions: true, reach: true, clicks: true, leads: true },
       })
       const activeCampaigns = await tx.adCampaign.count({
         where: { deletedAt: null, deliveryStatus: { in: ['ACTIVE', 'PENDING_META_REVIEW'] } },
       })
       const impressions = toNum(agg._sum.impressions)
       const clicks = toNum(agg._sum.clicks)
-      const spend = toNum(agg._sum.spend)
       const leads = toNum(agg._sum.leads)
       return {
         impressions,
         reach: toNum(agg._sum.reach),
         clicks,
-        spend,
         leads,
         activeCampaigns,
         ctr: impressions > 0 ? round(clicks / impressions) : 0,
-        cpl: leads > 0 ? round(spend / leads) : 0,
+        // Per 1,000 rather than per impression: leads/impressions on a real
+        // campaign is 0.0031, which reads as zero at any sane precision.
+        leadsPer1kImpressions: impressions > 0 ? round((leads / impressions) * 1000) : 0,
       }
     })
   }
@@ -98,15 +105,13 @@ export class AdAnalyticsService {
   async timeseries(
     _principal: Principal,
     input: DateRange,
-  ): Promise<
-    { date: string; impressions: number; clicks: number; leads: number; spend: number }[]
-  > {
+  ): Promise<{ date: string; impressions: number; clicks: number; leads: number }[]> {
     const { gte, lte } = this.range(input)
     const rows = await withTenantTransaction(this.db, (tx) =>
       tx.adInsight.groupBy({
         by: ['date'],
         where: { date: { gte, lte } },
-        _sum: { impressions: true, clicks: true, leads: true, spend: true },
+        _sum: { impressions: true, clicks: true, leads: true },
         orderBy: { date: 'asc' },
       }),
     )
@@ -115,7 +120,6 @@ export class AdAnalyticsService {
       impressions: toNum(r._sum.impressions),
       clicks: toNum(r._sum.clicks),
       leads: toNum(r._sum.leads),
-      spend: toNum(r._sum.spend),
     }))
   }
 
@@ -128,7 +132,7 @@ export class AdAnalyticsService {
       tx.adInsightBreakdown.groupBy({
         by: ['value'],
         where: { dimension: dimension as never, date: { gte, lte } },
-        _sum: { reach: true, impressions: true, clicks: true, leads: true, spend: true },
+        _sum: { reach: true, impressions: true, clicks: true, leads: true },
       }),
     )
     return rows.map((r) => ({
@@ -137,7 +141,6 @@ export class AdAnalyticsService {
       impressions: toNum(r._sum.impressions),
       clicks: toNum(r._sum.clicks),
       leads: toNum(r._sum.leads),
-      spend: toNum(r._sum.spend),
     }))
   }
 }

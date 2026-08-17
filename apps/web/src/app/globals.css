@@ -6756,6 +6756,97 @@ a:hover {
   font-size: 12.5px;
 }
 
+/* ── Campaign detail ──────────────────────────────────────────────────────── */
+
+/* Rail beside content, wrapping to a row of chips on a narrow viewport. Twelve
+   sections do not fit across the top, and a select element would hide eleven of
+   them behind a click. */
+.camp-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: flex-start;
+}
+.camp-rail {
+  flex: 0 0 208px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  position: sticky;
+  top: 70px;
+}
+.camp-body {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .camp-rail {
+    flex: 1 1 100%;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.camp-rail__item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.camp-rail__item:hover {
+  background: var(--surface-hover);
+}
+.camp-rail__item.is-active {
+  background: var(--surface-selected);
+  color: var(--cobalt-600);
+}
+.camp-rail__item .ico {
+  color: var(--text-tertiary);
+  flex: none;
+}
+.camp-rail__item.is-active .ico {
+  color: var(--cobalt-600);
+}
+.camp-rail__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Absent rather than zero when the count is unknown — a wrong zero reads as
+   "nothing here" and the tab never gets opened again. */
+.camp-rail__count {
+  flex: none;
+  font-family: var(--font-heading);
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.camp-rail__item.is-active .camp-rail__count {
+  color: var(--slate-500);
+}
+@media (max-width: 900px) {
+  .camp-rail__item {
+    width: auto;
+    border: 1px solid var(--border-default);
+  }
+  .camp-rail__item.is-active {
+    border-color: var(--border-signal);
+  }
+}
+
 /* ── Campaign pace ────────────────────────────────────────────────────────── */
 
 /* Stacked rather than side by side: each option carries a sentence explaining

@@ -1,47 +1,23 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
-import { EmptyState } from '@/components/kit'
-import { AssetEditor, SkeletonList, useCampaign } from '@/components/campaign-studio'
+import { SkeletonList } from '@/components/campaign-studio'
 
-export default function CampaignAssetDetailPage() {
+/**
+ * The asset drawer used to be a nested route; it is now the `asset` query
+ * parameter on the media section. This keeps every link that already points at
+ * an individual asset — a workflow notification, a shared review link — landing
+ * on that asset rather than on a 404.
+ */
+export default function CampaignAssetDetailRedirect() {
   const params = useParams<{ id: string; assetId: string }>()
   const router = useRouter()
-  const { assets, reload } = useCampaign()
 
-  const asset = useMemo(
-    () => assets?.find((a) => a.id === params.assetId) ?? null,
-    [assets, params.assetId],
-  )
+  useEffect(() => {
+    router.replace(`/app/campaigns/${params.id}?section=media&asset=${params.assetId}`)
+  }, [params.id, params.assetId, router])
 
-  if (assets === null) return <SkeletonList />
-
-  if (!asset) {
-    return (
-      <EmptyState
-        icon="file-text"
-        title="Asset not found"
-        hint="It may have been deleted, or this campaign has no matching asset."
-        action={
-          <button className="btn" onClick={() => router.push(`/app/campaigns/${params.id}/assets`)}>
-            Back to assets
-          </button>
-        }
-      />
-    )
-  }
-
-  return (
-    <AssetEditor
-      asset={asset}
-      variant="drawer"
-      onBack={() => router.push(`/app/campaigns/${params.id}/assets`)}
-      onChanged={() => {
-        reload()
-        router.push(`/app/campaigns/${params.id}/assets`)
-      }}
-    />
-  )
+  return <SkeletonList />
 }

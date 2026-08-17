@@ -62,6 +62,8 @@ export {
   SkeletonList,
   AssetListSection,
   SectionHeader,
+  sectionCount,
+  sectionMatches,
 } from './sections'
 export { TemplatePicker, SaveTemplateButton } from './templates'
 export { CampaignProvider, useCampaign } from './campaign-context'

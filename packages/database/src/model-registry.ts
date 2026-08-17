@@ -30,6 +30,11 @@ export const TENANT_SCOPED_MODELS = [
   'CampaignProduct',
   'Creative',
   'BatchJob',
+  // Operator-only in practice — the app role's grant is revoked and nothing on
+  // the tenant plane reads it. Registered anyway: this list is what makes the
+  // extension scope a query, and a table left off it runs UNSCOPED if a grant is
+  // ever restored. Three locks on the ledger, and this is the cheapest.
+  'AdSpendLedger',
   'BrandKit',
   'EmailCampaign',
   'EmailSequence',

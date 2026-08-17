@@ -42,6 +42,7 @@ export type IconName =
   | 'shield'
   | 'settings'
   | 'alert-triangle'
+  | 'chevron-left'
   | 'check-circle'
   | 'circle'
   | 'images'
@@ -342,6 +343,9 @@ const P: Record<string, ReactNode> = {
   'chevron-down': <polyline points="6 9 12 15 18 9" />,
   'chevron-up': <polyline points="18 15 12 9 6 15" />,
   'chevron-right': <polyline points="9 18 15 12 9 6" />,
+  /* Its mirror. Absent until the union was tightened, so both sidebar
+     collapse buttons rendered a dot in the expanded state. */
+  'chevron-left': <polyline points="15 18 9 12 15 6" />,
   copy: (
     <>
       <rect x="9" y="9" width="13" height="13" rx="2" />
@@ -574,7 +578,17 @@ export function Icon({
   style,
   title,
 }: {
-  name: IconName | string
+  /**
+   * Strict: an unknown name is a build error, not a silently rendered dot.
+   *
+   * This was `IconName | string`, which meant a typo or a missing icon fell
+   * through to the `dot` fallback and shipped. It hid `arrow-right` (a Continue
+   * button rendering a grey dot) and `alert-triangle` (in the path map, absent
+   * from this union) before it was tightened. For a name that genuinely arrives
+   * at runtime — the feature registry's icon keys — narrow it with `isIconName`
+   * first, which is what that helper is for.
+   */
+  name: IconName
   size?: number
   className?: string
   style?: CSSProperties

@@ -224,8 +224,16 @@ NEEDS_REVIEW|APPROVED|REJECTED|SCHEDULED|PUBLISHING|PUBLISHED|FAILED`.
 ## 9. Social
 
 - GET `/social/accounts` → bare array `{ id, platform, handle, displayName,
-status, followerCount, avatarUrl }[]` (hub, calendar, PublishDialog; all
-  filter `status==='CONNECTED'` client-side).
+status, followerCount, avatarUrl, canPublish, publishNote }[]` (hub, calendar,
+  PublishDialog; all filter `status==='CONNECTED'` client-side).
+  - `canPublish` / `publishNote` added 2026-08-17. `status==='CONNECTED'` means
+    only that the row exists — a hand-entered handle is CONNECTED and cannot
+    post. `canPublish` is the question that word appears to answer: true when
+    Instagram has an `igUserId` or Facebook a `pageId` on the org's Meta
+    connection. `publishNote` is the one-sentence reason when it is false. It
+    mirrors `resolveAuth` in `apps/worker/src/social/index.ts`; the two must
+    agree, because one decides what the screen promises and the other what
+    happens at the scheduled minute.
 - GET `/social/posts` → bare array `{ id, status, body, hashtags[],
 scheduledAt, publishedAt, createdAt, targets:{ id, socialAccountId, handle,
 platform, status, permalink, failureReason, publishedAt }[] }[]` — per-

@@ -239,19 +239,24 @@ export class SchedulePoller {
       if (!post) continue
       published++
       let anyFailed = false
+      /** The first reason, so the notification can say what actually stopped it. */
+      let firstReason: string | null = null
       for (const target of post.targets) {
         if (target.status === 'PUBLISHED') continue
         try {
           const account = target.socialAccount
-          // Attempt a real publish through the platform adapter. It returns
-          // `simulate` when the platform is unknown or the account has no
-          // decryptable token (no approved OAuth app / connection yet), in which
-          // case we record the same simulated result the product treats as real —
-          // so the demo works today and real posting switches on automatically the
-          // moment a connected account supplies a token.
+          // A publish either happened or it did not. There is no simulated
+          // branch: this used to mark the target PUBLISHED with an invented
+          // permalink whenever no token was available, which meant the product
+          // reported a post as live on Instagram while nothing had been sent.
           const outcome = await publishToTarget(
             this.db,
-            this.env.ENCRYPTION_MASTER_KEY,
+            {
+              masterKeySource: this.env.ENCRYPTION_MASTER_KEY,
+              organizationId: post.organizationId,
+              graphVersion: this.env.META_GRAPH_VERSION,
+              appSecret: this.env.META_APP_SECRET,
+            },
             { body: post.body, hashtags: post.hashtags, mediaIds: post.mediaIds },
             {
               platform: account.platform,
@@ -260,25 +265,38 @@ export class SchedulePoller {
               credentialId: account.credentialId,
             },
           )
-          const resolved =
-            outcome.kind === 'published'
-              ? { externalPostId: outcome.externalPostId, permalink: outcome.permalink }
-              : {
-                  externalPostId: `sim_${post.id.slice(0, 8)}_${target.id.slice(0, 6)}`,
-                  permalink: simulatedPermalink(account.platform, account.handle, post.id),
-                }
+
+          if (outcome.kind === 'unavailable') {
+            // Not an exception: nothing went wrong, the capability is absent. It
+            // still fails the target, because the alternative is claiming success.
+            anyFailed = true
+            firstReason ??= outcome.reason
+            this.logger.info(
+              { targetId: target.id, platform: account.platform, reason: outcome.reason },
+              'social target cannot be published',
+            )
+            await this.db.socialPostTarget
+              .update({
+                where: { id: target.id },
+                data: { status: 'FAILED', failureReason: outcome.reason },
+              })
+              .catch(() => undefined)
+            continue
+          }
+
           await this.db.socialPostTarget.update({
             where: { id: target.id },
             data: {
               status: 'PUBLISHED',
               publishedAt: new Date(),
-              externalPostId: resolved.externalPostId,
-              permalink: resolved.permalink,
+              externalPostId: outcome.externalPostId,
+              permalink: outcome.permalink,
               failureReason: null,
             },
           })
         } catch (err) {
           anyFailed = true
+          firstReason ??= errMessage(err)
           this.logger.warn({ err, targetId: target.id }, 'social target publish failed')
           await this.db.socialPostTarget
             .update({
@@ -302,9 +320,13 @@ export class SchedulePoller {
           data: {
             organizationId: post.organizationId,
             level: anyFailed ? 'ERROR' : 'INFO',
-            title: anyFailed ? 'A social post failed to publish' : 'Social post published',
+            title: anyFailed ? 'A social post was not published' : 'Social post published',
+            // The reason, not "one or more targets". Without it the only way to
+            // learn why is to open the post, and the most common reason —
+            // Instagram is not authorised to post yet — is not something a retry
+            // will fix.
             body: anyFailed
-              ? 'One or more targets could not be published. Open the post to retry.'
+              ? (firstReason ?? 'No target could be published. Open the post for the reason.')
               : `Your post was published to ${String(post.targets.length)} channel(s).`,
             actionUrl: '/app/marketing/social',
           },
@@ -312,27 +334,6 @@ export class SchedulePoller {
         .catch(() => undefined)
     }
     if (published > 0) this.logger.info({ count: published }, 'published due social posts')
-  }
-}
-
-function simulatedPermalink(platform: string, handle: string | null, postId: string): string {
-  const h = (handle ?? 'account').replace(/^@/, '')
-  const id = postId.slice(0, 10)
-  switch (platform) {
-    case 'INSTAGRAM':
-      return `https://instagram.com/${h}/p/${id}`
-    case 'FACEBOOK':
-      return `https://facebook.com/${h}/posts/${id}`
-    case 'LINKEDIN':
-      return `https://linkedin.com/feed/update/${id}`
-    case 'X':
-      return `https://x.com/${h}/status/${id}`
-    case 'YOUTUBE':
-      return `https://youtube.com/watch?v=${id}`
-    case 'TIKTOK':
-      return `https://tiktok.com/@${h}/video/${id}`
-    default:
-      return `https://social.example.com/${h}/${id}`
   }
 }
 

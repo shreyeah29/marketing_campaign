@@ -28,6 +28,9 @@ interface SocialAccount {
   status: string
   followerCount: number | null
   avatarUrl: string | null
+  /** Whether a post to this account would reach the network. Server-computed. */
+  canPublish: boolean
+  publishNote: string | null
 }
 
 interface SocialPostTarget {
@@ -203,8 +206,9 @@ export function SocialHub({ locked }: { locked?: string }) {
       </div>
 
       <div className="banner info" style={{ marginBottom: 14 }}>
-        Live OAuth to Instagram/Facebook/LinkedIn/X requires approved developer apps; connect
-        manually to schedule and preview now.
+        Adding an account here records the handle for planning and scheduling. Posting to Instagram
+        or Facebook happens through the Meta connection under Channels — a handle on its own cannot
+        publish.
       </div>
 
       {accounts === null ? (
@@ -232,8 +236,26 @@ export function SocialHub({ locked }: { locked?: string }) {
                     </div>
                   </div>
                 </div>
-                <Chip>{a.status === 'CONNECTED' ? 'Connected' : 'Not connected'}</Chip>
+                {/* "Connected" used to mean only "the row exists", which reads
+                    as "posts will go out". The label now states which of the two
+                    it is. Neutral, not coloured: the status vocabulary has
+                    eleven members and this is not a twelfth. */}
+                <Chip title={a.publishNote ?? undefined}>
+                  {a.status !== 'CONNECTED'
+                    ? 'Not connected'
+                    : a.canPublish
+                      ? 'Ready to post'
+                      : 'Cannot post yet'}
+                </Chip>
               </div>
+              {a.publishNote ? (
+                <p
+                  className="type-caption"
+                  style={{ margin: '10px 0 0', color: 'var(--text-tertiary)' }}
+                >
+                  {a.publishNote}
+                </p>
+              ) : null}
               <div className="row" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
                 <button className="btn danger sm" onClick={() => setDisconnectId(a.id)}>
                   Disconnect
@@ -342,8 +364,9 @@ function ConnectDrawer({ onClose, onConnected }: { onClose: () => void; onConnec
       }
     >
       <div className="banner info" style={{ marginBottom: 14 }}>
-        Live OAuth to Instagram/Facebook/LinkedIn/X requires approved developer apps; connect
-        manually to schedule and preview now.
+        This records the handle so you can plan and schedule against it. It does not authorise
+        posting: Instagram and Facebook publish through the Meta connection under Channels, and the
+        other networks need their own approved apps.
       </div>
       <Field label="Platform">
         <select className="select" value={platform} onChange={(e) => setPlatform(e.target.value)}>

@@ -68,13 +68,19 @@ export class SocialController {
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   @ApiOperation({ summary: 'List connected social accounts' })
   async listAccounts(): Promise<SocialAccountResponse[]> {
-    const rows = await withTenantTransaction(this.db, (tx) =>
-      tx.socialAccount.findMany({
+    const { rows, meta } = await withTenantTransaction(this.db, async (tx) => ({
+      rows: await tx.socialAccount.findMany({
         where: { deletedAt: null },
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       }),
-    )
-    return rows.map(toAccountResponse)
+      // findFirst, not findUnique: the tenant extension cannot scope a unique
+      // lookup, and this table is tenant-scoped.
+      meta: await tx.metaConnection.findFirst({
+        where: { status: 'CONNECTED' },
+        select: { igUserId: true, pageId: true },
+      }),
+    }))
+    return rows.map((row) => toAccountResponse(row, meta))
   }
 
   @Post('accounts/connect')
@@ -126,7 +132,11 @@ export class SocialController {
             },
           })
 
-      return toAccountResponse(account)
+      const meta = await tx.metaConnection.findFirst({
+        where: { status: 'CONNECTED' },
+        select: { igUserId: true, pageId: true },
+      })
+      return toAccountResponse(account, meta)
     })
   }
 
@@ -275,6 +285,18 @@ interface SocialAccountResponse {
   status: string
   followerCount: number | null
   avatarUrl: string | null
+  /**
+   * Whether a scheduled post to this account would actually reach the network.
+   *
+   * `status: CONNECTED` only means the row exists — a hand-entered handle is
+   * "connected" and cannot post, which is how a client came to believe a post
+   * had gone live when nothing had been sent. This field answers the question
+   * the word Connected appears to answer, and it is computed here rather than in
+   * the UI because the worker's publish path is the authority on it.
+   */
+  canPublish: boolean
+  /** Why not, in one sentence, when `canPublish` is false. */
+  publishNote: string | null
 }
 
 interface SocialPostTargetResponse {
@@ -309,7 +331,55 @@ interface AccountRow {
   avatarUrl: string | null
 }
 
-function toAccountResponse(row: AccountRow): SocialAccountResponse {
+/**
+ * What the organisation's Meta connection can publish to, or null when there is
+ * no connection. Instagram and Facebook publish through Meta's Graph API, so the
+ * ability to post to them lives on this record and not on the social account.
+ */
+interface MetaPublishTargets {
+  readonly igUserId: string | null
+  readonly pageId: string | null
+}
+
+/**
+ * Mirrors `resolveAuth` in apps/worker/src/social/index.ts. The two must agree:
+ * this decides what the screen promises, that decides what happens at the
+ * scheduled minute, and a disagreement between them is exactly the bug this
+ * field exists to prevent.
+ */
+function publishability(
+  platform: string,
+  meta: MetaPublishTargets | null,
+): { canPublish: boolean; publishNote: string | null } {
+  if (platform === 'INSTAGRAM') {
+    return meta?.igUserId
+      ? { canPublish: true, publishNote: null }
+      : {
+          canPublish: false,
+          publishNote:
+            'Recorded, but not able to post. Connect Meta under Channels and choose this Instagram business account.',
+        }
+  }
+  if (platform === 'FACEBOOK') {
+    return meta?.pageId
+      ? { canPublish: true, publishNote: null }
+      : {
+          canPublish: false,
+          publishNote:
+            'Recorded, but not able to post. Connect Meta under Channels and choose the Facebook Page.',
+        }
+  }
+  return {
+    canPublish: false,
+    publishNote: `Recorded for planning. ${platform.charAt(0) + platform.slice(1).toLowerCase()} has no approved app on this deployment, so posts cannot be sent to it yet.`,
+  }
+}
+
+function toAccountResponse(
+  row: AccountRow,
+  meta: MetaPublishTargets | null,
+): SocialAccountResponse {
+  const { canPublish, publishNote } = publishability(row.platform, meta)
   return {
     id: row.id,
     platform: row.platform,
@@ -318,6 +388,8 @@ function toAccountResponse(row: AccountRow): SocialAccountResponse {
     status: row.status,
     followerCount: row.followerCount,
     avatarUrl: row.avatarUrl,
+    canPublish,
+    publishNote,
   }
 }
 

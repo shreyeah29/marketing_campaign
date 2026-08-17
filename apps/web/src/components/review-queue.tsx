@@ -521,7 +521,7 @@ export function ReviewQueue() {
         message={
           confirmRedo
             ? [
-                `“${confirmRedo.title}” will be generated again from the same prompt.`,
+                `“${confirmRedo.title}” will be generated again.`,
                 '',
                 confirmRedo.kind === 'video'
                   ? 'This asks the provider for a new video, which spends a video minute from your plan and takes one to three minutes. The current version is replaced and cannot be recovered.'

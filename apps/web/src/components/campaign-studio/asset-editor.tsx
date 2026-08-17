@@ -252,14 +252,22 @@ export function AssetEditor({
 
       {tab === 'content' ? (
         <div className="stack" style={{ gap: 12 }}>
-          <Field label="Body">
-            <textarea
-              className="input"
-              rows={7}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-            />
-          </Field>
+          {/* On a poster or video concept, `body` is the generation prompt, and
+              prompts are not shown anywhere in the product. On every other kind
+              it is the copy itself, which is the whole reason this drawer opens.
+              Same column, two different things — so the field appears for one
+              and not the other. The stored prompt is untouched; regeneration
+              still uses it. */}
+          {isConcept ? null : (
+            <Field label="Body">
+              <textarea
+                className="input"
+                rows={7}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+              />
+            </Field>
+          )}
           <Field label="Caption">
             <input className="input" value={caption} onChange={(e) => setCaption(e.target.value)} />
           </Field>

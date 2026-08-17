@@ -19,16 +19,14 @@ import { Spinner } from '@/components/ui'
  *
  * Two real sources, and no third invented one:
  *
- *   · campaign assets of kind IMAGE_PROMPT / VIDEO_PROMPT, where `body` is the
- *     generation prompt itself — the actual string sent to the model
+ *   · campaign assets of kind IMAGE_PROMPT / VIDEO_PROMPT
  *   · creatives, the template-rendered posters
  *
- * The distinction matters in the detail rail. A campaign asset has a prompt
- * because a model made it. A template poster has none, because no model was
- * involved — the layout and the product photograph made it. The rail says that
- * rather than paraphrasing something into the gap: being able to see exactly
- * what produced an image is half the value of a library, and a plausible
- * summary of a prompt is worse than admitting there wasn't one.
+ * Prompts are not shown, here or anywhere else in the product. They are stored
+ * — the API still holds the exact string that produced each image, which is
+ * what regeneration reuses — but a library is for choosing a picture, and a
+ * wall of generation instructions is not something the person choosing needs to
+ * read. The tile and the actions under it are the whole surface.
  *
  * Video tiles render the video element itself with `preload="metadata"`, so the
  * browser paints the first frame. That is a real poster frame from the real
@@ -54,8 +52,6 @@ interface Item {
   medium: Medium
   title: string
   url: string
-  /** The real prompt, or null when nothing generated this from one. */
-  prompt: string | null
   campaign: string | null
   status: string
   /** From the creative record; images and video measure their own. */
@@ -171,8 +167,6 @@ export function MediaLibrary() {
             medium: a.kind === 'VIDEO_PROMPT' ? 'video' : 'image',
             title: a.title?.trim() || 'Untitled',
             url: a.mediaUrl,
-            // `body` is the prompt that was sent to the model, verbatim.
-            prompt: a.body.trim() || null,
             campaign: (a.campaignId ? names.get(a.campaignId) : null) ?? null,
             status: a.status,
             aspectRatio: null,
@@ -192,10 +186,6 @@ export function MediaLibrary() {
             medium: 'image',
             title: c.product?.name ?? 'Poster',
             url: c.renderedUrl,
-            // Deliberately null. A template poster is composed, not generated —
-            // there was no prompt, and inventing a description of one would be
-            // the exact paraphrase this rail exists to avoid.
-            prompt: null,
             campaign: c.campaign?.name ?? null,
             status: c.status,
             aspectRatio: c.aspectRatio,
@@ -236,7 +226,6 @@ export function MediaLibrary() {
       if (!q) return true
       return (
         i.title.toLowerCase().includes(q) ||
-        (i.prompt ?? '').toLowerCase().includes(q) ||
         (i.campaign ?? '').toLowerCase().includes(q) ||
         i.tags.some((t) => t.toLowerCase().includes(q))
       )
@@ -302,7 +291,7 @@ export function MediaLibrary() {
           className="input"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by prompt, product, campaign"
+          placeholder="Search by name, product, campaign"
           aria-label="Search the library"
           style={{ flex: '1 1 200px', maxWidth: 280 }}
         />
@@ -436,22 +425,6 @@ export function MediaLibrary() {
                   {measured[selected.id]?.duration ? ` · ${measured[selected.id]?.duration}` : ''}
                   {` · ${selected.status.toLowerCase()}`}
                 </div>
-
-                <div className="field-label" style={{ marginTop: 12 }}>
-                  PROMPT
-                </div>
-                {selected.prompt ? (
-                  /* The stored string, verbatim and unabridged. Seeing exactly
-                     what produced an image is the point; a tidied version is a
-                     different prompt. */
-                  <p className="lib-rail__prompt">{selected.prompt}</p>
-                ) : (
-                  <p className="lib-rail__prompt is-absent">
-                    {selected.source === 'creative'
-                      ? 'No prompt — this poster was composed from a template and your product photograph, with no model involved.'
-                      : 'No prompt was recorded for this asset.'}
-                  </p>
-                )}
 
                 {selected.tags.length > 0 ? (
                   <>

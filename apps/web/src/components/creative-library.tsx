@@ -361,13 +361,6 @@ export function CreativeLibrary({ type }: { type?: Medium }) {
                 </>
               ) : null}
 
-              <p className="type-label" style={{ marginTop: 20 }}>
-                Prompt
-              </p>
-              <p className="type-secondary" style={{ margin: 0 }}>
-                {open.body}
-              </p>
-
               <div className="gallery__actions">
                 <button type="button" className="btn" onClick={() => download(open)}>
                   <Icon name="download" size={14} /> Download

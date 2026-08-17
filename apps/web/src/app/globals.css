@@ -6975,20 +6975,6 @@ a:hover {
   color: var(--text-muted);
   margin-bottom: 12px;
 }
-/* The prompt is shown whole. `pre-wrap` keeps the line breaks the model was
-   actually given, and no clamp — a truncated prompt is a different prompt. */
-.lib-rail__prompt {
-  margin: 0 0 12px;
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  white-space: pre-wrap;
-}
-.lib-rail__prompt.is-absent {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
 /* ── Campaign detail ──────────────────────────────────────────────────────── */
 
 /* Rail beside content, wrapping to a row of chips on a narrow viewport. Twelve

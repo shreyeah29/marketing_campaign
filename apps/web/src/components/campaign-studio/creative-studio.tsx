@@ -647,14 +647,6 @@ export function CreativeStudio({
                     <p className="type-body-strong">{activeAdaptation.cta}</p>
                   </>
                 ) : null}
-                {selectedPiece.master && !previewUrl ? (
-                  <>
-                    <p className="type-label" style={{ marginTop: 20 }}>
-                      {isVideo ? 'Video prompt' : 'Image prompt'}
-                    </p>
-                    <p className="cstudio__caption type-secondary">{selectedPiece.master.body}</p>
-                  </>
-                ) : null}
               </div>
             ) : null}
 

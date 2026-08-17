@@ -42,9 +42,11 @@ const spaceGrotesk = localFont({
 const plexSans = localFont({
   src: [
     { path: '../../public/fonts/IBMPlexSans-Variable.ttf', weight: '100 700', style: 'normal' },
-    // The italic is a separate file, and it is used: the media library sets the
-    // "no prompt was recorded" line in italic to mark it as absence rather than
-    // content. Without this face the browser would synthesise a slant.
+    // The italic is a separate file. Nothing sets `font-style: italic` today —
+    // the one rule that did belonged to the library's prompt rail, which is
+    // gone. Kept rather than deleted because the alternative is a synthesised
+    // slant the first time any copy needs emphasis, and one unreferenced font
+    // file is cheaper than that surprise.
     {
       path: '../../public/fonts/IBMPlexSans-Italic-Variable.ttf',
       weight: '100 700',

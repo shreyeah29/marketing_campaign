@@ -7,6 +7,9 @@ import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
 import { Spinner } from '@/components/ui'
 
+import { useWorkspace } from '@/app/app/layout'
+
+import { BriefCoach } from './brief-coach'
 import { SUGGESTION_ROWS } from './constants'
 import type { Campaign, CreateDraft } from './types'
 
@@ -61,6 +64,13 @@ export function PromptView({
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
+
+  // The coach is a copywriter-class call per analyse, so it only exists for a
+  // workspace entitled to one. Without the feature the field is exactly as it
+  // was — no placeholder, no upsell.
+  const ws = useWorkspace()
+  const hasCoach = ws.enabledFeatures.includes('ai.copywriter')
+  const canAsk = ws.enabledFeatures.includes('ai.chat')
 
   useEffect(() => {
     const el = taRef.current
@@ -119,6 +129,8 @@ export function PromptView({
           aria-label="Campaign brief"
           autoFocus
         />
+
+        {hasCoach ? <BriefCoach brief={prompt} onReplace={setPrompt} canAsk={canAsk} /> : null}
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 14, marginTop: 16 }}>
           <button

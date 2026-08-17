@@ -63,3 +63,4 @@ export {
 } from './sections'
 export { TemplatePicker, SaveTemplateButton } from './templates'
 export { CampaignProvider, useCampaign } from './campaign-context'
+export { BriefCoach } from './brief-coach'

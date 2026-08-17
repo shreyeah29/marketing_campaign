@@ -6948,3 +6948,107 @@ a:hover {
   padding: 5px 10px;
   font-size: 12.5px;
 }
+
+/* ── Brief coach ──────────────────────────────────────────────────────────── */
+
+.coach {
+  margin-top: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+.coach__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-default);
+}
+.coach__title {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  font-size: 13.5px;
+}
+.coach__status {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+/* The meter is short on purpose. It reports how much context the brief carries,
+   and a full-width bar would read as progress towards a gate — the coach never
+   gates anything. */
+.coach__meter {
+  margin-left: auto;
+  width: 66px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+  flex: none;
+}
+.coach__meter-fill {
+  height: 100%;
+  background: var(--cobalt-600);
+  border-radius: 3px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.coach__body {
+  padding: 14px 15px;
+}
+.coach__section-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* A covered dimension is stated, a missing one is an offer you can act on —
+   the same solid/dashed grammar the intake chips use. */
+.coach__chip {
+  gap: 6px;
+}
+.coach__chip[data-covered] {
+  cursor: default;
+}
+
+.coach__rewrite {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-default);
+  border-radius: 9px;
+  background: var(--surface-rail);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+/* What the rewrite added, marked so it can be read rather than trusted. */
+.coach__added {
+  color: var(--cobalt-600);
+  background: var(--jade-100);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+
+.coach__ask {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+.coach__answer {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+.coach__undo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 15px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--jade-100);
+  font-size: 12.5px;
+  color: var(--cobalt-600);
+}

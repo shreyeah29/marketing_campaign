@@ -6756,6 +6756,146 @@ a:hover {
   font-size: 12.5px;
 }
 
+/* ── Media library ────────────────────────────────────────────────────────── */
+
+.lib-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+.lib-grid {
+  flex: 3 1 480px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.lib-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.lib-tile__frame {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-lg);
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.lib-tile__frame img,
+.lib-tile__frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.lib-tile.is-selected .lib-tile__frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 3px var(--cobalt-600);
+  border-radius: var(--radius-lg);
+}
+.lib-tile__badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  font-family: var(--font-heading);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  background: rgba(11, 11, 12, 0.82);
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: var(--cobalt-600);
+}
+/* Sits over the first frame the browser painted, so a video reads as playable
+   without a separate thumbnail that could drift from the file. */
+.lib-tile__play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--cobalt-600);
+  pointer-events: none;
+}
+.lib-tile__time {
+  position: absolute;
+  bottom: 7px;
+  right: 7px;
+  font-size: 10.5px;
+  background: rgba(11, 11, 12, 0.82);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-primary);
+}
+.lib-tile__title {
+  font-size: 12.5px;
+  margin-top: 7px;
+}
+.lib-tile__meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.lib-rail {
+  flex: 1 1 268px;
+  max-width: 320px;
+  min-width: 0;
+  position: sticky;
+  top: 70px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+@media (max-width: 900px) {
+  .lib-rail {
+    position: static;
+    max-width: none;
+    flex-basis: 100%;
+  }
+}
+.lib-rail__preview {
+  aspect-ratio: 4 / 5;
+  background: var(--surface-sunken);
+}
+.lib-rail__preview img,
+.lib-rail__preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: var(--surface-canvas);
+}
+.lib-rail__meta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+/* The prompt is shown whole. `pre-wrap` keeps the line breaks the model was
+   actually given, and no clamp — a truncated prompt is a different prompt. */
+.lib-rail__prompt {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.lib-rail__prompt.is-absent {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* ── Campaign detail ──────────────────────────────────────────────────────── */
 
 /* Rail beside content, wrapping to a row of chips on a narrow viewport. Twelve

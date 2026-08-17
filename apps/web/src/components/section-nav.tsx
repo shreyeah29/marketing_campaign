@@ -54,8 +54,10 @@ export const CAMPAIGN_SECTION: readonly SectionLink[] = [
   { href: '/app/creatives', label: 'Creatives', icon: 'image' },
 ]
 
-/** The Library group: finished creatives, and the layouts that produce them. */
+/** The Library group. Mirrors the sidebar's Library entries, so the sub-tabs and
+ *  the rail cannot describe the same area differently. */
 export const LIBRARY_SECTION: readonly SectionLink[] = [
-  { href: '/app/content', label: 'Creatives', icon: 'image' },
+  { href: '/app/ai/images', label: 'Images & video', icon: 'images' },
+  { href: '/app/content', label: 'Copy & captions', icon: 'file-text' },
   { href: '/app/templates', label: 'Templates', icon: 'layout' },
 ]

@@ -1,321 +1,395 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type MouseEvent } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
-import { useToast } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { Icon } from '@/components/icon'
-import { Spinner, LoadingScreen } from '@/components/ui'
-import { PlatformIcon } from '@/components/platform-icon'
-import { kindLabel, StatusPill, StatusRail, toStatus } from '@/components/status'
+import { Icon, type IconName } from '@/components/icon'
+import { LoadingScreen, Spinner } from '@/components/ui'
 import {
-  buildBriefFromDraft,
   fetchAssets,
   fetchCampaignById,
-  readDraft,
-  upsertDraft,
   type Asset,
   type Campaign,
-  type CampaignPlan,
 } from '@/components/campaign-studio'
 
-const STRATEGY_CHECKLIST = [
-  'Analysing your market',
-  'Researching competitors',
-  'Building the funnel',
-  'Allocating budget',
-  'Drafting the schedule',
-] as const
+/**
+ * Generation run — step 4 of six.
+ *
+ * The run belongs to the server, and this screen only reports it. That is the
+ * whole design: close the tab mid-run and the work carries on, because it is a
+ * campaign and a set of asset rows in Postgres, not a timer in a browser.
+ * Coming back re-reads that state and shows where the run actually is.
+ *
+ * The previous version of this screen animated a five-step checklist on
+ * `setTimeout`, which meant reloading restarted the story from the beginning
+ * while the real run was two thirds done. Every row below is derived from asset
+ * status instead. Nothing here is on a timer except the poll.
+ *
+ * A failed asset retries twice and then stops, staying FAILED so it surfaces in
+ * the review queue marked for a redo. It never holds up the rest: the retry is
+ * per asset, and the other twenty-two finish regardless.
+ */
+
+/** How many times this screen will re-ask for one failed asset. */
+const MAX_RETRIES = 2
+const POLL_MS = 2500
+
+const STEPS = ['Brief', 'Intake', 'Plan', 'Generate', 'Review', 'Publish'] as const
+
+type RowState = 'done' | 'running' | 'queued' | 'failed'
+
+interface LogRow {
+  key: string
+  label: string
+  state: RowState
+  detail: string
+}
+
+/** Kinds that carry rendered artwork, so a missing `mediaUrl` means unfinished. */
+const VISUAL_KINDS = new Set(['IMAGE_PROMPT', 'VIDEO_PROMPT'])
+
+function isDone(a: Asset): boolean {
+  if (a.status === 'FAILED') return false
+  if (VISUAL_KINDS.has(a.kind)) return Boolean(a.mediaUrl)
+  return a.body.trim().length > 0
+}
+
+/**
+ * The run log, derived from asset rows.
+ *
+ * Grouped by kind rather than listed per asset: "10 posters composed" is the
+ * sentence someone wants, and twenty-three rows scrolling past is not. Each
+ * group reports the truth of its members — all done, some in flight, none
+ * started, or some failed after retries.
+ */
+function buildLog(assets: Asset[], attempts: Map<string, number>): LogRow[] {
+  const groups: { key: string; kinds: string[]; label: (n: number) => string }[] = [
+    {
+      key: 'copy',
+      kinds: ['POST'],
+      label: (n) => `${String(n)} post${n === 1 ? '' : 's'} written`,
+    },
+    {
+      key: 'posters',
+      kinds: ['IMAGE_PROMPT'],
+      label: (n) => `${String(n)} poster${n === 1 ? '' : 's'} composed`,
+    },
+    {
+      key: 'videos',
+      kinds: ['VIDEO_PROMPT'],
+      label: (n) => `${String(n)} video concept${n === 1 ? '' : 's'} rendered`,
+    },
+    {
+      key: 'ads',
+      kinds: ['AD_COPY', 'AD_HEADLINE', 'AD_DESCRIPTION'],
+      label: (n) => `${String(n)} ad copy set${n === 1 ? '' : 's'}`,
+    },
+  ]
+
+  const rows: LogRow[] = []
+  for (const g of groups) {
+    const members = assets.filter((a) => g.kinds.includes(a.kind))
+    if (members.length === 0) continue
+
+    const done = members.filter(isDone)
+    const failed = members.filter(
+      (a) => a.status === 'FAILED' && (attempts.get(a.id) ?? 0) >= MAX_RETRIES,
+    )
+    const pending = members.filter((a) => !isDone(a) && a.status !== 'FAILED')
+
+    let state: RowState
+    let detail: string
+    if (failed.length > 0 && done.length + failed.length === members.length) {
+      state = 'failed'
+      detail = `${String(failed.length)} for redo`
+    } else if (pending.length === 0 && failed.length === 0) {
+      state = 'done'
+      detail = 'done'
+    } else if (done.length > 0 || pending.length < members.length) {
+      state = 'running'
+      detail = `${String(done.length)} of ${String(members.length)}`
+    } else {
+      state = 'queued'
+      detail = 'queued'
+    }
+
+    rows.push({ key: g.key, label: g.label(members.length), state, detail })
+  }
+  return rows
+}
+
+const ROW_ICON: Record<RowState, IconName> = {
+  done: 'check-circle',
+  running: 'refresh',
+  queued: 'circle',
+  failed: 'alert-triangle',
+}
 
 export default function GeneratingPage() {
   return (
     <Suspense fallback={<LoadingScreen />}>
-      <GeneratingInner />
+      <RunInner />
     </Suspense>
   )
 }
 
-function GeneratingInner() {
+function RunInner() {
   const params = useParams<{ id: string }>()
-  const search = useSearchParams()
   const router = useRouter()
-  const toast = useToast()
-  const id = params.id
-  const phase = search.get('phase') === 'strategy' ? 'strategy' : 'assets'
+  const campaignId = params.id
 
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [assets, setAssets] = useState<Asset[] | null>(null)
-  const [checkIdx, setCheckIdx] = useState(0)
-  const [planning, setPlanning] = useState(false)
-  const [retrying, setRetrying] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const draft = phase === 'strategy' ? readDraft(id) : null
-  const isDraftRoute = phase === 'strategy' && draft !== null
+  /**
+   * Retry counts, per asset, for this visit.
+   *
+   * Deliberately not persisted. The count exists to stop this screen asking the
+   * same failed asset forever; a fresh visit is a fresh judgement, and the
+   * explicit Retry in the review queue is the durable path for a redo.
+   */
+  const attempts = useRef<Map<string, number>>(new Map())
+  const retrying = useRef<Set<string>>(new Set())
 
-  useEffect(() => {
-    if (phase !== 'strategy' || !isDraftRoute) return
-    let cancelled = false
-    const timers: number[] = []
-
-    STRATEGY_CHECKLIST.forEach((_, i) => {
-      timers.push(
-        window.setTimeout(
-          () => {
-            if (!cancelled) setCheckIdx(i)
-          },
-          i * 900 + 400,
-        ),
-      )
-    })
-
-    async function runPlan() {
-      const d = readDraft(id)
-      if (!d) return
-      if (d.plan) {
-        timers.push(
-          window.setTimeout(
-            () => {
-              if (!cancelled) router.replace(`/app/create/strategy/${id}`)
-            },
-            STRATEGY_CHECKLIST.length * 900 + 600,
-          ),
-        )
-        return
-      }
-      const brief = buildBriefFromDraft(d)
-      if (brief.trim().length < 4) return
-      setPlanning(true)
-      try {
-        const plan = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
-        upsertDraft(id, { brief, plan })
-      } catch (e) {
-        toast.push('error', e instanceof ApiError ? e.message : 'Could not build the plan')
-      } finally {
-        setPlanning(false)
-        timers.push(
-          window.setTimeout(() => {
-            if (!cancelled) router.replace(`/app/create/strategy/${id}`)
-          }, 800),
-        )
-      }
-    }
-
-    void runPlan()
-
-    return () => {
-      cancelled = true
-      timers.forEach((t) => window.clearTimeout(t))
-    }
-  }, [phase, isDraftRoute, id, router, toast])
-
-  const reloadAssets = useCallback(async () => {
-    const [c, a] = await Promise.all([fetchCampaignById(id), fetchAssets(id)])
-    if (c) setCampaign(c)
-    else setCampaign({ id, name: 'Campaign' })
-    setAssets(a)
-  }, [id])
-
-  useEffect(() => {
-    if (phase === 'strategy' && isDraftRoute) return
-    let cancelled = false
-    async function tick() {
-      const [c, a] = await Promise.all([fetchCampaignById(id), fetchAssets(id)])
-      if (cancelled) return
-      if (c) setCampaign(c)
-      else setCampaign({ id, name: 'Campaign' })
-      setAssets(a)
-    }
-    void tick()
-    const interval = window.setInterval(() => void tick(), 2500)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-    }
-  }, [id, phase, isDraftRoute])
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, Asset[]>()
-    for (const a of assets ?? []) {
-      const p = a.platform.toUpperCase()
-      if (!map.has(p)) map.set(p, [])
-      map.get(p)!.push(a)
-    }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b))
-  }, [assets])
-
-  const generatedCount = (assets ?? []).filter((a) => a.status !== 'FAILED').length
-  const firstGroupComplete = grouped.some(([, items]) =>
-    items.some((a) => a.status !== 'FAILED' && a.body.trim().length > 0),
-  )
-
-  async function retryAsset(assetId: string) {
-    setRetrying(assetId)
+  const load = useCallback(async () => {
     try {
-      await api.post(`/campaign-assets/${assetId}/regenerate`, {})
-      await reloadAssets()
-      toast.push('success', 'Regeneration started')
+      const [c, a] = await Promise.all([fetchCampaignById(campaignId), fetchAssets(campaignId)])
+      setCampaign(c ?? { id: campaignId, name: 'Campaign' })
+      setAssets(a)
+      setError(null)
     } catch (e) {
-      toast.push('error', e instanceof ApiError ? e.message : 'Retry failed')
-    } finally {
-      setRetrying(null)
+      setError(e instanceof ApiError ? e.message : 'Could not read the run')
     }
-  }
+  }, [campaignId])
 
-  if (phase === 'strategy' && isDraftRoute) {
-    return (
-      <FadeIn className="gen-strategy" style={{ maxWidth: 480, margin: '48px auto', padding: 16 }}>
-        <div className="row" style={{ gap: 10, marginBottom: 8 }}>
-          <Icon name="sparkles" size={18} style={{ color: 'var(--iris-600)' }} />
-          <div
-            className="dim"
-            style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-          >
-            Planning your campaign
-          </div>
-        </div>
-        <h1 style={{ fontSize: 26, letterSpacing: '-0.02em', marginBottom: 8 }}>
-          Building your strategy
-        </h1>
-        <p className="muted mono" style={{ marginBottom: 28, fontSize: 13 }}>
-          ~{Math.max(15, 45 - checkIdx * 8)}s remaining
-        </p>
-        <ul className="gen-checklist">
-          {STRATEGY_CHECKLIST.map((label, i) => {
-            const done = i < checkIdx
-            const current = i === checkIdx
-            return (
-              <li
-                key={label}
-                className={`gen-checklist__item${done ? ' is-done' : ''}${current ? ' is-current' : ''}`}
-              >
-                <span className="gen-checklist__tick" aria-hidden>
-                  {done ? '✓' : i + 1}
-                </span>
-                {label}
-              </li>
-            )
-          })}
-        </ul>
-        {planning ? (
-          <div className="row" style={{ gap: 8, marginTop: 24 }}>
-            <Spinner />
-            <span className="dim" style={{ fontSize: 13 }}>
-              Calling the planner…
-            </span>
-          </div>
-        ) : null}
-        <div style={{ marginTop: 32 }}>
-          <Link className="btn ghost sm" href="/app/create">
-            Cancel
-          </Link>
-        </div>
-      </FadeIn>
+  // The only timer on the screen. It reads server state; it does not advance a
+  // story of its own.
+  useEffect(() => {
+    let cancelled = false
+    void load()
+    const t = window.setInterval(() => {
+      if (!cancelled) void load()
+    }, POLL_MS)
+    return () => {
+      cancelled = true
+      window.clearInterval(t)
+    }
+  }, [load])
+
+  /**
+   * Retry failed assets, twice each, one at a time.
+   *
+   * Sequential on purpose — a burst of regenerations against the provider is
+   * how you turn one failure into a rate-limit and several. Nothing waits on
+   * this: assets that are fine keep arriving while a failed one is re-asked.
+   */
+  useEffect(() => {
+    if (!assets) return
+    const candidate = assets.find(
+      (a) =>
+        a.status === 'FAILED' &&
+        (attempts.current.get(a.id) ?? 0) < MAX_RETRIES &&
+        !retrying.current.has(a.id),
     )
-  }
+    if (!candidate) return
 
-  const reviewHref = `/app/campaigns/${id}/assets`
+    retrying.current.add(candidate.id)
+    attempts.current.set(candidate.id, (attempts.current.get(candidate.id) ?? 0) + 1)
+    void (async () => {
+      try {
+        await api.post(`/campaign-assets/${candidate.id}/regenerate`, {})
+        await load()
+      } catch {
+        // Swallowed by design: a retry that fails is what the attempt counter is
+        // counting. After the second, the asset stays FAILED and the review
+        // queue owns it.
+      } finally {
+        retrying.current.delete(candidate.id)
+      }
+    })()
+  }, [assets, load])
+
+  const log = useMemo(() => buildLog(assets ?? [], attempts.current), [assets])
+
+  const total = assets?.length ?? 0
+  const done = (assets ?? []).filter(isDone).length
+  const forRedo = (assets ?? []).filter(
+    (a) => a.status === 'FAILED' && (attempts.current.get(a.id) ?? 0) >= MAX_RETRIES,
+  ).length
+  const settled = done + forRedo
+  const pct = total > 0 ? Math.round((settled / total) * 100) : 0
+  const finished = total > 0 && settled === total
+
+  const ready = (assets ?? []).filter((a) => VISUAL_KINDS.has(a.kind) && a.mediaUrl)
+  const stillRendering = (assets ?? []).filter(
+    (a) => VISUAL_KINDS.has(a.kind) && !a.mediaUrl && a.status !== 'FAILED',
+  ).length
+
+  if (assets === null && error === null) return <LoadingScreen />
 
   return (
-    <FadeIn className="gen-assets" style={{ padding: '24px 16px 48px' }}>
-      <div className="spread" style={{ marginBottom: 20, alignItems: 'flex-end' }}>
-        <div>
-          <div className="row" style={{ gap: 10, marginBottom: 8 }}>
-            <Icon name="sparkles" size={18} style={{ color: 'var(--iris-600)' }} />
-            <div
-              className="dim"
-              style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-            >
-              Generating assets
-            </div>
-          </div>
-          <h1 style={{ fontSize: 26, letterSpacing: '-0.02em' }}>
-            {campaign?.name ?? 'Your campaign'}
-          </h1>
-        </div>
-        <div className="mono gen-counter">
-          {generatedCount} generated
-          {(assets?.length ?? 0) > generatedCount ? ` · ${assets!.length} total` : ''}
-        </div>
+    <FadeIn style={{ maxWidth: 1100 }}>
+      <div className="step-rail">
+        {STEPS.map((label, i) => (
+          <span
+            key={label}
+            className="step-chip"
+            data-state={i < 3 ? 'done' : i === 3 ? 'current' : 'todo'}
+          >
+            {i + 1} {label.toUpperCase()}
+            {i < 3 ? ' ✓' : ''}
+          </span>
+        ))}
       </div>
 
-      {assets === null ? (
-        <div className="state">
-          <Spinner />
-        </div>
-      ) : assets.length === 0 ? (
-        <div className="card" style={{ padding: 24 }}>
-          <p className="muted">
-            Assets are still generating. This page refreshes automatically every few seconds.
+      <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', gap: 14 }}>
+        <div>
+          <h1 className="brief-title" style={{ maxWidth: 'none', margin: '0 0 6px' }}>
+            {finished
+              ? `${String(done)} assets ready`
+              : `Generating ${String(total || '')} assets`.trim()}
+          </h1>
+          <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: 14.5 }}>
+            {campaign?.name ?? 'Campaign'} · you can leave this page — the run continues on the
+            server
           </p>
         </div>
-      ) : (
-        <div className="gen-grid">
-          {grouped.map(([platform, items]) => (
-            <section key={platform} className="gen-group">
-              <h2 className="gen-group__title row" style={{ gap: 8 }}>
-                <PlatformIcon platform={platform} size={18} />
-                {platform.charAt(0) + platform.slice(1).toLowerCase()}
-                <span className="dim mono" style={{ fontSize: 12 }}>
-                  {items.filter((a) => a.status !== 'FAILED').length}/{items.length}
-                </span>
-              </h2>
-              <div className="gen-group__cards">
-                {items.map((a) => (
-                  <FadeIn key={a.id} delay={0.05}>
-                    <StatusRail
-                      status={a.status === 'FAILED' ? 'failed' : 'ai-draft'}
-                      className="gen-card card"
-                    >
-                      <div className="gen-card__head spread">
-                        <span style={{ fontSize: 13, fontWeight: 600 }}>{kindLabel(a.kind)}</span>
-                        <StatusPill status={toStatus(a.status)} />
-                      </div>
-                      <p className="muted gen-card__body" style={{ fontSize: 13 }}>
-                        {a.body.slice(0, 160)}
-                        {a.body.length > 160 ? '…' : ''}
-                      </p>
-                      {a.status === 'FAILED' ? (
-                        <div className="gen-card__fail">
-                          <span className="dim" style={{ fontSize: 12 }}>
-                            Couldn&apos;t generate
-                          </span>
-                          <button
-                            type="button"
-                            className="btn sm"
-                            disabled={retrying === a.id}
-                            onClick={() => void retryAsset(a.id)}
-                          >
-                            {retrying === a.id ? <Spinner /> : 'Retry'}
-                          </button>
-                        </div>
-                      ) : null}
-                    </StatusRail>
-                  </FadeIn>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-      <div className="row" style={{ gap: 10, marginTop: 28, justifyContent: 'flex-end' }}>
-        <button type="button" className="btn ghost" onClick={() => router.push('/app/create')}>
-          Back to Create
-        </button>
-        <Link
-          className={`btn primary${firstGroupComplete ? '' : ' is-disabled'}`}
-          href={firstGroupComplete ? reviewHref : '#'}
-          aria-disabled={!firstGroupComplete}
-          onClick={(e: MouseEvent<HTMLAnchorElement>) => {
-            if (!firstGroupComplete) e.preventDefault()
+        <span
+          className="row"
+          style={{
+            marginLeft: 'auto',
+            gap: 8,
+            fontSize: 12.5,
+            color: finished ? 'var(--jade-600)' : 'var(--cobalt-600)',
           }}
         >
-          Review assets →
-        </Link>
+          {!finished ? <span className="run-pulse" aria-hidden /> : null}
+          {String(settled)} of {String(total)} done
+        </span>
       </div>
+
+      <div className="batch-bar" style={{ height: 6, margin: '18px 0 24px' }}>
+        <div
+          className="batch-bar__fill"
+          style={{ width: `${String(pct)}%` }}
+          {...(finished ? { 'data-done': '' } : {})}
+        />
+      </div>
+
+      {error ? (
+        <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--amber-600)' }}>
+            {error} — the run itself is unaffected; this screen will keep trying to read it.
+          </p>
+        </div>
+      ) : null}
+
+      <div className="row" style={{ flexWrap: 'wrap', gap: 14, alignItems: 'stretch' }}>
+        {/* ── Run log ─────────────────────────────────────────────────────── */}
+        <div
+          className="card"
+          style={{ flex: '2 1 420px', minWidth: 0, padding: 0, overflow: 'hidden' }}
+        >
+          <div className="panel-head">
+            <span className="panel-head__title">Run log</span>
+          </div>
+          {log.length === 0 ? (
+            <p
+              style={{
+                margin: 0,
+                padding: '16px',
+                fontSize: 13,
+                color: 'var(--text-tertiary)',
+              }}
+            >
+              Waiting for the first assets to appear.
+            </p>
+          ) : (
+            log.map((r) => (
+              <div key={r.key} className="log-row" data-state={r.state}>
+                {r.state === 'running' ? (
+                  <Spinner />
+                ) : (
+                  <Icon name={ROW_ICON[r.state]} size={16} className="ico" />
+                )}
+                <span style={{ flex: 1 }}>{r.label}</span>
+                <span className="log-row__when">{r.detail}</span>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Landing as they finish ──────────────────────────────────────── */}
+        <div className="card" style={{ flex: '1 1 280px', minWidth: 0 }}>
+          <div className="panel-head__title" style={{ marginBottom: 12 }}>
+            Landing as they finish
+          </div>
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(74px, 1fr))', gap: 7 }}
+          >
+            {ready.map((a) => (
+              <div key={a.id} className="run-thumb">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={a.mediaUrl ?? ''}
+                  alt={a.title ?? 'Generated asset'}
+                  crossOrigin="use-credentials"
+                  loading="lazy"
+                />
+              </div>
+            ))}
+            {stillRendering > 0 ? (
+              <div className="run-thumb" data-pending="">
+                <Spinner />
+              </div>
+            ) : null}
+            {ready.length === 0 && stillRendering === 0 ? (
+              <div className="run-thumb" data-empty="" />
+            ) : null}
+          </div>
+
+          <Link
+            href={`/app/campaigns/${campaignId}/assets`}
+            className="rail-action"
+            style={{ marginTop: 14, justifyContent: 'center' }}
+          >
+            Review what is ready
+            <Icon name="arrow-right" size={14} />
+          </Link>
+
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 10 }}>
+            A failed asset retries twice, then lands in the queue marked for a redo — the run never
+            blocks on one item.
+          </p>
+          {forRedo > 0 ? (
+            <p style={{ fontSize: 11.5, color: 'var(--amber-600)', marginTop: 6 }}>
+              {forRedo} {forRedo === 1 ? 'asset needs' : 'assets need'} a redo. Everything else
+              finished.
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {finished ? (
+        <div className="row" style={{ flexWrap: 'wrap', gap: 10, marginTop: 20 }}>
+          <button
+            type="button"
+            className="btn primary"
+            onClick={() => router.push(`/app/campaigns/${campaignId}/assets`)}
+          >
+            Review {done} assets
+            <Icon name="arrow-right" size={15} />
+          </button>
+          <button type="button" className="btn" onClick={() => void load()}>
+            Refresh
+          </button>
+        </div>
+      ) : null}
     </FadeIn>
   )
 }

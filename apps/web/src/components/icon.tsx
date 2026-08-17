@@ -41,6 +41,7 @@ export type IconName =
   | 'folder'
   | 'shield'
   | 'settings'
+  | 'alert-triangle'
   | 'check-circle'
   | 'circle'
   | 'images'

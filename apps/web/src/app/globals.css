@@ -6849,7 +6849,126 @@ a:hover {
   color: var(--text-secondary);
   white-space: pre-wrap;
 }
+/* ── Generation run ───────────────────────────────────────────────────────── */
+
+.log-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+}
+.log-row:last-child {
+  border-bottom: 0;
+}
+.log-row .ico {
+  color: var(--text-tertiary);
+}
+.log-row[data-state='done'] .ico {
+  color: var(--jade-600);
+}
+/* The one in flight is the only lit row — the eye should land on it without
+   hunting, and everything else is either settled or not started. */
+.log-row[data-state='running'] {
+  background: var(--jade-100);
+  color: var(--cobalt-600);
+}
+.log-row[data-state='queued'] {
+  color: var(--text-tertiary);
+}
+.log-row[data-state='failed'] .ico {
+  color: var(--amber-600);
+}
+.log-row__when {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.log-row[data-state='running'] .log-row__when {
+  color: var(--slate-500);
+}
+
+.run-thumb {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 7px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.run-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.run-thumb[data-empty] {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+
+/* Alive, not decorative: it stops when the run stops. */
+.run-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cobalt-600);
+  animation: runPulse 1.4s ease-in-out infinite;
+  flex: none;
+}
+@keyframes runPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .run-pulse {
+    animation: none;
+  }
+}
+
 /* ── Plan approval ────────────────────────────────────────────────────────── */
+
+/* A block header that carries its own rewrite control. The control is quiet
+   until hovered — five of them shouting at once would read as five warnings. */
+.block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.rewrite-btn {
+  margin-left: auto;
+  font-size: 11.5px;
+  padding: 4px 9px;
+  color: var(--text-tertiary);
+}
+.rewrite-btn:hover:not(:disabled) {
+  color: var(--cobalt-600);
+}
+.rewrite-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+.rewrite-box .input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.rewrite-box__note {
+  flex-basis: 100%;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
 
 /* Smaller than a KPI tile: these state a decision already made, they are not
    figures to scan. The one that says what approving will cost you takes the

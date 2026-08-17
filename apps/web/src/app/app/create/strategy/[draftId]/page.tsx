@@ -121,6 +121,38 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
   return rows
 }
 
+/**
+ * The blocks that can be rewritten on their own.
+ *
+ * Regenerating one section is cheaper and faster than a whole-plan rewrite, and
+ * it does not discard the parts already agreed with. Fixing one field by
+ * rewriting everything is the coarseness that makes people stop iterating.
+ *
+ * `fields` is what a rewrite is allowed to replace — everything else on the plan
+ * survives untouched, so a rewrite of the audience can never quietly move the
+ * budget.
+ */
+const SECTIONS = {
+  strategy: { label: 'Strategy', fields: ['strategy'] },
+  audience: { label: 'Audience', fields: ['audience'] },
+  schedule: { label: 'Schedule', fields: ['durationDays', 'platforms'] },
+  budget: { label: 'Budget split', fields: ['suggestedBudget'] },
+  deliverables: { label: 'Deliverables', fields: ['deliverables', 'estimatedAssets'] },
+} as const satisfies Record<string, { label: string; fields: readonly (keyof CampaignPlan)[] }>
+
+type SectionKey = keyof typeof SECTIONS
+
+/** Copy only the named fields across, leaving every other decision in place. */
+function mergeSection(current: CampaignPlan, fresh: CampaignPlan, key: SectionKey): CampaignPlan {
+  const next: CampaignPlan = { ...current }
+  for (const f of SECTIONS[key].fields) {
+    // Computed-key assign rather than a cast: `f` is a `keyof CampaignPlan`, so
+    // both sides stay typed and a renamed field breaks the build here.
+    Object.assign(next, { [f]: fresh[f] })
+  }
+  return next
+}
+
 function money(v: number | undefined | null): string | null {
   if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0) return null
   return `₹${v.toLocaleString('en-IN')}`
@@ -137,6 +169,10 @@ export default function PlanApprovalPage() {
   const [planning, setPlanning] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [note, setNote] = useState('')
+  /** Which block has its rewrite box open, and the note typed into it. */
+  const [openSection, setOpenSection] = useState<SectionKey | null>(null)
+  const [sectionNote, setSectionNote] = useState('')
+  const [rewriting, setRewriting] = useState<SectionKey | null>(null)
 
   useEffect(() => {
     const d = readDraft(draftId)
@@ -178,6 +214,93 @@ export default function PlanApprovalPage() {
     void buildPlan(draft)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft?.id])
+
+  /**
+   * Rewrite one block. Same call as the full regenerate and the same price —
+   * free — but only the named fields are taken from the result, so the parts
+   * already agreed with survive verbatim.
+   */
+  async function rewriteSection(key: SectionKey) {
+    if (!draft?.plan) return
+    const base = buildBriefFromDraft(draft)
+    const feedback = sectionNote.trim()
+    const brief = [
+      base,
+      '',
+      `Revision request — rewrite ONLY the "${SECTIONS[key].label}" section of the plan.`,
+      'Return the whole plan object, but leave every other section exactly as it is.',
+      feedback ? `What to change: ${feedback}` : 'Produce a different, stronger version.',
+    ].join('\n')
+
+    setRewriting(key)
+    try {
+      const fresh = await api.post<CampaignPlan>('/campaign-assets/plan', { brief })
+      const merged = mergeSection(draft.plan, fresh, key)
+      setDraft(upsertDraft(draftId, { plan: merged, brief: base, planApproved: false }))
+      setOpenSection(null)
+      setSectionNote('')
+    } catch (e) {
+      toast.push(
+        'error',
+        e instanceof ApiError ? e.message : `Could not rewrite ${SECTIONS[key].label}`,
+      )
+    } finally {
+      setRewriting(null)
+    }
+  }
+
+  /** The "rewrite this" control that sits in each block's header. */
+  function RewriteControl({ section }: { section: SectionKey }) {
+    const busy = rewriting === section
+    const open = openSection === section
+    return (
+      <>
+        <button
+          type="button"
+          className="btn ghost sm rewrite-btn"
+          disabled={busy || planning || generating}
+          aria-expanded={open}
+          onClick={() => {
+            setOpenSection(open ? null : section)
+            setSectionNote('')
+          }}
+          title={`Rewrite ${SECTIONS[section].label} only — free`}
+        >
+          {busy ? <Spinner /> : <Icon name="refresh" size={13} />}
+          Rewrite this
+        </button>
+        {open ? (
+          <div className="rewrite-box">
+            <input
+              className="input"
+              value={sectionNote}
+              onChange={(e) => setSectionNote(e.target.value)}
+              placeholder={`What should ${SECTIONS[section].label.toLowerCase()} do differently?`}
+              aria-label={`Feedback for ${SECTIONS[section].label}`}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void rewriteSection(section)
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={() => void rewriteSection(section)}
+            >
+              {busy ? <Spinner /> : 'Rewrite'}
+            </button>
+            <span className="rewrite-box__note">
+              Free — rewrites this block only, generates nothing.
+            </span>
+          </div>
+        ) : null}
+      </>
+    )
+  }
 
   /**
    * The irreversible step. Guarded on `generatedCampaignId` so returning to
@@ -301,8 +424,9 @@ export default function PlanApprovalPage() {
 
         {/* ── Strategy ──────────────────────────────────────────────────── */}
         <div className="card" style={{ padding: 18, marginBottom: 14 }}>
-          <div className="intake-section__title" style={{ marginBottom: 10 }}>
-            Strategy
+          <div className="block-head">
+            <span className="intake-section__title">Strategy</span>
+            <RewriteControl section="strategy" />
           </div>
           <p
             style={{
@@ -320,13 +444,23 @@ export default function PlanApprovalPage() {
             style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}
           >
             <div>
-              <div className="field-label">CHANNELS</div>
+              <div className="block-head">
+                <span className="field-label" style={{ marginBottom: 0 }}>
+                  CHANNELS
+                </span>
+                <RewriteControl section="schedule" />
+              </div>
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>
                 {plan.platforms.length > 0 ? plan.platforms.join(', ') : 'Not set'}
               </p>
             </div>
             <div>
-              <div className="field-label">AUDIENCE</div>
+              <div className="block-head">
+                <span className="field-label" style={{ marginBottom: 0 }}>
+                  AUDIENCE
+                </span>
+                <RewriteControl section="audience" />
+              </div>
               <p
                 style={{
                   margin: 0,
@@ -355,8 +489,9 @@ export default function PlanApprovalPage() {
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <div className="panel-head">
             <span className="panel-head__title">Deliverables</span>
-            <span className="coach__status" style={{ marginLeft: 'auto' }}>
-              {totalAssets} in total
+            <span className="coach__status">{totalAssets} in total</span>
+            <span style={{ marginLeft: 'auto' }}>
+              <RewriteControl section="deliverables" />
             </span>
           </div>
           {rows.map((r) => (
@@ -457,8 +592,9 @@ export default function PlanApprovalPage() {
         </div>
 
         <div className="card">
-          <div className="panel-head__title" style={{ marginBottom: 10 }}>
-            Ad spend
+          <div className="block-head">
+            <span className="panel-head__title">Ad spend</span>
+            <RewriteControl section="budget" />
           </div>
           <div className="cost-line">
             <span>Campaign budget</span>

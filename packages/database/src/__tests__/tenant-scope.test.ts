@@ -28,6 +28,14 @@ import {
 } from '../index.js'
 
 const ADMIN_URL = process.env['DIRECT_DATABASE_URL'] ?? process.env['DATABASE_URL'] ?? ''
+/**
+ * The application role's connection — row-level-secured, and privilege-limited.
+ *
+ * Distinct from ADMIN_URL on purpose: checks that pass as the owner and fail as
+ * this role are the ones that reach production, so anything asserting what the
+ * running API can see has to ask through here.
+ */
+const APP_URL = process.env['DATABASE_URL'] ?? ''
 
 const ORG_A = 'test-tenant-scope-org-a'
 const ORG_B = 'test-tenant-scope-org-b'
@@ -232,5 +240,32 @@ describe('registry matches the schema', () => {
     await expect(
       assertTenantRegistryComplete(admin, TENANT_SCOPED_MODELS.map(toTableName)),
     ).resolves.toBeUndefined()
+  })
+
+  /**
+   * The same check, as the role the API actually connects as.
+   *
+   * This exists because the owner-only version above passed while production
+   * refused to boot. `information_schema.columns` is privilege-filtered: a role
+   * with no privilege on a table sees none of its columns in it. A migration that
+   * revoked the app role's grant on `ad_spend_ledger` therefore made the table
+   * invisible to the preflight, which concluded a registered model had no tenant
+   * column and stopped the API — while every local run and every CI run passed,
+   * because both asked as the owner.
+   *
+   * Running it twice, as two roles, is the only version of this check that can
+   * fail before a deploy does. It is skipped rather than failed when no app-role
+   * URL is configured, so a contributor without the provisioned role still gets a
+   * useful suite.
+   */
+  it.runIf(APP_URL)('holds as the application role, not just the owner', async () => {
+    const app = createDatabaseClient({ url: APP_URL })
+    try {
+      await expect(
+        assertTenantRegistryComplete(app, TENANT_SCOPED_MODELS.map(toTableName)),
+      ).resolves.toBeUndefined()
+    } finally {
+      await app.$disconnect()
+    }
   })
 })

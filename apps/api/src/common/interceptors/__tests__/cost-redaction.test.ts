@@ -43,6 +43,15 @@ describe('isCostKey', () => {
     }
   })
 
+  it('catches the ledger columns', () => {
+    // The ledger is reachable by the app role again — revoking its grant made the
+    // table invisible to the boot preflight and cost a deploy. Naming its columns
+    // here is what replaced that lock.
+    for (const k of ['spentMinor', 'allocationMinor', 'monthlyFeeMinor', 'spent_minor']) {
+      expect(isCostKey(k), k).toBe(true)
+    }
+  })
+
   it('leaves performance and the tenant-visible allowance alone', () => {
     for (const k of [
       'impressions',

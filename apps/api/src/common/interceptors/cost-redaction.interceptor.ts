@@ -70,6 +70,16 @@ const COST_KEYS = new Set([
   'ad_allocation_monthly',
   'adspentthismonth',
   'ad_spent_this_month',
+  // Ledger columns. The app role's grant on ad_spend_ledger was revoked and has
+  // been restored — revoking it made the table invisible to the boot preflight
+  // and stopped the API. RLS and this denylist are what protect it now, so its
+  // money columns have to be named here rather than relying on unreachability.
+  'spentminor',
+  'spent_minor',
+  'allocationminor',
+  'allocation_minor',
+  'monthlyfeeminor',
+  'monthly_fee_minor',
 ])
 
 function isCostKey(key: string): boolean {

@@ -101,6 +101,27 @@
   --accent-600: #62c5ee; /* source / platform chips, second data series */
   --accent-100: #12222b;
 
+  /* Tinted hairlines. The override layer reached for these repeatedly as
+     literals; they are the edge a surface takes when it is hovered, selected or
+     asking for a decision, and they belong to the palette like any other value.
+     Naming them by role means a palette change reaches every border at once. */
+  --border-signal: #3a4718; /* lime-tinted: hover, selected, active */
+  --border-decision: #4a2a22; /* amber-tinted: human decision required */
+  --border-alarm: #4a2222; /* coral-tinted: failed, destructive */
+  --border-positive: #2a3313; /* moss-tinted: healthy, complete */
+
+  /* Sidebar ground: one step below the raised surface, so the rail reads as
+     behind the page rather than on it. */
+  --surface-rail: #0e0e10;
+
+  /* Dimmer greys the rail and its labels need between the named text steps. */
+  --text-rail-label: #4a4a50;
+  --text-rail-item: #d2d2d6;
+  --text-muted: #6c6c72;
+  --text-control: #e4e4e4;
+  --slate-500: #9fb05c; /* moss at label weight */
+  --border-hover: #33333a;
+
   /* ── Chart ramp — lime first, then moss, sky, grey, coral ──────────────── */
   --chart-1: #d6ff3e;
   --chart-2: #9fb05c;
@@ -1592,13 +1613,31 @@ a.card:hover {
   padding: var(--space-9);
   isolation: isolate;
 }
+/* Both tones are dark, because the system is.
+
+   `--light` used to be a near-white gradient with black text, which was correct
+   when there were two themes and is now a bright rectangle on a near-black
+   sign-in page. The `tone` prop still means something — light is the raised,
+   slightly warmer face and dark the sunken one — it just no longer crosses into
+   another palette. Values are tokens so a future palette change reaches here
+   too, which is exactly what the literals prevented. */
 .auth-panel--light {
-  background: linear-gradient(160deg, #f2f2f4 0%, #e8e8ec 55%, #dededf 100%);
-  color: #0a0a0a;
+  background: linear-gradient(
+    160deg,
+    var(--border-strong) 0%,
+    var(--surface-sunken) 55%,
+    var(--surface-raised) 100%
+  );
+  color: var(--text-primary);
 }
 .auth-panel--dark {
-  background: linear-gradient(160deg, #2a2a2e 0%, #17171a 60%, #0a0a0a 100%);
-  color: #ffffff;
+  background: linear-gradient(
+    160deg,
+    var(--surface-sunken) 0%,
+    var(--surface-raised) 60%,
+    var(--surface-canvas) 100%
+  );
+  color: var(--text-primary);
 }
 .auth-panel__art {
   position: absolute;
@@ -6148,7 +6187,7 @@ body {
 }
 
 .sidebar {
-  background: #0e0e10;
+  background: var(--surface-rail);
   border-right: 1px solid var(--border-default);
   padding: 16px 10px 14px;
   gap: 1px;
@@ -6225,7 +6264,7 @@ h4 {
   font-family: var(--font-heading);
   font-size: 9.5px;
   letter-spacing: 0.18em;
-  color: #4a4a50;
+  color: var(--text-rail-label);
 }
 
 .nav-group-label {
@@ -6240,7 +6279,7 @@ h4 {
   cursor: pointer;
   font: inherit;
   font-size: 13.5px;
-  color: #d2d2d6;
+  color: var(--text-rail-item);
   border-radius: var(--radius-md);
   text-align: left;
 }
@@ -6253,7 +6292,7 @@ h4 {
 .nav-group-caret {
   margin-left: auto;
   font-size: 11px;
-  color: #55555b;
+  color: var(--text-rail-label);
 }
 
 .nav-subitem {
@@ -6262,7 +6301,7 @@ h4 {
   gap: 8px;
   padding: 5px 9px 5px 34px;
   border-radius: var(--radius-md);
-  color: #b9b9bd;
+  color: var(--text-secondary);
   font-size: 13px;
   min-height: 30px;
 }
@@ -6327,14 +6366,14 @@ h4 {
   border-radius: var(--radius-md);
   border-color: var(--border-strong);
   background: transparent;
-  color: #e4e4e4;
+  color: var(--text-control);
   font-weight: 500;
   font-size: 13px;
   padding: 8px 14px;
 }
 .btn:hover {
   background: var(--surface-hover);
-  border-color: #3a4718;
+  border-color: var(--border-signal);
   box-shadow: none;
 }
 .btn:active {
@@ -6357,7 +6396,7 @@ h4 {
 }
 .btn.danger {
   color: var(--amber-600);
-  border-color: #4a2a22;
+  border-color: var(--border-decision);
 }
 .btn.danger:hover {
   background: var(--amber-100);
@@ -6368,7 +6407,7 @@ h4 {
 textarea.input,
 .auth-input,
 .auth-select {
-  background: #0e0e10;
+  background: var(--surface-rail);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -6381,7 +6420,7 @@ textarea.input,
   box-shadow: none;
 }
 .input::placeholder {
-  color: #6c6c72;
+  color: var(--text-muted);
 }
 
 /* Filter chips read as outlined pills; the selected one is lime on lime-black. */
@@ -6398,7 +6437,7 @@ textarea.input,
 }
 .chip[aria-pressed='true'],
 .chip.active {
-  border-color: #3a4718;
+  border-color: var(--border-signal);
   background: var(--jade-100);
   color: var(--cobalt-600);
 }
@@ -6423,14 +6462,14 @@ a.card:hover,
 .home-campaign:hover {
   transform: none;
   box-shadow: none;
-  border-color: #3a4718;
+  border-color: var(--border-signal);
   background: var(--surface-hover);
 }
 /* KPI tiles: the one that needs you takes the lime-black treatment. */
 .kpi[data-attention],
 .stat[data-attention],
 .card[data-attention] {
-  border-color: #2a3313;
+  border-color: var(--border-positive);
   background: var(--jade-100);
 }
 .kpi[data-attention] .v,
@@ -6439,7 +6478,7 @@ a.card:hover,
 }
 .kpi[data-attention] .k,
 .stat[data-attention] .k {
-  color: #9fb05c;
+  color: var(--slate-500);
 }
 
 .table th {
@@ -6470,20 +6509,20 @@ a.card:hover,
 }
 .status-pill[data-hue='cobalt'],
 .status-pill[data-hue='iris'] {
-  border-color: #3a4718;
+  border-color: var(--border-signal);
   color: var(--cobalt-600);
   background: var(--jade-100);
 }
 .status-pill[data-hue='jade'] {
-  border-color: #2a3313;
+  border-color: var(--border-positive);
   color: var(--jade-600);
 }
 .status-pill[data-hue='amber'] {
-  border-color: #4a2a22;
+  border-color: var(--border-decision);
   color: var(--amber-600);
 }
 .status-pill[data-hue='crimson'] {
-  border-color: #4a2222;
+  border-color: var(--border-alarm);
   color: var(--crimson-600);
 }
 .status-pill[data-hue='slate'] {
@@ -6530,7 +6569,7 @@ a:hover {
   background: var(--border-strong);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #33333a;
+  background: var(--border-hover);
 }
 
 /* ── Media grids (the library and campaign media sections) ────────────────── */
@@ -6589,4 +6628,190 @@ a:hover {
 .grid.cols-3,
 .grid.cols-4 {
   grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+}
+
+/* Progress is a signal, so it takes the signal colour — the existing
+   `.batch-bar` is reused everywhere rather than a second progress class. */
+.batch-bar__fill {
+  background: var(--cobalt-600);
+}
+/* A finished or already-published run is stated, not signalled. */
+.batch-bar__fill[data-done] {
+  background: var(--chart-2);
+}
+
+/* ── Today ────────────────────────────────────────────────────────────────── */
+
+/* The panel header: a title, an optional aside, and a link to the full view. */
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border-default);
+}
+.panel-head__title {
+  font: var(--type-subhead);
+  font-family: var(--font-heading);
+}
+.panel-head__more {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  color: var(--cobalt-600);
+  padding: 0;
+}
+
+/* Rows inside a panel. The whole row is the hit area — a row that looks
+   clickable and only responds on its title is a small, repeated betrayal. */
+.panel-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text-primary);
+  padding: 12px 16px;
+}
+.panel-row:last-child {
+  border-bottom: 0;
+}
+.panel-row:hover {
+  background: var(--surface-sunken);
+}
+.panel-row__grow {
+  flex: 1;
+  min-width: 180px;
+}
+.panel-row__when {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* The verb on a "needs you" row. Amber is reserved for a human decision, so
+   only the reconnect variant takes it; approving is the primary signal. */
+.row-verb {
+  flex: none;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  border-radius: 4px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+.row-verb[data-tone='signal'] {
+  color: var(--cobalt-600);
+  border-color: var(--border-signal);
+}
+.row-verb[data-tone='decision'] {
+  color: var(--amber-600);
+  border-color: var(--border-decision);
+}
+
+.dateline {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--jade-600);
+}
+.greeting {
+  font: var(--type-title);
+  font-family: var(--font-heading);
+  letter-spacing: var(--type-title-tracking);
+  margin: 9px 0 6px;
+}
+
+/* The right rail: sticky, and narrow enough that the main column keeps its
+   measure. It drops below the content on a narrow viewport by wrapping. */
+.today-layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(20px, 2.4vw, 30px);
+  align-items: flex-start;
+  max-width: 1420px;
+}
+.today-main {
+  flex: 3 1 540px;
+  min-width: 0;
+}
+.today-rail {
+  flex: 1 1 258px;
+  max-width: 310px;
+  min-width: 0;
+  position: sticky;
+  top: 70px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .today-rail {
+    position: static;
+    max-width: none;
+  }
+}
+
+.rail-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-control);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.rail-action:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-signal);
+}
+.rail-action[data-primary] {
+  background: var(--cobalt-600);
+  border-color: transparent;
+  color: var(--text-inverse);
+  font-family: var(--font-heading);
+  font-weight: 500;
+}
+.rail-action[data-primary]:hover {
+  background: var(--cobalt-800);
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+}
+.checklist-item[data-action] {
+  cursor: pointer;
+}
+.checklist-item[data-state='done'] .ico {
+  color: var(--jade-600);
+}
+.checklist-item[data-state='blocked'] {
+  color: var(--amber-600);
+}
+.checklist-item[data-state='todo'] {
+  color: var(--text-tertiary);
 }

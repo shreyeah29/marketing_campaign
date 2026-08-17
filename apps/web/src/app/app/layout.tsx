@@ -107,11 +107,31 @@ interface ShellData {
 
 const WorkspaceContext = createContext<ShellData | null>(null)
 
+/**
+ * The nav indicators, shared.
+ *
+ * Computing `assetsNeedingReview` costs one request per campaign, and Today
+ * shows the same number the sidebar does. Publishing it here rather than
+ * letting the dashboard repeat the fan-out keeps that at one round of requests
+ * per session instead of two, and guarantees the badge and the tile can never
+ * disagree.
+ */
+const IndicatorContext = createContext<NavIndicators>({
+  newLeads: 0,
+  assetsNeedingReview: 0,
+  connectionIssue: false,
+})
+
 /** Access the loaded workspace + session inside the tenant shell. */
 export function useWorkspace(): Workspace {
   const ctx = useContext(WorkspaceContext)
   if (!ctx) throw new Error('useWorkspace must be used within the tenant shell')
   return ctx.workspace
+}
+
+/** The counts behind the sidebar badges. Zeroes until the first load lands. */
+export function useIndicators(): NavIndicators {
+  return useContext(IndicatorContext)
 }
 
 /**
@@ -387,124 +407,126 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
 
   return (
     <WorkspaceContext.Provider value={status.data}>
-      <ToastProvider>
-        <div className="shell" {...(collapsed ? { 'data-collapsed': '' } : {})}>
-          {/* Mobile top bar — only shown below the sidebar breakpoint. */}
-          <header className="mobile-topbar">
-            <button
-              className="hamburger"
-              onClick={() => setNavOpen(true)}
-              aria-label="Open navigation menu"
-              aria-expanded={navOpen}
-            >
-              <Icon name="menu" size={22} />
-            </button>
-            <div className="brand" style={{ padding: 0 }}>
-              <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
-              <span>{brandName}</span>
-            </div>
-          </header>
-
-          {/* Backdrop behind the off-canvas sidebar on mobile. */}
-          {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
-
-          <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
-            <div className="brand">
-              <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
-              <span className="brand-lockup">
-                <span className="brand-name">{brandName}</span>
-                <span className="brand-product">Marketing OS</span>
-              </span>
+      <IndicatorContext.Provider value={indicators}>
+        <ToastProvider>
+          <div className="shell" {...(collapsed ? { 'data-collapsed': '' } : {})}>
+            {/* Mobile top bar — only shown below the sidebar breakpoint. */}
+            <header className="mobile-topbar">
               <button
-                className="sidebar-close"
-                onClick={() => setNavOpen(false)}
-                aria-label="Close navigation menu"
+                className="hamburger"
+                onClick={() => setNavOpen(true)}
+                aria-label="Open navigation menu"
+                aria-expanded={navOpen}
               >
-                <Icon name="x" size={16} />
+                <Icon name="menu" size={22} />
               </button>
-            </div>
+              <div className="brand" style={{ padding: 0 }}>
+                <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
+                <span>{brandName}</span>
+              </div>
+            </header>
 
-            <button
-              type="button"
-              className="sidebar-collapse"
-              onClick={() => setCollapsedPersist(!collapsed)}
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              title={collapsed ? 'Expand' : 'Collapse'}
-            >
-              <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={16} />
-            </button>
+            {/* Backdrop behind the off-canvas sidebar on mobile. */}
+            {navOpen ? <div className="nav-backdrop" onClick={() => setNavOpen(false)} /> : null}
 
-            {ws.viewOnly ? null : (
-              <OrgSwitcher
-                session={session}
-                activeId={ws.organization?.id ?? null}
-                identityName={brandName}
-                collapsed={collapsed}
-                onSwitched={() => void load()}
-              />
-            )}
+            <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
+              <div className="brand">
+                <BrandMark logoUrl={ws.branding?.logoUrl ?? null} name={brandName} />
+                <span className="brand-lockup">
+                  <span className="brand-name">{brandName}</span>
+                  <span className="brand-product">Marketing OS</span>
+                </span>
+                <button
+                  className="sidebar-close"
+                  onClick={() => setNavOpen(false)}
+                  aria-label="Close navigation menu"
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
 
-            {/* Five labelled rails over twelve groups. The API's own
+              <button
+                type="button"
+                className="sidebar-collapse"
+                onClick={() => setCollapsedPersist(!collapsed)}
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={collapsed ? 'Expand' : 'Collapse'}
+              >
+                <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={16} />
+              </button>
+
+              {ws.viewOnly ? null : (
+                <OrgSwitcher
+                  session={session}
+                  activeId={ws.organization?.id ?? null}
+                  identityName={brandName}
+                  collapsed={collapsed}
+                  onSwitched={() => void load()}
+                />
+              )}
+
+              {/* Five labelled rails over twelve groups. The API's own
                 `ws.navigation` is still not the source: it serves ~30 flat
                 entries across 11 sections, and the grouping — not the list — is
                 what makes that many destinations navigable. Every href in
                 sidebar-nav.tsx was checked to resolve to a real page. */}
-            <SidebarNav pathname={pathname} indicators={indicators} collapsed={collapsed} />
+              <SidebarNav pathname={pathname} indicators={indicators} collapsed={collapsed} />
 
-            <div style={{ paddingTop: 8 }}>
-              <div
-                className="nav-item"
-                style={{ cursor: 'default' }}
-                title={ws.user.name || ws.user.email}
-              >
-                <span className="avatar">
-                  {(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}
-                </span>
-                <span className="user-meta" style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {ws.user.name || ws.user.email}
-                  </div>
-                  <div className="dim" style={{ fontSize: 11 }}>
-                    {ws.user.role}
-                  </div>
-                </span>
+              <div style={{ paddingTop: 8 }}>
+                <div
+                  className="nav-item"
+                  style={{ cursor: 'default' }}
+                  title={ws.user.name || ws.user.email}
+                >
+                  <span className="avatar">
+                    {(ws.user.name || ws.user.email || '?').charAt(0).toUpperCase()}
+                  </span>
+                  <span className="user-meta" style={{ minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {ws.user.name || ws.user.email}
+                    </div>
+                    <div className="dim" style={{ fontSize: 11 }}>
+                      {ws.user.role}
+                    </div>
+                  </span>
+                </div>
+                {ws.viewOnly ? null : <SignOutButton />}
               </div>
-              {ws.viewOnly ? null : <SignOutButton />}
+            </aside>
+
+            <div className="shell-content">
+              <header className="topbar-desktop">
+                <div className="dim" style={{ fontSize: 13, fontWeight: 500 }}>
+                  {pageContext}
+                </div>
+                <button
+                  type="button"
+                  className="topbar-desktop-hint"
+                  onClick={() => openCommandPalette()}
+                  aria-label="Open command palette"
+                >
+                  <Icon name="search" size={14} />
+                  <span>Search</span>
+                  <kbd>⌘K</kbd>
+                </button>
+              </header>
+              <main className="main">
+                {ws.viewOnly ? <ViewOnlyBanner organizationName={ws.organization?.name} /> : null}
+                {children}
+              </main>
             </div>
-          </aside>
 
-          <div className="shell-content">
-            <header className="topbar-desktop">
-              <div className="dim" style={{ fontSize: 13, fontWeight: 500 }}>
-                {pageContext}
-              </div>
-              <button
-                type="button"
-                className="topbar-desktop-hint"
-                onClick={() => openCommandPalette()}
-                aria-label="Open command palette"
-              >
-                <Icon name="search" size={14} />
-                <span>Search</span>
-                <kbd>⌘K</kbd>
-              </button>
-            </header>
-            <main className="main">
-              {ws.viewOnly ? <ViewOnlyBanner organizationName={ws.organization?.name} /> : null}
-              {children}
-            </main>
+            <CommandPalette />
           </div>
-
-          <CommandPalette />
-        </div>
-      </ToastProvider>
+        </ToastProvider>
+      </IndicatorContext.Provider>
     </WorkspaceContext.Provider>
   )
 }

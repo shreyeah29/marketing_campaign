@@ -41,6 +41,8 @@ export type IconName =
   | 'folder'
   | 'shield'
   | 'settings'
+  | 'check-circle'
+  | 'circle'
   | 'images'
   | 'broadcast'
   | 'browser'
@@ -480,6 +482,14 @@ const P: Record<string, ReactNode> = {
       <line x1="12" y1="17" x2="12.01" y2="17" />
     </>
   ),
+  /* Setup-checklist states: done, and not-started. */
+  'check-circle': (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12 2.5 2.5 4.5-5" />
+    </>
+  ),
+  circle: <circle cx="12" cy="12" r="8.5" />,
   /* ── Grouped-navigation icons (components/sidebar-nav.tsx) ──────────────────
      Drawn in this file's existing 1.75-stroke, 24x24 style rather than the
      Phosphor duotone the handoff suggests. Phosphor would mean a dependency and,

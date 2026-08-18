@@ -8,11 +8,24 @@
  * controller maps it to a generic 503 without ever leaking Runway's error text.
  *
  * Two facts of Runway's API shape this file:
- *   1. There is no text-to-video endpoint. Video is always image-to-video, so a
- *      pure text prompt is realised as text_to_image → image_to_video.
+ *   1. Video here is text_to_image → image_to_video. That used to be forced:
+ *      there was no text-to-video endpoint. **There is one now** — `/v1/text_to_video`
+ *      — so this is a workaround that has outlived its reason, kept for the
+ *      moment because the two-step path also yields the seed frame the review
+ *      screen uses as a poster. Do not re-derive the old justification from this
+ *      code: if the seed frame stops being wanted, the single call is available.
  *   2. Generation is asynchronous. A POST returns a task id; the result is polled
  *      from GET /v1/tasks/{id} until it SUCCEEDs. Runway asks callers not to poll
  *      more than once every five seconds.
+ *
+ * **Runway's URLs are ephemeral and never leave this file.** Every generated
+ * asset is copied into our own storage before the result is returned, and what
+ * callers receive is our URL. The adapter cannot do that itself without becoming
+ * a Nest service, so persistence arrives as a required `persist` function: a
+ * caller that has nowhere to put the bytes cannot compile, which is the only
+ * reliable way to stop an expiring link reaching a database row. Assets stored
+ * before this existed hold `runwayml.com` URLs and are mostly already dead —
+ * see `scripts/backfill-runway-media.ts`.
  */
 
 import { AdapterError } from './llm.js'
@@ -190,6 +203,21 @@ async function pollTask(apiKey: string, taskId: string, timeoutMs: number): Prom
  * URI. A signed URL that expires between the request and the render fails at
  * their end, not ours.
  */
+/**
+ * Copies a freshly generated asset into durable storage and returns our URL.
+ *
+ * The `key` is supplied by the caller and must be **stable for the same asset**,
+ * because the upload upserts: regenerating writes over the previous object
+ * instead of leaving an orphan behind. A timestamped key would make every retry
+ * a new file that nothing references and nothing deletes.
+ *
+ * It must throw rather than degrade. The storage service's own `persist` falls
+ * back to the source URL when the bucket is unconfigured, which is a reasonable
+ * default elsewhere and precisely the failure mode this exists to prevent — so
+ * callers pass a wrapper that treats a non-persisted result as an error.
+ */
+export type PersistMedia = (sourceUrl: string, key: string) => Promise<string>
+
 export interface RunwayReferenceImage {
   readonly uri: string
   readonly tag: string
@@ -200,6 +228,10 @@ export interface RunwayImageInput {
   readonly prompt: string
   readonly ratio?: string
   readonly model?: string
+  /** Required. See PersistMedia — an unpersisted URL must never reach a caller. */
+  readonly persist: PersistMedia
+  /** Stable per asset, so a re-run overwrites rather than orphans. */
+  readonly storageKey: string
   /**
    * Up to three images the model should work from.
    *
@@ -233,7 +265,30 @@ export async function generateRunwayImage(input: RunwayImageInput): Promise<Runw
       : {}),
   })
   const [url] = await pollTask(input.apiKey, taskId, IMAGE_TIMEOUT_MS)
-  return { url: url as string, model }
+  if (!url) throw new AdapterError(`${PROVIDER_ID} returned no image URL`, PROVIDER_ID)
+  return { url: await keep(input.persist, url, input.storageKey), model }
+}
+
+/**
+ * Copy into our storage, and refuse to return anything that is still Runway's.
+ *
+ * The second check is not paranoia about the storage service — it is about the
+ * next person who writes a `persist` that falls back on error because that felt
+ * safer. The row would then hold a link that works all afternoon and 404s by the
+ * weekend, and nothing would have failed at the time it could still be fixed.
+ */
+async function keep(persist: PersistMedia, sourceUrl: string, key: string): Promise<string> {
+  const stored = await persist(sourceUrl, key)
+  if (!stored) {
+    throw new AdapterError(`${PROVIDER_ID} output could not be stored`, PROVIDER_ID)
+  }
+  if (stored === sourceUrl || /runwayml\.com/i.test(stored)) {
+    throw new AdapterError(
+      `${PROVIDER_ID} output was not copied into storage — the returned URL is still the provider's and would expire`,
+      PROVIDER_ID,
+    )
+  }
+  return stored
 }
 
 export interface RunwayVideoInput {
@@ -245,6 +300,12 @@ export interface RunwayVideoInput {
   readonly duration?: number
   readonly model?: string
   readonly imageModel?: string
+  readonly persist: PersistMedia
+  /**
+   * Stable per asset. The seed frame is stored beside it under `<key>-frame`,
+   * so a regeneration overwrites both rather than accumulating pairs.
+   */
+  readonly storageKey: string
 }
 
 export interface RunwayVideoResult {
@@ -261,6 +322,10 @@ export async function generateRunwayVideo(input: RunwayVideoInput): Promise<Runw
   const model = input.model ?? DEFAULT_VIDEO_MODEL
   const ratio = input.ratio ?? DEFAULT_VIDEO_RATIO
 
+  // The seed frame is persisted too, and deliberately: it is the poster frame
+  // the review screen shows, and Runway's copy of it expires on the same clock
+  // as the video. Handing our own URL to image_to_video also means Runway
+  // fetches from a bucket that will still be there on a retry.
   const promptImage =
     input.promptImage ??
     (
@@ -270,6 +335,8 @@ export async function generateRunwayVideo(input: RunwayVideoInput): Promise<Runw
         // The seed frame's ratio, not the video's — see SEED_FRAME_RATIO.
         ratio: SEED_FRAME_RATIO.get(ratio) ?? DEFAULT_IMAGE_RATIO,
         ...(input.imageModel ? { model: input.imageModel } : {}),
+        persist: input.persist,
+        storageKey: `${input.storageKey}-frame`,
       })
     ).url
 
@@ -281,5 +348,6 @@ export async function generateRunwayVideo(input: RunwayVideoInput): Promise<Runw
     duration: input.duration ?? DEFAULT_VIDEO_DURATION,
   })
   const [url] = await pollTask(input.apiKey, taskId, VIDEO_TIMEOUT_MS)
-  return { url: url as string, model }
+  if (!url) throw new AdapterError(`${PROVIDER_ID} returned no video URL`, PROVIDER_ID)
+  return { url: await keep(input.persist, url, input.storageKey), model }
 }

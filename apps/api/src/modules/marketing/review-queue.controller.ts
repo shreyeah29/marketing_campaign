@@ -400,16 +400,43 @@ export class ReviewQueueController {
     // the end.
     const prompt = clampImagePrompt(asset.title, asset.body, MAX_PROMPT_CHARS)
     let urls: string[]
+    /**
+     * Fetched before generation, not after.
+     *
+     * The overlay used to be applied while copying the finished images into
+     * storage. The copy now happens inside the adapter, the moment each image
+     * lands, so the stamp has to travel with it — the callback below closes over
+     * these facts and is the only place the bytes are written.
+     */
+    const facts = await this.brandFacts()
+    /**
+     * Store under a key that is stable for this asset and variant.
+     *
+     * Regenerating an asset overwrites its files instead of adding a set beside
+     * them. The old key ended in `Date.now()`, so every retry left the previous
+     * images in the bucket with nothing in the database pointing at them.
+     */
+    const keep = (
+      variant: number,
+    ): { persist: (u: string, k: string) => Promise<string>; storageKey: string } => ({
+      persist: (url, key) =>
+        this.storage.persistDurable(url, key, (bytes, contentType) =>
+          this.overlay.apply(bytes, contentType, facts),
+        ),
+      storageKey: `${p.organizationId}/${id}/v${String(variant)}`,
+    })
+
     if (asset.kind === 'IMAGE_PROMPT') {
       // A/B variants: images render concurrently so picking a winner costs no
       // extra wall-clock. Video stays single — minutes-long and expensive.
       const count = input.variants ?? 2
       const results = await Promise.allSettled(
-        Array.from({ length: count }, () =>
+        Array.from({ length: count }, (_unused, i) =>
           generateRunwayImage({
             apiKey: runway.apiKey,
             prompt,
             ...(runway.imageModel ? { model: runway.imageModel } : {}),
+            ...keep(i),
           }),
         ),
       )
@@ -442,6 +469,7 @@ export class ReviewQueueController {
         prompt,
         ...(runway.videoModel ? { model: runway.videoModel } : {}),
         ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
+        ...keep(0),
       })
       urls = [result.url]
     }
@@ -454,13 +482,9 @@ export class ReviewQueueController {
     // told to leave space and draw no text, because image models render a phone
     // number as something that merely looks like one — so the real number goes
     // on here, from the brand kit, on the only copy that gets stored.
-    const facts = await this.brandFacts()
-    const stored = await this.storage.persistMany(
-      urls,
-      `${p.organizationId}/${id}/${Date.now()}`,
-      (bytes, contentType) => this.overlay.apply(bytes, contentType, facts),
-    )
-    const durableUrls = stored.map((s) => s.url)
+    // Already ours: the adapter copied each asset into storage, stamped, as it
+    // arrived. Copying again would write identical bytes to a second key.
+    const durableUrls = urls
 
     const primary = durableUrls[0]
     if (!primary) throw new ServiceUnavailableException('Media generation failed — try again')
@@ -468,17 +492,15 @@ export class ReviewQueueController {
     return withTenantTransaction(this.db, async (tx) => {
       // Every generated creative also lands in the media library, so the
       // Creative Library can browse everything ever made — approved or not.
-      for (const [i, item] of stored.entries()) {
+      for (const [i, url] of durableUrls.entries()) {
         await tx.mediaAsset.create({
           data: {
             organizationId: p.organizationId,
             type: asset.kind === 'IMAGE_PROMPT' ? 'IMAGE' : 'VIDEO',
             // Indexed from the loop, not `urls.indexOf(url)`: two variants can
             // come back identical, and indexOf would give them the same key.
-            storageKey: item.persisted
-              ? item.storageKey
-              : `runway/${id}/${Date.now()}-${String(i)}`,
-            url: item.url,
+            storageKey: `${p.organizationId}/${id}/v${String(i)}`,
+            url,
             prompt,
             generatorProvider: 'RUNWAY',
             ...(runway.imageModel || runway.videoModel

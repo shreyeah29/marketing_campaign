@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { Body, Controller, Get, Inject, Post, ServiceUnavailableException } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
@@ -16,6 +17,7 @@ import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
 import { generateImage, synthesizeSpeech } from './adapters/openai-media.js'
 import { generateRunwayImage, generateRunwayVideo } from './adapters/runway.js'
 import { AiService } from './ai.service.js'
+import { StorageService } from '../../infrastructure/storage.js'
 import { KnowledgeService } from './knowledge.service.js'
 
 const messageSchema = z.object({
@@ -68,6 +70,16 @@ function aiUnavailable(): ServiceUnavailableException {
  * of the built-in service and return a generic unavailable response — never a
  * provider/key prompt.
  */
+/**
+ * A short, stable key for a prompt. These two endpoints persist nothing to the
+ * database — the file in the bucket is the whole record — so the key comes from
+ * the request. Asking for the same picture twice replaces it rather than
+ * accumulating near-identical files nothing references.
+ */
+function promptKey(prompt: string): string {
+  return createHash('sha256').update(prompt.trim()).digest('hex').slice(0, 24)
+}
+
 @ApiTags('AI')
 @Controller('ai')
 export class AiController {
@@ -75,6 +87,7 @@ export class AiController {
     @Inject(AiService) private readonly ai: AiService,
     @Inject(KnowledgeService) private readonly knowledge: KnowledgeService,
     @Inject(LOGGER) private readonly logger: AppLogger,
+    @Inject(StorageService) private readonly storage: StorageService,
   ) {}
 
   @Post('chat')
@@ -165,7 +178,10 @@ export class AiController {
   @RequiresFeature('ai.image')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate an image from a text prompt' })
-  async image(@Body() body: unknown): Promise<{ image?: string; url?: string }> {
+  async image(
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ image?: string; url?: string }> {
     const input = zodBody(imageSchema, body)
 
     // Prefer Runway when the operator has configured it (env-only, never a tenant
@@ -178,6 +194,11 @@ export class AiController {
           apiKey: runway.apiKey,
           prompt: input.prompt,
           ...(runway.imageModel ? { model: runway.imageModel } : {}),
+          persist: (url, key) => this.storage.persistDurable(url, key),
+          // Keyed by the prompt rather than the clock: this endpoint stores no
+          // row, so the file is all there is, and asking twice for the same
+          // picture should not fill the bucket with copies of it.
+          storageKey: `${p.organizationId}/ad-hoc/${promptKey(input.prompt)}`,
         })
         return { url: result.url }
       } catch (err) {
@@ -213,7 +234,7 @@ export class AiController {
   @RequiresFeature('ai.video')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a video from a text prompt (Runway)' })
-  async video(@Body() body: unknown): Promise<{ url: string }> {
+  async video(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<{ url: string }> {
     const input = zodBody(mediaSchema, body)
 
     // Video is operator-level Runway only, resolved from the environment. No key,
@@ -227,6 +248,8 @@ export class AiController {
         prompt: input.prompt,
         ...(runway.videoModel ? { model: runway.videoModel } : {}),
         ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
+        persist: (url, key) => this.storage.persistDurable(url, key),
+        storageKey: `${p.organizationId}/ad-hoc/${promptKey(input.prompt)}`,
       })
       return { url: result.url }
     } catch (err) {

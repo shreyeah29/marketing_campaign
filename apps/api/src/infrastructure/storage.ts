@@ -135,6 +135,27 @@ export class StorageService {
   }
 
   /**
+   * Persist, or fail — no fallback to the provider's URL.
+   *
+   * `persist` degrades on purpose: a deployment without a bucket still works,
+   * holding the source URL. That is right for a preview and wrong for anything
+   * a database row will point at afterwards, because the provider's link expires
+   * within days and the row keeps claiming it works. Generated media goes
+   * through here so an unconfigured bucket is an error at generation time,
+   * when someone can still fix it, rather than a 404 next week.
+   */
+  async persistDurable(sourceUrl: string, key: string, transform?: Transform): Promise<string> {
+    const result = await this.persist(sourceUrl, key, transform)
+    if (!result.persisted || !result.url) {
+      throw new Error(
+        'Generated media could not be copied into storage, and the provider’s link expires. ' +
+          'Set SUPABASE_URL and SUPABASE_SERVICE_KEY, then generate again.',
+      )
+    }
+    return result.url
+  }
+
+  /**
    * Store bytes we already hold.
    *
    * The upload path, and the tail of `persist`. Unlike `persist` this **throws**

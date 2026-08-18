@@ -21,6 +21,20 @@ import {
  * They are the assertion the old code was missing — it carried a comment
  * claiming one value was "valid for both", which no test ever checked.
  */
+/**
+ * The persistence arguments every call now requires.
+ *
+ * Neither test below reaches a successful task — one asserts the request is
+ * rejected, the other that an over-long prompt is refused — so this is never
+ * invoked. It exists so the calls compile unchanged; the assertions are
+ * untouched.
+ */
+const STORE = {
+  persist: (_url: string, key: string): Promise<string> =>
+    Promise.resolve(`https://storage.test/${key}.png`),
+  storageKey: 'test/asset',
+}
+
 const GEN4_IMAGE_RATIOS = new Set([
   '1920:1080',
   '1080:1920',
@@ -107,7 +121,9 @@ describe('generateRunwayImage request', () => {
       }),
     )
 
-    await expect(generateRunwayImage({ apiKey: 'k', prompt: 'a marble surface' })).rejects.toThrow()
+    await expect(
+      generateRunwayImage({ apiKey: 'k', prompt: 'a marble surface', ...STORE }),
+    ).rejects.toThrow()
 
     expect(sent.model).toBe('gen4_image')
     expect(sent.ratio).toBeDefined()
@@ -133,7 +149,7 @@ describe('prompt length', () => {
       }),
     )
 
-    await expect(generateRunwayImage({ apiKey: 'k', prompt: huge })).rejects.toThrow()
+    await expect(generateRunwayImage({ apiKey: 'k', prompt: huge, ...STORE })).rejects.toThrow()
 
     expect(sent.promptText).toBeDefined()
     const out = sent.promptText as string

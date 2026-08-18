@@ -155,12 +155,17 @@ export class ScenesController {
     // useful result, and failing the request would throw away work already paid
     // for at the provider.
     const results = await Promise.allSettled(
-      Array.from({ length: variants }, () =>
+      Array.from({ length: variants }, (_unused, i) =>
         generateRunwayImage({
           apiKey: runway.apiKey,
           prompt,
           ...(ratio ? { ratio } : {}),
           ...(runway.imageModel ? { model: runway.imageModel } : {}),
+          persist: (url, key) => this.storage.persistDurable(url, key),
+          // Keyed by campaign and variant index, not by clock. Regenerating a
+          // campaign's scenes overwrites the previous set instead of leaving it
+          // in the bucket with nothing pointing at it.
+          storageKey: `${p.organizationId}/scenes/${input.campaignId}/${String(i)}`,
         }),
       ),
     )
@@ -171,23 +176,19 @@ export class ScenesController {
 
     // Runway's URLs expire, so the scene is copied into our bucket before it is
     // recorded. A scene that outlives its link is the entire point of caching it.
-    const stored = await this.storage.persistMany(
-      urls,
-      `${p.organizationId}/scenes/${input.campaignId}/${Date.now()}`,
-    )
-
+    // No second copy. The adapter stored each image as it arrived and returned
+    // our URL, so these are already durable — persisting again would write the
+    // same bytes to a second key and leave the first unreferenced.
     return withTenantTransaction(this.db, async (tx) => {
       const created = []
-      for (const [i, item] of stored.entries()) {
+      for (const [i, url] of urls.entries()) {
         created.push(
           await tx.mediaAsset.create({
             data: {
               organizationId: p.organizationId,
               type: 'IMAGE',
-              storageKey: item.persisted
-                ? item.storageKey
-                : `runway/scene/${input.campaignId}/${String(i)}`,
-              url: item.url,
+              storageKey: `${p.organizationId}/scenes/${input.campaignId}/${String(i)}`,
+              url,
               prompt,
               generatorProvider: 'RUNWAY',
               ...(runway.imageModel ? { generatorModel: runway.imageModel } : {}),
@@ -266,26 +267,27 @@ export class ScenesController {
     })
     const ratio = RUNWAY_RATIO[input.ratio] ?? RUNWAY_RATIO['1:1']
 
+    const storageKey = `${p.organizationId}/shots/${input.productId}/${input.ratio.replace(':', 'x')}`
     const generated = await generateRunwayImage({
       apiKey: runway.apiKey,
       prompt,
       ...(ratio ? { ratio } : {}),
       ...(runway.imageModel ? { model: runway.imageModel } : {}),
       referenceImages: [{ uri: product.imageUrl, tag: PRODUCT_REFERENCE_TAG }],
+      persist: (url, key) => this.storage.persistDurable(url, key),
+      // Product and ratio only. Reshooting the same product replaces the file
+      // rather than adding another; the row that referenced it now points at
+      // the new picture, which is what a reshoot means.
+      storageKey,
     })
-
-    const stored = await this.storage.persist(
-      generated.url,
-      `${p.organizationId}/shots/${input.productId}/${Date.now()}`,
-    )
 
     const asset = await withTenantTransaction(this.db, (tx) =>
       tx.mediaAsset.create({
         data: {
           organizationId: p.organizationId,
           type: 'IMAGE',
-          storageKey: stored.persisted ? stored.storageKey : `runway/shot/${input.productId}`,
-          url: stored.url,
+          storageKey,
+          url: generated.url,
           prompt,
           generatorProvider: 'RUNWAY',
           ...(runway.imageModel ? { generatorModel: runway.imageModel } : {}),
@@ -303,6 +305,6 @@ export class ScenesController {
         select: { id: true, url: true },
       }),
     )
-    return { mediaId: asset.id, url: stored.url }
+    return { mediaId: asset.id, url: generated.url }
   }
 }

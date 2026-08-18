@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, setViewAsToken } from '@/lib/api'
 import { platform } from '@/lib/platform'
-import type { OrgDetail, OrgStatus } from '@/lib/types'
+import type { Catalog, OrgDetail, OrgStatus } from '@/lib/types'
 import { Banner, LoadingScreen, Spinner, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { Chip, StatusPill, toStatus } from '@/components/status'
@@ -270,19 +270,12 @@ export default function OrganizationDetailPage() {
       </FadeIn>
 
       {/* Enabled modules */}
-      <FadeIn delay={0.18} className="card mt">
-        <div className="spread" style={{ marginBottom: 14 }}>
-          <h3>Enabled modules</h3>
-          <Chip>{org.features.length}</Chip>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {org.features.map((f) => (
-            <Chip key={f.key} title={`source: ${f.source}`}>
-              {f.key}
-            </Chip>
-          ))}
-        </div>
-      </FadeIn>
+      <FeatureEditor
+        orgId={id}
+        current={org.features.map((f) => f.key)}
+        sources={Object.fromEntries(org.features.map((f) => [f.key, f.source]))}
+        onSaved={load}
+      />
     </>
   )
 }
@@ -374,5 +367,149 @@ function SetupTracker({ setup }: { setup: OrgDetail['setup'] }) {
         ))}
       </div>
     </div>
+  )
+}
+
+/**
+ * Turn a module on or off for one organisation.
+ *
+ * `PUT /platform/organizations/:id/features` has existed since provisioning was
+ * built; this screen only ever listed the result of it. That gap had a real
+ * cost: a client on a plan without `ai.copywriter` saw a coaching card that said
+ * "not included", and the only way to change it was a hand-written request.
+ *
+ * The whole set is sent, not a delta — the endpoint replaces the assignment list
+ * and resolves dependencies itself, so a feature that needs another one drags it
+ * in rather than failing. That also means unticking something can quietly untick
+ * what depended on it, which is why the count is shown before and after.
+ */
+function FeatureEditor({
+  orgId,
+  current,
+  sources,
+  onSaved,
+}: {
+  orgId: string
+  current: string[]
+  sources: Record<string, string>
+  onSaved: () => void
+}) {
+  const [catalog, setCatalog] = useState<Catalog | null>(null)
+  const [chosen, setChosen] = useState<Set<string>>(new Set(current))
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    setChosen(new Set(current))
+    // `current` is rebuilt on every render of the parent; comparing by content
+    // keeps this from resetting a half-made selection on an unrelated refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current.join(',')])
+
+  useEffect(() => {
+    if (!open || catalog) return
+    platform
+      .catalog()
+      .then(setCatalog)
+      .catch(() => setError('Could not load the module catalogue.'))
+  }, [open, catalog])
+
+  const dirty = chosen.size !== current.length || current.some((f) => !chosen.has(f))
+
+  async function save() {
+    setSaving(true)
+    setError(null)
+    try {
+      await platform.setFeatures(orgId, [...chosen])
+      onSaved()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Could not save the module set.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <FadeIn delay={0.18} className="card mt">
+      <div className="spread" style={{ marginBottom: 14 }}>
+        <h3>Enabled modules</h3>
+        <div className="row" style={{ gap: 8 }}>
+          <Chip>{chosen.size}</Chip>
+          <button type="button" className="btn sm" onClick={() => setOpen((v) => !v)}>
+            {open ? 'Done' : 'Edit'}
+          </button>
+        </div>
+      </div>
+
+      {error ? <Banner kind="error">{error}</Banner> : null}
+
+      {!open ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {current.map((key) => (
+            <Chip key={key} title={`source: ${sources[key] ?? 'unknown'}`}>
+              {key}
+            </Chip>
+          ))}
+        </div>
+      ) : catalog === null ? (
+        <Spinner />
+      ) : (
+        <>
+          {catalog.features.map((group) => (
+            <div key={group.category} style={{ marginTop: 14 }}>
+              <div className="type-label" style={{ marginBottom: 8 }}>
+                {group.category.toUpperCase()}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {group.features.map((f) => {
+                  const on = chosen.has(f.id)
+                  return (
+                    <button
+                      key={f.id}
+                      type="button"
+                      className={`chip ${on ? 'on' : ''}`}
+                      title={f.description}
+                      onClick={() =>
+                        setChosen((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(f.id)) next.delete(f.id)
+                          else next.add(f.id)
+                          return next
+                        })
+                      }
+                    >
+                      {f.id}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+
+          <div className="row" style={{ gap: 8, marginTop: 16 }}>
+            <button
+              type="button"
+              className="btn primary sm"
+              disabled={saving || !dirty}
+              onClick={() => void save()}
+            >
+              {saving ? <Spinner /> : `Save ${String(chosen.size)} modules`}
+            </button>
+            <button
+              type="button"
+              className="btn sm"
+              disabled={saving}
+              onClick={() => setChosen(new Set(current))}
+            >
+              Reset
+            </button>
+            <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>
+              Dependencies are resolved on save, so enabling one module can pull in another.
+            </span>
+          </div>
+        </>
+      )}
+    </FadeIn>
   )
 }

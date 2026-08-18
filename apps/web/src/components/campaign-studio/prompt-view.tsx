@@ -74,10 +74,14 @@ export function PromptView({
   // workspace entitled to one. Without the feature the field is exactly as it
   // was — no placeholder, no upsell.
   const ws = useWorkspace()
-  // One entitlement, not two. The ask box used to call /ai/chat, gated by
-  // `ai.chat`, so a workspace with the coach but not chat got a box that 403'd
-  // on first use. Both halves now go through the coach's own endpoint.
-  const hasCoach = ws.enabledFeatures.includes('ai.copywriter')
+  // Read, but no longer used to decide whether the card exists.
+  //
+  // Hiding the coach when `ai.copywriter` is absent made a whole section of the
+  // screen vanish with nothing in its place, which is indistinguishable from a
+  // bug — and was reported as one. The card is part of this screen now; the
+  // entitlement decides whether it can read, and the card says so in a line if
+  // it cannot. A feature that is not included should say it is not included.
+  const coachEntitled = ws.enabledFeatures.includes('ai.copywriter')
 
   useEffect(() => {
     const el = taRef.current
@@ -137,24 +141,23 @@ export function PromptView({
           autoFocus
         />
 
-        {hasCoach ? (
-          <BriefCoach
-            brief={prompt}
-            onReplace={setPrompt}
-            focusBrief={() => {
-              // After the frame the new text has rendered, so the caret lands at
-              // the end of the scaffold rather than where the old text ended.
-              requestAnimationFrame(() => {
-                const el = taRef.current
-                if (!el) return
-                el.focus()
-                el.setSelectionRange(el.value.length, el.value.length)
-              })
-            }}
-            initialResult={parseStoredCoach(restoredCoach)}
-            onResult={onCoachResult}
-          />
-        ) : null}
+        <BriefCoach
+          brief={prompt}
+          onReplace={setPrompt}
+          focusBrief={() => {
+            // After the frame the new text has rendered, so the caret lands at
+            // the end of the scaffold rather than where the old text ended.
+            requestAnimationFrame(() => {
+              const el = taRef.current
+              if (!el) return
+              el.focus()
+              el.setSelectionRange(el.value.length, el.value.length)
+            })
+          }}
+          initialResult={parseStoredCoach(restoredCoach)}
+          onResult={onCoachResult}
+          entitled={coachEntitled}
+        />
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 14, marginTop: 16 }}>
           <button

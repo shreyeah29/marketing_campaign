@@ -72,6 +72,33 @@ describe('the prompt forbids money and offers pace instead', () => {
   })
 })
 
+describe('the rewrite is written for an image model', () => {
+  it('asks for the specifics a photograph needs', () => {
+    // The point of the coach. What a person types carries none of this, and an
+    // image model asked for "a campaign for my latte" invents a setting, a light
+    // and a mood — producing a competent photograph of nobody's product.
+    const prompt = buildCoachPrompt(GROUNDING)
+    expect(prompt).toContain('PHOTOGRAPHY DIRECTION')
+    expect(prompt).toMatch(/light a quality and a direction/i)
+    expect(prompt).toMatch(/depth/i)
+    expect(prompt).toMatch(/three or four colours/i)
+  })
+
+  it('forbids text inside the image, where the price would be faked', () => {
+    // Every figure on the finished poster is laid on afterwards from the
+    // catalogue. A model asked for a price draws something that resembles one.
+    const prompt = buildCoachPrompt(GROUNDING)
+    expect(prompt).toMatch(/NEVER ask for text, letters, numbers, prices or logos/i)
+    expect(prompt).toMatch(/calm, uncluttered area/i)
+  })
+
+  it('still refuses to become a prompt template', () => {
+    // The failure on the other side: a brief about brunch with a list of camera
+    // settings stapled to it. It is the client's brief, in their voice.
+    expect(buildCoachPrompt(GROUNDING)).toMatch(/direction, not a prompt template/i)
+  })
+})
+
 describe('look & feel is not a dimension', () => {
   it('is absent from the shape the model is asked for', () => {
     // It is chosen from the gallery on intake, so a chip here could name a gap
@@ -79,6 +106,7 @@ describe('look & feel is not a dimension', () => {
     const prompt = buildCoachPrompt(GROUNDING)
     expect(prompt).not.toMatch(/"look"/)
     expect(prompt).toMatch(/Visual direction is NOT one of the dimensions/)
+    expect(prompt).not.toMatch(/"look": bool/)
     expect(COACH_DIMENSIONS.map((d) => d.id)).toEqual([
       'product',
       'offer',

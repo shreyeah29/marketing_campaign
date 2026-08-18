@@ -325,8 +325,12 @@ export class AiController {
    * prices are dropped: the catalogue has them, the model must not, and a client
    * that assembled its own context could put them back.
    */
+  // No @RequiresFeature. The coach is part of writing a brief, not a module
+  // sold on top of it: every client who can reach this screen gets it. The
+  // permission stays because it is about the person's role rather than the
+  // plan — AGENTS_RUN is granted from Member upward, which is everyone who can
+  // write a brief in the first place.
   @Post('brief-coach')
-  @RequiresFeature('ai.copywriter')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Coverage, scaffolds and a sharpened rewrite for a campaign brief' })
   async briefCoach(
@@ -368,8 +372,8 @@ export class AiController {
    * usually oblige — so the answer is filtered on the way out rather than
    * trusted on the way in.
    */
+  // Ungated for the same reason as the coach itself — see above.
   @Post('brief-coach/ask')
-  @RequiresFeature('ai.copywriter')
   @RequirePermissions(PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Answer a question about the brief, in a sentence or three' })
   async briefCoachAsk(

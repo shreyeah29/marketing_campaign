@@ -235,7 +235,9 @@ Record<dimension, boolean>, priority, scaffolds, sharpened, added[], summary }`.
   spans that do not occur in it are dropped server-side.
 - POST `/ai/brief-coach/ask` `{ brief?, question }` → `{ answer }`. Three
   sentences at most.
-- Both gated by `ai.copywriter` and scrubbed by `scrubMoney` before returning:
+- Neither is plan-gated: the coach is part of writing a brief, not a module sold
+  on top of one, so every client has it. `AGENTS_RUN` still applies, which is
+  granted from Member upward. Both are scrubbed by `scrubMoney` before returning:
   the coach is client-facing, so no currency, budget, cost or credit reaches it
   even if the model writes one. Spend intent is expressed as pace only.
   Grounding is assembled server-side from product **names** — never prices.

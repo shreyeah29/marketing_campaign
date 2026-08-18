@@ -10,7 +10,11 @@ import { Spinner } from '@/components/ui'
  * Brief coach — reads the brief as you type and says what is missing.
  *
  * Advisory, never a gate: Continue works at zero of five, and a failed call
- * changes nothing on the screen except one quiet line. The card exists because
+ * changes nothing on the screen except one quiet line.
+ *
+ * Every client gets it. It was briefly behind `ai.copywriter`, which meant a
+ * whole section of the brief screen existed for some workspaces and not others
+ * — coaching is part of writing a brief here, not a module sold on top of one. The card exists because
  * the difference between a usable campaign and a generic one is almost always
  * four or five facts the person already knows and did not think to write down.
  *
@@ -158,7 +162,6 @@ export function BriefCoach({
   lookChosen = false,
   initialResult = null,
   onResult,
-  entitled = true,
 }: {
   brief: string
   onReplace: (next: string) => void
@@ -179,14 +182,6 @@ export function BriefCoach({
   initialResult?: CoachResult | null
   /** Called whenever a fresh result lands, so the page can save it. */
   onResult?: ((result: CoachResult | null) => void) | undefined
-  /**
-   * Whether this workspace's plan includes the coach.
-   *
-   * The card renders either way. Removing it left a hole in the screen that
-   * looked like a broken feature rather than an absent one — so it stays, and
-   * says which it is.
-   */
-  entitled?: boolean
 }) {
   const [result, setResult] = useState<CoachResult | null>(initialResult)
   const [reading, setReading] = useState(false)
@@ -248,7 +243,6 @@ export function BriefCoach({
   )
 
   useEffect(() => {
-    if (!entitled) return
     const text = brief.trim()
     if (text.length < MIN_CHARS) {
       // Below the floor the card idles. The previous result is cleared because
@@ -267,7 +261,7 @@ export function BriefCoach({
     return () => window.clearTimeout(t)
     // `result` is read but must not retrigger: publishing null would loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brief, analyse, publish, entitled])
+  }, [brief, analyse, publish])
 
   useEffect(() => () => inFlight.current?.abort(), [])
 
@@ -319,14 +313,13 @@ export function BriefCoach({
   const priority = result?.priority && !coverage[result.priority] ? result.priority : null
 
   const status = useMemo(() => {
-    if (!entitled) return 'not included on this plan'
     if (idle) return 'a sentence or two and it starts reading'
     if (reading && !result) return 'reading…'
     if (unavailable && !result) return 'coach unavailable'
     if (!result) return ''
     if (missing.length === 0) return 'this brief covers everything'
     return `${String(missing.length)} ${missing.length === 1 ? 'detail' : 'details'} would sharpen this`
-  }, [entitled, idle, reading, unavailable, result, missing.length])
+  }, [idle, reading, unavailable, result, missing.length])
 
   return (
     <section className="coach" aria-label="Brief coach">
@@ -334,9 +327,7 @@ export function BriefCoach({
       <header className="coach__head">
         <Icon name="sparkles" size={15} className="coach__spark" />
         <span className="coach__title">Brief coach</span>
-        <span className="coach__sub">
-          {!entitled ? 'unavailable' : reading ? 'reading…' : 'reading as you type'}
-        </span>
+        <span className="coach__sub">{reading ? 'reading…' : 'reading as you type'}</span>
         <span className="coach__status">{status}</span>
         <span className="coach__meter" aria-hidden="true">
           <span className="coach__meter-fill" style={{ width: `${String(pct)}%` }} />
@@ -345,7 +336,7 @@ export function BriefCoach({
 
       <div className="coach__body">
         {/* ── 2. Coverage chips ───────────────────────────────────────────── */}
-        <div className="coach__chips" data-idle={idle || !entitled ? '' : undefined}>
+        <div className="coach__chips" data-idle={idle ? '' : undefined}>
           {DIMENSIONS.map((d) => {
             const done = coverage[d.id]
             const scaffold = result?.scaffolds[d.id]
@@ -363,7 +354,7 @@ export function BriefCoach({
                 type="button"
                 className="coach-chip"
                 data-state={d.id === priority ? 'next' : 'missing'}
-                disabled={idle || !entitled || !scaffold}
+                disabled={idle || !scaffold}
                 onClick={() => appendScaffold(d.id)}
                 title={scaffold ? `Add: ${scaffold}…` : d.label}
               >
@@ -374,13 +365,7 @@ export function BriefCoach({
           })}
         </div>
 
-        {!entitled ? (
-          <p className="coach__idle">
-            Reading briefs is part of a higher plan, so the coach is switched off here. Nothing else
-            on this screen changes — write the brief in your own words and Continue works exactly as
-            it does with it.
-          </p>
-        ) : idle ? (
+        {idle ? (
           <p className="coach__idle">
             Write a little more and the coach will read it. Nothing is blocked either way — Continue
             works whenever you are ready.
@@ -449,52 +434,50 @@ export function BriefCoach({
         ) : null}
 
         {/* ── 4. Ask ──────────────────────────────────────────────────────── */}
-        {entitled ? (
-          <div className="coach__ask">
-            <div className="coach__ask-row">
-              <input
-                className="input"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder={`Ask the coach — “${SUGGESTED_QUESTIONS[0] ?? 'is this enough?'}”`}
-                aria-label="Ask the coach a question"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void ask(question)
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="coach__send"
-                aria-label="Ask"
-                disabled={asking || question.trim().length === 0}
-                onClick={() => void ask(question)}
-              >
-                {asking ? <Spinner /> : <Icon name="send" size={15} />}
-              </button>
-            </div>
-
-            <div className="coach__suggestions">
-              {SUGGESTED_QUESTIONS.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className="coach__suggestion"
-                  onClick={() => {
-                    setQuestion(q)
-                    void ask(q)
-                  }}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-
-            {answer ? <p className="coach__answer">{answer}</p> : null}
+        <div className="coach__ask">
+          <div className="coach__ask-row">
+            <input
+              className="input"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={`Ask the coach — “${SUGGESTED_QUESTIONS[0] ?? 'is this enough?'}”`}
+              aria-label="Ask the coach a question"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void ask(question)
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="coach__send"
+              aria-label="Ask"
+              disabled={asking || question.trim().length === 0}
+              onClick={() => void ask(question)}
+            >
+              {asking ? <Spinner /> : <Icon name="send" size={15} />}
+            </button>
           </div>
-        ) : null}
+
+          <div className="coach__suggestions">
+            {SUGGESTED_QUESTIONS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                className="coach__suggestion"
+                onClick={() => {
+                  setQuestion(q)
+                  void ask(q)
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {answer ? <p className="coach__answer">{answer}</p> : null}
+        </div>
       </div>
     </section>
   )

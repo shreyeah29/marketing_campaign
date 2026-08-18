@@ -58,6 +58,38 @@ export const COST_BOUNDARY_RULES = [
   "If the brief already contains the client's own product prices, leave them exactly as written — those are theirs. Never add a figure of your own.",
 ].join('\n')
 
+/**
+ * What a brief needs before it can produce a good photograph.
+ *
+ * This is the point of the coach, not a flourish on it. The sharpened brief is
+ * what the campaign generator turns into image prompts, and what a person types
+ * — "run a campaign for my latte" — carries none of the things an image model
+ * needs to make something worth publishing. It will happily invent a setting, a
+ * light and a mood, and the result is a competent stock photograph of nobody's
+ * product.
+ *
+ * So the rewrite folds in the specifics that survive that translation: a named
+ * subject, a real surface, a light with a direction, a depth of field, a
+ * composition that leaves somewhere for the price to go, and a palette. Six
+ * concrete nouns beat a paragraph of adjectives.
+ *
+ * Two rules exist because of what happens downstream. Never ask for text in the
+ * image: models render a phone number as something that merely resembles one,
+ * and every figure on the finished poster is laid on afterwards from the
+ * catalogue. And always leave a calm area, because that is where it goes.
+ */
+const PHOTOGRAPHY_DIRECTION = [
+  'PHOTOGRAPHY DIRECTION — the rewrite feeds an image model, so write for one:',
+  '- Name the subject plainly: what is in frame, and what it is sitting on or in.',
+  '- Give the light a quality and a direction — "low afternoon sun from the left", not "good lighting".',
+  '- Say something about depth: close and shallow, or wide and even.',
+  '- Name three or four colours, not a vibe. "Caramel, cream, pale gold, leaf green" beats "warm and inviting".',
+  '- Ask for a calm, uncluttered area where the price and the offer will be placed afterwards.',
+  '- Say photographic, not illustrated, unless the brief clearly wants illustration.',
+  '- NEVER ask for text, letters, numbers, prices or logos inside the image. They are composed on top later, from real data. A model asked for a price draws something that only resembles one.',
+  "- Keep it in the client's own voice and inside their own brief. This is direction, not a prompt template: do not append a list of camera settings to a sentence about brunch.",
+].join('\n')
+
 export interface CoachGrounding {
   /** Product names only. Prices are deliberately excluded — see below. */
   readonly products: readonly string[]
@@ -116,10 +148,12 @@ export function buildCoachPrompt(grounding: CoachGrounding): string {
     '3. "sharpened" keeps the user\'s voice and folds in only what is already known from the brief or the facts below. Never invent a statistic, a date or a number.',
     '4. "added" lists the exact substrings of "sharpened" that are new or changed, so they can be highlighted. Each entry must appear in "sharpened" character for character. If nothing was added, use an empty array.',
     '5. "priority" is the one missing dimension that would improve the plan most. Null when nothing is missing.',
-    '6. Visual direction is NOT one of the dimensions and never appears in "coverage". Do not ask for a look, a mood or a style — a later step collects that.',
+    '6. Visual direction is NOT one of the dimensions and never appears in "coverage" — a later step collects the look formally. But the rewrite still carries it, per the section below.',
     ...(grounding.lookChosen
       ? ['7. A visual direction has already been chosen. Do not mention it or suggest changing it.']
       : []),
+    '',
+    PHOTOGRAPHY_DIRECTION,
     '',
     COST_BOUNDARY_RULES,
     '',

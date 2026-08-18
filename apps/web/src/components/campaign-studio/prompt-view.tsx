@@ -7,8 +7,6 @@ import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
 import { Spinner } from '@/components/ui'
 
-import { useWorkspace } from '@/app/app/layout'
-
 import { BriefCoach, parseStoredCoach, type CoachResult } from './brief-coach'
 import { SUGGESTION_ROWS } from './constants'
 import type { Campaign, CreateDraft } from './types'
@@ -73,15 +71,11 @@ export function PromptView({
   // The coach is a copywriter-class call per analyse, so it only exists for a
   // workspace entitled to one. Without the feature the field is exactly as it
   // was — no placeholder, no upsell.
-  const ws = useWorkspace()
-  // Read, but no longer used to decide whether the card exists.
-  //
-  // Hiding the coach when `ai.copywriter` is absent made a whole section of the
-  // screen vanish with nothing in its place, which is indistinguishable from a
-  // bug — and was reported as one. The card is part of this screen now; the
-  // entitlement decides whether it can read, and the card says so in a line if
-  // it cannot. A feature that is not included should say it is not included.
-  const coachEntitled = ws.enabledFeatures.includes('ai.copywriter')
+  // No feature check for the coach. It reads what is being typed on this screen
+  // and belongs to the screen, so every client has it — the endpoint is ungated
+  // for the same reason. Hiding it per plan made a whole section of the page
+  // exist for some workspaces and not others, which reads as a bug rather than
+  // as an upsell.
 
   useEffect(() => {
     const el = taRef.current
@@ -156,7 +150,6 @@ export function PromptView({
           }}
           initialResult={parseStoredCoach(restoredCoach)}
           onResult={onCoachResult}
-          entitled={coachEntitled}
         />
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 14, marginTop: 16 }}>

@@ -33,12 +33,25 @@ import {
   generateRunwayImage,
   generateRunwayVideo,
 } from '../ai/adapters/runway.js'
-import { clampImagePrompt } from '../ai/scene-prompt.js'
+import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
 
-const generateSchema = z.object({ brief: z.string().min(4).max(4000) }).strict()
+const generateSchema = z
+  .object({
+    brief: z.string().min(4).max(4000),
+    /**
+     * The exact words to typeset on every poster in this run.
+     *
+     * Typed by the person, not inferred from the brief. The model may still
+     * decide a per-concept line where the brief asks for one; this fills in
+     * anywhere it did not, so a stated instruction cannot be quietly dropped by
+     * a model having an off day.
+     */
+    posterText: z.string().trim().max(70).optional(),
+  })
+  .strict()
 const editSchema = z
   .object({
     title: z.string().max(300).nullish(),
@@ -183,8 +196,8 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief } = zodBody(generateSchema, body)
-    return this.generation.generate(p, brief)
+    const { brief, posterText } = zodBody(generateSchema, body)
+    return this.generation.generate(p, brief, posterText)
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -341,9 +354,19 @@ export class ReviewQueueController {
     @CurrentPrincipal() p: Principal,
   ): Promise<unknown> {
     const input = zodBody(generateMediaSchema, body ?? {})
-    const asset = await withTenantTransaction(this.db, (tx) =>
-      tx.campaignAsset.findFirst({ where: { id, deletedAt: null } }),
-    )
+    // The campaign comes along for its audience and its theme — see the
+    // direction built below. Loaded in the same transaction so a poster cannot
+    // be generated against a campaign that was deleted mid-request.
+    const { asset, campaignRow } = await withTenantTransaction(this.db, async (tx) => {
+      const row = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
+      const campaign = row?.campaignId
+        ? await tx.campaign.findFirst({
+            where: { id: row.campaignId, deletedAt: null },
+            select: { name: true, theme: true, targetAudience: true },
+          })
+        : null
+      return { asset: row, campaignRow: campaign }
+    })
     if (!asset) throw new NotFoundException('Asset not found')
     if (asset.kind !== 'IMAGE_PROMPT' && asset.kind !== 'VIDEO_PROMPT') {
       throw new BadRequestException('Only image/video concepts can generate media')
@@ -398,7 +421,23 @@ export class ReviewQueueController {
     // promptText limit, and it answers that with a bare 400. See
     // `clampImagePrompt` for why the trim happens from the middle rather than
     // the end.
-    const prompt = clampImagePrompt(asset.title, asset.body, MAX_PROMPT_CHARS)
+    /**
+     * Locale and occasion, appended at assembly rather than left to the writer.
+     *
+     * A Rakshabandhan brief for a Hyderabad café produced two East-Asian faces
+     * at a table and no rakhi: "a couple at a café" is what the prompt said, and
+     * the model's defaults supplied the rest. The audience was in the brief the
+     * whole time and never reached the picture, because nothing required it to.
+     */
+    const direction = buildImageDirection({
+      locations: audienceLocations(campaignRow?.targetAudience),
+      theme: campaignRow?.theme ?? campaignRow?.name ?? null,
+    })
+    const prompt = clampImagePrompt(
+      asset.title,
+      direction ? `${asset.body} ${direction}` : asset.body,
+      MAX_PROMPT_CHARS,
+    )
     let urls: string[]
     /**
      * Fetched before generation, not after.
@@ -408,7 +447,22 @@ export class ReviewQueueController {
      * lands, so the stamp has to travel with it — the callback below closes over
      * these facts and is the only place the bytes are written.
      */
-    const facts = await this.brandFacts()
+    const brand = await this.brandFacts()
+
+    /**
+     * The brand signature, plus whatever this particular poster has to say.
+     *
+     * `posterText` is decided per concept by the generator, from the brief — a
+     * campaign asking for "1+1 this Rakshabandhan" records those words on that
+     * one asset, and the picture beside it carries none. The image model is
+     * still forbidden from drawing them; it left the space, and this fills it
+     * with type that is spelled correctly.
+     */
+    const poster = readPosterText(asset.posterText)
+    const facts = {
+      ...brand,
+      ...(poster ? { headline: poster.headline, subline: poster.subline ?? null } : {}),
+    }
     /**
      * Store under a key that is stable for this asset and variant.
      *
@@ -811,4 +865,56 @@ export class ReviewQueueController {
       },
     })
   }
+}
+
+/**
+ * Read the words a poster must carry off the asset.
+ *
+ * A JSON column is untrusted at the boundary like any other: it survives
+ * deploys, so a row written by an older shape can reach newer code. Anything
+ * that does not match is treated as absent, which produces a poster with no
+ * message rather than a crash while compositing one.
+ */
+function readPosterText(raw: unknown): { headline: string; subline?: string } | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const o = raw as { headline?: unknown; subline?: unknown }
+  const headline = typeof o.headline === 'string' ? o.headline.trim() : ''
+  if (headline.length === 0) return null
+  const subline = typeof o.subline === 'string' ? o.subline.trim() : ''
+  return subline ? { headline, subline } : { headline }
+}
+
+/**
+ * Pull place names out of the campaign's stored audience.
+ *
+ * `targetAudience` is JSON written by the generator, so its shape is a
+ * convention rather than a contract — it has arrived as `{ locations: [...] }`
+ * and as a `description` string. Both are read, and anything else yields no
+ * locations rather than a crash, which costs the picture its locale and nothing
+ * else.
+ */
+function audienceLocations(raw: unknown): string[] {
+  if (typeof raw !== 'object' || raw === null) return []
+  const o = raw as { locations?: unknown; description?: unknown }
+
+  if (Array.isArray(o.locations)) {
+    return o.locations.filter((l): l is string => typeof l === 'string' && l.trim().length > 0)
+  }
+
+  // "Ages 18–34 · Hyderabad, Secunderabad · Interests: coffee" — the summary the
+  // intake composes. The middle segment is the places.
+  if (typeof o.description === 'string') {
+    const segment = o.description
+      .split('·')
+      .map((part) => part.trim())
+      .find((part) => /^[A-Z]/.test(part) && !/^(?:Ages|Interests|Languages)\b/i.test(part))
+    if (segment) {
+      return segment
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+    }
+  }
+  return []
 }

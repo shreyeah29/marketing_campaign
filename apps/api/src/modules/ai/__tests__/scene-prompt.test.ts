@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildImageDirection,
   PRODUCT_REFERENCE_TAG,
   RUNWAY_RATIO,
   buildProductShotPrompt,
@@ -130,5 +131,58 @@ describe('buildProductShotPrompt', () => {
     const prompt = buildProductShotPrompt()
     expect(prompt).toContain(`@${PRODUCT_REFERENCE_TAG}`)
     expect(prompt.length).toBeGreaterThan(80)
+  })
+})
+
+describe('buildImageDirection', () => {
+  it('names the place, so the cast is not left to the model to guess', () => {
+    // The actual failure: a Rakshabandhan brief for a Hyderabad café returned
+    // two East-Asian faces at a table. The audience was in the brief the whole
+    // time and nothing required it to reach the picture.
+    const direction = buildImageDirection({ locations: ['Hyderabad'] })
+    expect(direction).toContain('Hyderabad')
+    expect(direction).toMatch(/authentically local/i)
+    expect(direction).toMatch(/not a generic international cast/i)
+  })
+
+  it('does not populate an empty scene with people', () => {
+    // Most product shots have nobody in them. "If people appear" rather than
+    // "add people" is the difference between a rule and an instruction.
+    expect(buildImageDirection({ locations: ['Mumbai'] })).toMatch(/if people appear/i)
+  })
+
+  it('knows Rakshabandhan is between siblings, not a couple', () => {
+    // The other half of the same picture being wrong. A romantic couple is not a
+    // stylistic miss here, it is the wrong relationship for the festival.
+    const direction = buildImageDirection({ theme: 'Rakshabandhan Sale' })
+    expect(direction).toMatch(/rakhi/i)
+    expect(direction).toMatch(/siblings, not a couple/i)
+  })
+
+  it('matches an occasion however it is spelled', () => {
+    for (const theme of ['raksha bandhan', 'Rakhi Offers', 'RAKSHABANDHAN']) {
+      expect(buildImageDirection({ theme }), theme).toMatch(/rakhi/i)
+    }
+  })
+
+  it('carries both the place and the occasion together', () => {
+    const direction = buildImageDirection({
+      locations: ['Hyderabad'],
+      theme: 'Rakshabandhan at the cafe',
+    })
+    expect(direction).toContain('Hyderabad')
+    expect(direction).toMatch(/rakhi/i)
+  })
+
+  it('says nothing when it knows nothing', () => {
+    // An empty direction must not append stray punctuation to a prompt that is
+    // already at its character limit.
+    expect(buildImageDirection({})).toBe('')
+    expect(buildImageDirection({ locations: [], theme: '   ' })).toBe('')
+  })
+
+  it('leaves an unrecognised theme alone rather than inventing a culture', () => {
+    const direction = buildImageDirection({ theme: 'Autumn menu refresh' })
+    expect(direction).toBe('')
   })
 })

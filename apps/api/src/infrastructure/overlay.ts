@@ -31,6 +31,16 @@ export interface BrandFacts {
   readonly phones?: readonly string[]
   /** Regional advertising disclaimer, set in the brand kit. */
   readonly disclaimer?: string | null
+  /**
+   * The message this particular poster has to carry — "1+1 this Rakshabandhan".
+   *
+   * Per picture, not per brand: it comes from the asset, because a brief asks
+   * for an offer on one concept and not the next. Drawn here rather than by the
+   * image model, which cannot spell — an invented "1+1 OFEER" is worse than a
+   * plain photograph, and a wrong price is worse than both.
+   */
+  readonly headline?: string | null
+  readonly subline?: string | null
 }
 
 export interface Composited {
@@ -115,7 +125,53 @@ function metrics(width: number) {
     disclaimer: Math.max(9, Math.round(base * 0.66)),
     gap: Math.round(base * 0.5),
     pad: Math.round(base * 1.15),
+    // The message, and a supporting line under it. Sized off width like
+    // everything else so a story and a square get proportionate type.
+    headline: Math.round(base * 2.6),
+    subline: Math.round(base * 1.15),
+    headlineGap: Math.round(base * 0.75),
   }
+}
+
+/**
+ * Wrap a headline to a width, in characters.
+ *
+ * SVG does not wrap, so the line breaks are decided here. Words are kept whole:
+ * a headline broken mid-word reads as a rendering fault, and this is the largest
+ * type on the poster. Three lines is the ceiling — beyond that the message has
+ * stopped being a headline and the band would eat the artwork.
+ */
+export function wrapHeadline(value: string, perLine: number, maxLines = 3): string[] {
+  const words = value.trim().split(/\s+/).filter(Boolean)
+  if (words.length === 0) return []
+  const lines: string[] = []
+  let line = ''
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word
+    if (candidate.length <= perLine || line === '') {
+      line = candidate
+    } else {
+      lines.push(line)
+      line = word
+      if (lines.length === maxLines) break
+    }
+  }
+  if (lines.length < maxLines && line) lines.push(line)
+  if (lines.length === maxLines) {
+    // Anything left over is dropped rather than overflowing the band. `fit`
+    // marks the truncation so a clipped headline is visible as clipped.
+    const last = lines[maxLines - 1] ?? ''
+    lines[maxLines - 1] = fit(last, perLine)
+  }
+  return lines
+}
+
+/** How many characters fit on a line of headline at this width. */
+function headlineChars(width: number, size: number): number {
+  // ~0.52em average advance for a bold sans at these sizes; measured against
+  // the fallback stack rather than assumed from the named face, which may be
+  // absent in the container.
+  return Math.max(12, Math.floor(width / (size * 0.52)))
 }
 
 /** The stacked text rows, in the order they are drawn. */
@@ -139,7 +195,37 @@ export function measureBand(width: number, facts: BrandFacts): number {
   const blockHeight =
     block.reduce((sum, r) => sum + r.size, 0) + Math.max(0, block.length - 1) * m.gap
   const disclaimer = facts.disclaimer?.trim() ? m.disclaimer + Math.round(m.disclaimer * 1.1) : 0
-  return Math.round(m.pad * 2 + blockHeight + disclaimer)
+
+  // The message is measured before the band is drawn, for the same reason the
+  // type scale is: the band stretches to hold the words, rather than the words
+  // being shrunk to fit a band chosen in advance.
+  const head = headlineBlock(facts, m, width)
+  const headHeight =
+    head.length > 0
+      ? head.reduce((sum, r) => sum + r.size, 0) +
+        Math.max(0, head.length - 1) * m.headlineGap +
+        m.pad
+      : 0
+
+  return Math.round(m.pad * 2 + headHeight + blockHeight + disclaimer)
+}
+
+/** The message rows: the headline, wrapped, and one supporting line under it. */
+function headlineBlock(
+  facts: BrandFacts,
+  m: ReturnType<typeof metrics>,
+  width: number,
+): { text: string; size: number; weight: number }[] {
+  const headline = facts.headline?.trim()
+  if (!headline) return []
+  const out = wrapHeadline(headline, headlineChars(width, m.headline)).map((text) => ({
+    text,
+    size: m.headline,
+    weight: 700,
+  }))
+  const sub = facts.subline?.trim()
+  if (sub) out.push({ text: fit(sub, 90), size: m.subline, weight: 400 })
+  return out
 }
 
 /**
@@ -162,15 +248,34 @@ export function buildBandSvg(
   const textLeft = logoWidth > 0 ? m.pad + logoWidth + Math.round(m.pad * 0.9) : m.pad
   const disclaimer = facts.disclaimer?.trim() ? fit(facts.disclaimer.trim(), 150) : ''
   const block = rows(facts, m)
+  const head = headlineBlock(facts, m, width)
 
   const blockHeight =
     block.reduce((sum, r) => sum + r.size, 0) + Math.max(0, block.length - 1) * m.gap
   const discBand = disclaimer ? m.disclaimer + Math.round(m.disclaimer * 1.1) : 0
+  const headHeight =
+    head.length > 0
+      ? head.reduce((sum, r) => sum + r.size, 0) + Math.max(0, head.length - 1) * m.headlineGap
+      : 0
 
-  // Centre the block in the space above the disclaimer strip. The first
-  // baseline sits one cap-height down from the block's top edge.
-  const available = bandHeight - discBand
-  let cursor = Math.round((available - blockHeight) / 2) + (block[0]?.size ?? 0)
+  // The message sits at the top of the band, full width — it is not indented
+  // past the logo, because it is the poster's line rather than part of the
+  // signature block underneath it.
+  let headCursor = m.pad + (head[0]?.size ?? 0)
+  const headTexts = head
+    .map((r) => {
+      const y = headCursor
+      headCursor += r.size + m.headlineGap
+      return `<text x="${String(m.pad)}" y="${String(y)}" font-family="${FONT_STACK}" font-size="${String(r.size)}" font-weight="${String(r.weight)}" fill="#ffffff">${escapeXml(r.text)}</text>`
+    })
+    .join('')
+
+  // Centre the signature block in what is left below the message.
+  const available = bandHeight - discBand - (headHeight > 0 ? headHeight + m.pad : 0)
+  let cursor =
+    (headHeight > 0 ? headHeight + m.pad : 0) +
+    Math.round((available - blockHeight) / 2) +
+    (block[0]?.size ?? 0)
 
   const texts = block
     .map((r) => {
@@ -195,7 +300,7 @@ export function buildBandSvg(
     </linearGradient>
   </defs>
   <rect width="${String(width)}" height="${String(bandHeight)}" fill="url(#band)"/>
-  ${texts}${disclaimerText}
+  ${headTexts}${texts}${disclaimerText}
 </svg>`
 }
 

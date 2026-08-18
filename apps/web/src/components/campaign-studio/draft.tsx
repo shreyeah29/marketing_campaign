@@ -144,6 +144,7 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'wantVideos',
   'lookFeel',
   'postCount',
+  'posterText',
   'videoCount',
   'adPlatforms',
   'wantEmails',
@@ -253,6 +254,13 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
   // only unit this side is allowed to speak.
   const pace = paceById(draft.pace)
   parts.push(`Pace: ${pace.label} — roughly ${String(pace.sharePct)}% of the monthly ad allowance`)
+
+  if (draft.posterText?.trim()) {
+    parts.push(
+      `TEXT ON THE POSTER: "${draft.posterText.trim()}" — typeset by the system onto the artwork. ` +
+        'Do not describe these words inside any image prompt; leave clear space for them.',
+    )
+  }
 
   if (draft.tone?.trim()) parts.push(`Tone: ${draft.tone.trim()}`)
   if (draft.selectedChips?.length)

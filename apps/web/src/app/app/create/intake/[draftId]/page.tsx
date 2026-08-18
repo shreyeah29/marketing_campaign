@@ -487,6 +487,28 @@ export default function GuidedIntakePage() {
             means {String((draft.postCount ?? DEFAULT_POSTERS) * 2)} assets to review.
           </p>
 
+          {/* The words themselves, typed rather than inferred.
+
+              The image model is forbidden from drawing text — it cannot spell,
+              and a mangled offer reaching a customer is worse than a plain
+              photograph — so whatever goes here is typeset onto the finished
+              artwork afterwards, at full size, spelled exactly as written. */}
+          <div className="field-label" style={{ marginTop: 20 }}>
+            TEXT ON THE POSTER <span className="type-caption">— optional</span>
+          </div>
+          <input
+            className="input"
+            value={draft.posterText ?? ''}
+            maxLength={70}
+            placeholder="1+1 this Rakshabandhan"
+            onChange={(e) => patch({ posterText: e.target.value })}
+          />
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
+            {draft.posterText?.trim()
+              ? `Printed on every poster in this run, exactly as written. ${String(70 - draft.posterText.trim().length)} characters left.`
+              : 'Leave empty for pictures with no words on them. Whatever you write here is typeset onto the artwork by us — the image model never draws text, because it cannot spell.'}
+          </p>
+
           <div className="field-label" style={{ marginTop: 16 }}>
             VIDEO CONCEPTS
           </div>

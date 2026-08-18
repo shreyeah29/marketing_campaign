@@ -5,6 +5,7 @@ import type { AppLogger } from '@marketing-os/observability'
 
 import {
   buildBandSvg,
+  wrapHeadline,
   canRenderText,
   contactLines,
   escapeXml,
@@ -233,5 +234,62 @@ describe('OverlayService', () => {
       displayName: 'Northwind',
     })
     expect(result.bytes).toBe(tiny)
+  })
+})
+
+describe('the poster message', () => {
+  const BRAND = { displayName: 'Always Sunday', phones: ['India +91 99084 11129'] }
+
+  it('is drawn on the artwork, at the size of a headline', () => {
+    // The whole point: the image model is forbidden from spelling this, so if it
+    // is not in the band it is nowhere.
+    const band = measureBand(1080, { ...BRAND, headline: '1+1 this Rakshabandhan' })
+    const svg = buildBandSvg(1080, band, { ...BRAND, headline: '1+1 this Rakshabandhan' }, 0)
+    expect(svg).toContain('1+1 this Rakshabandhan')
+    // Larger than the brand name beneath it, which is a signature rather than
+    // the message.
+    const sizes = [...svg.matchAll(/font-size="(\d+)"/g)].map((m) => Number(m[1]))
+    expect(Math.max(...sizes)).toBeGreaterThan(sizes[sizes.length - 1] ?? 0)
+  })
+
+  it('makes the band taller to hold it, instead of shrinking the words', () => {
+    const plain = measureBand(1080, BRAND)
+    const withText = measureBand(1080, { ...BRAND, headline: '1+1 this Rakshabandhan' })
+    expect(withText).toBeGreaterThan(plain)
+  })
+
+  it('changes nothing for a picture that carries no message', () => {
+    expect(measureBand(1080, BRAND)).toBe(measureBand(1080, { ...BRAND, headline: '   ' }))
+  })
+
+  it('escapes a message the way it escapes a brand name', () => {
+    // "Buy 1 & get 1" makes the SVG unparseable and sharp fails the whole
+    // composite — the same fault an ampersand in a business name used to cause.
+    const svg = buildBandSvg(1080, 300, { ...BRAND, headline: 'Buy 1 & get 1 <free>' }, 0)
+    expect(svg).toContain('&amp;')
+    expect(svg).not.toContain('<free>')
+  })
+})
+
+describe('wrapHeadline', () => {
+  it('breaks on words, never mid-word', () => {
+    // This is the largest type on the poster; a word cut in half reads as a
+    // rendering fault rather than a line break.
+    const lines = wrapHeadline('One plus one free this Rakshabandhan weekend', 20)
+    for (const line of lines) expect(line.length).toBeLessThanOrEqual(22)
+    expect(lines.join(' ')).toContain('Rakshabandhan')
+  })
+
+  it('keeps a word longer than the line rather than dropping it', () => {
+    expect(wrapHeadline('Rakshabandhan', 6)).toEqual(['Rakshabandhan'])
+  })
+
+  it('stops at three lines and marks the cut', () => {
+    const lines = wrapHeadline('a b c d e f g h i j k l m n o p q r s t u v', 3)
+    expect(lines).toHaveLength(3)
+  })
+
+  it('returns nothing for nothing', () => {
+    expect(wrapHeadline('   ', 20)).toEqual([])
   })
 })

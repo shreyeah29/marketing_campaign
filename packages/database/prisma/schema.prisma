@@ -3149,6 +3149,17 @@ model CampaignAsset {
   // Prior AI generations kept so a reviewer can compare/restore versions.
   aiVersions Json? @map("ai_versions")
 
+  /**
+   * Words that must appear ON the artwork, decided per concept.
+   *
+   * `{ headline, subline? }`. The image model is still forbidden from drawing
+   * text — it cannot spell, and "1+1 OFEER" reaches a customer — so when a brief
+   * asks for an offer on the poster the generator writes the exact words here
+   * and the compositor typesets them afterwards. Null for a picture that carries
+   * no message of its own, which is most of them.
+   */
+  posterText Json? @map("poster_text")
+
   scheduledFor   DateTime? @map("scheduled_for")
   publishedAt    DateTime? @map("published_at")
   externalPostId String?   @map("external_post_id")

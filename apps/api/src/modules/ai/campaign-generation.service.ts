@@ -100,7 +100,26 @@ interface GeneratedPlan {
     caption?: string
     hashtags?: string[]
     cta?: string
+    /** Words to typeset ON the artwork. See the prompt's WORDS ON THE POSTER. */
+    posterText?: { headline?: string; subline?: string }
   }>
+}
+
+/**
+ * Keep a poster message only when it is real and short.
+ *
+ * Length is a design constraint, not a preference: the headline is the largest
+ * type on the poster and the band grows to hold it, so an unbounded string eats
+ * the artwork it was meant to sit on. Anything without a headline is dropped
+ * whole — a subline with nothing above it is a caption in the wrong place.
+ */
+function normalizePosterText(raw: unknown): { headline: string; subline?: string } | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const o = raw as { headline?: unknown; subline?: unknown }
+  const headline = typeof o.headline === 'string' ? o.headline.trim().slice(0, 70) : ''
+  if (headline.length === 0) return null
+  const subline = typeof o.subline === 'string' ? o.subline.trim().slice(0, 110) : ''
+  return subline ? { headline, subline } : { headline }
 }
 
 @Injectable()
@@ -241,6 +260,8 @@ export class CampaignGenerationService {
   async generate(
     principal: Principal,
     brief: string,
+    /** Exact words for the artwork, typed by the person rather than inferred. */
+    posterText?: string,
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
@@ -319,6 +340,7 @@ export class CampaignGenerationService {
         },
       })
 
+      const typed = posterText?.trim().slice(0, 70) ?? ''
       const assets = plan.assets.slice(0, 40).map((a) => ({
         organizationId: principal.organizationId,
         campaignId: campaign.id,
@@ -330,6 +352,20 @@ export class CampaignGenerationService {
         caption: a.caption ?? null,
         hashtags: Array.isArray(a.hashtags) ? a.hashtags.slice(0, 30) : [],
         cta: a.cta ?? null,
+        // Only on artwork. Copy carries its message in the body; a headline on a
+        // caption asset would be typeset onto nothing.
+        /**
+         * The typed line wins where the model left one out.
+         *
+         * Precedence rather than replacement: a brief that asks for different
+         * words on different concepts still gets them, and a person who typed a
+         * line once gets it on every poster that would otherwise carry none. A
+         * stated instruction should not depend on a model remembering it.
+         */
+        posterText:
+          normalizeKind(a.kind) === 'IMAGE_PROMPT'
+            ? (normalizePosterText(a.posterText) ?? (typed ? { headline: typed } : null))
+            : null,
         ownerId: principal.type === 'user' ? principal.id : null,
       }))
       if (assets.length > 0) {
@@ -474,6 +510,7 @@ const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Gi
   "assets": [
     { "platform": "INSTAGRAM"|"FACEBOOK"|"LINKEDIN"|"X"|"GOOGLE",
       "kind": "POST"|"AD_COPY"|"AD_HEADLINE"|"AD_DESCRIPTION"|"CAPTION"|"IMAGE_PROMPT"|"VIDEO_PROMPT",
+      "posterText": { "headline": string, "subline"?: string } | omitted,
       "title": string, "body": string, "caption": string, "hashtags": string[], "cta": string }
   ]
 }
@@ -481,6 +518,8 @@ Produce at least one POST per platform (Instagram, Facebook, LinkedIn, X, Google
 ALSO produce 2-4 IMAGE_PROMPT assets (poster/visual concepts) and 1-2 VIDEO_PROMPT assets (short clip concepts). For these, "title" is the concept name and "body" is a rich, detailed generation prompt for an AI image/video model — subject, composition, lighting, mood, colours, style — written to match the brand.
 
 CRITICAL for every IMAGE_PROMPT: the artwork must contain NO text, NO lettering, NO numbers, NO logos, NO signage and NO watermarks of any kind. Image models cannot spell, and a poster with an invented phone number is unusable. Describe only the picture, and end every IMAGE_PROMPT body with: "No text, letters, numbers or logos anywhere in the image. Leave the lower quarter visually calm and uncluttered — a plain surface, sky, gradient or shadow — with no important subject matter there." The real name, phone numbers, email and logo are typeset onto that space afterwards by the system.
+
+WORDS ON THE POSTER: when the brief asks for a message to appear ON a picture — an offer, a date, a line like "1+1 this Rakshabandhan" — put the exact words in that IMAGE_PROMPT's "posterText" field, NOT in the picture description. Shape: "posterText": { "headline": "…", "subline": "…" }. The headline is at most 6 words and is the thing a person reads first; the subline is optional and at most 12 words. The system typesets these onto the finished artwork, spelled correctly, in the clear space the prompt reserved. Omit "posterText" entirely for a picture the brief did not ask to carry a message — most of them. Never repeat the poster text inside the image description, and never invent an offer that the brief did not state.
 
 Return valid JSON only.`
 

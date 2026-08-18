@@ -171,6 +171,105 @@ const NO_TEXT_CLAUSE =
  * the rule and returns artwork covered in invented lettering. The description is
  * shortened instead, and the clause is put back.
  */
+/**
+ * Occasions that carry their own visual language.
+ *
+ * A model asked for "a Rakshabandhan campaign" produces a café scene with a
+ * couple in it, because the word means nothing to it beyond "festive". Naming
+ * the objects and the relationship is what turns a generic photograph into one
+ * about the festival — and Rakshabandhan in particular is between siblings, so a
+ * romantic couple is not a stylistic miss, it is the wrong picture entirely.
+ *
+ * Deliberately short and specific. A paragraph of cultural exposition per
+ * festival would crowd the 1000-character prompt limit and dilute the scene the
+ * brief actually asked for.
+ */
+const OCCASIONS: readonly { readonly match: RegExp; readonly direction: string }[] = [
+  {
+    match: /raksha\s?bandhan|rakhi/i,
+    direction:
+      "Rakshabandhan: a sister tying a decorative rakhi thread on her brother's wrist. Siblings, not a couple. Marigolds, a thali with sweets, warm festive colours.",
+  },
+  {
+    match: /diwali|deepavali/i,
+    direction:
+      'Diwali: clay diya lamps, marigold garlands, rangoli patterns, warm night light, sweets in brass or steel.',
+  },
+  {
+    match: /holi/i,
+    direction: 'Holi: dry colour powders in bright heaps, daylight, joyful movement.',
+  },
+  {
+    match: /eid|ramadan|ramzan/i,
+    direction: 'Eid: dates, crescent motifs, lanterns, calm evening light, a shared table.',
+  },
+  {
+    match: /onam/i,
+    direction: 'Onam: a banana-leaf sadhya spread, pookalam flower carpet, white and gold.',
+  },
+  {
+    match: /pongal|sankranti/i,
+    direction: 'Pongal: a clay pot boiling over, sugarcane, turmeric, morning sun.',
+  },
+  {
+    match: /christmas/i,
+    direction: 'Christmas: evergreen, warm string lights, red and gold, an evening interior.',
+  },
+  {
+    match: /republic\s?day|independence\s?day/i,
+    direction:
+      'Indian national day: saffron, white and green accents used tastefully — no flags draped over food.',
+  },
+  {
+    match: /navratri|durga\s?puja|dussehra/i,
+    direction: 'Navratri: bright mirrorwork textiles, marigold, evening celebration.',
+  },
+  {
+    match: /valentine/i,
+    direction: "Valentine's: a couple, soft warm light, restrained red accents.",
+  },
+]
+
+/**
+ * The direction an image prompt must carry, assembled rather than hoped for.
+ *
+ * Both of these used to be left to the writing model to remember. It forgot: a
+ * Rakshabandhan brief for a Hyderabad café produced two East-Asian faces at a
+ * table and no rakhi, because "a couple at a café" is what the words describe
+ * and the model's defaults filled in the rest. The audience was in the brief the
+ * whole time.
+ *
+ * So it is appended at assembly, beside the no-text clause, where it cannot be
+ * forgotten by a model having an off day.
+ */
+export interface ImageContext {
+  /** Where the audience is — "Hyderabad", "Mumbai, Pune". From the campaign. */
+  readonly locations?: readonly string[]
+  /** The campaign's theme or name, matched against the occasions above. */
+  readonly theme?: string | null
+}
+
+export function buildImageDirection(ctx: ImageContext): string {
+  const parts: string[] = []
+
+  const where = (ctx.locations ?? []).map((l) => l.trim()).filter(Boolean)
+  if (where.length > 0) {
+    // Phrased as "if people appear" rather than "add people": most product shots
+    // have none, and an instruction to include them would populate empty scenes.
+    parts.push(
+      `Set in ${where.join(', ')}. Any people, clothing, food, signage-free décor and setting must look authentically local to ${where[0] ?? ''} — if people appear they must be of that region, not a generic international cast.`,
+    )
+  }
+
+  const theme = ctx.theme?.trim()
+  if (theme) {
+    const occasion = OCCASIONS.find((o) => o.match.test(theme))
+    if (occasion) parts.push(occasion.direction)
+  }
+
+  return parts.join(' ')
+}
+
 export function clampImagePrompt(
   title: string | null | undefined,
   body: string,

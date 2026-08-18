@@ -90,6 +90,15 @@ export interface CreateDraft {
   lookFeel?: string | undefined
   /** Exact number of unique social post concepts (not per-platform). */
   postCount?: 1 | 2 | 3 | 5 | 10 | 20 | undefined
+  /**
+   * Words to typeset on the artwork, in the person's own hand.
+   *
+   * Separate from the brief because the brief describes the campaign and this is
+   * literal output: what a reader will see printed on the picture. Inferring it
+   * from prose is how "1+1 on Rakshabandhan" ended up in a caption and on no
+   * poster at all.
+   */
+  posterText?: string | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

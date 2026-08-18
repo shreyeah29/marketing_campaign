@@ -65,7 +65,7 @@ const PLATFORMS: {
   {
     key: 'GOOGLE_ADS',
     label: 'Google Ads',
-    hint: 'Would sync spend, clicks and conversions from search and display ads.',
+    hint: 'Would sync reach, clicks and conversions from search and display ads.',
     unavailable: true,
   },
   {

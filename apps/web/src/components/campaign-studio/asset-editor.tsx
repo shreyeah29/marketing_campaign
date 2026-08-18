@@ -378,7 +378,7 @@ export function AssetEditor({
           title="No targeting on this asset"
           hint={
             asset.kind.startsWith('AD_')
-              ? 'Audience, placements, and budget are chosen at publish or on the connected ad account — they are not stored on the asset in this contract.'
+              ? 'Audience, placements and delivery are chosen at publish or on the connected ad account — they are not stored on the asset in this contract.'
               : 'Targeting applies to ads. This asset is copy or organic content.'
           }
         />

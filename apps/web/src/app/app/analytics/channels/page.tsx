@@ -166,7 +166,7 @@ export default function AnalyticsChannelsPage() {
         <ChannelCard
           platform="Meta"
           connected={metaConnected}
-          hint="Connect your Facebook or Instagram ad account to see spend, CTR, and lead metrics."
+          hint="Connect your Facebook or Instagram ad account to see reach, CTR and lead metrics."
         >
           {metaSummary && metaConnected ? (
             <Stagger className="cols-3 grid" style={{ gap: 12 }} interval={0.04}>

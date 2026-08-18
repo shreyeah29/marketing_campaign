@@ -1,7 +1,7 @@
 'use client'
 
 import type { CreateDraft } from './types'
-import { INTAKE_OBJECTIVES } from './constants'
+import { INTAKE_OBJECTIVES, paceById } from './constants'
 
 const DRAFT_KEY = (id: string) => `mos:draft:${id}`
 
@@ -183,8 +183,13 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
   else if (draft.customStart && draft.customEnd)
     parts.push(`Duration: ${draft.customStart} to ${draft.customEnd}`)
 
-  if (typeof draft.budget === 'number' && draft.budget > 0)
-    parts.push(`Budget: ₹${draft.budget.toLocaleString('en-IN')}`)
+  // Pace, not a rupee figure. `draft.budget` is a leftover from before the
+  // allowance funded the media; a stored draft can still carry one, and printing
+  // it would put a currency amount into a brief on the client plane. The
+  // generator needs to know how hard to push, and pace is that signal in the
+  // only unit this side is allowed to speak.
+  const pace = paceById(draft.pace)
+  parts.push(`Pace: ${pace.label} — roughly ${String(pace.sharePct)}% of the monthly ad allowance`)
 
   if (draft.tone?.trim()) parts.push(`Tone: ${draft.tone.trim()}`)
   if (draft.selectedChips?.length)

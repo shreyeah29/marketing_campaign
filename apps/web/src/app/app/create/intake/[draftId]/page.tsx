@@ -374,11 +374,11 @@ export default function GuidedIntakePage() {
           </div>
         </div>
 
-        {/* ── Step 4 · Duration & budget ───────────────────────────────── */}
+        {/* ── Step 4 · Duration & pace ───────────────────────────────── */}
         <div className="card intake-section" style={{ flex: '1 1 300px', minWidth: 0, margin: 0 }}>
           <div className="intake-section__head">
             <span className="intake-step">STEP 4</span>
-            <span className="intake-section__title">Duration &amp; budget</span>
+            <span className="intake-section__title">Duration &amp; pace</span>
           </div>
 
           <div className="field-label">RUN FOR</div>
@@ -443,7 +443,7 @@ export default function GuidedIntakePage() {
               </div>
               <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
                 {String(Math.max(0, 100 - allowance.usedPct))}% of this month&apos;s allowance is
-                still unused. Ad spend is billed to us, never to you.
+                still unused. Ads are paid for by us, never by you.
               </p>
             </>
           ) : null}

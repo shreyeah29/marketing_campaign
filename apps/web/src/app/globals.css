@@ -7493,7 +7493,7 @@ a:hover {
 .deliv-row .ico {
   color: var(--text-tertiary);
 }
-.deliv-row[data-billed] .ico {
+.deliv-row[data-generated] .ico {
   color: var(--cobalt-600);
 }
 

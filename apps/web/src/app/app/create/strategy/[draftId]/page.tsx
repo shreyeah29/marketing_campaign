@@ -44,8 +44,15 @@ interface Deliverable {
   label: string
   qualifier: string
   count: number
-  /** True when producing it spends generation credit rather than only tokens. */
-  billed: boolean
+  /**
+   * True when a model produces it, rather than the template engine.
+   *
+   * Named `billed` until now, which put our cost of goods into the vocabulary of
+   * a client-facing screen. What the flag is actually used for is marking which
+   * rows are generated — the icon is highlighted for those — and that is a fact
+   * about how the asset is made, not about what it costs.
+   */
+  generated: boolean
 }
 
 /**
@@ -69,7 +76,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
       label: 'Poster concepts',
       qualifier: 'one per concept, feed and story crops',
       count: posts,
-      billed: true,
+      generated: true,
     })
   }
   if (videos > 0) {
@@ -79,7 +86,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
       label: 'Video concepts',
       qualifier: 'reels 9:16',
       count: videos,
-      billed: true,
+      generated: true,
     })
   }
   rows.push({
@@ -88,7 +95,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
     label: 'Captions & hashtags',
     qualifier: 'per concept',
     count: posts,
-    billed: false,
+    generated: false,
   })
   if (ads > 0) {
     rows.push({
@@ -97,7 +104,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
       label: 'Ad copy sets',
       qualifier: draft.adPlatforms?.join(', ') ?? '',
       count: ads,
-      billed: false,
+      generated: false,
     })
   }
   if (draft.wantEmails) {
@@ -107,7 +114,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
       label: 'Email sequence',
       qualifier: 'announce, remind, last call',
       count: 3,
-      billed: false,
+      generated: false,
     })
   }
   if (draft.wantLanding) {
@@ -117,7 +124,7 @@ function deliverablesFor(draft: CreateDraft): Deliverable[] {
       label: 'Landing page copy',
       qualifier: 'headline, body, CTA',
       count: 1,
-      billed: false,
+      generated: false,
     })
   }
   return rows
@@ -138,7 +145,9 @@ const SECTIONS = {
   strategy: { label: 'Strategy', fields: ['strategy'] },
   audience: { label: 'Audience', fields: ['audience'] },
   schedule: { label: 'Schedule', fields: ['durationDays', 'platforms'] },
-  budget: { label: 'Budget split', fields: ['suggestedBudget'] },
+  // No budget section. The plan's `suggestedBudget` is redacted before it
+  // reaches this plane, so a control that regenerated it would rewrite a field
+  // the screen cannot show. Pace is chosen on the intake step instead.
   deliverables: { label: 'Deliverables', fields: ['deliverables', 'estimatedAssets'] },
 } as const satisfies Record<string, { label: string; fields: readonly (keyof CampaignPlan)[] }>
 
@@ -395,8 +404,8 @@ export default function PlanApprovalPage() {
           {plan.campaignName}
         </h1>
         <p className="brief-sub" style={{ maxWidth: '62ch', marginBottom: 22 }}>
-          Nothing has been generated yet. Approve the plan and the run starts — you will be billed
-          for exactly the assets listed here.
+          Nothing has been generated yet. Approve the plan and the run starts, producing exactly the
+          assets listed here and nothing else.
         </p>
 
         <BrowserDraftBanner />
@@ -510,7 +519,11 @@ export default function PlanApprovalPage() {
             </span>
           </div>
           {rows.map((r) => (
-            <div key={r.key} className="deliv-row" {...(r.billed ? { 'data-billed': '' } : {})}>
+            <div
+              key={r.key}
+              className="deliv-row"
+              {...(r.generated ? { 'data-generated': '' } : {})}
+            >
               <Icon name={r.icon} size={17} className="ico" />
               <span className="deliv-row__what">
                 {r.label} <span className="deliv-row__qual">· {r.qualifier}</span>
@@ -565,51 +578,48 @@ export default function PlanApprovalPage() {
             disabled={planning || generating}
           />
           <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 6 }}>
-            Regenerating is free — it rewrites the plan and generates nothing. Only Approve starts
-            the run and spends credit.
+            Regenerating rewrites the plan and produces nothing. Only Approve starts the run.
           </p>
         </div>
       </div>
 
       {/* ── Cost rail ────────────────────────────────────────────────────── */}
       <div className="today-rail">
+        {/* What Approve produces — a quantity, not a price.
+            This panel used to be "Estimated cost" and itemised what each asset
+            costs us to make. That is our cost of goods, shown to the person
+            buying the goods; a client sees what they get and how their allowance
+            is doing, and money never appears on this plane. */}
         <div className="card">
           <div className="panel-head__title" style={{ marginBottom: 12 }}>
-            Estimated cost
+            What this produces
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {rows
-              .filter((r) => r.billed)
-              .map((r) => (
-                <div key={r.key} className="cost-line">
-                  <span>
-                    {r.count} {r.label.toLowerCase()}
-                  </span>
-                  {/* No per-asset price is recorded anywhere in this system, so
-                      none is shown. A dash is honest; a plausible number is not,
-                      and this is the figure someone decides on. */}
-                  <span className="cost-line__unknown">—</span>
-                </div>
-              ))}
-            <div className="cost-line">
-              <span>Copy, captions and ad text</span>
-              <span className="cost-line__unknown">—</span>
-            </div>
+            {rows.map((r) => (
+              <div key={r.key} className="cost-line">
+                <span>
+                  {r.count} {r.label.toLowerCase()}
+                </span>
+                <span style={{ color: 'var(--text-tertiary)' }}>{r.qualifier}</span>
+              </div>
+            ))}
             <div className="cost-line cost-line__total">
-              <span>Generation total</span>
-              <span className="cost-line__unknown">Not priced yet</span>
+              <span>Total</span>
+              <span style={{ color: 'var(--text-primary)' }}>
+                {totalAssets} {totalAssets === 1 ? 'asset' : 'assets'}
+              </span>
             </div>
             <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0 }}>
-              Per-asset generation pricing is not recorded in this workspace yet, so no figure is
-              shown. Actual spend appears in AI Studio ▸ Usage after the run.
+              Every one of these needs your approval before it publishes.
             </p>
           </div>
         </div>
 
         <div className="card">
+          {/* No rewrite control: the allowance is a fact about the workspace, not
+              a part of the plan a model can be asked to reconsider. */}
           <div className="block-head">
             <span className="panel-head__title">Ad allowance</span>
-            <RewriteControl section="budget" />
           </div>
           {allowance?.configured ? (
             <>
@@ -628,8 +638,8 @@ export default function PlanApprovalPage() {
                 />
               </div>
               <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 9 }}>
-                Ad spend is billed to us, never to you. The allowance resets at the start of next
-                month.
+                Ads run on your account and are paid for by us. The allowance resets at the start of
+                next month.
               </p>
             </>
           ) : (
@@ -663,7 +673,7 @@ export default function PlanApprovalPage() {
             </div>
             <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
               <Icon name="alert-triangle" size={15} style={{ color: 'var(--amber-600)' }} />
-              <span>Generation spends credit and cannot be undone.</span>
+              <span>Generation cannot be undone.</span>
             </div>
           </div>
         </div>

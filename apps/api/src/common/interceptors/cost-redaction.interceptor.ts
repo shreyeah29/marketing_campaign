@@ -80,6 +80,22 @@ const COST_KEYS = new Set([
   'allocation_minor',
   'monthlyfeeminor',
   'monthly_fee_minor',
+  // Budgets. A budget is a money figure whichever direction it points, and the
+  // client plane speaks in pace — Light, Standard, Heavy — never in an amount.
+  // `suggestedBudget` is the one that was actually crossing: the campaign
+  // generator asks the model for a realistic budget, stores it as `budgetTotal`,
+  // and both were being handed to the tenant that must not see them.
+  'budget',
+  'budgettotal',
+  'budget_total',
+  'suggestedbudget',
+  'suggested_budget',
+  'budgetminor',
+  'budget_minor',
+  'dailybudget',
+  'daily_budget',
+  'lifetimebudget',
+  'lifetime_budget',
 ])
 
 function isCostKey(key: string): boolean {

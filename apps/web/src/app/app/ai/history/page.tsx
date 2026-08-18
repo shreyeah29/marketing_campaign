@@ -29,7 +29,7 @@ export default function AiHistoryPage() {
 
   return (
     <>
-      <PageHeader title="AI History" subtitle="Every AI request, its model, tokens and cost" />
+      <PageHeader title="AI History" subtitle="Every AI request, its model and token counts" />
       {error ? (
         <ErrorState message={error} onRetry={load} />
       ) : rows === null ? (

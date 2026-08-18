@@ -15,7 +15,9 @@ interface Bucket {
   reach: number
   impressions: number
   leads: number
-  spend: number
+  // No `spend`. It was declared and never read, and the interceptor strips it
+  // from tenant responses anyway — so the type promised a field that could only
+  // ever arrive undefined, which is how a redacted boundary quietly grows a hole.
 }
 
 interface Demographics {

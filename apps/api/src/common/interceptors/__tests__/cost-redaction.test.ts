@@ -145,3 +145,36 @@ describe('redact', () => {
     })
   })
 })
+
+describe('budgets are money too', () => {
+  it('strips the plan budget the generator invents', () => {
+    // The campaign generator asks the model for "a realistic budget", stores it
+    // as budgetTotal, and the plan screen had a "Budget split" section reading
+    // suggestedBudget. Both are a rupee figure on a client's screen.
+    const out = redact({
+      name: 'Republic Day Sale',
+      suggestedBudget: 25000,
+      budgetTotal: 25000,
+      deliverables: ['10 images', '3 videos'],
+    }) as Record<string, unknown>
+
+    expect(out['suggestedBudget']).toBeUndefined()
+    expect(out['budgetTotal']).toBeUndefined()
+    // Everything that is not money survives untouched.
+    expect(out['name']).toBe('Republic Day Sale')
+    expect(out['deliverables']).toEqual(['10 images', '3 videos'])
+  })
+
+  it('strips budgets at depth and inside arrays', () => {
+    const out = redact({
+      adSets: [
+        { name: 'Prospecting', dailyBudget: 1500, impressions: 40_000 },
+        { name: 'Retargeting', budget: 10_000, impressions: 12_000 },
+      ],
+    }) as { adSets: Record<string, unknown>[] }
+
+    expect(out.adSets[0]?.['dailyBudget']).toBeUndefined()
+    expect(out.adSets[1]?.['budget']).toBeUndefined()
+    expect(out.adSets[0]?.['impressions']).toBe(40_000)
+  })
+})

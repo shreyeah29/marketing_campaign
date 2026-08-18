@@ -58,10 +58,12 @@ export const FLASH: TemplateDocument = parseTemplate({
     },
 
     {
-      id: 'campaignTitle',
+      id: 'headline',
       type: 'text',
       z: 2,
-      bind: 'campaign.name',
+      // The product, not the campaign: one campaign renders many posters, and
+      // the campaign's name is the same words on all of them.
+      bind: 'product.name',
       area: { x: '6%', y: '8%', w: '60%' },
       style: {
         size: '4cqw',
@@ -98,10 +100,13 @@ export const FLASH: TemplateDocument = parseTemplate({
     },
 
     {
-      id: 'productName',
+      // The campaign, small, where the product name used to sit. With the
+      // headline now carrying the product, repeating it here said the same
+      // thing twice and left the campaign unnamed on its own poster.
+      id: 'campaignName',
       type: 'text',
       z: 3,
-      bind: 'product.name',
+      bind: 'campaign.name',
       area: { x: '56%', y: '64%', w: '38%' },
       style: { size: '2.6cqw', weight: 400, color: '#9A9AA2', lineHeight: 1.25, maxChars: 52 },
     },

@@ -76,6 +76,9 @@ export const SEED_FRAME_RATIO = new Map([
  */
 export const MAX_PROMPT_CHARS = 1000
 
+/** Runway's ceiling for `text_to_image`. More are accepted by the type, not the API. */
+const MAX_REFERENCE_IMAGES = 3
+
 /** Trim to the limit on a word boundary, so a prompt never ends mid-word. */
 function clampPrompt(text: string): string {
   if (text.length <= MAX_PROMPT_CHARS) return text
@@ -175,11 +178,38 @@ async function pollTask(apiKey: string, taskId: string, timeoutMs: number): Prom
   throw new AdapterError(`${PROVIDER_ID} task timed out`, PROVIDER_ID)
 }
 
+/**
+ * A picture the model is shown before it draws.
+ *
+ * `tag` is how the prompt refers to it — "@product on a marble table" tells the
+ * model which reference is the subject. Runway accepts letters, digits and
+ * underscores, up to 16 characters, and the tag must appear in the prompt or the
+ * reference is ignored silently.
+ *
+ * The uri must be reachable by Runway's servers: a public storage URL or a data
+ * URI. A signed URL that expires between the request and the render fails at
+ * their end, not ours.
+ */
+export interface RunwayReferenceImage {
+  readonly uri: string
+  readonly tag: string
+}
+
 export interface RunwayImageInput {
   readonly apiKey: string
   readonly prompt: string
   readonly ratio?: string
   readonly model?: string
+  /**
+   * Up to three images the model should work from.
+   *
+   * This is what separates a product shot from a stock photograph: without a
+   * reference the model invents a plausible latte, with one it photographs the
+   * latte that was uploaded. The likeness is strong but not exact — the model
+   * redraws rather than composites — which is why the caller decides whether a
+   * product may be reshot.
+   */
+  readonly referenceImages?: readonly RunwayReferenceImage[]
 }
 
 export interface RunwayImageResult {
@@ -191,10 +221,16 @@ export interface RunwayImageResult {
 /** Generate an image from text via Runway's `text_to_image`. */
 export async function generateRunwayImage(input: RunwayImageInput): Promise<RunwayImageResult> {
   const model = input.model ?? DEFAULT_IMAGE_MODEL
+  const references = (input.referenceImages ?? []).slice(0, MAX_REFERENCE_IMAGES)
   const taskId = await createTask(input.apiKey, '/text_to_image', {
     model,
     promptText: clampPrompt(input.prompt),
     ratio: input.ratio ?? DEFAULT_IMAGE_RATIO,
+    // Omitted entirely when empty. Runway rejects `referenceImages: []` rather
+    // than treating it as absent, which turns a plain text render into a 400.
+    ...(references.length > 0
+      ? { referenceImages: references.map((r) => ({ uri: r.uri, tag: r.tag })) }
+      : {}),
   })
   const [url] = await pollTask(input.apiKey, taskId, IMAGE_TIMEOUT_MS)
   return { url: url as string, model }

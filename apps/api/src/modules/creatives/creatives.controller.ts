@@ -54,6 +54,17 @@ const batchSchema = z
     ratio: z.enum(ASPECT_RATIOS).default('1:1'),
     /** Optional generated background, shared by every creative in the batch. */
     sceneId: z.string().optional(),
+    /**
+     * A product shot per product, keyed by product id.
+     *
+     * Separate from `sceneId` because the two are different things wearing the
+     * same slot. A scene is an empty set that every poster in a batch can share;
+     * a shot contains the product itself, so sharing one would put the wrong
+     * drink on every poster but one. Where a product has an entry here it wins,
+     * and the real photograph is not composited on top of it — that would print
+     * the product twice.
+     */
+    shots: z.record(z.string().min(1)).optional(),
     /** Defaults to every product on the campaign. */
     productIds: z.array(z.string().min(1)).max(500).optional(),
   })
@@ -223,7 +234,8 @@ export class CreativesController {
         throw new BadRequestException('This campaign has no products to generate from')
       }
 
-      const [branding, scene] = await Promise.all([
+      const shotIds = Object.values(input.shots ?? {})
+      const [branding, scene, shotRows] = await Promise.all([
         tx.branding.findFirst(),
         input.sceneId
           ? tx.mediaAsset.findFirst({
@@ -231,7 +243,20 @@ export class CreativesController {
               select: { url: true },
             })
           : Promise.resolve(null),
+        shotIds.length > 0
+          ? // Tenant-scoped, so an id from another organisation simply is not
+            // found and that product falls back to the shared scene.
+            tx.mediaAsset.findMany({
+              where: { id: { in: shotIds }, deletedAt: null },
+              select: { id: true, url: true },
+            })
+          : Promise.resolve([]),
       ])
+      const shotUrlById = new Map(shotRows.map((r) => [r.id, r.url]))
+      const shotFor = (productId: string): string | null => {
+        const id = (input.shots ?? {})[productId]
+        return id ? (shotUrlById.get(id) ?? null) : null
+      }
 
       const batchRow = await tx.batchJob.create({
         data: {
@@ -244,7 +269,15 @@ export class CreativesController {
 
       const created: { id: string }[] = []
       for (const product of products) {
-        const content = snapshot(product, campaign, branding, scene?.url ?? null)
+        const shotUrl = shotFor(product.id)
+        const content = snapshot(
+          product,
+          campaign,
+          branding,
+          shotUrl ?? scene?.url ?? null,
+          shotUrl !== null,
+        )
+        const sceneIdForRow = (input.shots ?? {})[product.id] ?? input.sceneId
         const row = await tx.creative.create({
           data: {
             organizationId: p.organizationId,
@@ -252,7 +285,7 @@ export class CreativesController {
             productId: product.id,
             templateSlug: template.slug,
             templateVersion: template.document.version,
-            ...(input.sceneId ? { sceneId: input.sceneId } : {}),
+            ...(sceneIdForRow ? { sceneId: sceneIdForRow } : {}),
             content: content as never,
             aspectRatio: ratio,
             status: 'DRAFT',
@@ -571,6 +604,16 @@ function snapshot(
   },
   branding: { displayName: string | null; logoUrl: string | null; disclaimers: unknown } | null,
   sceneUrl: string | null,
+  /**
+   * Whether `sceneUrl` is a product shot rather than an empty set.
+   *
+   * When it is, the product is already in the picture, so the real photograph is
+   * not composited on top — that would print the drink twice, once photographed
+   * and once as a cutout on a plate. The plate goes with it: every template's
+   * plate declares `requires: 'visual.url'`, so it is drawn only when there is
+   * something for it to sit behind.
+   */
+  sceneContainsProduct = false,
 ): CreativeData {
   const disclaimers = Array.isArray(branding?.disclaimers)
     ? (branding.disclaimers as { value?: unknown }[])
@@ -603,7 +646,8 @@ function snapshot(
     },
     // The cutout when there is one, the plain photograph otherwise — the real
     // product either way, never a generated impression of it.
-    visual: { url: product.cutoutUrl ?? product.imageUrl },
+    // Nulled when the scene is a product shot — see `sceneContainsProduct`.
+    visual: { url: sceneContainsProduct ? null : (product.cutoutUrl ?? product.imageUrl) },
     ...(sceneUrl ? { scene: { url: sceneUrl } } : {}),
   }
 }

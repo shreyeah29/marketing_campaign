@@ -25,7 +25,12 @@ import { StorageService } from '../../infrastructure/storage.js'
 
 import { generateRunwayImage } from './adapters/runway.js'
 import { AiService } from './ai.service.js'
-import { buildScenePrompt, RUNWAY_RATIO } from './scene-prompt.js'
+import {
+  buildProductShotPrompt,
+  buildScenePrompt,
+  PRODUCT_REFERENCE_TAG,
+  RUNWAY_RATIO,
+} from './scene-prompt.js'
 
 /**
  * Campaign scenes — the AI half of the hybrid.
@@ -55,6 +60,16 @@ const generateSchema = z
   .strict()
 
 const listQuerySchema = z.object({ campaignId: z.string().min(1) })
+
+const shotSchema = z
+  .object({
+    productId: z.string().min(1),
+    campaignId: z.string().min(1).optional(),
+    ratio: z.enum(ASPECT_RATIOS).default('1:1'),
+    /** The operator's own art direction, verbatim. */
+    direction: z.string().max(600).optional(),
+  })
+  .strict()
 
 @ApiTags('Scenes')
 @RequiresFeature('ai.image')
@@ -189,5 +204,105 @@ export class ScenesController {
       }
       return { data: created }
     })
+  }
+
+  /**
+   * Photograph one product, using its own uploaded picture as the reference.
+   *
+   * The difference from `POST /scenes` is what the model is allowed to draw.
+   * A scene is an empty set, generated once and shared, with the real photograph
+   * composited on afterwards — nothing about the product is invented. A shot is
+   * the product itself, redrawn by the model from the uploaded image, which is
+   * what makes it look like a studio shoot instead of a cutout on a backdrop.
+   *
+   * That is a real trade and the caller is making it knowingly: the likeness is
+   * close but not exact, so the glass, the garnish and the colour can drift from
+   * what is actually served. Right for open food and drink, wrong for a packaged
+   * item whose label has to be legible and correct.
+   *
+   * One shot per product, never one per campaign. The image contains the
+   * product, so sharing it across a catalogue would put the wrong drink on every
+   * poster but one.
+   */
+  @Post('shot')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE, PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Generate a studio product shot from the product’s own photograph' })
+  async shot(
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ mediaId: string; url: string }> {
+    const parsed = shotSchema.safeParse(body)
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+    const input = parsed.data
+
+    const runway = this.ai.platformRunwayKey()
+    if (!runway) {
+      throw new ServiceUnavailableException(
+        'Image generation is not set up on this deployment yet.',
+      )
+    }
+
+    const { product, settings } = await withTenantTransaction(this.db, async (tx) => {
+      const [productRow, settingsRow] = await Promise.all([
+        tx.product.findFirst({ where: { id: input.productId, deletedAt: null } }),
+        tx.organizationSettings.findFirst(),
+      ])
+      return { product: productRow, settings: settingsRow }
+    })
+    if (!product) throw new BadRequestException('Unknown product')
+    if (!product.imageUrl) {
+      // Without a reference there is nothing to be faithful to, and the model
+      // would invent a product and present it as theirs. Refused rather than
+      // quietly downgraded to a generic scene.
+      throw new BadRequestException(
+        `"${product.name}" has no uploaded photograph. Add one on the product first — a shot is generated from it.`,
+      )
+    }
+
+    const prompt = buildProductShotPrompt({
+      productName: product.name,
+      ...(input.direction ? { direction: input.direction } : {}),
+      mood: settings?.brandVoice ?? null,
+    })
+    const ratio = RUNWAY_RATIO[input.ratio] ?? RUNWAY_RATIO['1:1']
+
+    const generated = await generateRunwayImage({
+      apiKey: runway.apiKey,
+      prompt,
+      ...(ratio ? { ratio } : {}),
+      ...(runway.imageModel ? { model: runway.imageModel } : {}),
+      referenceImages: [{ uri: product.imageUrl, tag: PRODUCT_REFERENCE_TAG }],
+    })
+
+    const stored = await this.storage.persist(
+      generated.url,
+      `${p.organizationId}/shots/${input.productId}/${Date.now()}`,
+    )
+
+    const asset = await withTenantTransaction(this.db, (tx) =>
+      tx.mediaAsset.create({
+        data: {
+          organizationId: p.organizationId,
+          type: 'IMAGE',
+          storageKey: stored.persisted ? stored.storageKey : `runway/shot/${input.productId}`,
+          url: stored.url,
+          prompt,
+          generatorProvider: 'RUNWAY',
+          ...(runway.imageModel ? { generatorModel: runway.imageModel } : {}),
+          generationParams: {
+            // `kind: 'shot'`, not 'scene'. The scene list filters on that, and a
+            // shot must never be offered as a background for a different
+            // product — it already has a product in it.
+            kind: 'shot',
+            productId: input.productId,
+            ...(input.campaignId ? { campaignId: input.campaignId } : {}),
+            ratio: input.ratio,
+            referenced: true,
+          },
+        },
+        select: { id: true, url: true },
+      }),
+    )
+    return { mediaId: asset.id, url: stored.url }
   }
 }

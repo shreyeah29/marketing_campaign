@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { RUNWAY_RATIO, buildScenePrompt, clampImagePrompt } from '../scene-prompt.js'
+import {
+  PRODUCT_REFERENCE_TAG,
+  RUNWAY_RATIO,
+  buildProductShotPrompt,
+  buildScenePrompt,
+  clampImagePrompt,
+} from '../scene-prompt.js'
 
 /** gen4_image's published ratio list. A value outside it is a 400, not a crop. */
 const GEN4_IMAGE_RATIOS = new Set([
@@ -88,5 +94,41 @@ describe('buildScenePrompt', () => {
     const out = buildScenePrompt()
     expect(out).toContain('no text')
     expect(out).toContain('no product')
+  })
+})
+
+describe('buildProductShotPrompt', () => {
+  it('names the reference tag literally, or the photograph is ignored', () => {
+    // Runway matches a reference by its tag appearing in the prompt. A prompt
+    // that never mentions it generates a plausible invented product instead —
+    // a failure that returns a perfectly good image and is therefore invisible.
+    const prompt = buildProductShotPrompt({ productName: 'Caramel latte' })
+    expect(prompt).toContain(`@${PRODUCT_REFERENCE_TAG}`)
+  })
+
+  it('asks for faithfulness to the reference', () => {
+    const prompt = buildProductShotPrompt({ productName: 'Caramel latte' })
+    expect(prompt).toMatch(/faithful to the reference/i)
+    expect(prompt).toContain('Caramel latte')
+  })
+
+  it('carries the operator’s own direction verbatim', () => {
+    const prompt = buildProductShotPrompt({
+      productName: 'Caramel latte',
+      direction: 'sunlit marble table, aesthetic, very realistic',
+    })
+    expect(prompt).toContain('sunlit marble table, aesthetic, very realistic')
+  })
+
+  it('still forbids text, which is what keeps invented prices off a poster', () => {
+    const prompt = buildProductShotPrompt({ productName: 'Caramel latte' })
+    expect(prompt).toMatch(/no text/i)
+    expect(prompt).toMatch(/no writing of any kind/i)
+  })
+
+  it('works with nothing supplied at all', () => {
+    const prompt = buildProductShotPrompt()
+    expect(prompt).toContain(`@${PRODUCT_REFERENCE_TAG}`)
+    expect(prompt.length).toBeGreaterThan(80)
   })
 })

@@ -49,6 +49,7 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
     {
       id: 'productPlate',
       type: 'shape',
+      requires: 'visual.url',
       z: 0,
       fill: '#F6F1E7',
       radius: 28,
@@ -80,10 +81,12 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
       },
     },
     {
-      id: 'campaignTitle',
+      id: 'headline',
       type: 'text',
       z: 2,
-      bind: 'campaign.name',
+      // The product, not the campaign: one campaign renders many posters, and
+      // the campaign's name is the same words on all of them.
+      bind: 'product.name',
       area: { x: '54%', y: '13%', w: '42%' },
       style: {
         size: '7.4cqw',
@@ -147,10 +150,13 @@ export const TRICOLOUR: TemplateDocument = parseTemplate({
       },
     },
     {
-      id: 'productName',
+      // The campaign, small, where the product name used to sit. With the
+      // headline now carrying the product, repeating it here said the same
+      // thing twice and left the campaign unnamed on its own poster.
+      id: 'campaignName',
       type: 'text',
       z: 2,
-      bind: 'product.name',
+      bind: 'campaign.name',
       area: { x: '54%', y: '60%', w: '40%' },
       style: { size: '3.4cqw', weight: 400, lineHeight: 1.25, maxChars: 60 },
     },

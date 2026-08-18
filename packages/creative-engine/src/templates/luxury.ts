@@ -93,10 +93,12 @@ export const LUXURY: TemplateDocument = parseTemplate({
       },
     },
     {
-      id: 'campaignTitle',
+      id: 'headline',
       type: 'text',
       z: 2,
-      bind: 'campaign.name',
+      // The product, not the campaign: one campaign renders many posters, and
+      // the campaign's name is the same words on all of them.
+      bind: 'product.name',
       area: { x: '12%', y: '16%', w: '76%' },
       style: {
         size: '5.6cqw',
@@ -135,10 +137,13 @@ export const LUXURY: TemplateDocument = parseTemplate({
       },
     },
     {
-      id: 'productName',
+      // The campaign, small, where the product name used to sit. With the
+      // headline now carrying the product, repeating it here said the same
+      // thing twice and left the campaign unnamed on its own poster.
+      id: 'campaignName',
       type: 'text',
       z: 2,
-      bind: 'product.name',
+      bind: 'campaign.name',
       area: { x: '16%', y: '73%', w: '68%' },
       style: { size: '3.4cqw', weight: 400, align: 'center', lineHeight: 1.3, maxChars: 58 },
     },

@@ -78,6 +78,56 @@ export function buildScenePrompt(input: ScenePromptInput = {}): string {
     .join(' ')
 }
 
+/** The tag the prompt uses to point at the uploaded photograph. */
+export const PRODUCT_REFERENCE_TAG = 'product'
+
+export interface ProductShotPromptInput {
+  /** What the product is, so the model knows what it is photographing. */
+  readonly productName?: string | null
+  /** The operator's own words — the whole point of the box on the screen. */
+  readonly direction?: string | null
+  readonly mood?: string | null
+}
+
+/**
+ * The prompt for a product shot, built around a reference photograph.
+ *
+ * Different in kind from `buildScenePrompt`, not just in wording. That one asks
+ * for an empty set because the real product is composited on afterwards; this
+ * one asks the model to photograph the referenced product itself, which is what
+ * makes the result look like a shoot rather than a cutout on a backdrop.
+ *
+ * `@product` must appear literally — Runway matches the reference by its tag,
+ * and a prompt that never names it silently ignores the photograph and invents
+ * a product instead. That failure looks like success, which is the worst kind,
+ * so the tag is interpolated from the same constant the caller tags with.
+ *
+ * The text exclusions stay. A model asked for a poster will happily write a
+ * price on it, and every figure on the finished creative has to come from the
+ * catalogue rather than from a model's idea of what a price looks like.
+ */
+export function buildProductShotPrompt(input: ProductShotPromptInput = {}): string {
+  const name = input.productName?.trim()
+  const direction = input.direction?.trim()
+  const mood = input.mood?.trim()
+
+  return [
+    `A professional product photograph of the @${PRODUCT_REFERENCE_TAG}` +
+      (name ? ` (${name})` : '') +
+      ', photographed exactly as shown in the reference.',
+    'Keep its shape, colour, proportions and every detail faithful to the reference image.',
+    direction ? `Art direction: ${direction}.` : null,
+    mood ? `The mood is ${mood}.` : null,
+    'Real studio lighting, soft realistic contact shadows, shallow depth of field,',
+    'natural reflections, editorial colour grading, photorealistic — not an illustration.',
+    'Compose it as a hero shot with generous empty space around the subject.',
+    `Absolutely ${EXCLUSIONS}.`,
+    'No writing of any kind anywhere in the image.',
+  ]
+    .filter((line): line is string => line !== null)
+    .join(' ')
+}
+
 /**
  * Ratio strings Runway accepts, keyed by the aspect ratios templates render at.
  *

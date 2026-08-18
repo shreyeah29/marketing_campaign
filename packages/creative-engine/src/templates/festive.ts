@@ -57,10 +57,12 @@ export const FESTIVE: TemplateDocument = parseTemplate({
       },
     },
     {
-      id: 'campaignTitle',
+      id: 'headline',
       type: 'text',
       z: 2,
-      bind: 'campaign.name',
+      // The product, not the campaign: one campaign renders many posters, and
+      // the campaign's name is the same words on all of them.
+      bind: 'product.name',
       area: { x: '8%', y: '11%', w: '84%' },
       style: {
         size: '7cqw',
@@ -78,6 +80,7 @@ export const FESTIVE: TemplateDocument = parseTemplate({
     {
       id: 'medallion',
       type: 'shape',
+      requires: 'visual.url',
       z: 0,
       fill: '#FFF6E8',
       radius: 999,
@@ -120,10 +123,13 @@ export const FESTIVE: TemplateDocument = parseTemplate({
     },
 
     {
-      id: 'productName',
+      // The campaign, small, where the product name used to sit. With the
+      // headline now carrying the product, repeating it here said the same
+      // thing twice and left the campaign unnamed on its own poster.
+      id: 'campaignName',
       type: 'text',
       z: 2,
-      bind: 'product.name',
+      bind: 'campaign.name',
       area: { x: '14%', y: '71%', w: '72%' },
       style: { size: '2.8cqw', weight: 400, align: 'center', lineHeight: 1.25, maxChars: 56 },
     },

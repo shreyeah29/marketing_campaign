@@ -93,6 +93,16 @@ const slotBase = z.object({
   area,
   /** Draw order. Higher sits on top. */
   z: z.number().int().default(0),
+  /**
+   * Render this slot only when the named path has a value.
+   *
+   * Bound text and image slots already vanish when their own value is missing;
+   * shapes cannot, because a shape has nothing to bind. The plate behind a
+   * product photograph is the case that matters: without the photograph it is a
+   * cream rectangle sitting in the middle of the poster for no reason. This lets
+   * a decoration depend on the thing it decorates.
+   */
+  requires: bindablePath.optional(),
 })
 
 const textSlot = slotBase.extend({

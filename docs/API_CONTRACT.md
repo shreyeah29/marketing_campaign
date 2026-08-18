@@ -232,6 +232,18 @@ NEEDS_REVIEW|APPROVED|REJECTED|SCHEDULED|PUBLISHING|PUBLISHED|FAILED`.
 - POST `/creatives/:id/media` → `{ mediaId, url, reused }`. Registers a
   creative's already-rendered file as a MediaAsset. 400 when it has not rendered.
 
+- POST `/scenes/shot` `{ productId, campaignId?, ratio?, direction? }` →
+  `{ mediaId, url }` (added 2026-08-18). Photographs the product from its own
+  uploaded picture, passed to Runway as a tagged reference image. Distinct from
+  `POST /scenes`, which generates an empty set that the real photograph is
+  composited onto: a shot **contains** the product, redrawn by the model, so the
+  likeness is close but not exact and one shot is never shared across products.
+  400 when the product has no uploaded photograph — there would be nothing to be
+  faithful to.
+- POST `/campaigns/:id/creatives/batch` also accepts `shots?: Record<productId,
+mediaAssetId>`. Where a product has an entry it overrides `sceneId`, and its
+  real photograph is not composited on top (the picture already contains it).
+
 ## 9. Social
 
 - GET `/social/accounts` → bare array `{ id, platform, handle, displayName,

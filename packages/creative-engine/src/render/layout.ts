@@ -91,6 +91,11 @@ function renderSlot(
   h: number,
   ink: string,
 ): Element | null {
+  // A slot whose prerequisite is absent is not drawn at all — see `requires`
+  // in the template schema. Checked before the type switch so it applies to
+  // every kind, shapes included, which are the ones that cannot self-hide.
+  if (slot.requires && !resolvePath(slot.requires, data)) return null
+
   const box = frame(slot, w, h)
 
   switch (slot.type) {

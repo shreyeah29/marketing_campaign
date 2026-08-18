@@ -92,6 +92,8 @@ export default function CreativesPage() {
   const [prompt, setPrompt] = useState('')
   const [posting, setPosting] = useState<Creative | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  /** Which product is being photographed, while the shots run before the batch. */
+  const [shotProgress, setShotProgress] = useState<{ done: number; total: number } | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -246,29 +248,52 @@ export default function CreativesPage() {
     if (!campaignId) return
     setBusy(true)
     try {
-      // One scene for the whole batch, generated first so every product in this
-      // run shares a background. Asking for one variant rather than three: this
-      // is a "generate now" button, not a scene chooser, and two extra images
-      // nobody looks at still cost two generations.
-      let sceneId: string | null = null
-      const theme = prompt.trim()
-      if (theme) {
-        const scenes = await api.post<{ data: { id: string }[] }>('/scenes', {
-          campaignId,
-          theme,
-          ratio: '1:1',
-          variants: 1,
-        })
-        sceneId = scenes.data[0]?.id ?? null
-        if (!sceneId) {
-          toast.push('error', 'The background could not be generated — nothing was charged twice')
-          return
+      /**
+       * One shot per product, each photographed from its own uploaded picture.
+       *
+       * Not one background shared by the batch: the model is being asked to
+       * photograph the product itself, so a shared image would put the same
+       * drink on every poster. That makes this N generations rather than one,
+       * which is why the button says how many before it is pressed.
+       *
+       * Sequential, not parallel. Three concurrent Runway calls is how the
+       * poster batch hit a rate limit the first time, and a catalogue of five
+       * finishing in ninety seconds instead of thirty is not worth the failure.
+       */
+      const shots: Record<string, string> = {}
+      const direction = prompt.trim()
+      if (direction) {
+        const ids = [...attached]
+        for (const [i, productId] of ids.entries()) {
+          setShotProgress({ done: i, total: ids.length })
+          try {
+            const shot = await api.post<{ mediaId: string }>('/scenes/shot', {
+              productId,
+              campaignId,
+              ratio: '1:1',
+              direction,
+            })
+            shots[productId] = shot.mediaId
+          } catch (e) {
+            // One product without a photograph must not stop the rest: the
+            // others still render, and this one falls back to the template's own
+            // background rather than failing the whole run.
+            toast.push(
+              'error',
+              e instanceof ApiError ? e.message : 'A product shot could not be generated',
+            )
+          }
         }
+        setShotProgress(null)
       }
 
       const res = await api.post<{ batchId: string; total: number }>(
         `/campaigns/${campaignId}/creatives/batch`,
-        { template, ratio: '1:1', ...(sceneId ? { sceneId } : {}) },
+        {
+          template,
+          ratio: '1:1',
+          ...(Object.keys(shots).length > 0 ? { shots } : {}),
+        },
       )
       setBatch({
         id: res.batchId,
@@ -401,7 +426,8 @@ export default function CreativesPage() {
             disabled={busy || !campaignId || attached.size === 0 || batch?.status === 'RUNNING'}
             onClick={() => void generateAll()}
           >
-            {busy ? <Spinner /> : <Icon name="sparkles" size={14} />} Generate all
+            {busy ? <Spinner /> : <Icon name="sparkles" size={14} />}
+            {prompt.trim() ? 'Shoot and generate' : 'Generate all'}
             {attached.size > 0 ? ` (${String(attached.size)})` : ''}
           </button>
         </div>
@@ -423,7 +449,7 @@ export default function CreativesPage() {
           />
           <p className="type-caption" style={{ margin: '6px 0 0', color: 'var(--text-tertiary)' }}>
             {prompt.trim()
-              ? 'One background is generated and every poster in this run is composed on top of it. The product photograph and the prices are laid on afterwards, so no text is invented.'
+              ? `Each product is photographed from its own uploaded picture — ${String(attached.size)} ${attached.size === 1 ? 'shot' : 'shots'}, about half a minute each. The model redraws the product, so the likeness is close but not exact; prices and text are laid on afterwards and never generated.`
               : 'Leave this empty and the posters use the template’s own background — instant, and nothing is generated.'}
           </p>
         </div>
@@ -466,6 +492,25 @@ export default function CreativesPage() {
             </div>
           )}
         </div>
+
+        {shotProgress ? (
+          <div style={{ marginTop: 16 }}>
+            <div className="spread" style={{ marginBottom: 6 }}>
+              <span className="type-caption">
+                Photographing products · {shotProgress.done} / {shotProgress.total}
+              </span>
+              <span className="type-caption">before the posters render</span>
+            </div>
+            <div className="batch-bar">
+              <div
+                className="batch-bar__fill"
+                style={{
+                  width: `${String(Math.round((shotProgress.done / Math.max(1, shotProgress.total)) * 100))}%`,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {batch ? (
           <div style={{ marginTop: 16 }}>

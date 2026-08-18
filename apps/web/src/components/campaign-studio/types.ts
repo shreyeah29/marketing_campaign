@@ -89,7 +89,7 @@ export interface CreateDraft {
   /** Visual direction / look & feel. */
   lookFeel?: string | undefined
   /** Exact number of unique social post concepts (not per-platform). */
-  postCount?: 3 | 5 | 10 | 20 | undefined
+  postCount?: 1 | 2 | 3 | 5 | 10 | 20 | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

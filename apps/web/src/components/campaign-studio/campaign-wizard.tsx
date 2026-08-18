@@ -24,7 +24,7 @@ const PLATFORMS = [
   { id: 'YouTube', label: 'YouTube' },
 ] as const
 
-const POST_COUNTS = [3, 5, 10, 20] as const
+const POST_COUNTS = [1, 2, 3, 5, 10, 20] as const
 const VIDEO_COUNTS = [0, 1, 2, 3] as const
 const AD_PLATFORMS = ['Facebook', 'Instagram', 'Google', 'LinkedIn'] as const
 

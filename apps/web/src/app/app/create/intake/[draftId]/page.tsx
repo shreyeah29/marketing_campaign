@@ -43,6 +43,17 @@ import {
  */
 
 const STEPS = ['Brief', 'Intake', 'Plan', 'Generate', 'Review', 'Publish'] as const
+
+/**
+ * How many poster concepts a run may produce.
+ *
+ * Bounded rather than free-typed: the top of the range is the point where a
+ * review queue stops being reviewable, and a number box invites 50 from someone
+ * who has not yet seen what one concept looks like.
+ */
+const POSTER_COUNTS = [1, 2, 3, 5, 10, 20] as const
+const VIDEO_COUNTS = [0, 1, 2, 3] as const
+const DEFAULT_POSTERS = 5
 const GENDERS: { id: string; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'female', label: 'F' },
@@ -447,6 +458,55 @@ export default function GuidedIntakePage() {
               </p>
             </>
           ) : null}
+
+          {/* ── Step 5 · How much ─────────────────────────────────────
+              The count was a constant. `postCount` defaulted to 5 at draft
+              creation and no screen ever offered it, so every plan arrived at
+              ten assets and the number read as a rule of the product rather than
+              a choice — which is exactly how it was reported. It is a decision,
+              and it belongs to the person paying for the run. */}
+          <div className="field-label" style={{ marginTop: 20 }}>
+            HOW MANY POSTER CONCEPTS
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {POSTER_COUNTS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="chip"
+                aria-pressed={(draft.postCount ?? DEFAULT_POSTERS) === n}
+                onClick={() => patch({ postCount: n })}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
+            Each concept is one image with its own caption and hashtags, reused across the channels
+            you picked — not one per channel. {String(draft.postCount ?? DEFAULT_POSTERS)} concepts
+            means {String((draft.postCount ?? DEFAULT_POSTERS) * 2)} assets to review.
+          </p>
+
+          <div className="field-label" style={{ marginTop: 16 }}>
+            VIDEO CONCEPTS
+          </div>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
+            {VIDEO_COUNTS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className="chip"
+                aria-pressed={(draft.videoCount ?? 0) === n}
+                onClick={() => patch({ videoCount: n, wantVideos: n > 0 })}
+              >
+                {n === 0 ? 'None' : n}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
+            Video takes minutes per clip rather than seconds, so it starts at none and is asked for
+            rather than assumed.
+          </p>
 
           <div className="row" style={{ flexWrap: 'wrap', gap: 9, marginTop: 20 }}>
             <button type="button" className="btn primary" onClick={buildPlan} disabled={!ready}>

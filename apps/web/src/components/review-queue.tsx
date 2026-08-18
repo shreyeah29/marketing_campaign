@@ -185,7 +185,20 @@ export function ReviewQueue() {
 
       // Oldest first: the queue is a backlog, and the thing waiting longest is
       // the thing most likely to be holding up a schedule.
-      next.sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''))
+      /**
+       * Pictures first, then video, then copy — and oldest first inside each.
+       *
+       * A queue of ten where eight are captions buries the two things that
+       * actually need looking at, because a caption can be judged from the card
+       * and a poster cannot be judged at all until it is seen. Failures come
+       * first of all: they are the only rows where waiting changes nothing.
+       */
+      const rank: Record<Kind, number> = { image: 0, video: 1, copy: 2 }
+      next.sort((a, b) => {
+        if (a.failed !== b.failed) return a.failed ? -1 : 1
+        if (rank[a.kind] !== rank[b.kind]) return rank[a.kind] - rank[b.kind]
+        return (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
+      })
       setItems(next)
       setSelected(new Set())
     } catch (e) {

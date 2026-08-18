@@ -7125,6 +7125,98 @@ a:hover {
   color: var(--text-tertiary);
 }
 
+/* ── Copy & captions ──────────────────────────────────────────────────────── */
+
+/* The picture is how a post is recognised — nobody scans a wall of paragraphs
+   for the one about weekend brunch — so the card leads with it and the words
+   follow. */
+.copy-card {
+  padding: 10px;
+}
+.copy-card__hit {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.copy-card__hit img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--surface-sunken);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.copy-card__hit:hover img {
+  transform: scale(1.02);
+}
+/* Two lines of the caption: enough to tell two posts apart, not so much that
+   the grid becomes the reading surface. */
+.copy-card__preview {
+  margin: 7px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.copy-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0;
+  max-width: 980px;
+}
+@media (max-width: 860px) {
+  .copy-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.copy-panel__media {
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.copy-panel__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.copy-panel__body {
+  padding: 20px 22px;
+  overflow-y: auto;
+  max-height: 78vh;
+}
+
+.copy-block {
+  padding: 12px 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.copy-block:first-of-type {
+  border-top: 0;
+}
+.copy-block__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.copy-block__text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+}
+
 /* ── Brief coach ──────────────────────────────────────────────────────────── */
 
 /* Sits inline under the brief, full width of the main column. Not a modal and

@@ -1,23 +1,24 @@
 'use client'
 
-import { CreativeLibrary } from '@/components/creative-library'
+import { CopyLibrary } from '@/components/copy-library'
 import { PageHeader } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
-import { LIBRARY_SECTION, SectionNav } from '@/components/section-nav'
 
 /**
- * The library — every creative the system has made, with its approval fate
- * visible, so a poster that worked can be found and used again.
+ * Copy & captions.
  *
- * No `type` here: this page owns both mediums and the gallery shows its own
- * Posters/Videos tabs. The AI Images and AI Video pages pin it instead.
+ * It rendered the image gallery until now, which is why clicking a post here
+ * opened a photograph with a download button and no caption in sight. The words
+ * are the point of this page; the picture is how you find them.
  */
 export default function ContentPage() {
   return (
     <FadeIn>
-      <PageHeader title="Library" />
-      <SectionNav links={LIBRARY_SECTION} />
-      <CreativeLibrary />
+      <PageHeader
+        title="Copy & captions"
+        subtitle="Every caption, beside the post it belongs to."
+      />
+      <CopyLibrary />
     </FadeIn>
   )
 }

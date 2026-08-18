@@ -1,7 +1,6 @@
 'use client'
 
 import { MediaLibrary } from '@/components/media-library'
-import { SectionNav, LIBRARY_SECTION } from '@/components/section-nav'
 
 /**
  * Images & video — the library, not the generator.
@@ -14,7 +13,6 @@ import { SectionNav, LIBRARY_SECTION } from '@/components/section-nav'
 export default function ImagesAndVideoPage() {
   return (
     <>
-      <SectionNav links={LIBRARY_SECTION} />
       <MediaLibrary />
     </>
   )

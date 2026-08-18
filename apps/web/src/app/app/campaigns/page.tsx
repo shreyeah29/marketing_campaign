@@ -10,7 +10,6 @@ import { FadeIn } from '@/components/motion'
 import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
 import { fetchCampaigns, type Campaign } from '@/components/campaign-studio'
-import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
 
 export default function CampaignsListPage() {
   const router = useRouter()
@@ -30,8 +29,6 @@ export default function CampaignsListPage() {
           </Link>
         }
       />
-
-      <SectionNav links={CAMPAIGN_SECTION} />
 
       {campaigns === null ? (
         <div className="row" style={{ gap: 8, padding: 24 }}>

@@ -15,7 +15,6 @@ import {
 import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
 import { Field, Spinner } from '@/components/ui'
-import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
 import { PostComposer } from '@/components/post-composer'
 
 /**
@@ -254,8 +253,6 @@ export default function ProductsPage() {
           </button>
         }
       />
-
-      <SectionNav links={CAMPAIGN_SECTION} />
 
       {templates.length > 0 && products && products.length > 0 ? (
         <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 16 }}>

@@ -8,12 +8,12 @@ import { Icon, type IconName } from '@/components/icon'
 /**
  * Sub-navigation within a top-level section.
  *
- * The sidebar deliberately stays at five items — nine top-level destinations is
- * how the duplication we spent a day removing got there in the first place. New
- * surfaces nest under the item they belong to and appear here instead.
- *
- * Same underlined-tab treatment as the studio rail, the library and settings, so
- * a strip of tabs means one thing everywhere in the app.
+ * Used by Settings, and nowhere else any more. The Campaigns and Library strips
+ * that used to live here listed the same destinations the sidebar already lists,
+ * so every one of those pages had two doors — and the strip on the creatives
+ * page was why asking for the review queue landed you on a screen titled
+ * Creatives. A tab strip is right when a section has views the sidebar does not
+ * carry; it is wrong when it is a second copy of the sidebar.
  */
 
 export interface SectionLink {
@@ -46,18 +46,3 @@ export function SectionNav({ links }: { links: readonly SectionLink[] }) {
     </nav>
   )
 }
-
-/** The Campaigns group: the campaigns themselves and the catalogue they draw on. */
-export const CAMPAIGN_SECTION: readonly SectionLink[] = [
-  { href: '/app/campaigns', label: 'Campaigns', icon: 'megaphone' },
-  { href: '/app/products', label: 'Products', icon: 'grid' },
-  { href: '/app/creatives', label: 'Creatives', icon: 'image' },
-]
-
-/** The Library group. Mirrors the sidebar's Library entries, so the sub-tabs and
- *  the rail cannot describe the same area differently. */
-export const LIBRARY_SECTION: readonly SectionLink[] = [
-  { href: '/app/ai/images', label: 'Images & video', icon: 'images' },
-  { href: '/app/content', label: 'Copy & captions', icon: 'file-text' },
-  { href: '/app/templates', label: 'Templates', icon: 'layout' },
-]

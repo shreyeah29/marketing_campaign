@@ -1,9 +1,12 @@
 import type { TemplateDocument } from '../template/schema.js'
 
+import { EDITORIAL } from './editorial.js'
 import { FESTIVE } from './festive.js'
 import { FLASH } from './flash.js'
 import { LUXURY } from './luxury.js'
+import { MENU_BOARD } from './menu-board.js'
 import { MINIMAL } from './minimal.js'
+import { STORY_STRIP } from './story-strip.js'
 import { TRICOLOUR } from './tricolour.js'
 
 /**
@@ -53,6 +56,23 @@ export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
     slug: 'flash',
     document: FLASH,
     description: 'The discount is the poster. One number, half a second to land.',
+  },
+  {
+    slug: 'editorial',
+    document: EDITORIAL,
+    description: 'Full-bleed photograph with the type set on it. For a real shot, not a packshot.',
+  },
+  {
+    slug: 'menu-board',
+    document: MENU_BOARD,
+    description:
+      'Dish left, name and price right. States a price calmly instead of shouting a discount.',
+  },
+  {
+    slug: 'story-strip',
+    document: STORY_STRIP,
+    description:
+      'Composed for the vertical: type banded into the safe middle, nothing near the edges.',
   },
 ]
 

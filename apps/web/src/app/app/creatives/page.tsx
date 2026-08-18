@@ -1,7 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useState } from 'react'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
@@ -9,8 +8,6 @@ import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
 import { StatusPill, toStatus } from '@/components/status'
 import { Spinner } from '@/components/ui'
-import { CAMPAIGN_SECTION, SectionNav } from '@/components/section-nav'
-import { ReviewQueue } from '@/components/review-queue'
 import { PostComposer } from '@/components/post-composer'
 import { downloadUrl, extensionFromUrl, safeFilename } from '@/lib/download'
 
@@ -60,20 +57,8 @@ interface Product {
   imageUrl: string | null
 }
 
-/**
- * Statuses that count as "waiting on a person".
- *
- * The sidebar's Review queue is this page with `?status=needs_review` — a
- * filtered view rather than a second route, so there is one place creatives are
- * approved and no chance of the two drifting apart. READY means rendered and
- * unjudged; DRAFT means queued or mid-render and still nobody's decision.
- */
-const NEEDS_REVIEW = new Set(['READY', 'DRAFT'])
-
 export default function CreativesPage() {
   const toast = useToast()
-  const searchParams = useSearchParams()
-  const needsReviewOnly = searchParams.get('status') === 'needs_review'
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
   const [campaignId, setCampaignId] = useState<string>('')
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
@@ -359,30 +344,15 @@ export default function CreativesPage() {
     })
   }
 
-  const visible = useMemo(
-    () =>
-      needsReviewOnly ? (creatives ?? []).filter((c) => NEEDS_REVIEW.has(c.status)) : creatives,
-    [creatives, needsReviewOnly],
-  )
+  // No review branch. The queue lives at /app/review now — this page makes
+  // creatives, and pretending to be two screens is what made "creatives"
+  // ambiguous in the sidebar.
+  const visible = creatives
   const ready = (visible ?? []).filter((c) => c.renderedUrl)
-
-  // `?status=needs_review` is the sidebar's Review queue. It is the same route
-  // deliberately: one approval surface, reached either as a filter of the
-  // library or as its own destination, so the badge and the screen can never
-  // count different things.
-  if (needsReviewOnly) {
-    return (
-      <>
-        <SectionNav links={CAMPAIGN_SECTION} />
-        <ReviewQueue />
-      </>
-    )
-  }
 
   return (
     <>
       <PageHeader title="Creatives" />
-      <SectionNav links={CAMPAIGN_SECTION} />
 
       <FadeIn className="card" style={{ marginBottom: 20 }}>
         <div className="row" style={{ gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -570,15 +540,11 @@ export default function CreativesPage() {
       ) : visible.length === 0 ? (
         <EmptyState
           icon="image"
-          title={
-            needsReviewOnly ? 'Nothing is waiting on you' : 'No creatives for this campaign yet'
-          }
+          title="No creatives for this campaign yet"
           hint={
-            needsReviewOnly
-              ? 'Every creative in this campaign has been approved or rejected.'
-              : attached.size === 0
-                ? 'Tick the products above to add them to this campaign, then Generate all.'
-                : `${String(attached.size)} product${attached.size === 1 ? '' : 's'} ready — press Generate all. Each poster renders in about a second.`
+            attached.size === 0
+              ? 'Tick the products above to add them to this campaign, then Generate all.'
+              : `${String(attached.size)} product${attached.size === 1 ? '' : 's'} ready — press Generate all. Each poster renders in about a second.`
           }
         />
       ) : (

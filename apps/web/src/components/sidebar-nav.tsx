@@ -50,8 +50,6 @@ export const NAV_GROUPS: NavGroupDef[] = [
     rail: 'Work',
     children: [
       { label: 'New brief', href: '/app/create' },
-      { label: 'Products', href: '/app/products' },
-      { label: 'Design templates', href: '/app/templates' },
       { label: 'Brand kit', href: '/app/settings/branding' },
     ],
   },
@@ -61,11 +59,15 @@ export const NAV_GROUPS: NavGroupDef[] = [
     icon: 'megaphone',
     children: [
       { label: 'All campaigns', href: '/app/campaigns' },
+      { label: 'Products', href: '/app/products' },
+      { label: 'Creatives', href: '/app/creatives' },
       { label: 'Content calendar', href: '/app/calendar' },
-      // Filtered view of the creatives page — no new route required.
+      // Its own route now. It used to be the creatives page with a query string,
+      // which meant asking for the review queue and arriving at a screen titled
+      // Creatives — the same destination wearing two names in two groups.
       {
         label: 'Review queue',
-        href: '/app/creatives?status=needs_review',
+        href: '/app/review',
         indicator: 'assets',
         attention: true,
       },
@@ -78,8 +80,8 @@ export const NAV_GROUPS: NavGroupDef[] = [
     icon: 'images',
     children: [
       { label: 'Images & video', href: '/app/ai/images' },
-      { label: 'Poster creatives', href: '/app/creatives' },
       { label: 'Copy & captions', href: '/app/content' },
+      { label: 'Templates', href: '/app/templates' },
       { label: 'Uploads', href: '/app/documents/files' },
     ],
   },

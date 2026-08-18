@@ -158,16 +158,30 @@ export default function CreativesPage() {
     }
   }
 
-  const loadCreatives = useCallback(() => {
-    if (!campaignId) return
-    setError(null)
-    api
-      .get<{ data: Creative[] }>(`/creatives?campaignId=${campaignId}`)
-      .then((r) => setCreatives(r.data ?? []))
-      .catch((e: unknown) =>
-        setError(e instanceof ApiError ? e.message : 'Failed to load creatives'),
-      )
-  }, [campaignId])
+  /**
+   * `background: true` for a refresh during a run.
+   *
+   * A failed background refresh must not replace the screen. It did: a 429 on
+   * one poll tick tore down the page — posters, progress bar and all — and
+   * offered a Retry button, for a request nobody asked for and whose only job
+   * was to add an image that had just appeared. The next tick would have fixed
+   * it. Foreground loads still surface, because a first load that fails leaves
+   * nothing to look at.
+   */
+  const loadCreatives = useCallback(
+    (background = false) => {
+      if (!campaignId) return
+      if (!background) setError(null)
+      api
+        .get<{ data: Creative[] }>(`/creatives?campaignId=${campaignId}`)
+        .then((r) => setCreatives(r.data ?? []))
+        .catch((e: unknown) => {
+          if (background) return
+          setError(e instanceof ApiError ? e.message : 'Failed to load creatives')
+        })
+    },
+    [campaignId],
+  )
 
   useEffect(() => {
     setCreatives(null)
@@ -191,18 +205,29 @@ export default function CreativesPage() {
     stalledSince !== null &&
     Date.now() - stalledSince > 45_000
 
-  // Poll while a batch is running. Stops the moment it finishes — a poll that
-  // outlives its batch is a request every two seconds forever.
+  /**
+   * Poll while a batch is running, at one request a tick.
+   *
+   * It used to be two — the batch and the whole creative list — every two
+   * seconds, which is sixty requests a minute from one open tab for a job that
+   * usually takes a few seconds. The list is only refetched when the counters
+   * actually move or the run ends, because between those moments it returns
+   * exactly what is already on screen.
+   *
+   * Three seconds, not two: a render takes about a second, so this still feels
+   * immediate, and it is a third less traffic.
+   */
   useEffect(() => {
     if (!batch || batch.status !== 'RUNNING') return
     const t = window.setInterval(() => {
       api
         .get<Batch>(`/batches/${batch.id}`)
         .then((next) => {
+          const moved = next.completed + next.failed !== batch.completed + batch.failed
           setBatch(next)
           // Any movement at all means a worker is consuming; stop watching.
           if (next.completed + next.failed > 0) setStalledSince(null)
-          loadCreatives()
+          if (moved || next.status !== 'RUNNING') loadCreatives(true)
           if (next.status !== 'RUNNING') {
             toast.push(
               next.failed > 0 ? 'error' : 'success',
@@ -213,7 +238,7 @@ export default function CreativesPage() {
           }
         })
         .catch(() => undefined)
-    }, 2000)
+    }, 3000)
     return () => window.clearInterval(t)
   }, [batch, loadCreatives, toast])
 

@@ -26,6 +26,25 @@ import type { Env } from '../config/env.js'
  *     unenforceable per-user cap.
  *
  * Authenticated requests key on the tenant; unauthenticated ones fall back to IP.
+ *
+ * **The allowance is decided by the cookie, not the principal.**
+ *
+ * `request.principal` is attached by `AuthGuard`, a Nest guard, and this plugin
+ * evaluates on Fastify's `onRequest` hook — which runs first, always. So
+ * `request.principal` was undefined on every request here, and the 600/minute
+ * tenant tier applied to nothing: every signed-in user was being metered at the
+ * anonymous 60/minute per address, which a single screen that polls can exhaust
+ * in a minute. That is what it looked like from the outside, too — the error
+ * said "from this address" while a session was plainly present.
+ *
+ * So the tier is chosen by whether a session cookie is presented, which is
+ * readable at `onRequest`. The **key stays the address**. Keying on the cookie
+ * value instead would let anyone mint unlimited buckets by rotating a made-up
+ * string, which is worse than the problem being solved. A forged cookie
+ * therefore buys a 10× allowance from one address against endpoints that all
+ * answer 401 — credential endpoints have their own far stricter limits in
+ * `auth.service.ts` (10 sign-ins per minute) plus per-identifier lockout, and
+ * neither is affected by this.
  */
 
 export interface RateLimitOptions {
@@ -49,6 +68,26 @@ interface RateLimitedRequest {
   ip?: string
   url?: string
   id?: string
+  headers?: Record<string, unknown>
+}
+
+/**
+ * Whether this request presents a session cookie.
+ *
+ * A string test, not a validation: verifying the session here would mean a store
+ * lookup on every request before the router has even matched, and the answer is
+ * only choosing between two ceilings. `mos` is the cookie prefix configured in
+ * auth.service.ts; Better Auth appends `.session_token`, and prefixes it with
+ * `__Secure-` when cookies are secure, so both spellings count.
+ */
+export function presentsSession(request: unknown): boolean {
+  // Null-guarded rather than trusting the cast. This runs inside the plugin's
+  // `max()`, and a throw there fails the request before routing — a crash where
+  // the worst honest answer is "treat it as anonymous".
+  if (typeof request !== 'object' || request === null) return false
+  const header = (request as RateLimitedRequest).headers?.['cookie']
+  if (typeof header !== 'string') return false
+  return header.includes('mos.session_token') || header.includes('__Secure-mos.session_token')
 }
 
 export async function registerRateLimit(
@@ -67,7 +106,10 @@ export async function registerRateLimit(
     // per organisation by keyGenerator + max below.
     max: (request: unknown): number => {
       const typed = request as RateLimitedRequest
-      return typed.principal ? options.tenantMax : options.anonymousMax
+      // `principal` first, in case a future hook populates it earlier; the
+      // cookie is what actually decides today. See the note above.
+      const authenticated = Boolean(typed.principal) || presentsSession(request)
+      return authenticated ? options.tenantMax : options.anonymousMax
     },
 
     timeWindow: options.windowMs,
@@ -114,8 +156,9 @@ export async function registerRateLimit(
       const retryAfter = typeof ctx.ttl === 'number' ? Math.ceil(ctx.ttl / 1000) : 60
       const after = ctx.after ?? `${String(retryAfter)} seconds`
 
+      const authenticated = Boolean(typed.principal) || presentsSession(request)
       return new HttpException(
-        typed.principal
+        authenticated
           ? `This workspace has exceeded ${String(options.tenantMax)} requests per minute. Retry in ${after}.`
           : `Too many requests from this address. Retry in ${after}.`,
         HttpStatus.TOO_MANY_REQUESTS,

@@ -1,9 +1,12 @@
 'use client'
 
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import {
+  readBriefScratch,
+  writeBriefScratch,
+  clearBriefScratch,
   PromptView,
   createDraftId,
   fetchCampaigns,
@@ -37,6 +40,15 @@ function CreateInner() {
   const [recent, setRecent] = useState<Campaign[]>([])
   const [drafts, setDrafts] = useState<CreateDraft[]>([])
   const [prompt, setPrompt] = useState('')
+  /**
+   * The coaching for the brief on screen.
+   *
+   * Held here rather than in the coach because it outlives the component: a
+   * refresh, or a walk to the intake step and back, should not re-read the same
+   * paragraph. The model is paid per read.
+   */
+  const [coach, setCoach] = useState<unknown>(null)
+  const restored = useRef(false)
 
   const refreshLists = useCallback(() => {
     void fetchCampaigns().then(setRecent)
@@ -44,6 +56,23 @@ function CreateInner() {
   }, [])
 
   useEffect(refreshLists, [refreshLists])
+
+  // Restore the unfinished brief and its coaching, once.
+  useEffect(() => {
+    if (restored.current) return
+    restored.current = true
+    const scratch = readBriefScratch()
+    if (!scratch) return
+    setPrompt(scratch.brief)
+    setCoach(scratch.coach)
+  }, [])
+
+  // Save both together. They describe the same paragraph, and a brief restored
+  // without its coaching would silently pay for the read again.
+  useEffect(() => {
+    if (!restored.current) return
+    writeBriefScratch(prompt, coach)
+  }, [prompt, coach])
 
   // A brief can arrive by link — from Today's "start something", or a shared
   // URL. It seeds the field rather than submitting, so it stays editable.
@@ -54,6 +83,9 @@ function CreateInner() {
 
   function start(brief: string) {
     const draftId = createDraftId()
+    // The brief now has an id of its own, so the scratch copy is a duplicate
+    // that would reappear on the next visit to this screen.
+    clearBriefScratch()
     writeDraft({
       id: draftId,
       brief,
@@ -89,6 +121,8 @@ function CreateInner() {
         if (!d) return
         router.push(wizardPathForDraft(d))
       }}
+      restoredCoach={coach}
+      onCoachResult={setCoach}
       onGuidedIntake={() => {
         // Skipping the brief is allowed: intake asks the structured questions,
         // and a brief is composed from those answers alone.

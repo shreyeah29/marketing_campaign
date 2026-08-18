@@ -33,6 +33,9 @@ export {
   estimateReach,
   suggestBudget,
   listDrafts,
+  readBriefScratch,
+  writeBriefScratch,
+  clearBriefScratch,
   BrowserDraftBanner,
 } from './draft'
 export { PromptView } from './prompt-view'

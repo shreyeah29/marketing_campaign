@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui'
 
 import { useWorkspace } from '@/app/app/layout'
 
-import { BriefCoach } from './brief-coach'
+import { BriefCoach, parseStoredCoach, type CoachResult } from './brief-coach'
 import { SUGGESTION_ROWS } from './constants'
 import type { Campaign, CreateDraft } from './types'
 
@@ -51,6 +51,8 @@ export function PromptView({
   drafts,
   onOpenDraft,
   onGuidedIntake,
+  restoredCoach = null,
+  onCoachResult,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -61,6 +63,9 @@ export function PromptView({
   drafts: CreateDraft[]
   onOpenDraft: (id: string) => void
   onGuidedIntake: () => void
+  /** Coaching restored with the brief, so returning does not re-run the model. */
+  restoredCoach?: unknown
+  onCoachResult?: ((result: CoachResult | null) => void) | undefined
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
@@ -69,8 +74,10 @@ export function PromptView({
   // workspace entitled to one. Without the feature the field is exactly as it
   // was — no placeholder, no upsell.
   const ws = useWorkspace()
+  // One entitlement, not two. The ask box used to call /ai/chat, gated by
+  // `ai.chat`, so a workspace with the coach but not chat got a box that 403'd
+  // on first use. Both halves now go through the coach's own endpoint.
   const hasCoach = ws.enabledFeatures.includes('ai.copywriter')
-  const canAsk = ws.enabledFeatures.includes('ai.chat')
 
   useEffect(() => {
     const el = taRef.current
@@ -130,7 +137,24 @@ export function PromptView({
           autoFocus
         />
 
-        {hasCoach ? <BriefCoach brief={prompt} onReplace={setPrompt} canAsk={canAsk} /> : null}
+        {hasCoach ? (
+          <BriefCoach
+            brief={prompt}
+            onReplace={setPrompt}
+            focusBrief={() => {
+              // After the frame the new text has rendered, so the caret lands at
+              // the end of the scaffold rather than where the old text ended.
+              requestAnimationFrame(() => {
+                const el = taRef.current
+                if (!el) return
+                el.focus()
+                el.setSelectionRange(el.value.length, el.value.length)
+              })
+            }}
+            initialResult={parseStoredCoach(restoredCoach)}
+            onResult={onCoachResult}
+          />
+        ) : null}
 
         <div className="row" style={{ flexWrap: 'wrap', gap: 14, marginTop: 16 }}>
           <button

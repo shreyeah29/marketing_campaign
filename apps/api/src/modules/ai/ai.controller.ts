@@ -4,6 +4,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import { z } from 'zod'
 
 import type { AppLogger } from '@marketing-os/observability'
+import { withTenantTransaction, type DatabaseClient } from '@marketing-os/database'
 
 import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
@@ -11,7 +12,7 @@ import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
-import { LOGGER } from '../../infrastructure/database.module.js'
+import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 
 import { getLlmAdapter, type AdapterMessage } from './adapters/llm.js'
 import { generateImage, synthesizeSpeech } from './adapters/openai-media.js'
@@ -19,6 +20,15 @@ import { generateRunwayImage, generateRunwayVideo } from './adapters/runway.js'
 import { AiService } from './ai.service.js'
 import { StorageService } from '../../infrastructure/storage.js'
 import { KnowledgeService } from './knowledge.service.js'
+import {
+  buildCoachAnswerPrompt,
+  buildCoachPrompt,
+  parseCoachResult,
+  scrubCoachResult,
+  scrubMoney,
+  type CoachGrounding,
+  type CoachResult,
+} from './brief-coach.prompt.js'
 
 const messageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant', 'tool']),
@@ -35,6 +45,15 @@ const generateSchema = z.object({
   tone: z.string().max(60).optional(),
   format: z.string().max(60).optional(),
   model: z.string().min(1).optional(),
+})
+
+const coachSchema = z.object({
+  brief: z.string().min(1).max(8000),
+})
+
+const coachAskSchema = z.object({
+  brief: z.string().max(8000).optional(),
+  question: z.string().min(1).max(500),
 })
 
 const mediaSchema = z.object({
@@ -88,6 +107,7 @@ export class AiController {
     @Inject(KnowledgeService) private readonly knowledge: KnowledgeService,
     @Inject(LOGGER) private readonly logger: AppLogger,
     @Inject(StorageService) private readonly storage: StorageService,
+    @Inject(DATABASE) private readonly db: DatabaseClient,
   ) {}
 
   @Post('chat')
@@ -289,6 +309,150 @@ export class AiController {
   }
 
   // ── internals ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Read a brief and report what it is missing, in one call.
+   *
+   * Coverage, the priority gap, the scaffolds, the rewrite and its highlight
+   * spans all come back together — the card needs them at the same moment, and
+   * two calls would mean the chips and the rewrite could disagree about the same
+   * brief.
+   *
+   * The grounding is gathered here rather than sent by the browser. It keeps
+   * three round-trips off the client, and more importantly it is where product
+   * prices are dropped: the catalogue has them, the model must not, and a client
+   * that assembled its own context could put them back.
+   */
+  @Post('brief-coach')
+  @RequiresFeature('ai.copywriter')
+  @RequirePermissions(PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Coverage, scaffolds and a sharpened rewrite for a campaign brief' })
+  async briefCoach(
+    @Body() body: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<CoachResult> {
+    const input = zodBody(coachSchema, body)
+    const grounding = await this.coachGrounding()
+
+    const content = await this.complete(
+      principal,
+      [
+        { role: 'system', content: buildCoachPrompt(grounding) },
+        { role: 'user', content: `BRIEF:\n${input.brief.trim()}` },
+      ],
+      undefined,
+      'brief-coach',
+    )
+
+    const parsed = parseCoachResult(content)
+    if (!parsed) {
+      // The card treats this as "coach unavailable" and keeps its last good
+      // state. A partly-parsed result would render as confident advice built
+      // from whatever survived, which is worse than nothing.
+      this.logger.warn({ operation: 'brief-coach' }, 'coach returned unparseable JSON')
+      throw new ServiceUnavailableException('The coach could not read that brief.')
+    }
+    return scrubCoachResult(parsed)
+  }
+
+  /**
+   * Answer one typed question about the brief.
+   *
+   * Short by instruction and scrubbed by default. "How much should I spend?" is
+   * a direct request to break the cost boundary, and a model asked directly will
+   * usually oblige — so the answer is filtered on the way out rather than
+   * trusted on the way in.
+   */
+  @Post('brief-coach/ask')
+  @RequiresFeature('ai.copywriter')
+  @RequirePermissions(PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Answer a question about the brief, in a sentence or three' })
+  async briefCoachAsk(
+    @Body() body: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ answer: string }> {
+    const input = zodBody(coachAskSchema, body)
+    const grounding = await this.coachGrounding()
+
+    const context = [
+      grounding.products.length > 0 ? `PRODUCTS:\n${grounding.products.join('\n')}` : null,
+      grounding.brand.length > 0 ? `BRAND:\n${grounding.brand.join('\n')}` : null,
+      grounding.campaigns.length > 0
+        ? `RECENT CAMPAIGNS:\n${grounding.campaigns.join('\n')}`
+        : null,
+      `BRIEF:\n${(input.brief ?? '').trim() || '(empty so far)'}`,
+    ]
+      .filter((c): c is string => c !== null)
+      .join('\n\n')
+
+    const content = await this.complete(
+      principal,
+      [
+        { role: 'system', content: buildCoachAnswerPrompt() },
+        { role: 'user', content: `${context}\n\nQUESTION: ${input.question.trim()}` },
+      ],
+      undefined,
+      'brief-coach-ask',
+    )
+
+    const { text, changed } = scrubMoney(content.trim())
+    if (changed) {
+      // Worth knowing about: it means the instruction was not enough, and the
+      // only reason nothing leaked is the filter.
+      this.logger.warn({ operation: 'brief-coach-ask' }, 'coach answer contained money; scrubbed')
+    }
+    return { answer: text || 'No answer came back.' }
+  }
+
+  /**
+   * What the coach is allowed to know.
+   *
+   * Product **names**, not prices. The distinction is the whole cost boundary in
+   * one line: a price the user typed into their own brief survives because it is
+   * their text, and a price we hand the model becomes a figure the coach added.
+   */
+  private async coachGrounding(): Promise<CoachGrounding> {
+    try {
+      return await withTenantTransaction(this.db, async (tx) => {
+        const [products, org, settings, campaigns] = await Promise.all([
+          tx.product.findMany({
+            where: { deletedAt: null },
+            select: { name: true, brand: true },
+            take: 20,
+            orderBy: { createdAt: 'desc' },
+          }),
+          tx.organization.findFirst({ select: { name: true, industry: true } }),
+          tx.organizationSettings.findFirst({
+            select: { tagline: true, brandVoice: true, targetAudience: true },
+          }),
+          tx.campaign.findMany({
+            where: { deletedAt: null },
+            select: { name: true, objective: true },
+            take: 3,
+            orderBy: { createdAt: 'desc' },
+          }),
+        ])
+
+        return {
+          products: products.map((p) => `- ${p.brand ? `${p.brand} ` : ''}${p.name}`),
+          brand: [
+            org?.name ? `- Business: ${org.name}` : null,
+            org?.industry ? `- Industry: ${org.industry}` : null,
+            settings?.tagline ? `- Tagline: ${settings.tagline}` : null,
+            settings?.brandVoice ? `- Voice: ${settings.brandVoice}` : null,
+            settings?.targetAudience ? `- Audience: ${settings.targetAudience}` : null,
+          ].filter((b): b is string => b !== null),
+          campaigns: campaigns.map(
+            (c) => `- ${c.name}${c.objective ? ` (objective: ${c.objective})` : ''}`,
+          ),
+        }
+      })
+    } catch {
+      // Grounding is enrichment. Without it the coach asks for specifics instead
+      // of drawing on the workspace, which is a worse answer and not a failure.
+      return { products: [], brand: [], campaigns: [] }
+    }
+  }
 
   private async complete(
     principal: Principal,

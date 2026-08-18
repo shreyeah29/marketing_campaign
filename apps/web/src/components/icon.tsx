@@ -73,6 +73,7 @@ export type IconName =
   | 'sparkles'
   | 'arrow-left'
   | 'arrow-right'
+  | 'arrow-u-up-left'
   | 'upload'
   | 'sun'
   | 'moon'
@@ -374,6 +375,14 @@ const P: Record<string, ReactNode> = {
   ),
   sparkles: (
     <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+  ),
+  // The "put this back into my text" gesture. Lucide's arrow-u-up-left: a
+  // U-turn, which is what replacing your own words with a suggestion is.
+  'arrow-u-up-left': (
+    <>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
+    </>
   ),
   'arrow-right': (
     <>

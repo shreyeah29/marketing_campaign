@@ -28,6 +28,69 @@ export function listDrafts(): CreateDraft[] {
   return out.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
 }
 
+/**
+ * The brief being written before Continue has been pressed.
+ *
+ * Everything else here is keyed by a draft id, and a draft does not exist until
+ * the brief is submitted — so the half-written brief and the coaching it earned
+ * had nowhere to live and were lost on a refresh. Losing the text is annoying;
+ * losing the coaching means the model is paid for the same paragraph twice.
+ *
+ * sessionStorage, like the drafts themselves: a brief abandoned last week is
+ * not something to restore into a new tab.
+ */
+const SCRATCH_KEY = 'mos:draft:scratch'
+
+export interface BriefScratch {
+  readonly brief: string
+  /** The last coach result, restored so returning does not re-run the model. */
+  readonly coach: unknown
+  readonly updatedAt: string
+}
+
+export function readBriefScratch(): BriefScratch | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(SCRATCH_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<BriefScratch>
+    if (typeof parsed.brief !== 'string') return null
+    return {
+      brief: parsed.brief,
+      coach: parsed.coach ?? null,
+      updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : '',
+    }
+  } catch {
+    return null
+  }
+}
+
+export function writeBriefScratch(brief: string, coach: unknown): void {
+  if (typeof window === 'undefined') return
+  try {
+    if (!brief.trim()) {
+      window.sessionStorage.removeItem(SCRATCH_KEY)
+      return
+    }
+    window.sessionStorage.setItem(
+      SCRATCH_KEY,
+      JSON.stringify({ brief, coach: coach ?? null, updatedAt: new Date().toISOString() }),
+    )
+  } catch {
+    // A full or blocked store must not break typing.
+  }
+}
+
+/** Cleared once the brief becomes a real draft with an id of its own. */
+export function clearBriefScratch(): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.removeItem(SCRATCH_KEY)
+  } catch {
+    // Ignored for the same reason as above.
+  }
+}
+
 export function createDraftId(): string {
   return newId()
 }

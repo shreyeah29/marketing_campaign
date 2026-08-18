@@ -2,280 +2,239 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { api } from '@/lib/api'
+import { ApiError, api } from '@/lib/api'
 import { Icon } from '@/components/icon'
 import { Spinner } from '@/components/ui'
 
 /**
  * Brief coach — reads the brief as you type and says what is missing.
  *
- * Advisory, never a gate: Continue works at zero of six. The panel exists
- * because the difference between a usable campaign and a generic one is almost
- * always four or five facts the person already knows and did not think to
- * write down.
+ * Advisory, never a gate: Continue works at zero of six, and a failed call
+ * changes nothing on the screen except one quiet line. The card exists because
+ * the difference between a usable campaign and a generic one is almost always
+ * four or five facts the person already knows and did not think to write down.
  *
- * Two rules shape the whole component.
+ * Three rules shape it.
  *
- * The first is that it never invents. Every suggestion is grounded in the
- * workspace — real products, the brand profile, the objectives of recent
- * campaigns. If a fact is not in the workspace the coach asks for it through a
- * missing chip; it does not guess. A fabricated "420 covers" target reads as
- * authoritative and is worse than a blank, because a blank prompts a question
- * and a wrong number does not.
+ * **The textarea is the source of truth.** The coach never writes to it unasked.
+ * "Use this brief" replaces the text and leaves a way back, because the thing
+ * being replaced is something a person wrote.
  *
- * The second is that it never overwrites silently. "Use this brief" replaces
- * the field and offers ten seconds of undo, because the thing being replaced
- * is something a person wrote.
+ * **The highlight is the feature.** A better paragraph is easy to produce and
+ * impossible to trust. Showing exactly which words were added is what makes the
+ * rewrite reviewable rather than a thing to accept on faith.
+ *
+ * **Last request wins by id, not by arrival.** Typing cancels the request in
+ * flight, but an abort is a request to stop, not a guarantee of silence — a
+ * response already on the wire still resolves. Each run carries a sequence
+ * number and anything but the newest is dropped, so a slow answer about an
+ * older draft cannot overwrite a fresh one.
+ *
+ * The cost boundary is enforced on the server: the prompt and the scrubber live
+ * in `brief-coach.prompt.ts` because a rule shipped in a bundle is a suggestion.
  */
 
-/** The six things a brief needs before the plan stops guessing. */
 const DIMENSIONS = [
   { id: 'product', label: 'Product' },
   { id: 'offer', label: 'Offer' },
   { id: 'timing', label: 'Timing' },
-  { id: 'audience', label: 'Who it is for' },
-  { id: 'success', label: 'What success looks like' },
+  { id: 'audience', label: 'Audience' },
+  { id: 'success', label: 'Success metric' },
   { id: 'look', label: 'Look & feel' },
 ] as const
 
 type DimensionId = (typeof DIMENSIONS)[number]['id']
 
-const EXAMPLE_QUESTIONS = [
-  'What did my last festive campaign get wrong?',
-  'Which channel converts best for this product?',
-  'Is this offer stronger than the last one?',
+const SUGGESTED_QUESTIONS = [
+  'Is 15 days long enough?',
+  'Which channel suits this best?',
+  'What would make this offer stronger?',
 ]
 
-const MIN_CHARS = 25
-const DEBOUNCE_MS = 800
-const UNDO_MS = 10_000
+/**
+ * Below this the brief is a fragment, and coaching a fragment produces confident
+ * nonsense — every dimension missing, a rewrite invented from six words. The
+ * chips sit greyed with an idle line instead, which is honest and costs nothing.
+ */
+const MIN_CHARS = 40
+const DEBOUNCE_MS = 700
 
-interface Coaching {
-  covered: DimensionId[]
-  missing: DimensionId[]
-  suggestions: Partial<Record<DimensionId, string>>
+export interface CoachResult {
+  coverage: Record<DimensionId, boolean>
+  priority: DimensionId | null
+  scaffolds: Partial<Record<DimensionId, string>>
   sharpened: string
+  added: string[]
+  summary: string
 }
 
 /**
- * Hand-rolled rather than zod: this app ships four runtime dependencies and
- * validates nothing else at the boundary, so one 4-field shape does not justify
- * a parser in every bundle. The contract is the same — anything that does not
- * match exactly is rejected whole, and the panel says so rather than rendering
- * half an answer.
+ * Split the rewrite into plain and highlighted runs.
+ *
+ * The server guarantees every span in `added` occurs in `sharpened`, so this
+ * only has to find them. Longest first: a short span that is a substring of a
+ * longer one would otherwise cut the longer one in half and leave a fragment
+ * unhighlighted in the middle of a highlighted phrase.
  */
-function parseCoaching(raw: string): Coaching | null {
-  let data: unknown
-  try {
-    // Models fence JSON even when told not to.
-    const cleaned = raw
-      .trim()
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/```$/, '')
-    data = JSON.parse(cleaned)
-  } catch {
-    return null
+function segment(text: string, added: readonly string[]): { text: string; added: boolean }[] {
+  const spans = [...added].filter((a) => a.length > 0).sort((a, b) => b.length - a.length)
+  if (spans.length === 0) return [{ text, added: false }]
+
+  const marks = new Array<boolean>(text.length).fill(false)
+  for (const span of spans) {
+    let from = text.indexOf(span)
+    while (from !== -1) {
+      for (let i = from; i < from + span.length; i++) marks[i] = true
+      from = text.indexOf(span, from + span.length)
+    }
   }
-  if (typeof data !== 'object' || data === null) return null
-  const o = data as Record<string, unknown>
 
-  const ids = new Set<string>(DIMENSIONS.map((d) => d.id))
-  const asIds = (v: unknown): DimensionId[] =>
-    Array.isArray(v) ? v.filter((x): x is DimensionId => typeof x === 'string' && ids.has(x)) : []
+  const out: { text: string; added: boolean }[] = []
+  let start = 0
+  for (let i = 1; i <= text.length; i++) {
+    if (i === text.length || marks[i] !== marks[start]) {
+      out.push({ text: text.slice(start, i), added: marks[start] === true })
+      start = i
+    }
+  }
+  return out
+}
 
-  const covered = asIds(o['covered'])
-  const missing = asIds(o['missing']).filter((m) => !covered.includes(m))
-  const sharpened = typeof o['sharpened'] === 'string' ? o['sharpened'].trim() : ''
-  if (sharpened.length === 0) return null
+/**
+ * Validate a coach result restored from storage.
+ *
+ * sessionStorage is untrusted input like any other: it survives a deploy, so a
+ * value written by an older shape can arrive at a newer component. Anything that
+ * does not match is dropped and the coach simply re-reads the brief.
+ */
+export function parseStoredCoach(value: unknown): CoachResult | null {
+  if (typeof value !== 'object' || value === null) return null
+  const o = value as Record<string, unknown>
+  if (typeof o['sharpened'] !== 'string' || o['sharpened'].trim().length === 0) return null
 
-  const suggestions: Partial<Record<DimensionId, string>> = {}
-  const rawSug = o['suggestions']
-  if (typeof rawSug === 'object' && rawSug !== null) {
-    for (const [k, v] of Object.entries(rawSug as Record<string, unknown>)) {
-      if (ids.has(k) && typeof v === 'string' && v.trim()) {
-        suggestions[k as DimensionId] = v.trim()
+  const rawCoverage = o['coverage']
+  if (typeof rawCoverage !== 'object' || rawCoverage === null) return null
+  const cov = rawCoverage as Record<string, unknown>
+  const coverage = {} as Record<DimensionId, boolean>
+  for (const d of DIMENSIONS) coverage[d.id] = cov[d.id] === true
+
+  const scaffolds: Partial<Record<DimensionId, string>> = {}
+  const rawScaffolds = o['scaffolds']
+  if (typeof rawScaffolds === 'object' && rawScaffolds !== null) {
+    for (const [k, v] of Object.entries(rawScaffolds as Record<string, unknown>)) {
+      if (DIMENSIONS.some((d) => d.id === k) && typeof v === 'string') {
+        scaffolds[k as DimensionId] = v
       }
     }
   }
-  return { covered, missing, suggestions, sharpened }
-}
 
-/** Workspace facts the rewrite is allowed to draw on. */
-interface Grounding {
-  products: string[]
-  brand: string[]
-  campaigns: string[]
-}
-
-function buildSystemPrompt(g: Grounding): string {
-  const facts = [
-    g.products.length ? `PRODUCTS IN THIS WORKSPACE:\n${g.products.join('\n')}` : null,
-    g.brand.length ? `BRAND PROFILE:\n${g.brand.join('\n')}` : null,
-    g.campaigns.length ? `RECENT CAMPAIGNS:\n${g.campaigns.join('\n')}` : null,
-  ].filter(Boolean)
-
-  return [
-    'You review a marketing brief and report what it is missing. Reply with STRICT JSON only, no prose and no code fence.',
-    '',
-    'Shape:',
-    '{"covered":[…],"missing":[…],"suggestions":{"<dimension>":"<clause>"},"sharpened":"<rewritten brief>"}',
-    '',
-    `Dimensions, use these ids exactly: ${DIMENSIONS.map((d) => d.id).join(', ')}.`,
-    '- product: which specific thing is being marketed',
-    '- offer: the discount, deal or hook',
-    '- timing: dates, season, or how long it runs',
-    '- audience: who it is for',
-    '- success: what result would count as working',
-    '- look: visual direction, mood or tone',
-    '',
-    'RULES:',
-    '1. Every dimension goes in exactly one of covered or missing.',
-    '2. "suggestions" holds one clause per MISSING dimension — a complete, concrete sentence fragment the user can append verbatim. Never a placeholder: no square brackets, no "[audience here]", no "TBD".',
-    '3. Ground every specific in the workspace facts below. If a fact is not there, do NOT invent one — write the suggestion so it asks for the fact in plain language instead. A made-up number is worse than a blank.',
-    '4. "sharpened" rewrites the brief keeping the user\'s voice, folding in only what is already known or already in the brief. Do not add invented figures.',
-    ...(facts.length
-      ? ['', 'WORKSPACE FACTS:', ...facts]
-      : ['', 'WORKSPACE FACTS: none recorded — ask for specifics rather than inventing any.']),
-  ].join('\n')
+  const sharpened = o['sharpened']
+  return {
+    coverage,
+    priority: DIMENSIONS.some((d) => d.id === o['priority'])
+      ? (o['priority'] as DimensionId)
+      : null,
+    scaffolds,
+    sharpened,
+    added: Array.isArray(o['added'])
+      ? o['added'].filter((a): a is string => typeof a === 'string' && sharpened.includes(a))
+      : [],
+    summary: typeof o['summary'] === 'string' ? o['summary'] : '',
+  }
 }
 
 export function BriefCoach({
   brief,
   onReplace,
-  canAsk,
+  focusBrief,
+  lookChosen = false,
+  initialResult = null,
+  onResult,
 }: {
   brief: string
   onReplace: (next: string) => void
+  /** Focuses the textarea after a scaffold is appended, so typing continues there. */
+  focusBrief?: (() => void) | undefined
   /**
-   * The ask box calls `/ai/chat`, which is gated by `ai.chat` — a different
-   * entitlement from the `ai.copywriter` one that gates the coach itself. A
-   * workspace can have one and not the other, so the box is hidden rather than
-   * left to 403 on first use.
+   * Look & feel is also satisfied by choosing a card in the look gallery, not
+   * only by typing about it. The gallery lives outside this card, so the answer
+   * has to be passed in — the coach cannot see a click on another component.
    */
-  canAsk: boolean
+  lookChosen?: boolean
+  /** Restored with the draft, so returning to a brief does not re-run the model. */
+  initialResult?: CoachResult | null
+  /** Called whenever a fresh result lands, so the page can save it. */
+  onResult?: ((result: CoachResult | null) => void) | undefined
 }) {
-  const [coaching, setCoaching] = useState<Coaching | null>(null)
-  const [analysing, setAnalysing] = useState(false)
+  const [result, setResult] = useState<CoachResult | null>(initialResult)
+  const [reading, setReading] = useState(false)
   const [unavailable, setUnavailable] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [keptMine, setKeptMine] = useState(false)
+  const [previous, setPrevious] = useState<string | null>(null)
 
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
   const [asking, setAsking] = useState(false)
 
-  const [undo, setUndo] = useState<string | null>(null)
-
-  const grounding = useRef<Grounding>({ products: [], brand: [], campaigns: [] })
-  /** The text of the last analysed brief — the skip-if-unchanged guard. */
-  const lastAnalysed = useRef<string>('')
+  /** Monotonic id per analysis. Only the newest may write state. */
+  const runId = useRef(0)
   const inFlight = useRef<AbortController | null>(null)
+  const lastAnalysed = useRef<string>(initialResult ? brief.trim() : '')
 
-  // ── Grounding, fetched once ──────────────────────────────────────────────
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      const [prodRes, orgRes, campRes] = await Promise.allSettled([
-        api.get<{
-          data: {
-            name: string
-            brand?: string | null
-            mrpMinor?: number | null
-            salePriceMinor?: number | null
-          }[]
-        }>('/products'),
-        api.get<{
-          name?: string
-          industry?: string | null
-          settings?: {
-            tagline?: string | null
-            brandVoice?: string | null
-            targetAudience?: string | null
-          } | null
-        }>('/organization'),
-        api.get<
-          | { data: { name: string; objective?: string | null }[] }
-          | { name: string; objective?: string | null }[]
-        >('/campaigns'),
-      ])
-      if (cancelled) return
+  const publish = useCallback(
+    (next: CoachResult | null) => {
+      setResult(next)
+      onResult?.(next)
+    },
+    [onResult],
+  )
 
-      const g: Grounding = { products: [], brand: [], campaigns: [] }
+  const analyse = useCallback(
+    async (text: string) => {
+      inFlight.current?.abort()
+      const ctrl = new AbortController()
+      inFlight.current = ctrl
+      const id = ++runId.current
 
-      if (prodRes.status === 'fulfilled') {
-        g.products = (prodRes.value.data ?? []).slice(0, 20).map((p) => {
-          const price = p.salePriceMinor ? ` — ₹${String(Math.round(p.salePriceMinor / 100))}` : ''
-          return `- ${p.brand ? `${p.brand} ` : ''}${p.name}${price}`
-        })
-      }
-      if (orgRes.status === 'fulfilled') {
-        const o = orgRes.value
-        const s = o.settings ?? {}
-        g.brand = [
-          o.name ? `- Business: ${o.name}` : null,
-          o.industry ? `- Industry: ${o.industry}` : null,
-          s.tagline ? `- Tagline: ${s.tagline}` : null,
-          s.brandVoice ? `- Voice: ${s.brandVoice}` : null,
-          s.targetAudience ? `- Target audience: ${s.targetAudience}` : null,
-        ].filter((x): x is string => x !== null)
-      }
-      if (campRes.status === 'fulfilled') {
-        const list = Array.isArray(campRes.value) ? campRes.value : (campRes.value.data ?? [])
-        g.campaigns = list
-          .slice(0, 3)
-          .map((c) => `- ${c.name}${c.objective ? ` (objective: ${c.objective})` : ''}`)
-      }
-      grounding.current = g
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  // ── Analyse, debounced ───────────────────────────────────────────────────
-  const analyse = useCallback(async (text: string) => {
-    inFlight.current?.abort()
-    const ctrl = new AbortController()
-    inFlight.current = ctrl
-
-    setAnalysing(true)
-    setUnavailable(false)
-    try {
-      const res = await api.post<{ content: string }>(
-        '/ai/generate',
-        {
-          prompt: `${buildSystemPrompt(grounding.current)}\n\nBRIEF:\n${text}`,
-          format: 'json',
-        },
-        { signal: ctrl.signal },
-      )
-      if (ctrl.signal.aborted) return
-      const parsed = parseCoaching(res.content)
-      if (!parsed) {
+      setReading(true)
+      try {
+        const res = await api.post<CoachResult>(
+          '/ai/brief-coach',
+          { brief: text },
+          { signal: ctrl.signal },
+        )
+        // Not `ctrl.signal.aborted`: an abort asks a request to stop and does
+        // not unsend one already answered. The id is what makes staleness
+        // decidable — a slower earlier run can never win.
+        if (id !== runId.current) return
+        setUnavailable(false)
+        setKeptMine(false)
+        publish(res)
+      } catch (e) {
+        if (id !== runId.current) return
+        // A cancelled request is not a failure and must not paint one.
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        if (e instanceof ApiError && e.status === 0) return
         setUnavailable(true)
-        setCoaching(null)
-        return
+        // The last good result stays on screen. Losing the coverage a person was
+        // reading because one call timed out is worse than a slightly stale card.
+      } finally {
+        if (id === runId.current) setReading(false)
       }
-      setCoaching(parsed)
-      setDismissed(false)
-    } catch {
-      if (!ctrl.signal.aborted) {
-        setUnavailable(true)
-        setCoaching(null)
-      }
-    } finally {
-      if (!ctrl.signal.aborted) setAnalysing(false)
-    }
-  }, [])
+    },
+    [publish],
+  )
 
   useEffect(() => {
     const text = brief.trim()
     if (text.length < MIN_CHARS) {
-      setCoaching(null)
+      // Below the floor the card idles. The previous result is cleared because
+      // it describes a brief that no longer exists.
+      if (result !== null) publish(null)
       setUnavailable(false)
+      lastAnalysed.current = ''
       return
     }
-    // One call per window per draft: an unchanged brief never spends a credit,
-    // however often the component re-renders.
     if (text === lastAnalysed.current) return
 
     const t = window.setTimeout(() => {
@@ -283,205 +242,228 @@ export function BriefCoach({
       void analyse(text)
     }, DEBOUNCE_MS)
     return () => window.clearTimeout(t)
-  }, [brief, analyse])
+    // `result` is read but must not retrigger: publishing null would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brief, analyse, publish])
 
   useEffect(() => () => inFlight.current?.abort(), [])
 
-  // ── Undo window ──────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (undo === null) return
-    const t = window.setTimeout(() => setUndo(null), UNDO_MS)
-    return () => window.clearTimeout(t)
-  }, [undo])
-
   async function ask(q: string) {
     const text = q.trim()
-    if (!text) return
+    if (!text || asking) return
     setAsking(true)
     setAnswer(null)
     try {
-      // /ai/chat, not /ai/generate: chat runs the question through the
-      // knowledge base, which is what lets it answer from last quarter's export
-      // rather than from the brief alone.
-      const res = await api.post<{ role: 'assistant'; content: string }>('/ai/chat', {
-        messages: [
-          {
-            role: 'user',
-            content: `Current campaign brief:\n${brief.trim() || '(empty)'}\n\nQuestion: ${text}`,
-          },
-        ],
+      const res = await api.post<{ answer: string }>('/ai/brief-coach/ask', {
+        brief: brief.trim(),
+        question: text,
       })
-      setAnswer(res.content.trim() || 'No answer came back.')
+      setAnswer(res.answer)
     } catch {
-      setAnswer('The assistant could not answer that just now.')
+      setAnswer('The coach could not answer that just now.')
     } finally {
       setAsking(false)
     }
   }
 
-  function appendSuggestion(dim: DimensionId) {
-    const clause = coaching?.suggestions[dim]
-    if (!clause) return
-    const base = brief.trim()
-    onReplace(base ? `${base} ${clause}` : clause)
+  function appendScaffold(dim: DimensionId) {
+    const scaffold = result?.scaffolds[dim]
+    if (!scaffold) return
+    const base = brief.trimEnd()
+    onReplace(base ? `${base} ${scaffold}` : scaffold)
+    // The point of a scaffold is that it ends mid-thought — so the cursor has to
+    // arrive where the sentence stops.
+    focusBrief?.()
   }
 
   function useSharpened() {
-    if (!coaching) return
-    setUndo(brief)
-    onReplace(coaching.sharpened)
+    if (!result) return
+    setPrevious(brief)
+    onReplace(result.sharpened)
   }
 
-  const covered = coaching?.covered ?? []
-  const missingCount = coaching ? DIMENSIONS.length - covered.length : 0
-  const pct = coaching ? Math.round((covered.length / DIMENSIONS.length) * 100) : 0
+  // Look & feel can be answered by the gallery instead of by the text.
+  const coverage = useMemo(() => {
+    const base = result?.coverage
+    const map = {} as Record<DimensionId, boolean>
+    for (const d of DIMENSIONS) map[d.id] = base?.[d.id] === true
+    if (lookChosen) map.look = true
+    return map
+  }, [result, lookChosen])
 
-  const statusLine = useMemo(() => {
-    if (analysing) return 'reading…'
-    if (unavailable) return 'coach unavailable'
-    if (!coaching) return brief.trim().length < MIN_CHARS ? 'waiting for a sentence or two' : ''
-    if (missingCount === 0) return 'this brief covers everything'
-    return `${String(missingCount)} ${missingCount === 1 ? 'detail' : 'details'} would sharpen this`
-  }, [analysing, unavailable, coaching, missingCount, brief])
+  const missing = DIMENSIONS.filter((d) => !coverage[d.id])
+  const coveredCount = DIMENSIONS.length - missing.length
+  const pct = result ? Math.round((coveredCount / DIMENSIONS.length) * 100) : 0
+  const idle = brief.trim().length < MIN_CHARS
+  const priority = result?.priority && !coverage[result.priority] ? result.priority : null
+
+  const status = useMemo(() => {
+    if (idle) return 'a sentence or two and it starts reading'
+    if (reading && !result) return 'reading…'
+    if (unavailable && !result) return 'coach unavailable'
+    if (!result) return ''
+    if (missing.length === 0) return 'this brief covers everything'
+    return `${String(missing.length)} ${missing.length === 1 ? 'detail' : 'details'} would sharpen this`
+  }, [idle, reading, unavailable, result, missing.length])
 
   return (
-    <div className="card coach">
-      <div className="coach__head">
+    <section className="coach" aria-label="Brief coach">
+      {/* ── 1. Header ─────────────────────────────────────────────────────── */}
+      <header className="coach__head">
+        <Icon name="sparkles" size={15} className="coach__spark" />
         <span className="coach__title">Brief coach</span>
-        <span className="coach__status">· reading as you type</span>
-        <span className="coach__status">{statusLine}</span>
-        <span className="coach__meter" aria-hidden>
+        <span className="coach__sub">{reading ? 'reading…' : 'reading as you type'}</span>
+        <span className="coach__status">{status}</span>
+        <span className="coach__meter" aria-hidden="true">
           <span className="coach__meter-fill" style={{ width: `${String(pct)}%` }} />
         </span>
-      </div>
-
-      {undo !== null ? (
-        <div className="coach__undo">
-          <Icon name="check" size={14} />
-          Brief replaced.
-          <button
-            type="button"
-            className="btn ghost sm"
-            style={{ marginLeft: 'auto' }}
-            onClick={() => {
-              onReplace(undo)
-              setUndo(null)
-            }}
-          >
-            Undo
-          </button>
-        </div>
-      ) : null}
+      </header>
 
       <div className="coach__body">
-        {unavailable ? (
-          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-tertiary)' }}>
-            The coach could not read this brief just now. Nothing is blocked — Continue still works,
-            and it will try again on your next edit.
+        {/* ── 2. Coverage chips ───────────────────────────────────────────── */}
+        <div className="coach__chips" data-idle={idle ? '' : undefined}>
+          {DIMENSIONS.map((d) => {
+            const done = coverage[d.id]
+            const scaffold = result?.scaffolds[d.id]
+            if (done) {
+              return (
+                <span key={d.id} className="coach-chip" data-state="done">
+                  <Icon name="check" size={12} />
+                  {d.label}
+                </span>
+              )
+            }
+            return (
+              <button
+                key={d.id}
+                type="button"
+                className="coach-chip"
+                data-state={d.id === priority ? 'next' : 'missing'}
+                disabled={idle || !scaffold}
+                onClick={() => appendScaffold(d.id)}
+                title={scaffold ? `Add: ${scaffold}…` : d.label}
+              >
+                <Icon name="plus" size={12} />
+                {d.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {idle ? (
+          <p className="coach__idle">
+            Write a little more and the coach will read it. Nothing is blocked either way — Continue
+            works whenever you are ready.
           </p>
-        ) : (
-          <>
-            <div className="coach__section-label">COVERAGE</div>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 6 }}>
-              {DIMENSIONS.map((d) => {
-                const isCovered = covered.includes(d.id)
-                const clause = coaching?.suggestions[d.id]
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    className="chip sm coach__chip"
-                    aria-pressed={isCovered}
-                    {...(isCovered ? { 'data-covered': '' } : { 'data-suggest': '' })}
-                    disabled={isCovered || !clause}
-                    onClick={() => appendSuggestion(d.id)}
-                    title={isCovered ? `${d.label} is covered` : (clause ?? d.label)}
-                  >
-                    {isCovered ? <Icon name="check" size={12} /> : null}
-                    {d.label}
-                  </button>
-                )
-              })}
+        ) : null}
+
+        {unavailable && result === null && !idle ? (
+          <p className="coach__idle">
+            The coach could not read this brief just now. Nothing is blocked, and it tries again on
+            your next edit.
+          </p>
+        ) : null}
+
+        {/* ── 3. Sharpened brief ──────────────────────────────────────────── */}
+        {result && !keptMine ? (
+          <div className="coach__rewrite">
+            <div className="coach__rewrite-head">
+              <span className="coach__label">SHARPENED BRIEF</span>
+              {result.summary ? <span className="coach__summary">{result.summary}</span> : null}
             </div>
 
-            {coaching && !dismissed ? (
-              <>
-                <div className="coach__section-label" style={{ marginTop: 16 }}>
-                  SHARPENED BRIEF
-                </div>
-                <div className="coach__rewrite">{coaching.sharpened}</div>
-                <div className="row" style={{ flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                  <button type="button" className="btn primary" onClick={useSharpened}>
-                    Use this brief
-                  </button>
-                  <button type="button" className="btn" onClick={() => setDismissed(true)}>
-                    Keep mine
-                  </button>
-                  <button
-                    type="button"
-                    className="btn ghost"
-                    disabled={analysing}
-                    onClick={() => {
-                      lastAnalysed.current = ''
-                      void analyse(brief.trim())
-                    }}
-                  >
-                    {analysing ? <Spinner /> : 'Try again'}
-                  </button>
-                </div>
-              </>
-            ) : null}
-          </>
-        )}
+            <p className="coach__prose">
+              {segment(result.sharpened, result.added).map((part, i) =>
+                part.added ? (
+                  <mark key={i} className="coach__added">
+                    {part.text}
+                  </mark>
+                ) : (
+                  <span key={i}>{part.text}</span>
+                ),
+              )}
+            </p>
 
-        {/* ── Ask ─────────────────────────────────────────────────────── */}
-        {canAsk ? (
-          <div className="coach__ask">
-            <div className="coach__section-label">ASK ABOUT THIS CAMPAIGN</div>
-            <div className="row" style={{ gap: 8 }}>
-              <input
-                className="input"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="Ask anything about this brief or your past campaigns…"
-                aria-label="Ask the coach a question"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    void ask(question)
-                  }
-                }}
-                style={{ flex: 1 }}
-              />
+            <div className="coach__actions">
+              <button type="button" className="btn primary sm" onClick={useSharpened}>
+                <Icon name="arrow-u-up-left" size={14} /> Use this brief
+              </button>
+              <button type="button" className="btn sm" onClick={() => setKeptMine(true)}>
+                Keep mine
+              </button>
               <button
                 type="button"
-                className="btn"
-                disabled={asking || question.trim().length === 0}
-                onClick={() => void ask(question)}
+                className="btn sm"
+                disabled={reading}
+                onClick={() => {
+                  lastAnalysed.current = ''
+                  void analyse(brief.trim())
+                }}
               >
-                {asking ? <Spinner /> : 'Ask'}
+                {reading ? <Spinner /> : 'Try again'}
               </button>
-            </div>
-            <div className="row" style={{ flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {EXAMPLE_QUESTIONS.map((q) => (
+              {previous !== null ? (
                 <button
-                  key={q}
                   type="button"
-                  className="chip sm"
-                  data-suggest=""
+                  className="btn ghost sm"
                   onClick={() => {
-                    setQuestion(q)
-                    void ask(q)
+                    onReplace(previous)
+                    setPrevious(null)
                   }}
                 >
-                  {q}
+                  Back to mine
                 </button>
-              ))}
+              ) : null}
             </div>
-            {answer ? <div className="coach__answer">{answer}</div> : null}
           </div>
         ) : null}
+
+        {/* ── 4. Ask ──────────────────────────────────────────────────────── */}
+        <div className="coach__ask">
+          <div className="coach__ask-row">
+            <input
+              className="input"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder={`Ask the coach — “${SUGGESTED_QUESTIONS[0] ?? 'is this enough?'}”`}
+              aria-label="Ask the coach a question"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void ask(question)
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="coach__send"
+              aria-label="Ask"
+              disabled={asking || question.trim().length === 0}
+              onClick={() => void ask(question)}
+            >
+              {asking ? <Spinner /> : <Icon name="send" size={15} />}
+            </button>
+          </div>
+
+          <div className="coach__suggestions">
+            {SUGGESTED_QUESTIONS.map((q) => (
+              <button
+                key={q}
+                type="button"
+                className="coach__suggestion"
+                onClick={() => {
+                  setQuestion(q)
+                  void ask(q)
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          {answer ? <p className="coach__answer">{answer}</p> : null}
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

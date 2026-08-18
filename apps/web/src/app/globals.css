@@ -7127,41 +7127,57 @@ a:hover {
 
 /* ── Brief coach ──────────────────────────────────────────────────────────── */
 
+/* Sits inline under the brief, full width of the main column. Not a modal and
+   not a rail: it reads what is being typed and must never be in the way of
+   typing it. Every colour below is a token — the design reference's hexes map
+   onto the Ink & Signal palette one for one. */
 .coach {
   margin-top: 16px;
-  padding: 0;
+  border: 1px solid var(--border-positive);
+  border-radius: 11px;
+  background: var(--surface-canvas);
   overflow: hidden;
 }
+
 .coach__head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
-  padding: 12px 15px;
-  border-bottom: 1px solid var(--border-default);
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.coach__spark {
+  color: var(--cobalt-600);
+  flex: none;
 }
 .coach__title {
   font-family: var(--font-heading);
   font-weight: 500;
-  font-size: 13.5px;
+  font-size: 13px;
+}
+.coach__sub {
+  font-size: 11.5px;
+  color: var(--slate-500);
 }
 .coach__status {
+  margin-left: auto;
   font-size: 11.5px;
   color: var(--text-muted);
 }
-/* The meter is short on purpose. It reports how much context the brief carries,
-   and a full-width bar would read as progress towards a gate — the coach never
-   gates anything. */
+/* Short on purpose. It reports how much context the brief carries, and a
+   full-width bar would read as progress towards a gate — the coach gates
+   nothing. */
 .coach__meter {
-  margin-left: auto;
   width: 66px;
   height: 5px;
   border-radius: 3px;
-  background: var(--surface-sunken);
+  background: var(--border-default);
   overflow: hidden;
   flex: none;
 }
 .coach__meter-fill {
+  display: block;
   height: 100%;
   background: var(--cobalt-600);
   border-radius: 3px;
@@ -7169,55 +7185,192 @@ a:hover {
 }
 
 .coach__body {
-  padding: 14px 15px;
-}
-.coach__section-label {
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+  padding: 13px 14px;
 }
 
-/* A covered dimension is stated, a missing one is an offer you can act on —
-   the same solid/dashed grammar the intake chips use. */
-.coach__chip {
+/* ── Coverage chips ──────────────────────────────────────────────────────── */
+
+.coach__chips {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
-.coach__chip[data-covered] {
+/* Idle: the brief is still a fragment. The chips are shown rather than hidden
+   so the six dimensions are visible from the first keystroke, but they are
+   plainly inert — guessing coverage from six words would be worse than saying
+   nothing. */
+.coach__chips[data-idle] {
+  opacity: 0.5;
+}
+
+.coach-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  background: transparent;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+/* Stated. Solid border, filled ground, and not a button — there is nothing to
+   act on once a dimension is covered. */
+.coach-chip[data-state='done'] {
+  border: 1px solid var(--border-positive);
+  background: var(--jade-100);
+  color: var(--slate-500);
+  cursor: default;
+}
+/* Missing. Dashed because it is an outline of something not yet there. */
+.coach-chip[data-state='missing'],
+.coach-chip[data-state='next'] {
+  border: 1px dashed var(--border-hover);
+  color: var(--slate-600);
+  cursor: pointer;
+}
+/* The one worth answering next. Lime, and the only one — a screen where six
+   chips all ask for attention has ranked nothing. */
+.coach-chip[data-state='next'] {
+  border-color: var(--border-signal);
+  color: var(--cobalt-600);
+}
+.coach-chip[data-state='missing']:hover:not(:disabled),
+.coach-chip[data-state='next']:hover:not(:disabled) {
+  border-color: var(--border-signal);
+  color: var(--cobalt-600);
+}
+.coach-chip:disabled {
   cursor: default;
 }
 
-.coach__rewrite {
-  margin-top: 14px;
-  padding: 12px 13px;
-  border: 1px solid var(--border-default);
-  border-radius: 9px;
-  background: var(--surface-rail);
-  font-size: 13.5px;
+.coach__idle {
+  margin: 10px 0 0;
+  font-size: 12px;
   line-height: 1.55;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-}
-/* What the rewrite added, marked so it can be read rather than trusted. */
-.coach__added {
-  color: var(--cobalt-600);
-  background: var(--jade-100);
-  border-radius: 3px;
-  padding: 0 3px;
+  color: var(--text-muted);
 }
 
+/* ── Sharpened brief ─────────────────────────────────────────────────────── */
+
+.coach__rewrite {
+  margin-top: 13px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 9px;
+  background: var(--surface-raised);
+}
+.coach__rewrite-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.coach__label {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--slate-500);
+}
+.coach__summary {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.coach__prose {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-rail-item);
+  white-space: pre-wrap;
+}
+/* The highlight is the feature. A better paragraph is easy to produce and
+   impossible to check; showing which words are new is what makes the rewrite
+   reviewable instead of something to accept on faith. */
+.coach__added {
+  color: var(--cobalt-600);
+  background: transparent;
+  font-weight: 500;
+}
+.coach__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+/* ── Ask ─────────────────────────────────────────────────────────────────── */
+
 .coach__ask {
-  margin-top: 14px;
-  padding-top: 14px;
+  margin-top: 13px;
+  padding-top: 13px;
   border-top: 1px solid var(--border-subtle);
 }
+.coach__ask-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.coach__ask-row .input {
+  flex: 1;
+  min-width: 0;
+}
+.coach__send {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-signal);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--cobalt-600);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.coach__send:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.coach__send:disabled {
+  color: var(--text-muted);
+  border-color: var(--border-strong);
+  cursor: default;
+}
+
+.coach__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.coach__suggestion {
+  padding: 4px 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  background: transparent;
+  font-size: 11.5px;
+  color: var(--slate-600);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.coach__suggestion:hover {
+  border-color: var(--border-signal);
+  color: var(--cobalt-600);
+}
+
+/* One reply, replaced each time. A transcript would make this a chat window,
+   and a chat window under a textarea competes with the thing being written. */
 .coach__answer {
-  margin-top: 10px;
+  margin: 11px 0 0;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-wrap;
 }
+
 /* ── Review queue ─────────────────────────────────────────────────────────── */
 
 /* The card border carries state: moss for waiting, amber for failed twice,
@@ -7517,15 +7670,4 @@ a:hover {
    dash says "not recorded", which is different from free. */
 .cost-line__unknown {
   color: var(--text-muted);
-}
-
-.coach__undo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 15px;
-  border-top: 1px solid var(--border-subtle);
-  background: var(--jade-100);
-  font-size: 12.5px;
-  color: var(--cobalt-600);
 }

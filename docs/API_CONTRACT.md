@@ -221,6 +221,20 @@ NEEDS_REVIEW|APPROVED|REJECTED|SCHEDULED|PUBLISHING|PUBLISHED|FAILED`.
   `{ name, category:'Campaign template', description, isShared: true }` —
   the literal category string is the studio↔library bridge contract.
 
+## 7a. Brief coach (added 2026-08-18)
+
+- POST `/ai/brief-coach` `{ brief }` → `{ coverage: Record<dimension, boolean>,
+priority, scaffolds, sharpened, added[], summary }`. One call returns everything
+  the card renders, so the chips and the rewrite can never describe different
+  briefs. `added[]` holds exact substrings of `sharpened` for highlighting;
+  spans that do not occur in it are dropped server-side.
+- POST `/ai/brief-coach/ask` `{ brief?, question }` → `{ answer }`. Three
+  sentences at most.
+- Both gated by `ai.copywriter` and scrubbed by `scrubMoney` before returning:
+  the coach is client-facing, so no currency, budget, cost or credit reaches it
+  even if the model writes one. Spend intent is expressed as pace only.
+  Grounding is assembled server-side from product **names** — never prices.
+
 ## 8a. Posters (added 2026-08-17)
 
 - POST `/products/:id/render` `{ ratio?, template?, campaignId?, sceneId? }` →

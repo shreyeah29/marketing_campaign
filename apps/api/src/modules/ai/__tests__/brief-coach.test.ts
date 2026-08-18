@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  COACH_DIMENSIONS,
   buildCoachAnswerPrompt,
   buildCoachPrompt,
   COST_BOUNDARY_RULES,
@@ -71,6 +72,54 @@ describe('the prompt forbids money and offers pace instead', () => {
   })
 })
 
+describe('look & feel is not a dimension', () => {
+  it('is absent from the shape the model is asked for', () => {
+    // It is chosen from the gallery on intake, so a chip here could name a gap
+    // and offer no way to close it. The prompt must not reintroduce it.
+    const prompt = buildCoachPrompt(GROUNDING)
+    expect(prompt).not.toMatch(/"look"/)
+    expect(prompt).toMatch(/Visual direction is NOT one of the dimensions/)
+    expect(COACH_DIMENSIONS.map((d) => d.id)).toEqual([
+      'product',
+      'offer',
+      'timing',
+      'audience',
+      'success',
+    ])
+  })
+
+  it('is ignored when a model returns it anyway', () => {
+    // Coverage is built from COACH_DIMENSIONS, so a stray key cannot make the
+    // meter longer than the chips.
+    const withLook = JSON.stringify({
+      coverage: {
+        product: true,
+        offer: true,
+        timing: true,
+        audience: true,
+        success: true,
+        look: true,
+      },
+      sharpened: 'A complete brief.',
+    })
+    const result = parseCoachResult(withLook)
+    expect(Object.keys(result?.coverage ?? {})).toEqual([
+      'product',
+      'offer',
+      'timing',
+      'audience',
+      'success',
+    ])
+  })
+
+  it('tells the model to stop asking once a direction is chosen', () => {
+    const prompt = buildCoachPrompt({ ...GROUNDING, lookChosen: true })
+    expect(prompt).toMatch(/already been chosen/)
+    // And says nothing of the sort when it is not.
+    expect(buildCoachPrompt(GROUNDING)).not.toMatch(/already been chosen/)
+  })
+})
+
 describe('a model that answers the money question anyway', () => {
   it('strips the amount from "how much should I spend?"', () => {
     // The exact failure this guards: a helpful, plausible, forbidden answer.
@@ -129,7 +178,6 @@ describe('parsing the coach result', () => {
       timing: false,
       audience: false,
       success: false,
-      look: false,
     },
     priority: 'audience',
     scaffolds: { audience: 'It is for ', timing: 'It runs from ' },
@@ -160,7 +208,6 @@ describe('parsing the coach result', () => {
         timing: true,
         audience: true,
         success: true,
-        look: true,
       },
       priority: null,
       scaffolds: {},
@@ -198,7 +245,6 @@ describe('scrubbing a whole result', () => {
           timing: true,
           audience: true,
           success: true,
-          look: true,
         },
         priority: null,
         scaffolds: { success: 'We would spend ₹20,000 to get ' },

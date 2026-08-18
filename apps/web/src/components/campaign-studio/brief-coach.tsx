@@ -9,7 +9,7 @@ import { Spinner } from '@/components/ui'
 /**
  * Brief coach — reads the brief as you type and says what is missing.
  *
- * Advisory, never a gate: Continue works at zero of six, and a failed call
+ * Advisory, never a gate: Continue works at zero of five, and a failed call
  * changes nothing on the screen except one quiet line. The card exists because
  * the difference between a usable campaign and a generic one is almost always
  * four or five facts the person already knows and did not think to write down.
@@ -34,13 +34,21 @@ import { Spinner } from '@/components/ui'
  * in `brief-coach.prompt.ts` because a rule shipped in a bundle is a suggestion.
  */
 
+/**
+ * Five, not six. "Look & feel" is gone on purpose.
+ *
+ * The look gallery is on intake, so a chip here could name the gap and offer no
+ * way to close it — the only way to satisfy it from this screen was to describe
+ * a mood in prose to appease a control that a later step answers properly. A
+ * dead-end chip devalues the four beside it, and a meter that cannot reach 100%
+ * on its own screen is worse than no meter.
+ */
 const DIMENSIONS = [
   { id: 'product', label: 'Product' },
   { id: 'offer', label: 'Offer' },
   { id: 'timing', label: 'Timing' },
   { id: 'audience', label: 'Audience' },
   { id: 'success', label: 'Success metric' },
-  { id: 'look', label: 'Look & feel' },
 ] as const
 
 type DimensionId = (typeof DIMENSIONS)[number]['id']
@@ -156,9 +164,14 @@ export function BriefCoach({
   /** Focuses the textarea after a scaffold is appended, so typing continues there. */
   focusBrief?: (() => void) | undefined
   /**
-   * Look & feel is also satisfied by choosing a card in the look gallery, not
-   * only by typing about it. The gallery lives outside this card, so the answer
-   * has to be passed in — the coach cannot see a click on another component.
+   * True once a visual direction exists — from the intake gallery, or from a
+   * gallery on this screen if one ever lands here.
+   *
+   * It is not a dimension: nothing is scored, charted or chipped from it. It is
+   * sent to the model as context so the rewrite stops asking for a look the
+   * client has already chosen, which is the one job left for it now that the
+   * chip is gone. Kept wired rather than deleted because the socket is the
+   * expensive part, not the wire.
    */
   lookChosen?: boolean
   /** Restored with the draft, so returning to a brief does not re-run the model. */
@@ -200,7 +213,7 @@ export function BriefCoach({
       try {
         const res = await api.post<CoachResult>(
           '/ai/brief-coach',
-          { brief: text },
+          { brief: text, lookChosen },
           { signal: ctrl.signal },
         )
         // Not `ctrl.signal.aborted`: an abort asks a request to stop and does
@@ -222,7 +235,7 @@ export function BriefCoach({
         if (id === runId.current) setReading(false)
       }
     },
-    [publish],
+    [publish, lookChosen],
   )
 
   useEffect(() => {
@@ -282,14 +295,12 @@ export function BriefCoach({
     onReplace(result.sharpened)
   }
 
-  // Look & feel can be answered by the gallery instead of by the text.
   const coverage = useMemo(() => {
     const base = result?.coverage
     const map = {} as Record<DimensionId, boolean>
     for (const d of DIMENSIONS) map[d.id] = base?.[d.id] === true
-    if (lookChosen) map.look = true
     return map
-  }, [result, lookChosen])
+  }, [result])
 
   const missing = DIMENSIONS.filter((d) => !coverage[d.id])
   const coveredCount = DIMENSIONS.length - missing.length

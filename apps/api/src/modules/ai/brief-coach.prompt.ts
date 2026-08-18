@@ -14,14 +14,26 @@
  * should I spend?" is a direct request to break the rule.
  */
 
-/** The six things a brief needs before the plan stops guessing. */
+/**
+ * The five things a brief needs before the plan stops guessing.
+ *
+ * "Look & feel" used to be a sixth and is deliberately gone. It is chosen from
+ * the gallery on intake, not on the brief screen, so flagging it here produced a
+ * chip that could name a gap and offer no way to close it — the client's only
+ * option was to describe a mood in prose to satisfy a control that a later step
+ * answers properly. Five dimensions that all act rank better than six where one
+ * is a dead end, and a completeness meter that cannot reach 100% on the screen
+ * it lives on is worse than no meter.
+ *
+ * The signal still exists as *input*: `lookChosen` tells the model the visual
+ * direction is already settled, so the rewrite stops asking for it.
+ */
 export const COACH_DIMENSIONS = [
   { id: 'product', label: 'Product' },
   { id: 'offer', label: 'Offer' },
   { id: 'timing', label: 'Timing' },
   { id: 'audience', label: 'Audience' },
   { id: 'success', label: 'Success metric' },
-  { id: 'look', label: 'Look & feel' },
 ] as const
 
 export type CoachDimensionId = (typeof COACH_DIMENSIONS)[number]['id']
@@ -51,6 +63,14 @@ export interface CoachGrounding {
   readonly products: readonly string[]
   readonly brand: readonly string[]
   readonly campaigns: readonly string[]
+  /**
+   * True when a visual direction has already been chosen elsewhere.
+   *
+   * Not a dimension — it is not scored, not charted and has no chip. It exists
+   * so the rewrite does not ask for something the client has already answered
+   * on another step, which is the one way that fact is still useful here.
+   */
+  readonly lookChosen?: boolean
 }
 
 /**
@@ -75,7 +95,7 @@ export function buildCoachPrompt(grounding: CoachGrounding): string {
     '',
     'SHAPE:',
     '{',
-    '  "coverage": { "product": bool, "offer": bool, "timing": bool, "audience": bool, "success": bool, "look": bool },',
+    '  "coverage": { "product": bool, "offer": bool, "timing": bool, "audience": bool, "success": bool },',
     '  "priority": "<the id of the single most valuable missing dimension, or null>",',
     '  "scaffolds": { "<missing dimension id>": "<a short prompt the user can finish>" },',
     '  "sharpened": "<the rewritten brief, as prose>",',
@@ -89,7 +109,6 @@ export function buildCoachPrompt(grounding: CoachGrounding): string {
     '- timing: dates, season, or how long it runs',
     '- audience: who it is for',
     '- success: what result would count as working',
-    '- look: visual direction, mood or tone',
     '',
     'RULES:',
     '1. Every dimension appears in "coverage" with a true or false. True only when the brief actually says it — not when it could be inferred.',
@@ -97,6 +116,10 @@ export function buildCoachPrompt(grounding: CoachGrounding): string {
     '3. "sharpened" keeps the user\'s voice and folds in only what is already known from the brief or the facts below. Never invent a statistic, a date or a number.',
     '4. "added" lists the exact substrings of "sharpened" that are new or changed, so they can be highlighted. Each entry must appear in "sharpened" character for character. If nothing was added, use an empty array.',
     '5. "priority" is the one missing dimension that would improve the plan most. Null when nothing is missing.',
+    '6. Visual direction is NOT one of the dimensions and never appears in "coverage". Do not ask for a look, a mood or a style — a later step collects that.',
+    ...(grounding.lookChosen
+      ? ['7. A visual direction has already been chosen. Do not mention it or suggest changing it.']
+      : []),
     '',
     COST_BOUNDARY_RULES,
     '',

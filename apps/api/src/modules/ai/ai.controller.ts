@@ -49,6 +49,8 @@ const generateSchema = z.object({
 
 const coachSchema = z.object({
   brief: z.string().min(1).max(8000),
+  /** Set once a visual direction exists elsewhere. Not a coverage dimension. */
+  lookChosen: z.boolean().optional(),
 })
 
 const coachAskSchema = z.object({
@@ -337,7 +339,10 @@ export class AiController {
     const content = await this.complete(
       principal,
       [
-        { role: 'system', content: buildCoachPrompt(grounding) },
+        {
+          role: 'system',
+          content: buildCoachPrompt({ ...grounding, lookChosen: input.lookChosen === true }),
+        },
         { role: 'user', content: `BRIEF:\n${input.brief.trim()}` },
       ],
       undefined,

@@ -223,8 +223,13 @@ NEEDS_REVIEW|APPROVED|REJECTED|SCHEDULED|PUBLISHING|PUBLISHED|FAILED`.
 
 ## 7a. Brief coach (added 2026-08-18)
 
-- POST `/ai/brief-coach` `{ brief }` → `{ coverage: Record<dimension, boolean>,
-priority, scaffolds, sharpened, added[], summary }`. One call returns everything
+- POST `/ai/brief-coach` `{ brief, lookChosen? }` → `{ coverage:
+Record<dimension, boolean>, priority, scaffolds, sharpened, added[], summary }`.
+  Five dimensions: product, offer, timing, audience, success. Look & feel is
+  deliberately not one — it is chosen from the gallery on intake, so a coverage
+  chip on the brief screen could name a gap with no way to close it.
+  `lookChosen` is input only: it tells the model a visual direction exists so
+  the rewrite stops asking, and it is never scored or returned. One call returns everything
   the card renders, so the chips and the rewrite can never describe different
   briefs. `added[]` holds exact substrings of `sharpened` for highlighting;
   spans that do not occur in it are dropped server-side.

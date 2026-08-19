@@ -127,6 +127,64 @@ function ProductsInner() {
     applied.current = true
     setTemplate(wanted)
   }, [search])
+
+  /**
+   * The product direction that sent us here — "Dramatic light", "Luxury marble".
+   *
+   * Different in kind from `?template=` above, and conflating them was the bug.
+   * A template is a layout the engine typesets around a product's existing
+   * photograph; a direction is a *world the product is photographed in*, which
+   * means generating a new picture. Picking "Dramatic light" and landing on a
+   * page of template chips looked like the choice had been thrown away, because
+   * it had.
+   */
+  const directionId = search.get('direction')
+  const [directions, setDirections] = useState<
+    { id: string; name: string; blurb: string; group: string }[]
+  >([])
+  const direction = directions.find((d) => d.id === directionId) ?? null
+  /** Which product is being staged, and what came back, keyed by product id. */
+  const [staging, setStaging] = useState<string | null>(null)
+  const [staged, setStaged] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!directionId) return
+    api
+      .get<{ data: { id: string; name: string; blurb: string; group: string }[] }>(
+        '/creative-directions',
+      )
+      .then((r) => setDirections((r.data ?? []).filter((d) => d.group === 'product')))
+      .catch(() => setDirections([]))
+  }, [directionId])
+
+  /**
+   * Photograph one product in the chosen world.
+   *
+   * The direction travels as an id and is resolved to art direction server-side,
+   * so the catalogue stays one list and the look never crosses the wire as text.
+   *
+   * The product's own uploaded photograph is the reference, and the shot prompt
+   * demands its shape and colour stay faithful — this changes the room, not the
+   * product. A product with no photograph is refused by the API rather than
+   * invented, and that message is worth showing verbatim.
+   */
+  async function stage(product: Product) {
+    if (!directionId || staging) return
+    setStaging(product.id)
+    try {
+      const res = await api.post<{ url: string }>('/scenes/shot', {
+        productId: product.id,
+        ratio: '1:1',
+        directionId,
+      })
+      setStaged((prev) => ({ ...prev, [product.id]: res.url }))
+      toast.push('success', `${product.name} photographed in ${direction?.name ?? 'that style'}`)
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'That picture could not be generated')
+    } finally {
+      setStaging(null)
+    }
+  }
   const fileRef = useRef<HTMLInputElement>(null)
 
   // The poster drawer: one product, viewed large, at a ratio of its own. The
@@ -319,6 +377,21 @@ function ProductsInner() {
         }
       />
 
+      {/* The chosen world, named. Landing here with a page of template chips
+          and no mention of "Dramatic light" is what made the choice look
+          discarded — and the two are different things, so the banner says which
+          one is in play. */}
+      {direction ? (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          <Icon name="sparkles" size={15} />
+          <span>
+            <strong>{direction.name}</strong> — {direction.blurb} Press{' '}
+            <strong>Photograph in this style</strong> on a product to generate it. Its own picture
+            stays the product; only the surroundings change.
+          </span>
+        </div>
+      ) : null}
+
       {templates.length > 0 && products && products.length > 0 ? (
         <div className="row" style={{ gap: 8, alignItems: 'center', marginBottom: 16 }}>
           <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>
@@ -479,14 +552,48 @@ function ProductsInner() {
                   unauthenticated and the route — which requires CONTENT_READ —
                   answered 401. The browser reports that as nothing more than a
                   broken image, which is why every row showed alt text. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="product-row__preview"
-                src={`${api.base}/products/${p.id}/preview?ratio=1:1&template=${template}`}
-                alt={`Poster preview for ${p.name}`}
-                crossOrigin="use-credentials"
-                loading="lazy"
-              />
+              {/* Once a product has been photographed in the chosen world, that
+                  is what the row shows. A template preview beside a picture that
+                  was just generated would be the old answer sitting where the
+                  new one belongs. Bucket URL, so no `crossOrigin` — the opposite
+                  of the render endpoint directly below it. */}
+              {staged[p.id] ? (
+                /* Clickable, because otherwise the picture has nowhere to go.
+                   The media library lists campaign assets and creatives, not
+                   the shots this produces, so without a download here a person
+                   would generate something and be unable to keep it. */
+                <button
+                  type="button"
+                  className="product-row__preview"
+                  style={{ border: 0, padding: 0, cursor: 'zoom-in', overflow: 'hidden' }}
+                  title="Download this picture"
+                  onClick={() => {
+                    const url = staged[p.id]
+                    if (!url) return
+                    void downloadUrl(
+                      url,
+                      safeFilename([p.brand, p.name, direction?.name ?? 'styled'], 'png'),
+                    ).catch(() => toast.push('error', 'Could not download that picture'))
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={staged[p.id]}
+                    alt={`${p.name} in ${direction?.name ?? 'the chosen style'}`}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    loading="lazy"
+                  />
+                </button>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  className="product-row__preview"
+                  src={`${api.base}/products/${p.id}/preview?ratio=1:1&template=${template}`}
+                  alt={`Poster preview for ${p.name}`}
+                  crossOrigin="use-credentials"
+                  loading="lazy"
+                />
+              )}
 
               <div style={{ minWidth: 0 }}>
                 {p.brand ? (
@@ -517,6 +624,28 @@ function ProductsInner() {
               </div>
 
               <div className="row" style={{ gap: 6 }}>
+                {/* First when a direction is in play, because it is why someone
+                    is on this page: they picked a look two screens ago and came
+                    here to apply it. */}
+                {direction ? (
+                  <button
+                    type="button"
+                    className="btn primary sm"
+                    disabled={staging !== null}
+                    onClick={() => void stage(p)}
+                  >
+                    {staging === p.id ? (
+                      <Spinner />
+                    ) : (
+                      <Icon name={staged[p.id] ? 'refresh' : 'sparkles'} size={13} />
+                    )}
+                    {staging === p.id
+                      ? 'Photographing…'
+                      : staged[p.id]
+                        ? 'Again'
+                        : 'Photograph in this style'}
+                  </button>
+                ) : null}
                 {/* The poster is the point of this row, so its actions come
                     first. View opens it large and at any ratio; the other two
                     are the things people actually wanted to do with it. */}

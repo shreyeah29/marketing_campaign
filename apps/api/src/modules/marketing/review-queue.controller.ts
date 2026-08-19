@@ -34,7 +34,11 @@ import {
   generateRunwayImage,
   generateRunwayVideo,
 } from '../ai/adapters/runway.js'
-import { generateImage } from '../ai/adapters/openai-media.js'
+import {
+  generateImage,
+  IMAGE_MODEL_CANDIDATES,
+  isModelUnavailable,
+} from '../ai/adapters/openai-media.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
@@ -259,66 +263,64 @@ export class ReviewQueueController {
      * The provider's own text stays in the log rather than the response: it
      * names the project id, and a tenant is not the audience for that.
      */
-    let result
-    let usedFallback = false
-    try {
-      result = await generateImage({
-        apiKey: openai.apiKey,
-        prompt,
-        size: '1024x1024',
-        ...(reference ? { referenceImageUrl: reference } : {}),
-      })
-    } catch (err) {
-      const detail = err instanceof AdapterError ? err.message : String(err)
-
-      /**
-       * `gpt-image-1` requires a verified OpenAI organisation, and an
-       * unverified one is refused with 403 "does not have access to model".
-       * That is an account setting somebody has to go and change, which can
-       * take a day — so rather than blocking every poster until then, fall back
-       * to DALL·E 3, which needs no verification and still draws a designed
-       * layout with type in it.
-       *
-       * It is a real downgrade and is recorded as one: the model is named on
-       * the asset, so nobody wonders later why one week of posters looks
-       * different from the next. What it is *not* is the photographic path with
-       * a caption bar, which is a different kind of picture and would quietly
-       * ignore what the person asked for.
-       */
-      if (/does not have access to model/i.test(detail)) {
-        this.logger.warn(
-          { assetId: id, detail },
-          'gpt-image-1 unavailable to this project; falling back to dall-e-3',
-        )
-        try {
-          // No reference on this path: the edits endpoint that takes one is not
-          // available for dall-e-3, and pretending otherwise would 400.
-          result = await generateImage({
-            apiKey: openai.apiKey,
-            prompt,
-            size: '1024x1024',
-            model: 'dall-e-3',
-          })
-          usedFallback = true
-        } catch (fallbackErr) {
-          this.logger.error(
-            { assetId: id, detail: String(fallbackErr) },
-            'poster fallback also refused',
-          )
-          throw new ServiceUnavailableException(
-            'Designed posters need an OpenAI image model, and this deployment’s project cannot use one yet. Verify the organisation in the OpenAI dashboard and enable gpt-image-1 for the project. Photography still works in the meantime.',
+    /**
+     * Walk the candidates and keep the first model this project may use.
+     *
+     * Which models an account can call is an account setting — `gpt-image-1`
+     * needs a verified organisation and is refused with 403 without one — so a
+     * hard-coded choice means a deploy every time the guess is wrong. Trying in
+     * order costs one wasted round trip on a refusal, which is a 403 in about a
+     * second, and means the same build works on an account before and after
+     * verification.
+     *
+     * Only a refusal moves to the next one. A timeout, a rate limit or a content
+     * rejection stops the loop: those say something about this request, and
+     * retrying them against a weaker model would turn one clear failure into
+     * three and end with the wrong explanation.
+     */
+    let result: Awaited<ReturnType<typeof generateImage>> | null = null
+    let refusals: string[] = []
+    for (const model of IMAGE_MODEL_CANDIDATES) {
+      try {
+        result = await generateImage({
+          apiKey: openai.apiKey,
+          prompt,
+          size: '1024x1024',
+          model,
+          // The endpoint that accepts a reference is not available for dall-e-3,
+          // and sending one would 400 rather than being ignored.
+          ...(reference && model !== 'dall-e-3' ? { referenceImageUrl: reference } : {}),
+        })
+        if (model !== IMAGE_MODEL_CANDIDATES[0]) {
+          this.logger.warn(
+            { assetId: id, model, refusals },
+            'poster drawn with a fallback image model',
           )
         }
-      } else {
-        this.logger.error(
-          { assetId: id, provider: 'openai', model: 'gpt-image-1', detail },
-          'poster generation refused by the provider',
-        )
-        throw new ServiceUnavailableException(
-          'The poster could not be drawn just now — try again, or switch this concept to a photograph.',
-        )
+        break
+      } catch (err) {
+        if (!isModelUnavailable(err)) {
+          this.logger.error(
+            { assetId: id, model, detail: err instanceof AdapterError ? err.message : String(err) },
+            'poster generation failed',
+          )
+          throw new ServiceUnavailableException(
+            'The poster could not be drawn just now — try again, or switch this concept to a photograph.',
+          )
+        }
+        refusals.push(model)
       }
     }
+
+    if (!result) {
+      // Every candidate refused: the project cannot call an image model at all.
+      this.logger.error({ assetId: id, refusals }, 'no image model available to this project')
+      throw new ServiceUnavailableException(
+        'Designed posters need an OpenAI image model and this project cannot use any of them yet. Verify the organisation in the OpenAI dashboard and enable an image model for the project. Photography still works in the meantime.',
+      )
+    }
+    const usedFallback = result.model !== IMAGE_MODEL_CANDIDATES[0]
+
     /**
      * Two shapes, because two models.
      *
@@ -368,7 +370,7 @@ export class ReviewQueueController {
         p,
         id,
         usedFallback
-          ? `Poster drawn with ${result.model}. gpt-image-1 is not enabled for this OpenAI project, so a lower-quality model was used — verify the organisation to get the better one.`
+          ? `Poster drawn with ${result.model}. The better image models are not enabled for this OpenAI project — verify the organisation to get them.`
           : `Poster drawn with ${result.model}.`,
         'media.generated',
       )

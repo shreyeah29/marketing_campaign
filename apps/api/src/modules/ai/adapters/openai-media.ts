@@ -25,6 +25,32 @@ async function readError(res: Response): Promise<AdapterError> {
   return new AdapterError(detail, PROVIDER_ID, res.status)
 }
 
+/**
+ * Image models to try, best first.
+ *
+ * Which of these an account may use is an account setting, not a code decision:
+ * `gpt-image-1` needs a verified organisation and answers 403 "does not have
+ * access to model" without one, and availability differs again per project. So
+ * rather than hard-coding a guess and shipping a deploy each time the guess is
+ * wrong, the caller walks this list and keeps the first model that is not
+ * refused.
+ *
+ * DALL·E 3 is last and is the floor: it needs no verification, so a project that
+ * can call the API at all can call it. It draws a weaker poster than the others
+ * and that is recorded on the asset rather than hidden.
+ */
+export const IMAGE_MODEL_CANDIDATES = ['gpt-image-2', 'gpt-image-1', 'dall-e-3'] as const
+
+/** Whether an error is "this account may not use that model", not a real fault. */
+export function isModelUnavailable(err: unknown): boolean {
+  if (!(err instanceof AdapterError)) return false
+  return (
+    err.status === 403 ||
+    err.status === 404 ||
+    /does not have access to model|model_not_found|unknown model|invalid model/i.test(err.message)
+  )
+}
+
 export interface GenerateImageInput {
   readonly apiKey: string
   readonly prompt: string

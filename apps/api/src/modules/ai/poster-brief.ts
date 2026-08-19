@@ -80,6 +80,15 @@ export interface PosterBriefInput {
   readonly cta?: string | null
   /** Locale and occasion direction, from `buildImageDirection`. */
   readonly direction?: string | null
+  /**
+   * True when a reference poster is attached to the request.
+   *
+   * Changes what the brief asks for, not just what is sent: without saying so
+   * explicitly, a model handed an image and a prompt tends to edit the image —
+   * keeping its words and its products and changing the styling. What is wanted
+   * is the opposite: their layout language, our content.
+   */
+  readonly hasReference?: boolean
 }
 
 /**
@@ -208,6 +217,16 @@ export function buildPosterBrief(input: PosterBriefInput): string {
   }
   if (input.direction?.trim()) lines.push('', input.direction.trim())
   if (input.scene?.trim()) lines.push('', `Mood and setting: ${input.scene.trim()}`)
+
+  if (input.hasReference === true) {
+    lines.push(
+      '',
+      'USING THE ATTACHED REFERENCE:',
+      'Take its visual language only — the composition, the proportions, the type pairing, the density of decoration, the way photography and graphic elements are combined.',
+      'Take none of its content. Do not copy its words, its logo, its brand name, its products, its prices or its dates. Every word on your poster comes from the list above and nothing else.',
+      'This is a new poster for a different business that happens to be designed with the same eye — not the attached poster with the text swapped.',
+    )
+  }
 
   lines.push(
     '',

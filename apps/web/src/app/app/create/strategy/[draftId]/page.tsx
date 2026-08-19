@@ -336,7 +336,11 @@ export default function PlanApprovalPage() {
         // Sent as its own field as well as inside the brief: the brief is read
         // by a model, this is applied by us, and a stated instruction should not
         // depend on the model remembering it.
-        { brief, ...(draft.posterText?.trim() ? { posterText: draft.posterText.trim() } : {}) },
+        {
+          brief,
+          ...(draft.posterText?.trim() ? { posterText: draft.posterText.trim() } : {}),
+          ...(draft.referenceImageUrl ? { referenceImageUrl: draft.referenceImageUrl } : {}),
+        },
       )
       upsertDraft(draftId, { generatedCampaignId: res.campaignId, planApproved: true })
       router.push(`/app/create/generating/${res.campaignId}`)

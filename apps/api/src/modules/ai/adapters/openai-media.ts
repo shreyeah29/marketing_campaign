@@ -30,6 +30,16 @@ export interface GenerateImageInput {
   readonly prompt: string
   readonly size?: string
   readonly model?: string
+  /**
+   * A picture to work from — a poster whose look should carry over.
+   *
+   * Sends the request to `/images/edits` instead of `/images/generations`,
+   * which is the endpoint that accepts an image alongside the prompt. The model
+   * treats it as a reference rather than a canvas to paint over, so the result
+   * is a new poster in that visual language rather than the same poster with
+   * different words pasted on.
+   */
+  readonly referenceImageUrl?: string
 }
 
 export interface GenerateImageResult {
@@ -48,18 +58,18 @@ export interface GenerateImageResult {
  */
 export async function generateImage(input: GenerateImageInput): Promise<GenerateImageResult> {
   const model = input.model ?? 'gpt-image-1'
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      authorization: `Bearer ${input.apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      prompt: input.prompt,
-      size: input.size ?? '1024x1024',
-    }),
-  })
+  const size = input.size ?? '1024x1024'
+
+  const res = input.referenceImageUrl
+    ? await editWithReference(input.apiKey, model, input.prompt, size, input.referenceImageUrl)
+    : await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${input.apiKey}`,
+        },
+        body: JSON.stringify({ model, prompt: input.prompt, size }),
+      })
   if (!res.ok) throw await readError(res)
 
   const data = (await res.json()) as {
@@ -72,6 +82,57 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
     throw new AdapterError(`${PROVIDER_ID} returned no image`, PROVIDER_ID)
   }
   return { model, ...(b64 ? { b64 } : {}), ...(url ? { url } : {}) }
+}
+
+/**
+ * Post the reference image and the prompt to `/images/edits`.
+ *
+ * Multipart rather than JSON, because the endpoint takes a file. The image is
+ * fetched from our own storage — it was uploaded through `/uploads`, which
+ * re-encodes and stores it, so this is not a request to an arbitrary address
+ * supplied by a caller.
+ *
+ * A failure to fetch it is raised as an adapter error rather than silently
+ * falling back to generating without the reference: a poster that ignores the
+ * reference someone chose looks like the feature not working, and is worse than
+ * an error that says what went wrong.
+ */
+async function editWithReference(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  size: string,
+  referenceImageUrl: string,
+): Promise<Response> {
+  let bytes: ArrayBuffer
+  let contentType: string
+  try {
+    const source = await fetch(referenceImageUrl, { signal: AbortSignal.timeout(20_000) })
+    if (!source.ok) throw new Error(`reference responded ${String(source.status)}`)
+    contentType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? 'image/png'
+    bytes = await source.arrayBuffer()
+  } catch (err) {
+    throw new AdapterError(
+      `Could not read the reference image: ${err instanceof Error ? err.message : String(err)}`,
+      PROVIDER_ID,
+    )
+  }
+
+  const form = new FormData()
+  form.set('model', model)
+  form.set('prompt', prompt)
+  form.set('size', size)
+  form.set(
+    'image',
+    new Blob([bytes], { type: contentType }),
+    contentType === 'image/jpeg' ? 'reference.jpg' : 'reference.png',
+  )
+
+  return fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiKey}` },
+    body: form,
+  })
 }
 
 export interface SynthesizeSpeechInput {

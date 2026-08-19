@@ -7187,6 +7187,54 @@ a:hover {
   color: var(--text-muted);
 }
 
+/* ── Reference poster ─────────────────────────────────────────────────────── */
+
+.reference {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 11px 13px;
+  border: 1px dashed var(--border-hover);
+  border-radius: 10px;
+}
+/* Solid once something is attached: dashed is the grammar for an empty slot,
+   and it stops being empty the moment a poster is in it. */
+.reference:has(.reference__thumb) {
+  border-style: solid;
+  border-color: var(--border-signal);
+}
+.reference__box,
+.reference__thumb {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: var(--surface-sunken);
+  object-fit: cover;
+}
+.reference__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.reference__body {
+  flex: 1;
+  min-width: 0;
+}
+.reference__title {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.reference__hint {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 /* ── Copy & captions ──────────────────────────────────────────────────────── */
 
 /* The picture is how a post is recognised — nobody scans a wall of paragraphs

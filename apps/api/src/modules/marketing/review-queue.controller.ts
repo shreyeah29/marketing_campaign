@@ -24,6 +24,7 @@ import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { RequiresFeature } from '../../common/guards/entitlement.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
 import { zodBody } from '../../common/http/validate.js'
+import { loadEnv } from '../../config/env.js'
 import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 import { OverlayService, type BrandFacts } from '../../infrastructure/overlay.js'
 import { StorageService } from '../../infrastructure/storage.js'
@@ -52,6 +53,15 @@ const generateSchema = z
      * a model having an off day.
      */
     posterText: z.string().trim().max(70).optional(),
+    /**
+     * A poster whose look to follow.
+     *
+     * Validated as a URL and expected to be one of ours — it comes back from
+     * `/uploads`, which re-encodes and stores what was uploaded. The adapter
+     * fetches it server-side, so accepting an arbitrary address here would make
+     * this endpoint a request forwarder.
+     */
+    referenceImageUrl: z.string().url().max(2000).optional(),
   })
   .strict()
 const editSchema = z
@@ -163,7 +173,12 @@ export class ReviewQueueController {
    */
   private async generatePoster(
     asset: { id: string; title: string | null; body: string; posterText: unknown },
-    campaignRow: { name: string; theme: string | null; targetAudience: unknown } | null,
+    campaignRow: {
+      name: string
+      theme: string | null
+      targetAudience: unknown
+      referenceImageUrl?: string | null
+    } | null,
     p: Principal,
     id: string,
   ): Promise<unknown> {
@@ -190,6 +205,11 @@ export class ReviewQueueController {
     const poster = readPosterText(asset.posterText) ?? {
       headline: asset.title?.trim() || campaignRow?.name?.trim() || 'Special offer',
     }
+
+    // The reference is stored on the campaign, so every concept in the run is
+    // designed with the same eye rather than each one borrowing separately.
+    const reference =
+      typeof campaignRow?.referenceImageUrl === 'string' ? campaignRow.referenceImageUrl : null
 
     const { branding, products } = await withTenantTransaction(this.db, async (tx) => ({
       branding: await tx.branding.findFirst(),
@@ -219,13 +239,19 @@ export class ReviewQueueController {
         locationLine: firstOffice(branding?.offices),
       },
       products: products.map((product) => product.name),
+      hasReference: Boolean(reference),
       direction: buildImageDirection({
         locations: audienceLocations(campaignRow?.targetAudience),
         theme: campaignRow?.theme ?? campaignRow?.name ?? null,
       }),
     })
 
-    const result = await generateImage({ apiKey: openai.apiKey, prompt, size: '1024x1024' })
+    const result = await generateImage({
+      apiKey: openai.apiKey,
+      prompt,
+      size: '1024x1024',
+      ...(reference ? { referenceImageUrl: reference } : {}),
+    })
     if (!result.b64) {
       // The hosted-URL shape belongs to older models. gpt-image-1 always returns
       // inline data, and storing a provider URL is the mistake the Runway path
@@ -322,8 +348,15 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief, posterText } = zodBody(generateSchema, body)
-    return this.generation.generate(p, brief, posterText)
+    const { brief, posterText, referenceImageUrl } = zodBody(generateSchema, body)
+    if (referenceImageUrl !== undefined && !isOwnStorageUrl(referenceImageUrl)) {
+      // The adapter fetches this URL from the server, so accepting any address
+      // would turn this endpoint into a request forwarder — one that reaches
+      // whatever the server can reach, including addresses a caller cannot.
+      // Only what `/uploads` issued is accepted.
+      throw new BadRequestException('The reference image must be one you uploaded here.')
+    }
+    return this.generation.generate(p, brief, posterText, referenceImageUrl)
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -488,7 +521,12 @@ export class ReviewQueueController {
       const campaign = row?.campaignId
         ? await tx.campaign.findFirst({
             where: { id: row.campaignId, deletedAt: null },
-            select: { name: true, theme: true, targetAudience: true },
+            select: {
+              name: true,
+              theme: true,
+              targetAudience: true,
+              referenceImageUrl: true,
+            },
           })
         : null
       return { asset: row, campaignRow: campaign }
@@ -1097,4 +1135,23 @@ function firstOffice(raw: unknown): string | null {
     if (value) return value
   }
   return null
+}
+
+/**
+ * Whether a URL is one our own storage issued.
+ *
+ * The reference image is fetched server-side, so this is the boundary between
+ * "a picture the client uploaded" and "any address the server can reach". Host
+ * comparison rather than a prefix match on the string: `https://ours.example.co`
+ * is a prefix of `https://ours.example.co.attacker.test` and is not the same
+ * host.
+ */
+function isOwnStorageUrl(value: string): boolean {
+  const base = loadEnv().SUPABASE_URL
+  if (!base) return false
+  try {
+    return new URL(value).host === new URL(base).host
+  } catch {
+    return false
+  }
 }

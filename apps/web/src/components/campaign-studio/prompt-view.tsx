@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import { api } from '@/lib/api'
+import { ApiError, api, apiUpload } from '@/lib/api'
 import { Icon } from '@/components/icon'
 import { FadeIn } from '@/components/motion'
 import { Spinner } from '@/components/ui'
+import { useToast } from '@/components/kit'
 
 import { BriefCoach, parseStoredCoach, type CoachResult } from './brief-coach'
 import { SUGGESTION_ROWS } from './constants'
@@ -53,6 +54,8 @@ export function PromptView({
   onCoachResult,
   pictureKinds,
   onPictureKinds,
+  reference,
+  onReference,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -68,6 +71,9 @@ export function PromptView({
   onCoachResult?: ((result: CoachResult | null) => void) | undefined
   pictureKinds?: { photography: boolean; posters: boolean } | undefined
   onPictureKinds?: ((next: { photography: boolean; posters: boolean }) => void) | undefined
+  /** A stored URL for the poster whose look this campaign should follow. */
+  reference?: string | null
+  onReference?: ((url: string | null) => void) | undefined
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
 
@@ -84,6 +90,32 @@ export function PromptView({
   function setKinds(photos: boolean, designs: boolean) {
     if (!photos && !designs) return
     onPictureKinds?.({ photography: photos, posters: designs })
+  }
+
+  const toast = useToast()
+  const refRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
+
+  /**
+   * Uploaded through our own endpoint, not linked from wherever it came from.
+   *
+   * `/uploads` re-encodes, strips EXIF, caps the dimensions and stores the
+   * result in our bucket — and the generation endpoint only accepts a reference
+   * on that host, because the server fetches it. A pasted URL would make the
+   * request a forwarder.
+   */
+  async function uploadReference(file: File) {
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await apiUpload<{ url: string }>('/uploads', form)
+      onReference?.(res.url)
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'That image could not be uploaded')
+    } finally {
+      setUploading(false)
+    }
   }
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
 
@@ -195,6 +227,68 @@ export function PromptView({
             </span>
           </button>
         </div>
+
+        {/* ── Reference poster ─────────────────────────────────────────
+            Only offered when posters are being made: a photograph does not
+            borrow a layout, so the control would be inert next to a run of
+            product shots. */}
+        {wantDesigns ? (
+          <div className="reference">
+            {reference ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={reference} alt="Reference poster" className="reference__thumb" />
+                <div className="reference__body">
+                  <p className="reference__title">Designing with this look</p>
+                  <p className="reference__hint">
+                    Its layout, type pairing and density carry over. None of its words, products or
+                    brand marks do — everything on your poster comes from your campaign.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => onReference?.(null)}
+                  disabled={uploading}
+                >
+                  Remove
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="reference__box">
+                  <Icon name="image" size={18} />
+                </span>
+                <div className="reference__body">
+                  <p className="reference__title">Reference poster — optional</p>
+                  <p className="reference__hint">
+                    Upload a poster you like and yours will be designed with the same eye, using
+                    your own offer and products.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={uploading}
+                  onClick={() => refRef.current?.click()}
+                >
+                  {uploading ? <Spinner /> : <Icon name="upload" size={13} />} Upload
+                </button>
+              </>
+            )}
+            <input
+              ref={refRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void uploadReference(file)
+              }}
+            />
+          </div>
+        ) : null}
 
         <BriefCoach
           brief={prompt}

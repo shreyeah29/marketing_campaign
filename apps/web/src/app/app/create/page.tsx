@@ -50,6 +50,7 @@ function CreateInner() {
   const [coach, setCoach] = useState<unknown>(null)
   /** Photography on, posters opt-in — see PromptView for why. */
   const [kinds, setKinds] = useState({ photography: true, posters: false })
+  const [reference, setReference] = useState<string | null>(null)
   const restored = useRef(false)
 
   const refreshLists = useCallback(() => {
@@ -98,6 +99,7 @@ function CreateInner() {
       wantVideos: false,
       wantPhotography: kinds.photography,
       wantPosterDesigns: kinds.posters,
+      ...(reference ? { referenceImageUrl: reference } : {}),
       postCount: 5,
       videoCount: 0,
       adPlatforms: [],
@@ -129,6 +131,8 @@ function CreateInner() {
       onCoachResult={setCoach}
       pictureKinds={kinds}
       onPictureKinds={setKinds}
+      reference={reference}
+      onReference={setReference}
       onGuidedIntake={() => {
         // Skipping the brief is allowed: intake asks the structured questions,
         // and a brief is composed from those answers alone.

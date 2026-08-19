@@ -110,6 +110,8 @@ export interface CreateDraft {
    */
   wantPosterDesigns?: boolean | undefined
   wantPhotography?: boolean | undefined
+  /** A stored URL for the poster whose look this campaign follows. */
+  referenceImageUrl?: string | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

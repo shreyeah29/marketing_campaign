@@ -294,6 +294,8 @@ export class CampaignGenerationService {
     brief: string,
     /** Exact words for the artwork, typed by the person rather than inferred. */
     posterText?: string,
+    /** A poster whose look this campaign should follow. Our own storage URL. */
+    referenceImageUrl?: string,
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
@@ -369,6 +371,7 @@ export class CampaignGenerationService {
           } as never,
           targetAudience: { description: plan.audience ?? null } as never,
           budgetTotal: Number.isFinite(plan.suggestedBudget) ? plan.suggestedBudget : null,
+          ...(referenceImageUrl ? { referenceImageUrl } : {}),
         },
       })
 

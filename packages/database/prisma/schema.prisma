@@ -1284,6 +1284,19 @@ model Campaign {
   // per-creative because "UP TO 40% OFF" is one promise made once — fifty
   // posters restating it in fifty rows is fifty chances to disagree.
   theme          String?
+
+  /**
+   * A poster whose look this campaign should follow.
+   *
+   * Uploaded by the client on the brief screen and stored in our own bucket by
+   * `/uploads`. Held on the campaign rather than on each asset so every concept
+   * in a run is designed with the same eye — a set of five posters that each
+   * borrowed independently would not look like a set.
+   *
+   * Its *look* only: the poster brief tells the model to take the composition
+   * and the type pairing and none of the words, products or brand marks.
+   */
+  referenceImageUrl String? @map("reference_image_url")
   primaryOffer   String? @map("primary_offer")
   secondaryOffer String? @map("secondary_offer")
   couponCode     String? @map("coupon_code")

@@ -53,6 +53,21 @@ export const platform = {
       },
     ),
 
+  /**
+   * Draw one real example of each AI direction, once, for every workspace.
+   *
+   * Bills for one image per direction, and skips what already exists unless
+   * `force` — so pressing it twice costs nothing.
+   */
+  generateDirectionPreviews: (force: boolean) =>
+    api.post<DirectionPreviewRun>(
+      '/platform/direction-previews',
+      { force },
+      {
+        platformAuth: true,
+      },
+    ),
+
   organizationDetail: (id: string) =>
     api.get<OrgDetail>(`/platform/organizations/${id}`, { platformAuth: true }),
 
@@ -134,6 +149,13 @@ export interface GenerationTestStep {
   label: string
   status: 'pass' | 'fail' | 'skip'
   detail: string
+}
+
+/** The outcome of one preview run, per direction. */
+export interface DirectionPreviewRun {
+  made: string[]
+  skipped: string[]
+  failed: { id: string; reason: string }[]
 }
 
 export interface GenerationTest {

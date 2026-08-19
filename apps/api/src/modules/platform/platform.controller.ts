@@ -29,6 +29,7 @@ import { EntitlementService } from '../../common/entitlements/entitlement.servic
 import { zodBody } from '../../common/http/validate.js'
 import { loadEnv } from '../../config/env.js'
 
+import { DirectionPreviewsService } from './direction-previews.service.js'
 import { GenerationSelfTestService } from './generation-selftest.service.js'
 import { PlatformActor } from './platform-actor.decorator.js'
 import { PlatformAdminGuard } from './platform-admin.guard.js'
@@ -49,6 +50,9 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
  * and one real upload. Everything before it is free, so it stays off by default.
  */
 const generationTestSchema = z.object({ draw: z.boolean().optional() }).strict()
+
+/** `force` redraws directions that already have a preview. Off by default. */
+const previewsSchema = z.object({ force: z.boolean().optional() }).strict()
 
 /**
  * Categories the operator can no longer assign. The feature code stays (existing
@@ -80,6 +84,7 @@ export class PlatformController {
     @Inject(EntitlementService) private readonly entitlements: EntitlementService,
     @Inject(ViewAsService) private readonly viewAs: ViewAsService,
     @Inject(GenerationSelfTestService) private readonly selfTest: GenerationSelfTestService,
+    @Inject(DirectionPreviewsService) private readonly previews: DirectionPreviewsService,
   ) {
     this.owner = createAdminClient(loadEnv().DIRECT_DATABASE_URL ?? loadEnv().DATABASE_URL)
   }
@@ -200,6 +205,25 @@ export class PlatformController {
   async generationTest(@Body() body: unknown): Promise<unknown> {
     const { draw } = zodBody(generationTestSchema, body ?? {})
     return this.selfTest.run(draw ?? false)
+  }
+
+  /**
+   * Draw one real example of each AI direction, once, for every workspace.
+   *
+   * Template directions already show a true render of their own layout, free
+   * and exact. AI directions had nothing to show, so those cards were blank —
+   * the alternative being stock artwork, which promises output nobody has seen.
+   *
+   * Operator-run rather than automatic: it bills for one image per direction.
+   * Safe to press twice — it skips what already exists unless `force` says so.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Post('direction-previews')
+  @ApiOperation({ summary: 'Generate the example picture for each AI direction' })
+  async generatePreviews(@Body() body: unknown): Promise<unknown> {
+    const { force } = zodBody(previewsSchema, body ?? {})
+    return this.previews.generate(force ?? false)
   }
 
   // ── Registry browsing (the wizard's source data) ─────────────────────────────

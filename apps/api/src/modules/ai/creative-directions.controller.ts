@@ -1,8 +1,9 @@
-import { Controller, Get } from '@nestjs/common'
+import { Controller, Get, Inject } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
+import { DirectionPreviewsService } from '../platform/direction-previews.service.js'
 import { CREATIVE_DIRECTIONS } from './creative-directions.js'
 
 /**
@@ -26,10 +27,18 @@ import { CREATIVE_DIRECTIONS } from './creative-directions.js'
 @ApiTags('Creative Directions')
 @Controller('creative-directions')
 export class CreativeDirectionsController {
+  constructor(
+    @Inject(DirectionPreviewsService) private readonly previews: DirectionPreviewsService,
+  ) {}
+
   @Get()
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   @ApiOperation({ summary: 'Every way this system can make a picture' })
-  list(): { data: unknown[] } {
+  async list(): Promise<{ data: unknown[] }> {
+    // Platform-wide and identical for every workspace, so one read serves the
+    // whole shelf. Absent previews are the state this shipped in — the cards
+    // fall back to a placeholder rather than showing artwork nobody generated.
+    const previews = await this.previews.all()
     return {
       data: CREATIVE_DIRECTIONS.map((d) => ({
         id: d.id,
@@ -50,6 +59,14 @@ export class CreativeDirectionsController {
          * card would be a promise about output nobody has seen.
          */
         previewTemplateSlug: d.templateSlug ?? null,
+        /**
+         * A generated example, for the directions no layout can render.
+         *
+         * Null until an operator has generated the set. Deliberately null rather
+         * than a stand-in: artwork on a card nobody produced is a promise about
+         * output that has never been seen.
+         */
+        previewUrl: previews[d.id] ?? null,
       })),
     }
   }

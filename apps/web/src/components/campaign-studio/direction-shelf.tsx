@@ -47,6 +47,13 @@ interface Direction {
   }
   /** A layout to render a true preview from, or null when none exists yet. */
   previewTemplateSlug: string | null
+  /**
+   * A generated example, for directions no layout can render.
+   *
+   * Null until an operator has generated the set, and the card falls back to a
+   * placeholder rather than stock art — see the file comment.
+   */
+  previewUrl?: string | null
 }
 
 export type { Direction }
@@ -233,7 +240,15 @@ function Grid({
           onClick={() => onPick(d)}
         >
           <span className="direction-card__art">
-            {d.previewTemplateSlug ? (
+            {d.previewUrl ? (
+              /* A generated example, in our own bucket. No `crossOrigin` here:
+                 the bucket answers with a wildcard origin, and asking for
+                 credentials against one is refused. The opposite of the
+                 template render below, which is on the API origin and needs
+                 them — the two look identical and behave oppositely. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={d.previewUrl} alt={`${d.name} example`} loading="lazy" />
+            ) : d.previewTemplateSlug ? (
               /* An API render behind CONTENT_READ. A bare <img> sends no cookies
                  cross-origin and every tile came back 401 — `use-credentials` is
                  required here, and forbidden on bucket URLs, which answer with a

@@ -1695,6 +1695,34 @@ model BrandKit {
   @@map("brand_kit")
 }
 
+/// One true example of what each AI creative direction produces.
+///
+/// Template directions get a real preview free — the design-template endpoint
+/// renders the layout exactly. AI directions have nothing to render, so the only
+/// honest way to show what "Cinematic" looks like is to generate one and keep it.
+/// The alternative, stock artwork on those cards, is a promise about output
+/// nobody has seen.
+///
+/// No `organizationId`: directions are platform-wide and ship as code, so their
+/// examples are too. One generation serves every tenant rather than each paying
+/// to discover what the same eight looks look like. It is therefore **not**
+/// tenant-scoped, and must never hold anything client-specific.
+model DirectionPreview {
+  /// The id from `creative-directions.ts`. No relation — directions are code.
+  directionId String @id @map("direction_id")
+  url         String
+  storageKey  String @map("storage_key")
+
+  /// Which model drew it, so a set made before a model change is tellable from
+  /// one made after.
+  model String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("direction_preview")
+}
+
 /// A saved look, read once from a picture and reusable forever.
 ///
 /// The campaign already carries `referenceImageUrl` — one picture, one campaign,

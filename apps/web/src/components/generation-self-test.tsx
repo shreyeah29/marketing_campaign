@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 import { ApiError } from '@/lib/api'
-import { platform, type GenerationTest } from '@/lib/platform'
+import { platform, type DirectionPreviewRun, type GenerationTest } from '@/lib/platform'
 import { Icon } from '@/components/icon'
 import { Spinner } from '@/components/ui'
 
@@ -36,6 +36,25 @@ export function GenerationSelfTest() {
   const [result, setResult] = useState<GenerationTest | null>(null)
   const [running, setRunning] = useState<'checks' | 'draw' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * The direction-preview run, which lives here because it answers the same
+   * question the self-test does — does image generation work — and because it is
+   * the other thing an operator presses once after a deploy.
+   */
+  const [previews, setPreviews] = useState<DirectionPreviewRun | null>(null)
+  const [drawing, setDrawing] = useState(false)
+
+  async function makePreviews() {
+    setDrawing(true)
+    setError(null)
+    try {
+      setPreviews(await platform.generateDirectionPreviews(false))
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'The previews could not be generated')
+    } finally {
+      setDrawing(false)
+    }
+  }
 
   async function run(draw: boolean) {
     setRunning(draw ? 'draw' : 'checks')
@@ -122,6 +141,34 @@ export function GenerationSelfTest() {
             </div>
           ))
         : null}
+
+      {/* The other one-press operator job. Separate button, because it bills
+          for one image per AI direction — and it skips what already exists, so
+          pressing it after a deploy costs nothing. */}
+      <div className="row" style={{ gap: 8, flexWrap: 'wrap', margin: '14px 0 0' }}>
+        <button
+          type="button"
+          className="btn sm"
+          disabled={drawing}
+          onClick={() => void makePreviews()}
+        >
+          {drawing ? <Spinner /> : <Icon name="images" size={14} />}
+          Generate the direction previews
+        </button>
+        {previews ? (
+          <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>
+            {previews.made.length} drawn · {previews.skipped.length} already had one
+            {previews.failed.length > 0 ? ` · ${String(previews.failed.length)} failed` : ''}
+          </span>
+        ) : null}
+      </div>
+      {previews?.failed.map((f) => (
+        <div key={f.id} className="diag-row" data-state="warn" style={{ alignItems: 'flex-start' }}>
+          <Icon name="x" size={15} />
+          <span className="diag-row__label">{f.id}</span>
+          <span className="diag-row__detail">{f.reason}</span>
+        </div>
+      ))}
 
       {result ? (
         <p className="diag__note">

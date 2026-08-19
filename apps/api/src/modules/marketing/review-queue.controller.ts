@@ -284,15 +284,17 @@ export class ReviewQueueController {
     const refusals: { model: string; detail: string }[] = []
     for (const model of candidates) {
       try {
-        result = await generateImage({
-          apiKey: openai.apiKey,
-          prompt,
-          size: '1024x1024',
-          model,
-          // The endpoint that accepts a reference is not available for dall-e-3,
-          // and sending one would 400 rather than being ignored.
-          ...(reference && model !== 'dall-e-3' ? { referenceImageUrl: reference } : {}),
-        })
+        result = await withRateLimitRetry(() =>
+          generateImage({
+            apiKey: openai.apiKey,
+            prompt,
+            size: '1024x1024',
+            model,
+            // The endpoint that accepts a reference is not available for
+            // dall-e-3, and sending one would 400 rather than being ignored.
+            ...(reference && model !== 'dall-e-3' ? { referenceImageUrl: reference } : {}),
+          }),
+        )
         if (model !== candidates[0]) {
           this.logger.warn(
             { assetId: id, model, refusals },
@@ -1301,5 +1303,32 @@ async function fetchImageBytes(url: string | undefined): Promise<Buffer | null> 
     return Buffer.from(await res.arrayBuffer())
   } catch {
     return null
+  }
+}
+
+/**
+ * Retry an image call through a rate limit, and only a rate limit.
+ *
+ * Image models are metered per minute and the ceiling is low — five a minute on
+ * a Tier 1 account — while the studio starts every unrendered poster in a
+ * campaign at once. A six-poster campaign therefore fails its last poster on a
+ * 429 that means "wait", not "no", and a failure that a fifteen-second pause
+ * would have avoided is not a failure worth showing anyone.
+ *
+ * Bounded at two retries: past that the queue is genuinely too deep for the
+ * account's limit, and blocking the request longer only moves the failure later.
+ * Nothing else is retried — a refusal, a content rejection or a bad prompt
+ * returns the same answer however many times it is asked.
+ */
+async function withRateLimitRetry<T>(run: () => Promise<T>, attempts = 3): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await run()
+    } catch (err) {
+      const rateLimited = err instanceof AdapterError && err.status === 429
+      if (!rateLimited || attempt >= attempts) throw err
+      // The minute is the window, so waiting a slice of one is the useful pause.
+      await new Promise((resolve) => setTimeout(resolve, attempt * 15_000))
+    }
   }
 }

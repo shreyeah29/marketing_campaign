@@ -75,22 +75,40 @@ export class DirectionPreviewsService {
   }
 
   /**
-   * Draw the missing ones.
+   * Draw a batch of the missing ones.
    *
-   * @param force Redraw directions that already have a preview.
+   * @param force Redraw directions that already have a picture.
+   * @param limit How many to draw in this call.
    *
-   * Sequential rather than parallel, and skipping what exists: image accounts
-   * are metered per minute, and firing eighteen at once fails most of them on a
-   * limit that means "wait". Skipping also makes this safe to press twice — the
-   * second press costs nothing rather than regenerating the set.
+   * Batched, and that is the whole point of the parameter. There are 28 AI
+   * directions and an image takes 25 to 40 seconds, so drawing the set in one
+   * call is a fifteen-minute HTTP request — which no proxy, browser or platform
+   * will hold open. The first version did exactly that and simply hung.
    *
-   * Every failure is collected and reported rather than stopping the run. One
-   * refused direction should not deny the other seventeen their preview.
+   * A batch returns in about two minutes, well inside anything's patience, and
+   * `remaining` tells the caller to come back. The client loops; the server
+   * never holds a long request.
+   *
+   * Sequential *within* the batch, because image accounts are metered per minute
+   * and firing five at once fails most of them on a limit that means "wait".
+   *
+   * Each picture is committed the moment it is drawn rather than at the end, so
+   * an interrupted run keeps everything it finished. That is what makes this
+   * safe to press repeatedly: the next call skips what exists and costs nothing
+   * for it.
+   *
+   * Every failure is collected rather than stopping the run — one refused
+   * direction should not deny the rest their picture.
    */
-  async generate(force: boolean): Promise<{
+  async generate(
+    force: boolean,
+    limit = 5,
+  ): Promise<{
     made: string[]
     skipped: string[]
     failed: { id: string; reason: string }[]
+    /** Still to draw after this batch. Zero means the set is complete. */
+    remaining: number
   }> {
     const env = loadEnv()
     const made: string[] = []
@@ -102,6 +120,7 @@ export class DirectionPreviewsService {
         made,
         skipped,
         failed: [{ id: 'all', reason: 'OPENAI_API_KEY is not set on this service.' }],
+        remaining: 0,
       }
     }
 
@@ -112,11 +131,16 @@ export class DirectionPreviewsService {
     const targets = CREATIVE_DIRECTIONS.filter((d) => d.kind === 'ai' && d.look)
     const model = imageModelCandidates(env.OPENAI_IMAGE_MODEL)[0] ?? 'gpt-image-2'
 
+    // Everything still without a picture, before this batch takes its share.
+    const outstanding = targets.filter((d) => !existing[d.id])
     for (const direction of targets) {
       if (existing[direction.id]) {
         skipped.push(direction.id)
         continue
       }
+      // The batch is full. The rest are reported as remaining and drawn on the
+      // next call, which is what keeps this request short enough to complete.
+      if (made.length + failed.length >= limit) continue
       try {
         const result = await generateImage({
           apiKey: env.OPENAI_API_KEY,
@@ -164,10 +188,14 @@ export class DirectionPreviewsService {
       }
     }
 
+    // Failures count as done for this purpose: a direction the provider refuses
+    // will be refused again, and reporting it as "remaining" forever would make
+    // the client loop until it gave up.
+    const remaining = Math.max(0, outstanding.length - made.length - failed.length)
     this.logger.info(
-      { made: made.length, skipped: skipped.length, failed: failed.length },
-      'direction previews generated',
+      { made: made.length, skipped: skipped.length, failed: failed.length, remaining },
+      'direction preview batch finished',
     )
-    return { made, skipped, failed }
+    return { made, skipped, failed, remaining }
   }
 }

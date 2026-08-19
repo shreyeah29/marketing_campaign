@@ -51,8 +51,16 @@ const loginSchema = z.object({ email: z.string().email(), password: z.string().m
  */
 const generationTestSchema = z.object({ draw: z.boolean().optional() }).strict()
 
-/** `force` redraws directions that already have a preview. Off by default. */
-const previewsSchema = z.object({ force: z.boolean().optional() }).strict()
+/**
+ * `force` redraws directions that already have a picture. `limit` caps the batch.
+ *
+ * A batch exists because there are 28 AI directions at ~30 seconds each, and one
+ * call for all of them is a fifteen-minute HTTP request that nothing will hold
+ * open. Five is about two minutes, which everything will.
+ */
+const previewsSchema = z
+  .object({ force: z.boolean().optional(), limit: z.number().int().min(1).max(10).optional() })
+  .strict()
 
 /**
  * Categories the operator can no longer assign. The feature code stays (existing
@@ -216,14 +224,18 @@ export class PlatformController {
    *
    * Operator-run rather than automatic: it bills for one image per direction.
    * Safe to press twice — it skips what already exists unless `force` says so.
+   *
+   * Returns after a batch with `remaining` set, rather than drawing all 28 in
+   * one call. The client comes back until `remaining` is zero; the server never
+   * holds a request long enough for anything in front of it to give up.
    */
   @Public()
   @UseGuards(PlatformAdminGuard)
   @Post('direction-previews')
   @ApiOperation({ summary: 'Generate the example picture for each AI direction' })
   async generatePreviews(@Body() body: unknown): Promise<unknown> {
-    const { force } = zodBody(previewsSchema, body ?? {})
-    return this.previews.generate(force ?? false)
+    const { force, limit } = zodBody(previewsSchema, body ?? {})
+    return this.previews.generate(force ?? false, limit ?? 5)
   }
 
   /**

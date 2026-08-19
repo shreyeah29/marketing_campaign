@@ -59,13 +59,11 @@ export const platform = {
    * Bills for one image per direction, and skips what already exists unless
    * `force` — so pressing it twice costs nothing.
    */
-  generateDirectionPreviews: (force: boolean) =>
+  generateDirectionPreviews: (force: boolean, limit = 5) =>
     api.post<DirectionPreviewRun>(
       '/platform/direction-previews',
-      { force },
-      {
-        platformAuth: true,
-      },
+      { force, limit },
+      { platformAuth: true },
     ),
 
   organizationDetail: (id: string) =>
@@ -156,6 +154,8 @@ export interface DirectionPreviewRun {
   made: string[]
   skipped: string[]
   failed: { id: string; reason: string }[]
+  /** Still to draw after this batch. Zero means the set is complete. */
+  remaining: number
 }
 
 export interface GenerationTest {

@@ -43,14 +43,47 @@ export function GenerationSelfTest() {
    */
   const [previews, setPreviews] = useState<DirectionPreviewRun | null>(null)
   const [drawing, setDrawing] = useState(false)
+  /** Running totals across the batches, so the count does not reset each round. */
+  const [drawn, setDrawn] = useState(0)
+  const [left, setLeft] = useState<number | null>(null)
 
+  /**
+   * Draw the whole set, a batch at a time.
+   *
+   * There are 28 AI directions at roughly half a minute each, and asking for all
+   * of them in one request is a fifteen-minute call that nothing between here
+   * and the API will hold open. So the server draws five and says how many are
+   * left, and this comes back for the rest.
+   *
+   * Each picture is committed server-side the moment it is drawn, so closing
+   * this page mid-run loses nothing — the next press resumes where it stopped
+   * and pays nothing for what is already done.
+   */
   async function makePreviews() {
     setDrawing(true)
     setError(null)
+    let total = 0
+    const problems: DirectionPreviewRun['failed'] = []
     try {
-      setPreviews(await platform.generateDirectionPreviews(false))
+      // Bounded rather than `while (remaining > 0)`: a direction that fails for
+      // a reason that will not change — a refused model, unset storage — is
+      // counted as done by the server, but a bug there would otherwise spin
+      // forever against a paid API.
+      for (let round = 0; round < 12; round++) {
+        const batch = await platform.generateDirectionPreviews(false)
+        total += batch.made.length
+        problems.push(...batch.failed)
+        setDrawn(total)
+        setLeft(batch.remaining)
+        setPreviews({ ...batch, made: [], failed: problems, remaining: batch.remaining })
+        if (batch.remaining === 0 || (batch.made.length === 0 && batch.failed.length === 0)) break
+      }
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'The previews could not be generated')
+      setError(
+        e instanceof ApiError
+          ? `${e.message} — anything already drawn is saved; press again to carry on.`
+          : 'The previews could not be generated',
+      )
     } finally {
       setDrawing(false)
     }
@@ -153,12 +186,16 @@ export function GenerationSelfTest() {
           onClick={() => void makePreviews()}
         >
           {drawing ? <Spinner /> : <Icon name="images" size={14} />}
-          Generate the direction previews
+          {drawing ? 'Drawing…' : 'Generate the direction previews'}
         </button>
-        {previews ? (
+        {drawing || previews ? (
           <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>
-            {previews.made.length} drawn · {previews.skipped.length} already had one
-            {previews.failed.length > 0 ? ` · ${String(previews.failed.length)} failed` : ''}
+            {String(drawn)} drawn
+            {left !== null ? ` · ${String(left)} to go` : ''}
+            {previews && previews.failed.length > 0
+              ? ` · ${String(previews.failed.length)} failed`
+              : ''}
+            {drawing ? ' — about half a minute each, safe to leave running' : ''}
           </span>
         ) : null}
       </div>

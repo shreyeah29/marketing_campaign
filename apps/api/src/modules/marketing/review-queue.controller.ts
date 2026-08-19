@@ -45,6 +45,7 @@ import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
+import { describeProviderFailure, failureSentence } from './generation-failure.js'
 
 const regenerateSchema = z
   .object({
@@ -168,6 +169,46 @@ export class ReviewQueueController {
    * stamp" — an organisation that has not filled in its brand kit gets plain
    * artwork rather than an error.
    */
+  /**
+   * Run a generation, and leave the reason on the asset if it fails.
+   *
+   * The reason existed before this — carefully written, and thrown as an HTTP
+   * error to whoever happened to be holding the request. That is the wrong place
+   * for it. A generation is started by a screen that may be closed before it
+   * finishes, retried by a button that discards the response, or fired for six
+   * concepts at once where only the last error is seen. In every one of those the
+   * explanation was produced and then dropped, and the only remaining copy was in
+   * the deployment logs — which is why every failure this month was diagnosed by
+   * someone pasting Render output into a chat window.
+   *
+   * `campaign_asset.failure_reason` has existed the entire time and nothing has
+   * ever written to it. The review queue already renders it. This connects them.
+   *
+   * The write is best-effort: if recording the failure also fails, the original
+   * error is still what the caller gets, because it is the more useful of the two.
+   */
+  private async recordingFailure<T>(assetId: string, run: () => Promise<T>): Promise<T> {
+    try {
+      return await run()
+    } catch (err) {
+      const reason = failureSentence(err)
+      try {
+        await withTenantTransaction(this.db, (tx) =>
+          tx.campaignAsset.update({
+            where: { id: assetId },
+            data: { status: 'FAILED', failureReason: reason },
+          }),
+        )
+      } catch (writeErr) {
+        this.logger.error(
+          { assetId, detail: writeErr instanceof Error ? writeErr.message : String(writeErr) },
+          'could not record the generation failure on the asset',
+        )
+      }
+      throw err
+    }
+  }
+
   /**
    * Draw a poster: a designed layout with the words composed into it.
    *
@@ -421,6 +462,9 @@ export class ReviewQueueController {
           mediaUrl: stored.url,
           status: 'NEEDS_REVIEW',
           aiVersions: { variants: [stored.url] },
+          // A retry that works clears the last failure. Left behind, the tile
+          // would carry a stale explanation for a picture that is now fine.
+          failureReason: null,
         },
       })
       await this.comment(
@@ -761,10 +805,36 @@ export class ReviewQueueController {
      * different model on its next regenerate.
      */
     const wantsPoster = asset.visualStyle === 'POSTER' && asset.kind === 'IMAGE_PROMPT'
-    if (wantsPoster) {
-      return this.generatePoster(asset, campaignRow, p, id)
-    }
+    /**
+     * Both paths run inside the recorder, so a failure is written down rather
+     * than only thrown. See `recordingFailure`.
+     */
+    return this.recordingFailure(id, () =>
+      wantsPoster
+        ? this.generatePoster(asset, campaignRow, p, id)
+        : this.generatePhotography(asset, campaignRow, p, id, input),
+    )
+  }
 
+  /**
+   * Photograph a concept: Runway draws it, the compositor stamps the brand on.
+   *
+   * The counterpart to `generatePoster`, and separated from the route for the
+   * same reason that one was — so both sit behind `recordingFailure` and neither
+   * can fail silently.
+   */
+  private async generatePhotography(
+    asset: { kind: string; title: string | null; body: string; posterText: unknown },
+    campaignRow: {
+      name: string
+      theme: string | null
+      targetAudience: unknown
+      referenceImageUrl?: string | null
+    } | null,
+    p: Principal,
+    id: string,
+    input: { variants?: number | undefined },
+  ): Promise<unknown> {
     // "Temporarily unavailable" sent people hunting for an outage when the real
     // answer was an unset key. Say which, and say it differently for the two
     // cases, because only one of them is worth waiting out.
@@ -877,17 +947,32 @@ export class ReviewQueueController {
           { assetId: id, kind: asset.kind, model: runway.imageModel ?? 'default', reasons },
           'Runway rejected every image variant',
         )
-        throw new ServiceUnavailableException('Media generation failed — try again')
+        throw new ServiceUnavailableException(describeProviderFailure('Runway', reasons))
       }
     } else {
-      const result = await generateRunwayVideo({
-        apiKey: runway.apiKey,
-        prompt,
-        ...(runway.videoModel ? { model: runway.videoModel } : {}),
-        ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
-        ...keep(0),
-      })
-      urls = [result.url]
+      try {
+        const result = await generateRunwayVideo({
+          apiKey: runway.apiKey,
+          prompt,
+          ...(runway.videoModel ? { model: runway.videoModel } : {}),
+          ...(runway.imageModel ? { imageModel: runway.imageModel } : {}),
+          ...keep(0),
+        })
+        urls = [result.url]
+      } catch (err) {
+        // The image branch already translates its refusals; video threw the raw
+        // adapter error straight past, so the one path that costs minutes was
+        // also the one that explained itself worst.
+        const reason =
+          err instanceof AdapterError
+            ? { status: err.status, message: err.message }
+            : { message: err instanceof Error ? err.message : String(err) }
+        this.logger.error(
+          { assetId: id, kind: asset.kind, model: runway.videoModel ?? 'default', reason },
+          'Runway rejected the video',
+        )
+        throw new ServiceUnavailableException(describeProviderFailure('Runway', [reason]))
+      }
     }
 
     // Runway's URLs expire. Copy the bytes into our own bucket before anything
@@ -935,6 +1020,8 @@ export class ReviewQueueController {
           status: 'NEEDS_REVIEW',
           // All variants ride on the asset so the reviewer can pick the winner.
           aiVersions: { variants: durableUrls },
+          // See the poster path: a successful retry clears the old reason.
+          failureReason: null,
         },
       })
       await this.comment(

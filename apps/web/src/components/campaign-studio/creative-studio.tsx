@@ -159,7 +159,20 @@ export function CreativeStudio({
       .map((p) => p.master)
       .filter(
         (m): m is Asset =>
-          m != null && m.kind === 'IMAGE_PROMPT' && !m.mediaUrl && m.status !== 'REJECTED',
+          m != null &&
+          m.kind === 'IMAGE_PROMPT' &&
+          !m.mediaUrl &&
+          m.status !== 'REJECTED' &&
+          /**
+           * A concept that already failed is not started again on its own.
+           *
+           * `startedRef` only remembers within one mount, so before failures were
+           * recorded, reopening this screen re-fired every generation that had
+           * gone wrong — against a provider that had just refused, for a fee, on
+           * every single page load. The retry button is deliberate; an effect
+           * firing on mount is not.
+           */
+          m.status !== 'FAILED',
       )
 
     const fresh = waiting.filter((m) => !startedRef.current.has(m.id))
@@ -354,6 +367,16 @@ export function CreativeStudio({
   const previewUrl = selectedPiece ? piecePreviewUrl(selectedPiece) : null
   const isVideo = selectedPiece?.master?.kind === 'VIDEO_PROMPT'
   const status = selectedPiece ? pieceStatus(selectedPiece) : 'DRAFT'
+  /**
+   * Why this tile is empty, preferring the reason that survives a reload.
+   *
+   * `blocked` is this session's error and disappears the moment the screen is
+   * closed; `failureReason` is what the API wrote on the asset. Reaching for the
+   * stored one first is the whole point — a poster that failed last night should
+   * still be able to say so this morning, rather than reverting to
+   * "Rendering this poster…" and looking like it is still working.
+   */
+  const stallReason = selectedPiece?.master?.failureReason ?? blocked
   const versions = activeAdaptation ? readAssetVersions(activeAdaptation.id) : []
   /**
    * No `!` on selectedPiece.
@@ -529,7 +552,7 @@ export function CreativeStudio({
                   <p className="type-body-strong" style={{ margin: '12px 0 4px' }}>
                     {!selectedPiece.master
                       ? 'Copy-only piece'
-                      : blocked
+                      : stallReason
                         ? `This ${isVideo ? 'video' : 'poster'} could not be rendered`
                         : isVideo
                           ? 'Ready to render'
@@ -538,7 +561,7 @@ export function CreativeStudio({
                   <p className="type-secondary" style={{ margin: 0, maxWidth: '42ch' }}>
                     {!selectedPiece.master
                       ? 'This group came back as captions only — the plan produced no image concept for it.'
-                      : (blocked ??
+                      : (stallReason ??
                         (isVideo
                           ? 'Read the prompt below first. Videos take a few minutes each, so this one waits for you rather than rendering on its own.'
                           : 'It appears here the moment it is ready — no need to wait on this screen. Then keep it, reject it, or ask for another.'))}
@@ -549,7 +572,7 @@ export function CreativeStudio({
                   {selectedPiece.master ? (
                     <button
                       type="button"
-                      className={`btn${isVideo && !blocked ? ' primary' : ''}`}
+                      className={`btn${isVideo && !stallReason ? ' primary' : ''}`}
                       style={{ marginTop: 16 }}
                       disabled={busy}
                       onClick={() => void actOnPiece(selectedPiece, 'generate')}
@@ -557,9 +580,9 @@ export function CreativeStudio({
                       {busy ? (
                         <Spinner />
                       ) : (
-                        <Icon name={isVideo && !blocked ? 'play' : 'refresh'} size={14} />
+                        <Icon name={isVideo && !stallReason ? 'play' : 'refresh'} size={14} />
                       )}
-                      {isVideo && !blocked ? 'Render this video' : 'Try again'}
+                      {isVideo && !stallReason ? 'Render this video' : 'Try again'}
                     </button>
                   ) : null}
                 </div>

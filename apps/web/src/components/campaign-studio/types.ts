@@ -11,6 +11,14 @@ export interface Asset {
   scheduledFor?: string | null
   mediaUrl?: string | null
   aiVersions?: { variants?: string[] } | null
+  /**
+   * Why generation gave up, when it did.
+   *
+   * Set by the API alongside `status: 'FAILED'`. Present so a tile can say what
+   * went wrong instead of sitting empty — the state that used to be
+   * indistinguishable from "still working".
+   */
+  failureReason?: string | null
 }
 
 export interface Campaign {

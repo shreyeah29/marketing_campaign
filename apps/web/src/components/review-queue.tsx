@@ -56,6 +56,14 @@ interface RawAsset {
   mediaUrl?: string | null
   campaignId?: string | null
   createdAt?: string | null
+  /**
+   * Why this one failed, written by the API when generation gave up.
+   *
+   * The column has always existed and nothing ever filled it, so this screen
+   * hard-coded null and every failed picture read "Render failed" and stopped
+   * there. The reason now travels with the asset.
+   */
+  failureReason?: string | null
 }
 
 interface RawCreative {
@@ -156,7 +164,7 @@ export function ReviewQueue() {
             mediaUrl: a.mediaUrl ?? null,
             text: kind === 'copy' ? a.body : null,
             failed,
-            failureReason: null,
+            failureReason: a.failureReason ?? null,
             createdAt: a.createdAt ?? null,
           })
         }

@@ -145,6 +145,8 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'lookFeel',
   'postCount',
   'posterText',
+  'wantPosterDesigns',
+  'wantPhotography',
   'videoCount',
   'adPlatforms',
   'wantEmails',
@@ -254,6 +256,16 @@ export function buildBriefFromDraft(draft: CreateDraft): string {
   // only unit this side is allowed to speak.
   const pace = paceById(draft.pace)
   parts.push(`Pace: ${pace.label} — roughly ${String(pace.sharePct)}% of the monthly ad allowance`)
+
+  const designs = draft.wantPosterDesigns === true
+  const photos = draft.wantPhotography !== false
+  parts.push(
+    designs && photos
+      ? 'PICTURE TYPES: both. Mark each IMAGE_PROMPT with "visualStyle": "POSTER" for a designed layout carrying words, or "PHOTO" for a photograph with no text in it. Roughly half of each unless the brief says otherwise.'
+      : designs
+        ? 'PICTURE TYPES: designed posters only. Every IMAGE_PROMPT must have "visualStyle": "POSTER" — a designed layout with the offer written on it.'
+        : 'PICTURE TYPES: photography only. Every IMAGE_PROMPT must have "visualStyle": "PHOTO" — a photograph with no text of any kind in it.',
+  )
 
   if (draft.posterText?.trim()) {
     parts.push(

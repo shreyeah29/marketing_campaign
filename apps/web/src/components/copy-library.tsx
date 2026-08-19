@@ -189,14 +189,19 @@ export function CopyLibrary() {
 
       {/* ── One post, its picture and every word that goes with it ────────── */}
       {open ? (
-        <div className="gallery__overlay" role="dialog" aria-label={open.piece.label}>
-          <button
-            type="button"
-            className="gallery__scrim"
-            aria-label="Close"
-            onClick={() => setOpenId(null)}
-          />
-          <div className="gallery__panel copy-panel">
+        /* `gallery__lightbox` — the class that is actually styled fixed.
+           I invented `gallery__overlay` and `gallery__scrim`, neither of which
+           exists in the stylesheet, so the panel rendered in normal flow at the
+           bottom of the page and every click meant a scroll to find it. */
+        <div
+          className="gallery__lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label={open.piece.label}
+          onClick={() => setOpenId(null)}
+        >
+          {/* Only the backdrop dismisses; a click inside the panel must not. */}
+          <div className="gallery__panel copy-panel" onClick={(e) => e.stopPropagation()}>
             <button
               type="button"
               className="icon-btn gallery__close"

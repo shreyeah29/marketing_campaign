@@ -99,6 +99,17 @@ export interface CreateDraft {
    * poster at all.
    */
   posterText?: string | undefined
+  /**
+   * Which kinds of picture this campaign wants.
+   *
+   * Both may be on: a run of five concepts can be three photographs and two
+   * designed posters. The choice decides which model draws each one — a
+   * photographer that cannot spell, or a designer that can — and getting it
+   * wrong is how "1+1 on Rakshabandhan" came back as a picture with the offer
+   * missing.
+   */
+  wantPosterDesigns?: boolean | undefined
+  wantPhotography?: boolean | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

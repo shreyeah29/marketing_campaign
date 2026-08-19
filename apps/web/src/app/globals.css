@@ -7125,6 +7125,68 @@ a:hover {
   color: var(--text-tertiary);
 }
 
+/* ── Picture kinds ────────────────────────────────────────────────────────── */
+
+/* Two choices, made before the brief is written because they change what the
+   brief should say. Rendered as buttons rather than <input type=checkbox> so the
+   hit area is the whole card — a 13px native box beside a two-line label is a
+   target people miss. */
+.picture-kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.picture-kind {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+.picture-kind:hover {
+  border-color: var(--border-hover);
+}
+.picture-kind[aria-pressed='true'] {
+  border-color: var(--border-signal);
+  background: var(--jade-100);
+}
+.picture-kind__box {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  border: 1px solid var(--border-hover);
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--surface-canvas);
+}
+.picture-kind[aria-pressed='true'] .picture-kind__box {
+  background: var(--cobalt-600);
+  border-color: var(--cobalt-600);
+}
+.picture-kind__title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+.picture-kind__hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 /* ── Copy & captions ──────────────────────────────────────────────────────── */
 
 /* The picture is how a post is recognised — nobody scans a wall of paragraphs

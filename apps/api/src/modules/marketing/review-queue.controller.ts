@@ -33,6 +33,8 @@ import {
   generateRunwayImage,
   generateRunwayVideo,
 } from '../ai/adapters/runway.js'
+import { generateImage } from '../ai/adapters/openai-media.js'
+import { buildPosterBrief } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
@@ -144,6 +146,121 @@ export class ReviewQueueController {
    * stamp" — an organisation that has not filled in its brand kit gets plain
    * artwork rather than an error.
    */
+  /**
+   * Draw a poster: a designed layout with the words composed into it.
+   *
+   * Deliberately a separate path rather than a flag on the Runway one, because
+   * almost nothing is shared. The prompt asks for the opposite thing — it lists
+   * the words and demands them spelled, where the photographic prompt forbids
+   * text entirely. The output arrives as inline base64 rather than a hosted URL.
+   * And the brand band is *not* stamped on afterwards: the design already
+   * carries the name and the handle, and a second copy in a grey strip across
+   * the bottom is how a designed poster starts looking like a screenshot.
+   *
+   * What it will not do is put a price on artwork. Offers go through; rupee
+   * figures are stripped in `buildPosterBrief`, and stay the template engine's
+   * job where they come from the catalogue and cannot drift.
+   */
+  private async generatePoster(
+    asset: { id: string; title: string | null; body: string; posterText: unknown },
+    campaignRow: { name: string; theme: string | null; targetAudience: unknown } | null,
+    p: Principal,
+    id: string,
+  ): Promise<unknown> {
+    const openai = this.ai.platformImageKey()
+    if (!openai) {
+      throw new ServiceUnavailableException(
+        'Poster generation is not set up on this deployment yet — it needs an OpenAI key.',
+      )
+    }
+
+    const poster = readPosterText(asset.posterText)
+    if (!poster) {
+      // A poster with nothing to say is a photograph, and the photographic path
+      // is better at those. Refusing is clearer than silently drawing one.
+      throw new BadRequestException(
+        'This concept is marked as a poster but has no text on it. Add the poster text, or switch it to a photograph.',
+      )
+    }
+
+    const { branding, products } = await withTenantTransaction(this.db, async (tx) => ({
+      branding: await tx.branding.findFirst(),
+      products: await tx.product.findMany({
+        where: { deletedAt: null },
+        select: { name: true },
+        take: 3,
+        orderBy: { createdAt: 'desc' },
+      }),
+    }))
+
+    const prompt = buildPosterBrief({
+      headline: poster.headline,
+      ...(poster.subline ? { subline: poster.subline } : {}),
+      scene: asset.body,
+      brand: {
+        displayName: branding?.displayName ?? null,
+        primaryColor: branding?.primaryColor ?? null,
+        secondaryColor: branding?.secondaryColor ?? null,
+        accentColor: branding?.accentColor ?? null,
+        headingFont: branding?.headingFont ?? null,
+        // No handle field exists in the brand kit yet, so the poster does not
+        // claim one. An invented @handle on printed artwork is worse than a
+        // footer with only the name on it.
+        instagramHandle: null,
+        locationLine: firstOffice(branding?.offices),
+      },
+      products: products.map((product) => product.name),
+      direction: buildImageDirection({
+        locations: audienceLocations(campaignRow?.targetAudience),
+        theme: campaignRow?.theme ?? campaignRow?.name ?? null,
+      }),
+    })
+
+    const result = await generateImage({ apiKey: openai.apiKey, prompt, size: '1024x1024' })
+    if (!result.b64) {
+      // The hosted-URL shape belongs to older models. gpt-image-1 always returns
+      // inline data, and storing a provider URL is the mistake the Runway path
+      // was built to stop making.
+      throw new ServiceUnavailableException('The poster came back in an unexpected shape.')
+    }
+
+    const bytes = Buffer.from(result.b64, 'base64')
+    const stored = await this.storage.persistBytes(
+      bytes,
+      'image/png',
+      `${p.organizationId}/${id}/poster`,
+    )
+    if (!stored.persisted || !stored.url) {
+      throw new ServiceUnavailableException(
+        'The poster could not be stored — set SUPABASE_URL and SUPABASE_SERVICE_KEY.',
+      )
+    }
+
+    return withTenantTransaction(this.db, async (tx) => {
+      await tx.mediaAsset.create({
+        data: {
+          organizationId: p.organizationId,
+          type: 'IMAGE',
+          storageKey: stored.storageKey,
+          url: stored.url,
+          prompt,
+          generatorProvider: 'OPENAI',
+          generatorModel: result.model,
+        },
+      })
+      const updated = await tx.campaignAsset.update({
+        where: { id },
+        data: {
+          mediaUrl: stored.url,
+          status: 'NEEDS_REVIEW',
+          aiVersions: { variants: [stored.url] },
+        },
+      })
+      await this.comment(tx, p, id, `Poster drawn with ${result.model}.`, 'media.generated')
+      return updated
+    })
+  }
+
   private async brandFacts(): Promise<BrandFacts> {
     try {
       const b = await withTenantTransaction(this.db, (tx) => tx.branding.findFirst())
@@ -401,6 +518,25 @@ export class ReviewQueueController {
      */
     if (asset.mediaUrl && !input.force) {
       return asset
+    }
+
+    /**
+     * Which model draws this concept.
+     *
+     * A poster and a photograph are different jobs and the tools are not
+     * interchangeable: Runway photographs beautifully and cannot spell, so every
+     * prompt it receives ends with "no text anywhere". A concept whose whole
+     * point is the words on it therefore cannot go to Runway — it would come
+     * back as the picture with the message missing, which is exactly what
+     * happened before this existed.
+     *
+     * Null reads as PHOTO. Everything created before this column is a
+     * photograph, and defaulting the other way would re-route old work to a
+     * different model on its next regenerate.
+     */
+    const wantsPoster = asset.visualStyle === 'POSTER' && asset.kind === 'IMAGE_PROMPT'
+    if (wantsPoster) {
+      return this.generatePoster(asset, campaignRow, p, id)
     }
 
     // "Temporarily unavailable" sent people hunting for an outage when the real
@@ -917,4 +1053,21 @@ function audienceLocations(raw: unknown): string[] {
     }
   }
   return []
+}
+
+/**
+ * The first office line from the brand kit, for the poster's footer.
+ *
+ * `offices` is `[{ label, value }]` — the same business advertises in several
+ * places with a different address in each. The first is used rather than a
+ * guess at which one fits; a footer naming the wrong branch is worse than one
+ * naming only the business.
+ */
+function firstOffice(raw: unknown): string | null {
+  if (!Array.isArray(raw)) return null
+  for (const entry of raw as { label?: unknown; value?: unknown }[]) {
+    const value = typeof entry?.value === 'string' ? entry.value.trim() : ''
+    if (value) return value
+  }
+  return null
 }

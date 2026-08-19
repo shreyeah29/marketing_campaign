@@ -48,6 +48,8 @@ function CreateInner() {
    * paragraph. The model is paid per read.
    */
   const [coach, setCoach] = useState<unknown>(null)
+  /** Photography on, posters opt-in — see PromptView for why. */
+  const [kinds, setKinds] = useState({ photography: true, posters: false })
   const restored = useRef(false)
 
   const refreshLists = useCallback(() => {
@@ -94,6 +96,8 @@ function CreateInner() {
       formats: ['posts'],
       wantPosters: true,
       wantVideos: false,
+      wantPhotography: kinds.photography,
+      wantPosterDesigns: kinds.posters,
       postCount: 5,
       videoCount: 0,
       adPlatforms: [],
@@ -123,6 +127,8 @@ function CreateInner() {
       }}
       restoredCoach={coach}
       onCoachResult={setCoach}
+      pictureKinds={kinds}
+      onPictureKinds={setKinds}
       onGuidedIntake={() => {
         // Skipping the brief is allowed: intake asks the structured questions,
         // and a brief is composed from those answers alone.

@@ -51,6 +51,8 @@ export function PromptView({
   onGuidedIntake,
   restoredCoach = null,
   onCoachResult,
+  pictureKinds,
+  onPictureKinds,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -64,8 +66,25 @@ export function PromptView({
   /** Coaching restored with the brief, so returning does not re-run the model. */
   restoredCoach?: unknown
   onCoachResult?: ((result: CoachResult | null) => void) | undefined
+  pictureKinds?: { photography: boolean; posters: boolean } | undefined
+  onPictureKinds?: ((next: { photography: boolean; posters: boolean }) => void) | undefined
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
+
+  /**
+   * Photography is on by default and posters are opt-in.
+   *
+   * Defaults matter here: a poster costs a designed generation and needs words
+   * to put on it, so it is asked for rather than assumed. At least one must
+   * stay on — unticking both would mean a campaign that generates no pictures,
+   * which is never what the click meant.
+   */
+  const wantPhotos = pictureKinds?.photography !== false
+  const wantDesigns = pictureKinds?.posters === true
+  function setKinds(photos: boolean, designs: boolean) {
+    if (!photos && !designs) return
+    onPictureKinds?.({ photography: photos, posters: designs })
+  }
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
 
   // The coach is a copywriter-class call per analyse, so it only exists for a
@@ -134,6 +153,47 @@ export function PromptView({
           aria-label="Campaign brief"
           autoFocus
         />
+
+        {/* ── What kind of pictures ─────────────────────────────────────
+            Chosen before the brief is written, because it changes what the
+            brief should say: a designed poster wants an offer in words, a
+            photograph wants a scene. It also decides which model draws each
+            concept — a photographer that cannot spell, or a designer that can. */}
+        <div className="picture-kinds">
+          <button
+            type="button"
+            className="picture-kind"
+            aria-pressed={wantPhotos}
+            onClick={() => setKinds(!wantPhotos, wantDesigns)}
+          >
+            <span className="picture-kind__box">
+              {wantPhotos ? <Icon name="check" size={12} /> : null}
+            </span>
+            <span>
+              <span className="picture-kind__title">Photography</span>
+              <span className="picture-kind__hint">
+                Real scenes and product shots. No words in the picture.
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="picture-kind"
+            aria-pressed={wantDesigns}
+            onClick={() => setKinds(wantPhotos, !wantDesigns)}
+          >
+            <span className="picture-kind__box">
+              {wantDesigns ? <Icon name="check" size={12} /> : null}
+            </span>
+            <span>
+              <span className="picture-kind__title">Poster with text</span>
+              <span className="picture-kind__hint">
+                A designed layout with your offer written on it.
+              </span>
+            </span>
+          </button>
+        </div>
 
         <BriefCoach
           brief={prompt}

@@ -3160,6 +3160,19 @@ model CampaignAsset {
    */
   posterText Json? @map("poster_text")
 
+  /**
+   * Which kind of picture this concept is, and therefore which model draws it.
+   *
+   * POSTER goes to an image model that can typeset — a designed layout with the
+   * offer, the dates and the brand marks composed into it. PHOTO goes to Runway,
+   * which photographs and cannot spell.
+   *
+   * Null means PHOTO: every asset created before this column existed is a
+   * photograph, and treating an absent value as the newer behaviour would
+   * silently re-route old work to a different model on its next regenerate.
+   */
+  visualStyle String? @map("visual_style")
+
   scheduledFor   DateTime? @map("scheduled_for")
   publishedAt    DateTime? @map("published_at")
   externalPostId String?   @map("external_post_id")

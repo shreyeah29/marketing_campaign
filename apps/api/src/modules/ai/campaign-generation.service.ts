@@ -102,6 +102,8 @@ interface GeneratedPlan {
     cta?: string
     /** Words to typeset ON the artwork. See the prompt's WORDS ON THE POSTER. */
     posterText?: { headline?: string; subline?: string }
+    /** POSTER draws the words; PHOTO forbids them. See PICTURE TYPES. */
+    visualStyle?: string
   }>
 }
 
@@ -362,6 +364,18 @@ export class CampaignGenerationService {
          * line once gets it on every poster that would otherwise carry none. A
          * stated instruction should not depend on a model remembering it.
          */
+        /**
+         * Anything but an explicit POSTER is a photograph.
+         *
+         * The safe direction: a photograph mislabelled a poster comes back with
+         * invented lettering all over it, where a poster mislabelled a
+         * photograph is merely a picture without its words — visible, and one
+         * click from being regenerated.
+         */
+        visualStyle:
+          normalizeKind(a.kind) === 'IMAGE_PROMPT' && a.visualStyle === 'POSTER'
+            ? 'POSTER'
+            : 'PHOTO',
         posterText:
           normalizeKind(a.kind) === 'IMAGE_PROMPT'
             ? (normalizePosterText(a.posterText) ?? (typed ? { headline: typed } : null))
@@ -511,6 +525,7 @@ const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Gi
     { "platform": "INSTAGRAM"|"FACEBOOK"|"LINKEDIN"|"X"|"GOOGLE",
       "kind": "POST"|"AD_COPY"|"AD_HEADLINE"|"AD_DESCRIPTION"|"CAPTION"|"IMAGE_PROMPT"|"VIDEO_PROMPT",
       "posterText": { "headline": string, "subline"?: string } | omitted,
+      "visualStyle": "POSTER"|"PHOTO",   // IMAGE_PROMPT only — see PICTURE TYPES in the brief
       "title": string, "body": string, "caption": string, "hashtags": string[], "cta": string }
   ]
 }

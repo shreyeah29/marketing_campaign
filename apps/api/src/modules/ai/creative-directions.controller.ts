@@ -1,9 +1,10 @@
-import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common'
+import { Controller, Get, Inject, NotFoundException, Param, Res } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import type { FastifyReply } from 'fastify'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
+import { DirectionPreviewsService } from '../platform/direction-previews.service.js'
 import { CREATIVE_DIRECTIONS } from './creative-directions.js'
 import { hasDirectionSample, readDirectionSample } from './direction-samples.js'
 
@@ -28,6 +29,10 @@ import { hasDirectionSample, readDirectionSample } from './direction-samples.js'
 @ApiTags('Creative Directions')
 @Controller('creative-directions')
 export class CreativeDirectionsController {
+  constructor(
+    @Inject(DirectionPreviewsService) private readonly previews: DirectionPreviewsService,
+  ) {}
+
   @Get()
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   @ApiOperation({ summary: 'Every way this system can make a picture' })
@@ -41,6 +46,18 @@ export class CreativeDirectionsController {
         )
       ).filter((id): id is string => id !== null),
     )
+    /**
+     * Anything generated but not yet committed.
+     *
+     * The committed file is the destination — free, identical everywhere, no
+     * network. But a generated set exists the moment an operator draws it, and
+     * making those pictures wait on a repository commit would leave the cards
+     * blank while the images they paid for sat unused in storage.
+     *
+     * So the file wins when present and this fills in behind it. Committing a
+     * direction's picture becomes an improvement rather than a prerequisite.
+     */
+    const stored = await this.previews.all()
     return {
       data: CREATIVE_DIRECTIONS.map((d) => ({
         id: d.id,
@@ -71,6 +88,13 @@ export class CreativeDirectionsController {
          * promise about output nobody has seen.
          */
         hasSample: withSample.has(d.id),
+        /**
+         * A generated picture, for a direction with no committed file yet.
+         *
+         * Null once the file is committed — the client prefers the file, and
+         * sending both would invite it to pick the slower one.
+         */
+        previewUrl: withSample.has(d.id) ? null : (stored[d.id] ?? null),
       })),
     }
   }

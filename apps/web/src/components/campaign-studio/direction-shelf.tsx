@@ -55,6 +55,14 @@ interface Direction {
    * and the promise has to be kept by a real one.
    */
   hasSample?: boolean
+  /**
+   * A generated picture, when no committed file exists yet.
+   *
+   * The committed file is the destination — free and identical everywhere — but
+   * a generated set exists as soon as an operator draws it, and the cards should
+   * not stay blank waiting on a commit for pictures already paid for.
+   */
+  previewUrl?: string | null
 }
 
 export type { Direction }
@@ -253,6 +261,14 @@ function Grid({
                 crossOrigin="use-credentials"
                 loading="lazy"
               />
+            ) : d.previewUrl ? (
+              /* Generated, in our own bucket, not yet committed. No
+                 `crossOrigin` here and it matters: the bucket answers with a
+                 wildcard origin and refuses a credentialed request, which is the
+                 exact opposite of the two API-origin cases either side of it.
+                 They look identical and behave oppositely. */
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={d.previewUrl} alt={`${d.name} example`} loading="lazy" />
             ) : d.previewTemplateSlug ? (
               /* An API render behind CONTENT_READ. A bare <img> sends no cookies
                  cross-origin and every tile came back 401 — `use-credentials` is

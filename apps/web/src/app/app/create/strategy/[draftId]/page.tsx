@@ -347,6 +347,19 @@ export default function PlanApprovalPage() {
           // The built-in direction. Resolved server-side into the same look slot
           // a saved style uses, so the two cannot behave differently.
           ...(draft.directionId ? { directionId: draft.directionId } : {}),
+          /**
+           * The picture-kind choice, as its own field.
+           *
+           * It is already described in the brief, and that was not enough: the
+           * brief is read by a model, and a model that omits `visualStyle` on a
+           * concept got the safe default — a photograph — for someone who had
+           * explicitly asked for posters with words on them. Applied server-side
+           * from this instead of inferred from what came back.
+           */
+          pictureKinds: {
+            posters: draft.wantPosterDesigns === true,
+            photography: draft.wantPhotography !== false,
+          },
         },
       )
       upsertDraft(draftId, { generatedCampaignId: res.campaignId, planApproved: true })

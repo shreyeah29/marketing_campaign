@@ -96,6 +96,14 @@ const generateSchema = z
      * order of increasing specificity — see `generatePoster`.
      */
     directionId: z.string().max(64).optional(),
+    /**
+     * Which kinds of picture this run may produce, as the person ticked them.
+     *
+     * Sent as its own field as well as being stated in the brief. The brief is
+     * read by a model; this is applied by us — and a choice that survives only
+     * as a sentence in a prompt is a choice a model can drop.
+     */
+    pictureKinds: z.object({ posters: z.boolean(), photography: z.boolean() }).strict().optional(),
   })
   .strict()
 const editSchema = z
@@ -603,10 +611,8 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId } = zodBody(
-      generateSchema,
-      body,
-    )
+    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId, pictureKinds } =
+      zodBody(generateSchema, body)
     if (referenceImageUrl !== undefined && !isOwnStorageUrl(referenceImageUrl)) {
       // The adapter fetches this URL from the server, so accepting any address
       // would turn this endpoint into a request forwarder — one that reaches
@@ -622,6 +628,7 @@ export class ReviewQueueController {
       referenceImageUrl,
       styleTemplateId,
       directionId,
+      pictureKinds,
     })
   }
 

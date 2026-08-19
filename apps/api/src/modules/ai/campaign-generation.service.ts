@@ -308,9 +308,22 @@ export class CampaignGenerationService {
       readonly styleTemplateId?: string | undefined
       /** A built-in creative direction. See `creative-directions.ts`. */
       readonly directionId?: string | undefined
+      /**
+       * Which kinds of picture this run may produce, as the person chose them.
+       *
+       * Applied here rather than only stated in the brief. The brief told the
+       * model "every IMAGE_PROMPT must have visualStyle POSTER" and the code
+       * then trusted whatever came back — so a model that omitted the field got
+       * the safe default, PHOTO, and someone who had explicitly asked for
+       * posters with words on them received plain photographs with none. The
+       * choice was made by a person and discarded by a missing key.
+       */
+      readonly pictureKinds?:
+        { readonly posters: boolean; readonly photography: boolean } | undefined
     },
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId } = input
+    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId, pictureKinds } =
+      input
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
@@ -432,17 +445,20 @@ export class CampaignGenerationService {
          * stated instruction should not depend on a model remembering it.
          */
         /**
-         * Anything but an explicit POSTER is a photograph.
+         * The person's choice first, the model's only where they left it open.
          *
-         * The safe direction: a photograph mislabelled a poster comes back with
-         * invented lettering all over it, where a poster mislabelled a
+         * Asking for one kind and being given the other is the failure this
+         * fixes. When only one kind is wanted the answer does not depend on a
+         * model remembering a field — it is decided here, from what was ticked.
+         *
+         * With both kinds on, the model's per-concept judgement is the point of
+         * asking, and anything but an explicit POSTER stays a photograph. That
+         * default is the safe direction: a photograph mislabelled a poster comes
+         * back with invented lettering all over it, where a poster mislabelled a
          * photograph is merely a picture without its words — visible, and one
          * click from being regenerated.
          */
-        visualStyle:
-          normalizeKind(a.kind) === 'IMAGE_PROMPT' && a.visualStyle === 'POSTER'
-            ? 'POSTER'
-            : 'PHOTO',
+        visualStyle: resolveVisualStyle(normalizeKind(a.kind), a.visualStyle, pictureKinds),
         posterText:
           normalizeKind(a.kind) === 'IMAGE_PROMPT'
             ? (normalizePosterText(a.posterText) ?? (typed ? { headline: typed } : null))
@@ -601,6 +617,37 @@ function parseCampaignPlan(raw: string): CampaignPlan {
   }
 }
 
+/**
+ * Whether a concept is a designed poster or a photograph.
+ *
+ * The person's choice first, the model's only where they left it open. Asking
+ * for posters and receiving photographs is the failure this exists to stop: the
+ * brief told the model "every IMAGE_PROMPT must have visualStyle POSTER" and the
+ * code then trusted whatever came back, so a model that omitted the field got
+ * the safe default and a stated choice was discarded by a missing key.
+ *
+ * With both kinds wanted, the model's per-concept judgement is the point of
+ * asking, and anything but an explicit POSTER stays a photograph. That default
+ * is the safe direction: a photograph mislabelled a poster comes back with
+ * invented lettering all over it, where a poster mislabelled a photograph is
+ * merely a picture without its words — visible, and one click from regenerating.
+ *
+ * `undefined` means the caller expressed no preference, which is not the same as
+ * having ticked both: an older client that sends nothing keeps the previous
+ * behaviour rather than being silently switched to posters.
+ */
+export function resolveVisualStyle(
+  kind: string,
+  modelChoice: string | undefined,
+  pictureKinds?: { readonly posters: boolean; readonly photography: boolean } | undefined,
+): 'POSTER' | 'PHOTO' {
+  // Copy has no artwork to typeset onto, so the question does not arise.
+  if (kind !== 'IMAGE_PROMPT') return 'PHOTO'
+  if (pictureKinds?.posters === true && pictureKinds.photography === false) return 'POSTER'
+  if (pictureKinds?.photography === true && pictureKinds.posters === false) return 'PHOTO'
+  return modelChoice === 'POSTER' ? 'POSTER' : 'PHOTO'
+}
+
 const SYSTEM_PROMPT = `You are an expert marketing strategist and copywriter. Given a brief, design a complete multi-channel campaign and return a SINGLE JSON object (no markdown, no prose) with EXACTLY this shape:
 {
   "campaignName": string,
@@ -632,9 +679,16 @@ WORDS ON THE POSTER — for every IMAGE_PROMPT whose "visualStyle" is "POSTER", 
   "offerNote":  "what it applies to: ON ALL ITEMS — optional",
   "condition":  "the catch, if there is one: WHEN YOU BRING YOUR SIBLING — optional",
   "features":   ["2-4 benefit captions, 2-3 words each, for a row of icons"],
-  "dateLine":   "when it runs, e.g. 9TH – 19TH AUGUST — only if the brief gives dates",
+  "dateLine":   "when it runs — a date range (9TH – 19TH AUGUST) or a time window (12 PM – 6 PM ONLY). Include it whenever the brief states either.",
   "footnote":   "*T&C Apply — only when there are real terms"
 }
+
+THE POSTER MUST CARRY THE OFFER. A poster whose words do not tell a reader what is being given, what they must do to get it, and when, has failed — however good the picture is. So, from the brief:
+
+- If something is being given away or discounted, that IS the "offer". "Free foot massage" → offer: "FREE FOOT MASSAGE". Not a mood, not a greeting.
+- If getting it depends on something, that IS the "condition". "With any service" → condition: "WITH ANY SERVICE". "When you bring your sibling" → condition on the ribbon.
+- If the brief states hours or dates, they go in "dateLine" — a window like "12 PM – 6 PM" is exactly as load-bearing as a date range, and a reader who arrives at 7pm because the poster did not say has been failed by it.
+- The "headline" is the occasion or the hook, never the place for the offer. "Republic Day Refresh" is a headline; "Free Foot Massage" is the offer.
 
 Write these from the campaign's own facts. Every one is typeset onto the artwork exactly as written, so they must be spelled correctly and must be true: never invent an offer, a date or a condition the brief did not state, and leave a field out rather than filling it with something plausible. NEVER put an amount of money in any of them — the offer may be "1+1" or "40% OFF", never "₹99" — because prices are typeset from the catalogue where they cannot drift. Do not repeat any of this inside the picture description; the description says what the picture shows, "posterText" says what it says.
 

@@ -246,20 +246,92 @@ export class ReviewQueueController {
       }),
     })
 
-    const result = await generateImage({
-      apiKey: openai.apiKey,
-      prompt,
-      size: '1024x1024',
-      ...(reference ? { referenceImageUrl: reference } : {}),
-    })
-    if (!result.b64) {
-      // The hosted-URL shape belongs to older models. gpt-image-1 always returns
-      // inline data, and storing a provider URL is the mistake the Runway path
-      // was built to stop making.
+    /**
+     * A provider refusal is not an internal error.
+     *
+     * This came back as `403 Project … does not have access to model
+     * gpt-image-1` — an account setting, fixable in five minutes by whoever
+     * owns the OpenAI project — and reached the screen as "An unexpected error
+     * occurred. The incident has been recorded." That sentence sends someone
+     * looking for an outage; the log had the answer the whole time and nothing
+     * carried it forward.
+     *
+     * The provider's own text stays in the log rather than the response: it
+     * names the project id, and a tenant is not the audience for that.
+     */
+    let result
+    let usedFallback = false
+    try {
+      result = await generateImage({
+        apiKey: openai.apiKey,
+        prompt,
+        size: '1024x1024',
+        ...(reference ? { referenceImageUrl: reference } : {}),
+      })
+    } catch (err) {
+      const detail = err instanceof AdapterError ? err.message : String(err)
+
+      /**
+       * `gpt-image-1` requires a verified OpenAI organisation, and an
+       * unverified one is refused with 403 "does not have access to model".
+       * That is an account setting somebody has to go and change, which can
+       * take a day — so rather than blocking every poster until then, fall back
+       * to DALL·E 3, which needs no verification and still draws a designed
+       * layout with type in it.
+       *
+       * It is a real downgrade and is recorded as one: the model is named on
+       * the asset, so nobody wonders later why one week of posters looks
+       * different from the next. What it is *not* is the photographic path with
+       * a caption bar, which is a different kind of picture and would quietly
+       * ignore what the person asked for.
+       */
+      if (/does not have access to model/i.test(detail)) {
+        this.logger.warn(
+          { assetId: id, detail },
+          'gpt-image-1 unavailable to this project; falling back to dall-e-3',
+        )
+        try {
+          // No reference on this path: the edits endpoint that takes one is not
+          // available for dall-e-3, and pretending otherwise would 400.
+          result = await generateImage({
+            apiKey: openai.apiKey,
+            prompt,
+            size: '1024x1024',
+            model: 'dall-e-3',
+          })
+          usedFallback = true
+        } catch (fallbackErr) {
+          this.logger.error(
+            { assetId: id, detail: String(fallbackErr) },
+            'poster fallback also refused',
+          )
+          throw new ServiceUnavailableException(
+            'Designed posters need an OpenAI image model, and this deployment’s project cannot use one yet. Verify the organisation in the OpenAI dashboard and enable gpt-image-1 for the project. Photography still works in the meantime.',
+          )
+        }
+      } else {
+        this.logger.error(
+          { assetId: id, provider: 'openai', model: 'gpt-image-1', detail },
+          'poster generation refused by the provider',
+        )
+        throw new ServiceUnavailableException(
+          'The poster could not be drawn just now — try again, or switch this concept to a photograph.',
+        )
+      }
+    }
+    /**
+     * Two shapes, because two models.
+     *
+     * gpt-image-1 answers with inline base64; dall-e-3 answers with a hosted
+     * URL that expires within the hour. Either way the bytes end up in our own
+     * bucket before anything is written down — storing a provider URL is the
+     * mistake the Runway path was built to stop making, and a fallback is not a
+     * reason to make it again.
+     */
+    const bytes = result.b64 ? Buffer.from(result.b64, 'base64') : await fetchImageBytes(result.url)
+    if (!bytes) {
       throw new ServiceUnavailableException('The poster came back in an unexpected shape.')
     }
-
-    const bytes = Buffer.from(result.b64, 'base64')
     const stored = await this.storage.persistBytes(
       bytes,
       'image/png',
@@ -291,7 +363,15 @@ export class ReviewQueueController {
           aiVersions: { variants: [stored.url] },
         },
       })
-      await this.comment(tx, p, id, `Poster drawn with ${result.model}.`, 'media.generated')
+      await this.comment(
+        tx,
+        p,
+        id,
+        usedFallback
+          ? `Poster drawn with ${result.model}. gpt-image-1 is not enabled for this OpenAI project, so a lower-quality model was used — verify the organisation to get the better one.`
+          : `Poster drawn with ${result.model}.`,
+        'media.generated',
+      )
       return updated
     })
   }
@@ -1153,5 +1233,22 @@ function isOwnStorageUrl(value: string): boolean {
     return new URL(value).host === new URL(base).host
   } catch {
     return false
+  }
+}
+
+/**
+ * Download a hosted image, or null when it cannot be read.
+ *
+ * Only the DALL·E 3 fallback needs this — its URLs expire within the hour, so
+ * the bytes have to be pulled before anything points at them.
+ */
+async function fetchImageBytes(url: string | undefined): Promise<Buffer | null> {
+  if (!url) return null
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(30_000) })
+    if (!res.ok) return null
+    return Buffer.from(await res.arrayBuffer())
+  } catch {
+    return null
   }
 }

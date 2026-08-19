@@ -148,6 +148,15 @@ export interface GenerateImageInput {
    * different words pasted on.
    */
   readonly referenceImageUrl?: string
+  /**
+   * A reference already in memory, when there is no URL to fetch.
+   *
+   * The direction samples ship as files beside the code, so the bytes are read
+   * off disk rather than requested over the network — no origin, no expiry, and
+   * nothing to be unavailable at the moment someone generates. Takes precedence
+   * over `referenceImageUrl` when both are given.
+   */
+  readonly referenceImageBytes?: { readonly bytes: Uint8Array; readonly contentType: string }
 }
 
 export interface GenerateImageResult {
@@ -168,16 +177,25 @@ export async function generateImage(input: GenerateImageInput): Promise<Generate
   const model = input.model ?? 'gpt-image-1'
   const size = input.size ?? '1024x1024'
 
-  const res = input.referenceImageUrl
-    ? await editWithReference(input.apiKey, model, input.prompt, size, input.referenceImageUrl)
-    : await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${input.apiKey}`,
-        },
-        body: JSON.stringify({ model, prompt: input.prompt, size }),
-      })
+  const res = input.referenceImageBytes
+    ? await editWithBytes(
+        input.apiKey,
+        model,
+        input.prompt,
+        size,
+        input.referenceImageBytes.bytes,
+        input.referenceImageBytes.contentType,
+      )
+    : input.referenceImageUrl
+      ? await editWithReference(input.apiKey, model, input.prompt, size, input.referenceImageUrl)
+      : await fetch('https://api.openai.com/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${input.apiKey}`,
+          },
+          body: JSON.stringify({ model, prompt: input.prompt, size }),
+        })
   if (!res.ok) throw await readError(res)
 
   const data = (await res.json()) as {
@@ -212,20 +230,31 @@ async function editWithReference(
   size: string,
   referenceImageUrl: string,
 ): Promise<Response> {
-  let bytes: ArrayBuffer
-  let contentType: string
+  let fetched: ArrayBuffer
+  let fetchedType: string
   try {
     const source = await fetch(referenceImageUrl, { signal: AbortSignal.timeout(20_000) })
     if (!source.ok) throw new Error(`reference responded ${String(source.status)}`)
-    contentType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? 'image/png'
-    bytes = await source.arrayBuffer()
+    fetchedType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? 'image/png'
+    fetched = await source.arrayBuffer()
   } catch (err) {
     throw new AdapterError(
       `Could not read the reference image: ${err instanceof Error ? err.message : String(err)}`,
       PROVIDER_ID,
     )
   }
+  return editWithBytes(apiKey, model, prompt, size, new Uint8Array(fetched), fetchedType)
+}
 
+/** The multipart post itself, once the reference bytes are in hand. */
+async function editWithBytes(
+  apiKey: string,
+  model: string,
+  prompt: string,
+  size: string,
+  bytes: Uint8Array,
+  contentType: string,
+): Promise<Response> {
   const form = new FormData()
   form.set('model', model)
   form.set('prompt', prompt)

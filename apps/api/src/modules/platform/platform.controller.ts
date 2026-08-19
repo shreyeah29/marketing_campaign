@@ -226,6 +226,24 @@ export class PlatformController {
     return this.previews.generate(force ?? false)
   }
 
+  /**
+   * Where each stored sample lives, so the authoring script can fetch them.
+   *
+   * Operator-only and read-only. Its whole audience is
+   * `scripts/fetch-direction-previews.mjs`, which downloads the set into the
+   * repo — after which nothing generates them again.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Get('direction-preview-urls')
+  @ApiOperation({ summary: 'Stored direction sample URLs, for the authoring script' })
+  async directionPreviewUrls(): Promise<{ data: { directionId: string; url: string }[] }> {
+    const previews = await this.previews.all()
+    return {
+      data: Object.entries(previews).map(([directionId, url]) => ({ directionId, url })),
+    }
+  }
+
   // ── Registry browsing (the wizard's source data) ─────────────────────────────
 
   @Public()

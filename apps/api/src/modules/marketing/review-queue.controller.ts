@@ -41,6 +41,7 @@ import {
   listAvailableImageModels,
 } from '../ai/adapters/openai-media.js'
 import { directionLook } from '../ai/creative-directions.js'
+import { readDirectionSample } from '../ai/direction-samples.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
@@ -285,6 +286,23 @@ export class ReviewQueueController {
     const reference =
       typeof campaignRow?.referenceImageUrl === 'string' ? campaignRow.referenceImageUrl : null
 
+    /**
+     * The direction's own sample, used as the reference when nothing else is.
+     *
+     * This is the stronger half of choosing a direction. Its paragraph tells the
+     * model what the look is *called*; the picture shows it. "Make it look like
+     * this" carries far more than a sentence of adjectives, and the brief
+     * already instructs the model to take a reference's visual language and none
+     * of its content — which is why a sample of a coffee cup can direct a
+     * festival poster without a cup appearing in it.
+     *
+     * Only when the campaign has no reference of its own. Someone who uploaded a
+     * picture for *this* campaign meant it more than the card they clicked on
+     * the way in, and the same precedence governs the text look in
+     * `resolveLook`.
+     */
+    const sample = reference ? null : await readDirectionSample(campaignRow?.directionId ?? '')
+
     const { branding, products } = await withTenantTransaction(this.db, async (tx) => ({
       branding: await tx.branding.findFirst(),
       products: await tx.product.findMany({
@@ -313,7 +331,9 @@ export class ReviewQueueController {
         locationLine: firstOffice(branding?.offices),
       },
       products: products.map((product) => product.name),
-      hasReference: Boolean(reference),
+      // True for either kind, because the brief's reference block says the same
+      // thing to both: take the visual language, take none of the content.
+      hasReference: Boolean(reference) || sample !== null,
       direction: buildImageDirection({
         locations: audienceLocations(campaignRow?.targetAudience),
         theme: campaignRow?.theme ?? campaignRow?.name ?? null,
@@ -362,7 +382,18 @@ export class ReviewQueueController {
             model,
             // The endpoint that accepts a reference is not available for
             // dall-e-3, and sending one would 400 rather than being ignored.
-            ...(reference && model !== 'dall-e-3' ? { referenceImageUrl: reference } : {}),
+            ...(model === 'dall-e-3'
+              ? {}
+              : reference
+                ? { referenceImageUrl: reference }
+                : sample
+                  ? {
+                      referenceImageBytes: {
+                        bytes: sample.bytes,
+                        contentType: sample.contentType,
+                      },
+                    }
+                  : {}),
           }),
         )
         if (model !== candidates[0]) {

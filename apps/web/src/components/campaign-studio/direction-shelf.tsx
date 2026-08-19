@@ -48,12 +48,13 @@ interface Direction {
   /** A layout to render a true preview from, or null when none exists yet. */
   previewTemplateSlug: string | null
   /**
-   * A generated example, for directions no layout can render.
+   * Whether a committed sample picture exists for this direction.
    *
-   * Null until an operator has generated the set, and the card falls back to a
-   * placeholder rather than stock art — see the file comment.
+   * False means the card shows a placeholder. Deliberately, rather than stock
+   * art: a picture on a card is a promise about what that direction produces,
+   * and the promise has to be kept by a real one.
    */
-  previewUrl?: string | null
+  hasSample?: boolean
 }
 
 export type { Direction }
@@ -240,14 +241,18 @@ function Grid({
           onClick={() => onPick(d)}
         >
           <span className="direction-card__art">
-            {d.previewUrl ? (
-              /* A generated example, in our own bucket. No `crossOrigin` here:
-                 the bucket answers with a wildcard origin, and asking for
-                 credentials against one is refused. The opposite of the
-                 template render below, which is on the API origin and needs
-                 them — the two look identical and behave oppositely. */
+            {d.hasSample ? (
+              /* A committed file, served from the API. `use-credentials` for the
+                 same reason as the template render below: both sit behind
+                 CONTENT_READ on the API origin, and a bare <img> sends no
+                 cookies cross-origin. A bucket URL would need the opposite. */
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={d.previewUrl} alt={`${d.name} example`} loading="lazy" />
+              <img
+                src={`${api.base}/creative-directions/${d.id}/sample`}
+                alt={`${d.name} example`}
+                crossOrigin="use-credentials"
+                loading="lazy"
+              />
             ) : d.previewTemplateSlug ? (
               /* An API render behind CONTENT_READ. A bare <img> sends no cookies
                  cross-origin and every tile came back 401 — `use-credentials` is

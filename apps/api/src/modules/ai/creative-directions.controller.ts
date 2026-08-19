@@ -1,10 +1,11 @@
-import { Controller, Get, Inject } from '@nestjs/common'
+import { Controller, Get, NotFoundException, Param, Res } from '@nestjs/common'
 import { ApiOperation, ApiTags } from '@nestjs/swagger'
+import type { FastifyReply } from 'fastify'
 
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
-import { DirectionPreviewsService } from '../platform/direction-previews.service.js'
 import { CREATIVE_DIRECTIONS } from './creative-directions.js'
+import { hasDirectionSample, readDirectionSample } from './direction-samples.js'
 
 /**
  * The creative-direction shelf.
@@ -27,18 +28,19 @@ import { CREATIVE_DIRECTIONS } from './creative-directions.js'
 @ApiTags('Creative Directions')
 @Controller('creative-directions')
 export class CreativeDirectionsController {
-  constructor(
-    @Inject(DirectionPreviewsService) private readonly previews: DirectionPreviewsService,
-  ) {}
-
   @Get()
   @RequirePermissions(PERMISSIONS.CONTENT_READ)
   @ApiOperation({ summary: 'Every way this system can make a picture' })
   async list(): Promise<{ data: unknown[] }> {
-    // Platform-wide and identical for every workspace, so one read serves the
-    // whole shelf. Absent previews are the state this shipped in — the cards
-    // fall back to a placeholder rather than showing artwork nobody generated.
-    const previews = await this.previews.all()
+    // Which directions have a committed sample. Cached after the first read, so
+    // this is a map lookup rather than a stat per card per render.
+    const withSample = new Set(
+      (
+        await Promise.all(
+          CREATIVE_DIRECTIONS.map(async (d) => ((await hasDirectionSample(d.id)) ? d.id : null)),
+        )
+      ).filter((id): id is string => id !== null),
+    )
     return {
       data: CREATIVE_DIRECTIONS.map((d) => ({
         id: d.id,
@@ -60,14 +62,36 @@ export class CreativeDirectionsController {
          */
         previewTemplateSlug: d.templateSlug ?? null,
         /**
-         * A generated example, for the directions no layout can render.
+         * Whether a committed sample exists for this direction.
          *
-         * Null until an operator has generated the set. Deliberately null rather
-         * than a stand-in: artwork on a card nobody produced is a promise about
-         * output that has never been seen.
+         * A boolean rather than a URL: the picture is served from a route the
+         * client already knows how to build, and shipping the same address in
+         * every row would be weight for nothing. False means the card shows a
+         * placeholder — deliberately, because stock artwork on a card is a
+         * promise about output nobody has seen.
          */
-        previewUrl: previews[d.id] ?? null,
+        hasSample: withSample.has(d.id),
       })),
     }
+  }
+
+  /**
+   * The sample picture for one direction.
+   *
+   * A committed file, so it can be cached hard: it only changes when the deploy
+   * does. Served from here rather than the web app's public folder because the
+   * generator needs the same bytes off disk, and one copy cannot drift from
+   * itself.
+   */
+  @Get(':id/sample')
+  @RequirePermissions(PERMISSIONS.CONTENT_READ)
+  @ApiOperation({ summary: 'The example picture for a creative direction' })
+  async sample(@Param('id') id: string, @Res() reply: FastifyReply): Promise<void> {
+    const sample = await readDirectionSample(id)
+    if (!sample) throw new NotFoundException('No sample for that direction')
+    void reply
+      .header('content-type', sample.contentType)
+      .header('cache-control', 'public, max-age=86400, immutable')
+      .send(sample.bytes)
   }
 }

@@ -340,6 +340,10 @@ export default function PlanApprovalPage() {
           brief,
           ...(draft.posterText?.trim() ? { posterText: draft.posterText.trim() } : {}),
           ...(draft.referenceImageUrl ? { referenceImageUrl: draft.referenceImageUrl } : {}),
+          // The saved look, by id. Its description is read server-side and
+          // folded into every image prompt in the run, so the whole set gets
+          // identical direction rather than five readings of one picture.
+          ...(draft.styleTemplateId ? { styleTemplateId: draft.styleTemplateId } : {}),
         },
       )
       upsertDraft(draftId, { generatedCampaignId: res.campaignId, planApproved: true })

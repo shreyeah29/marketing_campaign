@@ -120,6 +120,15 @@ export interface CreateDraft {
   wantPhotography?: boolean | undefined
   /** A stored URL for the poster whose look this campaign follows. */
   referenceImageUrl?: string | undefined
+  /**
+   * A saved look from the workspace's gallery.
+   *
+   * The durable counterpart to `referenceImageUrl`. That one attaches a picture
+   * to this campaign and is re-interpreted on every generation; this names a
+   * style already read into words, so every poster in the run gets identical
+   * direction and the set actually looks like a set.
+   */
+  styleTemplateId?: string | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

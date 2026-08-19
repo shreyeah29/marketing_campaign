@@ -27,7 +27,7 @@ import { zodBody } from '../../common/http/validate.js'
 import { loadEnv } from '../../config/env.js'
 import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 import { OverlayService, type BrandFacts } from '../../infrastructure/overlay.js'
-import { StorageService } from '../../infrastructure/storage.js'
+import { StorageService, isOwnStorageUrl } from '../../infrastructure/storage.js'
 import { AdapterError } from '../ai/adapters/llm.js'
 import {
   MAX_PROMPT_CHARS,
@@ -75,6 +75,15 @@ const generateSchema = z
      * this endpoint a request forwarder.
      */
     referenceImageUrl: z.string().url().max(2000).optional(),
+    /**
+     * A saved look from the workspace's gallery.
+     *
+     * The durable counterpart to `referenceImageUrl`: that one attaches a
+     * picture to this campaign, this one names a style the business already
+     * uses. Both may be sent, and the picture wins — someone who attached one to
+     * this particular campaign meant it.
+     */
+    styleTemplateId: z.string().uuid().optional(),
   })
   .strict()
 const editSchema = z
@@ -231,6 +240,7 @@ export class ReviewQueueController {
       theme: string | null
       targetAudience: unknown
       referenceImageUrl?: string | null
+      styleTemplate?: { look: string } | null
     } | null,
     p: Principal,
     id: string,
@@ -297,6 +307,7 @@ export class ReviewQueueController {
         locations: audienceLocations(campaignRow?.targetAudience),
         theme: campaignRow?.theme ?? campaignRow?.name ?? null,
       }),
+      styleLook: campaignRow?.styleTemplate?.look ?? null,
     })
 
     /**
@@ -532,7 +543,7 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief, posterText, referenceImageUrl } = zodBody(generateSchema, body)
+    const { brief, posterText, referenceImageUrl, styleTemplateId } = zodBody(generateSchema, body)
     if (referenceImageUrl !== undefined && !isOwnStorageUrl(referenceImageUrl)) {
       // The adapter fetches this URL from the server, so accepting any address
       // would turn this endpoint into a request forwarder — one that reaches
@@ -540,7 +551,14 @@ export class ReviewQueueController {
       // Only what `/uploads` issued is accepted.
       throw new BadRequestException('The reference image must be one you uploaded here.')
     }
-    return this.generation.generate(p, brief, posterText, referenceImageUrl)
+    // No ownership check on the style id: it is only ever used inside a tenant
+    // transaction, where RLS makes another organisation's id select nothing.
+    return this.generation.generate(p, {
+      brief,
+      posterText,
+      referenceImageUrl,
+      styleTemplateId,
+    })
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────
@@ -749,6 +767,9 @@ export class ReviewQueueController {
               theme: true,
               targetAudience: true,
               referenceImageUrl: true,
+              // Only the paragraph. The picture the look was read from is never
+              // needed again — that is the whole point of reading it once.
+              styleTemplate: { select: { look: true } },
             },
           })
         : null
@@ -830,6 +851,7 @@ export class ReviewQueueController {
       theme: string | null
       targetAudience: unknown
       referenceImageUrl?: string | null
+      styleTemplate?: { look: string } | null
     } | null,
     p: Principal,
     id: string,
@@ -865,9 +887,23 @@ export class ReviewQueueController {
       locations: audienceLocations(campaignRow?.targetAudience),
       theme: campaignRow?.theme ?? campaignRow?.name ?? null,
     })
+    /**
+     * The house style, folded into the direction rather than appended after it.
+     *
+     * Runway's prompt has a hard 1000-character limit and `clampImagePrompt`
+     * trims from the middle when it is exceeded. Anything added at the very end
+     * therefore survives a trim that eats the concept itself, which inverts the
+     * priority — the look is a modifier and the scene is the subject. Joining
+     * them into one direction string lets the clamp treat both as the same kind
+     * of supporting material.
+     */
+    const styleLook = campaignRow?.styleTemplate?.look?.trim()
+    const fullDirection = [direction, styleLook ? `Visual style: ${styleLook}` : null]
+      .filter((part): part is string => Boolean(part))
+      .join(' ')
     const prompt = clampImagePrompt(
       asset.title,
-      direction ? `${asset.body} ${direction}` : asset.body,
+      fullDirection ? `${asset.body} ${fullDirection}` : asset.body,
       MAX_PROMPT_CHARS,
     )
     let urls: string[]
@@ -1401,25 +1437,6 @@ function firstOffice(raw: unknown): string | null {
     if (value) return value
   }
   return null
-}
-
-/**
- * Whether a URL is one our own storage issued.
- *
- * The reference image is fetched server-side, so this is the boundary between
- * "a picture the client uploaded" and "any address the server can reach". Host
- * comparison rather than a prefix match on the string: `https://ours.example.co`
- * is a prefix of `https://ours.example.co.attacker.test` and is not the same
- * host.
- */
-function isOwnStorageUrl(value: string): boolean {
-  const base = loadEnv().SUPABASE_URL
-  if (!base) return false
-  try {
-    return new URL(value).host === new URL(base).host
-  } catch {
-    return false
-  }
 }
 
 /**

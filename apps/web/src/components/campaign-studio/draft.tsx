@@ -148,6 +148,7 @@ const OPTIONAL_KEYS: (keyof Omit<CreateDraft, 'id' | 'brief' | 'updatedAt'>)[] =
   'wantPosterDesigns',
   'wantPhotography',
   'referenceImageUrl',
+  'styleTemplateId',
   'videoCount',
   'adPlatforms',
   'wantEmails',

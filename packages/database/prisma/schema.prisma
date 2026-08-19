@@ -701,6 +701,7 @@ model Organization {
   creatives              Creative[]
   batchJobs              BatchJob[]
   brandKits              BrandKit[]
+  styleTemplates         StyleTemplate[]
   emailCampaigns         EmailCampaign[]
   emailSequences         EmailSequence[]
   emailSends             EmailSend[]
@@ -1283,20 +1284,28 @@ model Campaign {
   // The offer, as it is printed on creative. Held on the campaign rather than
   // per-creative because "UP TO 40% OFF" is one promise made once — fifty
   // posters restating it in fifty rows is fifty chances to disagree.
-  theme          String?
+  theme String?
 
   /**
    * A poster whose look this campaign should follow.
-   *
    * Uploaded by the client on the brief screen and stored in our own bucket by
    * `/uploads`. Held on the campaign rather than on each asset so every concept
    * in a run is designed with the same eye — a set of five posters that each
    * borrowed independently would not look like a set.
-   *
    * Its *look* only: the poster brief tells the model to take the composition
    * and the type pairing and none of the words, products or brand marks.
    */
   referenceImageUrl String? @map("reference_image_url")
+
+  /**
+   * The saved house style this campaign is designed in.
+   * Alongside `referenceImageUrl` rather than replacing it, because the two are
+   * different requests: a one-off "follow this picture" and a durable "use our
+   * usual look". When both are set the one-off wins — it is the more specific
+   * instruction, and someone who attached a picture to this campaign meant it.
+   */
+  styleTemplateId String? @map("style_template_id")
+
   primaryOffer   String? @map("primary_offer")
   secondaryOffer String? @map("secondary_offer")
   couponCode     String? @map("coupon_code")
@@ -1308,6 +1317,7 @@ model Campaign {
 
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   agentRun         AgentRun?         @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+  styleTemplate    StyleTemplate?    @relation(fields: [styleTemplateId], references: [id], onDelete: SetNull)
   channels         CampaignChannel[]
   leads            Lead[]
   contentDocuments ContentDocument[]
@@ -1672,6 +1682,57 @@ model BrandKit {
   @@unique([organizationId, name])
   @@index([organizationId, deletedAt])
   @@map("brand_kit")
+}
+
+/// A saved look, read once from a picture and reusable forever.
+///
+/// The campaign already carries `referenceImageUrl` — one picture, one campaign,
+/// re-described to the model on every generation. That is right for "make this
+/// campaign look like that poster" and wrong for what was actually asked: "these
+/// are the kinds of styles we follow, and we do not stick to only one."
+///
+/// So the picture is read once by a vision model into `look` — a written
+/// description of its visual language — and that text is what later generations
+/// receive. It is named, browsable, and costs one vision call ever rather than
+/// one per poster.
+///
+/// **Look only.** Palette, lighting, composition, texture, treatment. Never
+/// layout and never copy: layout belongs to the poster brief, which builds it
+/// from the campaign's own offer and dates, and a saved layout would fight it.
+model StyleTemplate {
+  id             String @id @default(uuid(7))
+  organizationId String @map("organization_id")
+  name           String
+
+  /// The uploaded picture, in our own bucket. Kept so the gallery has something
+  /// to show and so the look can be re-read if the prompt vocabulary changes.
+  referenceUrl String @map("reference_url")
+
+  /// The visual language in words. This is what reaches generation, not the
+  /// picture — so a poster is designed with the same eye rather than edited
+  /// from the reference.
+  look String
+
+  /// One line for the gallery card.
+  summary String?
+
+  /// 'UPLOAD' for a look read from a client's picture. Reserved so a curated set
+  /// can later live in the same table rather than a second gallery.
+  source String @default("UPLOAD")
+
+  /// How many campaigns have used it. Orders the gallery by what actually gets
+  /// chosen rather than by upload date, which says nothing about quality.
+  timesUsed Int @default(0) @map("times_used")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
+
+  @@index([organizationId, deletedAt])
+  @@map("style_template")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -3164,7 +3225,6 @@ model CampaignAsset {
 
   /**
    * Words that must appear ON the artwork, decided per concept.
-   *
    * `{ headline, subline? }`. The image model is still forbidden from drawing
    * text — it cannot spell, and "1+1 OFEER" reaches a customer — so when a brief
    * asks for an offer on the poster the generator writes the exact words here
@@ -3175,11 +3235,9 @@ model CampaignAsset {
 
   /**
    * Which kind of picture this concept is, and therefore which model draws it.
-   *
    * POSTER goes to an image model that can typeset — a designed layout with the
    * offer, the dates and the brand marks composed into it. PHOTO goes to Runway,
    * which photographs and cannot spell.
-   *
    * Null means PHOTO: every asset created before this column existed is a
    * photograph, and treating an absent value as the newer behaviour would
    * silently re-route old work to a different model on its next regenerate.

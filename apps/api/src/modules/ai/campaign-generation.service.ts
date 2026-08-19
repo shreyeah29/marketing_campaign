@@ -289,14 +289,26 @@ export class CampaignGenerationService {
     }
   }
 
+  /**
+   * @param input An object rather than positional arguments.
+   *
+   * This was four positionals with three optional, and the next thing to add was
+   * a fourth optional — the point at which call sites start counting commas and
+   * a transposed pair typechecks cleanly because both are `string | undefined`.
+   */
   async generate(
     principal: Principal,
-    brief: string,
-    /** Exact words for the artwork, typed by the person rather than inferred. */
-    posterText?: string,
-    /** A poster whose look this campaign should follow. Our own storage URL. */
-    referenceImageUrl?: string,
+    input: {
+      readonly brief: string
+      /** Exact words for the artwork, typed by the person rather than inferred. */
+      readonly posterText?: string | undefined
+      /** A poster whose look this campaign should follow. Our own storage URL. */
+      readonly referenceImageUrl?: string | undefined
+      /** A saved look from the workspace's gallery. See `StyleTemplate`. */
+      readonly styleTemplateId?: string | undefined
+    },
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
+    const { brief, posterText, referenceImageUrl, styleTemplateId } = input
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
@@ -372,8 +384,27 @@ export class CampaignGenerationService {
           targetAudience: { description: plan.audience ?? null } as never,
           budgetTotal: Number.isFinite(plan.suggestedBudget) ? plan.suggestedBudget : null,
           ...(referenceImageUrl ? { referenceImageUrl } : {}),
+          ...(styleTemplateId ? { styleTemplateId } : {}),
         },
       })
+
+      /**
+       * Count the use, so the gallery can order by what gets chosen.
+       *
+       * Inside the same transaction as the campaign: a style that was applied
+       * but not counted, or counted but not applied, would make the ordering
+       * quietly wrong in a way nobody would ever notice or be able to explain.
+       *
+       * `updateMany` with the tenant predicate rather than `update` by id —
+       * a styleTemplateId naming another organisation's row must change nothing
+       * rather than throw, and RLS makes that a zero-row update.
+       */
+      if (styleTemplateId) {
+        await tx.styleTemplate.updateMany({
+          where: { id: styleTemplateId, deletedAt: null },
+          data: { timesUsed: { increment: 1 } },
+        })
+      }
 
       const typed = posterText?.trim().slice(0, 70) ?? ''
       const assets = plan.assets.slice(0, 40).map((a) => ({

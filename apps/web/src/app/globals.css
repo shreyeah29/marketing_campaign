@@ -6596,6 +6596,160 @@ a:hover {
   min-width: 0;
 }
 
+/* ── Saved looks ──────────────────────────────────────────────────────────────
+   A horizontal strip rather than a grid: styles are picked at a glance by how
+   they look, and a wrapping grid of thumbnails competes with the recipe cards
+   directly beneath for the same attention. Scrolls in its own container so the
+   page body never scrolls sideways. */
+.style-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  align-items: flex-start;
+}
+.style-card {
+  flex: none;
+  width: 132px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+.style-card[data-selected='true'] {
+  border-color: var(--border-signal);
+  box-shadow: 0 0 0 2px var(--jade-100);
+}
+.style-card__hit {
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+.style-card__hit img {
+  width: 100%;
+  height: 96px;
+  object-fit: cover;
+}
+.style-card__tick {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--jade-500, var(--cobalt-600));
+  color: #fff;
+}
+.style-card__foot {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.style-card__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.style-card__look {
+  margin: 0;
+  padding: 8px 9px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+/* The add tile matches the thumbnails' height so the strip has one baseline. */
+.style-card--add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 128px;
+  padding: 10px;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-tertiary);
+  font: inherit;
+  font-size: 11.5px;
+  text-align: center;
+  cursor: pointer;
+}
+.style-card--add:hover:not(:disabled) {
+  border-color: var(--border-signal);
+  color: var(--text-secondary);
+}
+.style-card--add:disabled {
+  cursor: progress;
+}
+
+/* ── Recipe gallery ───────────────────────────────────────────────────────────
+   A recipe card is not a suggestion row: it carries a name, a promise of what
+   will be produced, and two actions. Flex column with the actions pushed to the
+   bottom so cards of different output-list lengths still line their buttons up. */
+.recipe-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  gap: 10px;
+}
+.recipe-card__glyph {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+/* The output list is the reason the card exists: it states the count of pictures
+   before anyone commits to generating them. */
+.recipe-card__outputs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.recipe-card__outputs li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+.recipe-card__outputs svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--text-muted);
+}
+.recipe-card__brief {
+  margin: 0;
+  padding: 10px 11px;
+  border-radius: 8px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--text-tertiary);
+}
+
 /* Rail rows stack two lines, so they are block rather than flex. */
 .rail-row {
   display: block;

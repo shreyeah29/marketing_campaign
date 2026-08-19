@@ -51,6 +51,23 @@ function CreateInner() {
   /** Photography on, posters opt-in — see PromptView for why. */
   const [kinds, setKinds] = useState({ photography: true, posters: false })
   const [reference, setReference] = useState<string | null>(null)
+  /**
+   * The saved look this campaign is designed in, when one was chosen.
+   *
+   * Distinct from `reference`: that attaches a picture to this one campaign,
+   * this names a style the workspace already uses. Both may be set, and the
+   * picture wins downstream — see the poster brief.
+   */
+  const [styleTemplateId, setStyleTemplateId] = useState<string | null>(null)
+  /**
+   * The recipe's decisions, held until the draft is created.
+   *
+   * A recipe sets counts and picture kinds as well as the brief text, and those
+   * only become real when `start` writes the draft. Keeping them here rather
+   * than writing a draft on pick means someone can try three recipes, read their
+   * briefs, and leave without three abandoned drafts in the rail.
+   */
+  const [recipeSettings, setRecipeSettings] = useState<Partial<CreateDraft>>({})
   const restored = useRef(false)
 
   const refreshLists = useCallback(() => {
@@ -105,6 +122,15 @@ function CreateInner() {
       adPlatforms: [],
       wantEmails: false,
       wantLanding: false,
+      /**
+       * Last, so a recipe's decisions beat the defaults above.
+       *
+       * The defaults are what an untouched brief falls back to; a recipe is
+       * someone choosing. Spreading it earlier would mean picking "Menu
+       * showcase" and still generating five concepts instead of ten.
+       */
+      ...recipeSettings,
+      ...(styleTemplateId ? { styleTemplateId } : {}),
       updatedAt: new Date().toISOString(),
     })
     router.push(`/app/create/intake/${draftId}`)
@@ -133,6 +159,18 @@ function CreateInner() {
       onPictureKinds={setKinds}
       reference={reference}
       onReference={setReference}
+      styleTemplateId={styleTemplateId}
+      onStyleTemplate={setStyleTemplateId}
+      onRecipe={(recipe) => {
+        setPrompt(recipe.brief)
+        // The picture kinds live in their own state because the checkboxes on
+        // this screen read from it; the rest rides along to `start`.
+        setKinds({
+          photography: recipe.settings.wantPhotography !== false,
+          posters: recipe.settings.wantPosterDesigns === true,
+        })
+        setRecipeSettings(recipe.settings)
+      }}
       onGuidedIntake={() => {
         // Skipping the brief is allowed: intake asks the structured questions,
         // and a brief is composed from those answers alone.

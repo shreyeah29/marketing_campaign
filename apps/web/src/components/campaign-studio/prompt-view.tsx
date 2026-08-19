@@ -9,7 +9,9 @@ import { Spinner } from '@/components/ui'
 import { useToast } from '@/components/kit'
 
 import { BriefCoach, parseStoredCoach, type CoachResult } from './brief-coach'
-import { SUGGESTION_ROWS } from './constants'
+import { RecipeGallery } from './recipe-gallery'
+import { StyleGallery } from './style-gallery'
+import type { Recipe } from './recipes'
 import type { Campaign, CreateDraft } from './types'
 
 /**
@@ -56,6 +58,9 @@ export function PromptView({
   onPictureKinds,
   reference,
   onReference,
+  styleTemplateId,
+  onStyleTemplate,
+  onRecipe,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -74,6 +79,11 @@ export function PromptView({
   /** A stored URL for the poster whose look this campaign should follow. */
   reference?: string | null
   onReference?: ((url: string | null) => void) | undefined
+  /** A saved look from the gallery, when one is chosen. */
+  styleTemplateId?: string | null
+  onStyleTemplate?: ((id: string | null) => void) | undefined
+  /** Picking a recipe fills the brief and decides the counts. */
+  onRecipe?: ((recipe: Recipe) => void) | undefined
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
 
@@ -331,26 +341,22 @@ export function PromptView({
           </button>
         </div>
 
-        <div style={{ marginTop: 30 }}>
-          {SUGGESTION_ROWS.map((row, i) => (
-            <div key={row.id} style={i > 0 ? { marginTop: 22 } : undefined}>
-              <div className="suggest-group-label">{row.label.toUpperCase()}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {row.items.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="suggest-row"
-                    onClick={() => applySentence(item.sentence)}
-                  >
-                    <span className="suggest-row__label">{item.label}</span>
-                    <span className="suggest-row__text">{item.sentence}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Launch / Grow / Channel / Analyse used to sit here. Each was a
+            sentence and nothing more, so every campaign still began by guessing
+            how many pictures to make and whether they should be posters or
+            photographs — the decisions that actually change the output. A recipe
+            answers all of them, and says on the card what it will produce. */}
+        <StyleGallery
+          selectedId={styleTemplateId ?? null}
+          onSelect={(id) => onStyleTemplate?.(id)}
+        />
+
+        <RecipeGallery
+          onPick={(recipe) => {
+            onRecipe?.(recipe)
+            requestAnimationFrame(() => taRef.current?.focus())
+          }}
+        />
       </div>
 
       {/* ── Right rail ──────────────────────────────────────────────────── */}

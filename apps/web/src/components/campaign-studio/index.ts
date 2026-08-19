@@ -2,7 +2,6 @@ export type { Asset, Campaign, CampaignPlan, CreateDraft, ContentPiece } from '.
 export { fetchCampaigns, fetchCampaignById, fetchAssets } from './api'
 export {
   CHIPS,
-  SUGGESTION_ROWS,
   SECTIONS,
   REVIEW_STATUSES,
   LIVE_ASSET_STATUSES,

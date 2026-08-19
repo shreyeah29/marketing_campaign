@@ -81,6 +81,19 @@ export interface PosterBriefInput {
   /** Locale and occasion direction, from `buildImageDirection`. */
   readonly direction?: string | null
   /**
+   * The workspace's saved look, in words. See `StyleTemplate`.
+   *
+   * Deliberately separate from `hasReference`, and they behave differently. A
+   * reference picture is attached and interpreted afresh each time; a saved look
+   * is a fixed paragraph, so every poster in a run receives the identical
+   * direction and the set actually looks like a set.
+   *
+   * It describes palette, light and texture only — never layout, because the
+   * numbered layout below is built from this campaign's own offer and dates, and
+   * a second arrangement arriving from a saved style would contradict it.
+   */
+  readonly styleLook?: string | null
+  /**
    * True when a reference poster is attached to the request.
    *
    * Changes what the brief asks for, not just what is sent: without saying so
@@ -217,6 +230,24 @@ export function buildPosterBrief(input: PosterBriefInput): string {
   }
   if (input.direction?.trim()) lines.push('', input.direction.trim())
   if (input.scene?.trim()) lines.push('', `Mood and setting: ${input.scene.trim()}`)
+
+  /**
+   * The house style, after the palette and before the reference.
+   *
+   * Order is load-bearing. The brand kit's own colours come first because they
+   * are facts about the business, and a saved look that disagrees is a
+   * preference losing to a fact. The reference block comes last because it is
+   * the most specific instruction a person can give — they attached that picture
+   * to this campaign — and the closest thing to the end tends to win.
+   */
+  if (input.styleLook?.trim()) {
+    lines.push(
+      '',
+      'HOUSE STYLE — the visual language this business works in:',
+      input.styleLook.trim(),
+      'Apply it to the palette, the lighting and the surfaces. Do not let it change the layout above.',
+    )
+  }
 
   if (input.hasReference === true) {
     lines.push(

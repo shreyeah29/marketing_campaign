@@ -232,3 +232,25 @@ export class StorageService {
     )
   }
 }
+
+/**
+ * Whether a URL is one our own storage issued.
+ *
+ * The boundary between "a picture the client uploaded" and "any address the
+ * server can reach". Everything that fetches a caller-supplied URL server-side —
+ * the poster reference, the style reader — has to pass it through this first, or
+ * the endpoint becomes a request forwarder pointed at whatever the caller names.
+ *
+ * Host comparison rather than a prefix match on the string:
+ * `https://ours.example.co` is a prefix of `https://ours.example.co.attacker.test`
+ * and is not the same host.
+ */
+export function isOwnStorageUrl(value: string): boolean {
+  const base = loadEnv().SUPABASE_URL
+  if (!base) return false
+  try {
+    return new URL(value).host === new URL(base).host
+  } catch {
+    return false
+  }
+}

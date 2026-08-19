@@ -152,6 +152,36 @@ function ProductsInner() {
    * cookie, and an anchor would send none and save a 401 body as a .png. See
    * lib/download.ts.
    */
+  /**
+   * Every size in one press.
+   *
+   * A template render is the one path where this is genuinely free: the layout
+   * is recomposed at each shape, so a story and a square are the same design
+   * rather than two generations. An AI picture cannot do this — it would have to
+   * be drawn again and would come back different — which is why the button only
+   * exists here.
+   *
+   * Sequential, because four concurrent renders of the same product is four
+   * times the work for no wall-clock gain worth the failure risk.
+   */
+  async function downloadAllSizes(product: Product, slug: string) {
+    setDownloading(true)
+    try {
+      for (const [ratio] of RATIOS) {
+        await downloadUrl(
+          previewSrc(product.id, ratio, slug),
+          safeFilename([product.brand, product.name, slug, ratio.replace(':', 'x')], 'png'),
+          { withCredentials: true },
+        )
+      }
+      toast.push('success', `Saved ${String(RATIOS.length)} sizes`)
+    } catch (e) {
+      toast.push('error', e instanceof Error ? e.message : 'Could not download every size')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   async function download(product: Product, ratio: string, slug: string) {
     setDownloading(true)
     try {
@@ -547,6 +577,19 @@ function ProductsInner() {
                 onClick={() => void download(poster, posterRatio, posterTemplate)}
               >
                 {downloading ? <Spinner /> : <Icon name="download" size={14} />} Download
+              </button>
+              {/* Free here and only here: the layout recomposes at each shape,
+                  so every size is the same design rather than four generations.
+                  An AI picture would have to be drawn again for each one and
+                  would come back different. */}
+              <button
+                type="button"
+                className="btn"
+                disabled={downloading}
+                onClick={() => void downloadAllSizes(poster, posterTemplate)}
+              >
+                {downloading ? <Spinner /> : <Icon name="images" size={14} />} All {RATIOS.length}{' '}
+                sizes
               </button>
               <button
                 type="button"

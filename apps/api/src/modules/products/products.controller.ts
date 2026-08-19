@@ -279,7 +279,9 @@ export class ProductsController {
           sceneId
             ? tx.mediaAsset.findFirst({
                 where: { id: sceneId, deletedAt: null },
-                select: { url: true },
+                // `generationParams.kind` decides whether the product is drawn
+                // on top of this or is already in it — see below.
+                select: { url: true, generationParams: true },
               })
             : Promise.resolve(null),
         ])
@@ -298,6 +300,18 @@ export class ProductsController {
     const data = await resolveImages({
       ...toCreativeData(product, campaign, branding),
       ...(scene?.url ? { scene: { url: scene.url } } : {}),
+      /**
+       * A shot already has the product in it, so the product must not be drawn
+       * on top of itself.
+       *
+       * The two kinds of generated image behave oppositely here. A *scene* is an
+       * empty set — a surface and its light — and the real photograph is
+       * composited onto it, which is the whole reason scenes are generated
+       * without a product. A *shot* is the product itself, redrawn in a new
+       * world. Compositing the cutout over that puts the bottle in the picture
+       * twice, once lit for the new scene and once lit for the old one.
+       */
+      ...(isShot(scene?.generationParams) ? { visual: { url: null } } : {}),
     })
     const result = await renderCreative(template.document, data, ratio as AspectRatio)
 
@@ -424,6 +438,20 @@ export class ProductsController {
 }
 
 /** Shape the rows into exactly what the template engine may read. */
+/**
+ * Whether a generated image already contains the product.
+ *
+ * `kind` is written by the generator: 'scene' for an empty set, 'shot' for the
+ * product photographed in one. Anything else — including a missing value on a
+ * row written before the distinction existed — is treated as a scene, because
+ * that is what every one of those actually was.
+ */
+function isShot(params: unknown): boolean {
+  return (
+    typeof params === 'object' && params !== null && (params as { kind?: unknown }).kind === 'shot'
+  )
+}
+
 function toCreativeData(
   product: ProductRow,
   campaign: {

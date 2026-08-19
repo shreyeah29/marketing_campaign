@@ -41,6 +41,8 @@ interface Direction {
 
 interface Made {
   directionId: string
+  /** The media row, so it can be kept without generating it again. */
+  id: string
   url: string
 }
 
@@ -64,6 +66,50 @@ function TransformInner() {
   const [busy, setBusy] = useState<string | null>(null)
   const [made, setMade] = useState<Made[]>([])
   const [open, setOpen] = useState<string | null>(null)
+  const [keeping, setKeeping] = useState<string | null>(null)
+  const [kept, setKept] = useState<Set<string>>(new Set())
+
+  /**
+   * Everything transformed before now.
+   *
+   * Loaded rather than held only in this component: a picture that disappears on
+   * refresh is one someone paid for and then lost. The bytes were always
+   * durable — nothing listed them, so they were invisible the moment the tab
+   * that made them closed.
+   */
+  useEffect(() => {
+    api
+      .get<{ data: { id: string; url: string; directionId: string | null }[] }>(
+        '/media?kind=transform',
+      )
+      .then((r) => {
+        // Newest first from the API, so the first of each style wins.
+        const seen = new Set<string>()
+        const rows: Made[] = []
+        for (const row of r.data ?? []) {
+          if (!row.directionId || seen.has(row.directionId)) continue
+          seen.add(row.directionId)
+          rows.push({ directionId: row.directionId, id: row.id, url: row.url })
+        }
+        setMade(rows)
+      })
+      .catch(() => undefined)
+  }, [])
+
+  /** Promote one into the reviewed library, beside approved campaign work. */
+  async function keep(style: Direction, result: Made) {
+    if (keeping) return
+    setKeeping(style.id)
+    try {
+      await api.post(`/media/${result.id}/keep`, { title: `Transformed — ${style.name}` })
+      setKept((prev) => new Set(prev).add(style.id))
+      toast.push('success', 'Saved to Images & video')
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'Could not save that picture')
+    } finally {
+      setKeeping(null)
+    }
+  }
 
   useEffect(() => {
     api
@@ -107,12 +153,12 @@ function TransformInner() {
       if (!source || busy) return
       setBusy(directionId)
       try {
-        const res = await api.post<{ url: string }>('/scenes/transform', {
+        const res = await api.post<{ mediaId: string; url: string }>('/scenes/transform', {
           imageUrl: source,
           directionId,
         })
         setMade((prev) => [
-          { directionId, url: res.url },
+          { directionId, id: res.mediaId, url: res.url },
           ...prev.filter((m) => m.directionId !== directionId),
         ])
       } catch (e) {
@@ -232,16 +278,39 @@ function TransformInner() {
                   <span className="direction-card__body">
                     <span className="direction-card__name">{style.name}</span>
                     <span className="direction-card__blurb">{style.blurb}</span>
-                    <button
-                      type="button"
-                      className="btn ghost sm"
-                      style={{ marginTop: 7, alignSelf: 'flex-start' }}
-                      disabled={busy !== null}
-                      onClick={() => void run(style.id)}
-                    >
-                      {running ? <Spinner /> : <Icon name={result ? 'refresh' : 'zap'} size={13} />}
-                      {running ? 'Rendering…' : result ? 'Again' : 'Render'}
-                    </button>
+                    <span className="row" style={{ gap: 6, marginTop: 7 }}>
+                      <button
+                        type="button"
+                        className="btn ghost sm"
+                        disabled={busy !== null}
+                        onClick={() => void run(style.id)}
+                      >
+                        {running ? (
+                          <Spinner />
+                        ) : (
+                          <Icon name={result ? 'refresh' : 'zap'} size={13} />
+                        )}
+                        {running ? 'Rendering…' : result ? 'Again' : 'Render'}
+                      </button>
+                      {/* Only once there is something to keep. Everything
+                          generated already lives in the working drawer; this is
+                          what puts one on the shelf things get published from. */}
+                      {result ? (
+                        <button
+                          type="button"
+                          className="btn ghost sm"
+                          disabled={keeping !== null || kept.has(style.id)}
+                          onClick={() => void keep(style, result)}
+                        >
+                          {keeping === style.id ? (
+                            <Spinner />
+                          ) : (
+                            <Icon name={kept.has(style.id) ? 'check-circle' : 'check'} size={13} />
+                          )}
+                          {kept.has(style.id) ? 'In your library' : 'Keep'}
+                        </button>
+                      ) : null}
+                    </span>
                   </span>
                 </div>
               )

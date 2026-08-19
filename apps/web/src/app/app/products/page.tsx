@@ -143,9 +143,34 @@ function ProductsInner() {
     { id: string; name: string; blurb: string; group: string }[]
   >([])
   const direction = directions.find((d) => d.id === directionId) ?? null
-  /** Which product is being staged, and what came back, keyed by product id. */
+  /**
+   * Which product is being staged, and the newest picture for each.
+   *
+   * Loaded from the API rather than held only in this component: a generated
+   * picture that disappears on refresh is a picture someone paid for and then
+   * lost. The bytes were always durable — nothing listed them, so they were
+   * invisible after the tab that made them closed.
+   */
   const [staging, setStaging] = useState<string | null>(null)
-  const [staged, setStaged] = useState<Record<string, string>>({})
+  const [staged, setStaged] = useState<Record<string, { id: string; url: string }>>({})
+  const [keeping, setKeeping] = useState<string | null>(null)
+  const [kept, setKept] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    api
+      .get<{ data: { id: string; url: string; productId: string | null }[] }>('/media?kind=shot')
+      .then((r) => {
+        // Newest first from the API, so the first of each product wins.
+        const byProduct: Record<string, { id: string; url: string }> = {}
+        for (const row of r.data ?? []) {
+          if (row.productId && !byProduct[row.productId]) {
+            byProduct[row.productId] = { id: row.id, url: row.url }
+          }
+        }
+        setStaged(byProduct)
+      })
+      .catch(() => undefined)
+  }, [])
 
   useEffect(() => {
     if (!directionId) return
@@ -168,16 +193,41 @@ function ProductsInner() {
    * product. A product with no photograph is refused by the API rather than
    * invented, and that message is worth showing verbatim.
    */
+  /**
+   * Put a generated picture in the library.
+   *
+   * `/media` is everything ever made — a working drawer. Keeping promotes one
+   * into the reviewed library beside approved campaign work, which is the shelf
+   * things get published from. Idempotent server-side, so a double click does
+   * not produce two copies.
+   */
+  async function keep(product: Product) {
+    const shot = staged[product.id]
+    if (!shot || keeping) return
+    setKeeping(product.id)
+    try {
+      await api.post(`/media/${shot.id}/keep`, {
+        title: `${product.name} — ${direction?.name ?? 'generated'}`,
+      })
+      setKept((prev) => new Set(prev).add(product.id))
+      toast.push('success', 'Saved to Images & video')
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'Could not save that picture')
+    } finally {
+      setKeeping(null)
+    }
+  }
+
   async function stage(product: Product) {
     if (!directionId || staging) return
     setStaging(product.id)
     try {
-      const res = await api.post<{ url: string }>('/scenes/shot', {
+      const res = await api.post<{ mediaId: string; url: string }>('/scenes/shot', {
         productId: product.id,
         ratio: '1:1',
         directionId,
       })
-      setStaged((prev) => ({ ...prev, [product.id]: res.url }))
+      setStaged((prev) => ({ ...prev, [product.id]: { id: res.mediaId, url: res.url } }))
       toast.push('success', `${product.name} photographed in ${direction?.name ?? 'that style'}`)
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'That picture could not be generated')
@@ -197,9 +247,22 @@ function ProductsInner() {
   const [posting, setPosting] = useState<Product | null>(null)
 
   /** The render endpoint, for a given product, template and ratio. */
+  /**
+   * The render endpoint for one product, template and ratio.
+   *
+   * `sceneId` is what makes a staged picture actually appear on the poster. The
+   * drawer was rendering the product's *original* photograph — correct before
+   * anything was generated, and plainly wrong the moment someone had just
+   * watched a new one appear in the row beside it.
+   *
+   * The API drops the product cutout when the scene is a shot, because a shot
+   * already contains the product and compositing it again draws the bottle
+   * twice, lit two different ways.
+   */
   const previewSrc = useCallback(
-    (id: string, ratio: string, slug: string) =>
-      `${api.base}/products/${id}/preview?ratio=${encodeURIComponent(ratio)}&template=${encodeURIComponent(slug)}`,
+    (id: string, ratio: string, slug: string, sceneId?: string) =>
+      `${api.base}/products/${id}/preview?ratio=${encodeURIComponent(ratio)}&template=${encodeURIComponent(slug)}` +
+      (sceneId ? `&sceneId=${encodeURIComponent(sceneId)}` : ''),
     [],
   )
 
@@ -227,7 +290,10 @@ function ProductsInner() {
     try {
       for (const [ratio] of RATIOS) {
         await downloadUrl(
-          previewSrc(product.id, ratio, slug),
+          // The staged scene travels with the download. Without it the file
+          // saved is a different picture from the one on screen, which is the
+          // worst kind of wrong: it looks like it worked.
+          previewSrc(product.id, ratio, slug, staged[product.id]?.id),
           safeFilename([product.brand, product.name, slug, ratio.replace(':', 'x')], 'png'),
           { withCredentials: true },
         )
@@ -244,7 +310,7 @@ function ProductsInner() {
     setDownloading(true)
     try {
       await downloadUrl(
-        previewSrc(product.id, ratio, slug),
+        previewSrc(product.id, ratio, slug, staged[product.id]?.id),
         safeFilename([product.brand, product.name, slug, ratio.replace(':', 'x')], 'png'),
         { withCredentials: true },
       )
@@ -568,17 +634,17 @@ function ProductsInner() {
                   style={{ border: 0, padding: 0, cursor: 'zoom-in', overflow: 'hidden' }}
                   title="Download this picture"
                   onClick={() => {
-                    const url = staged[p.id]
-                    if (!url) return
+                    const shot = staged[p.id]
+                    if (!shot) return
                     void downloadUrl(
-                      url,
+                      shot.url,
                       safeFilename([p.brand, p.name, direction?.name ?? 'styled'], 'png'),
                     ).catch(() => toast.push('error', 'Could not download that picture'))
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={staged[p.id]}
+                    src={staged[p.id]?.url}
                     alt={`${p.name} in ${direction?.name ?? 'the chosen style'}`}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     loading="lazy"
@@ -644,6 +710,24 @@ function ProductsInner() {
                       : staged[p.id]
                         ? 'Again'
                         : 'Photograph in this style'}
+                  </button>
+                ) : null}
+                {/* Only once there is something to keep. The working drawer at
+                    /media holds every generated picture; this is what puts one
+                    on the shelf things get published from. */}
+                {staged[p.id] ? (
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={keeping !== null || kept.has(p.id)}
+                    onClick={() => void keep(p)}
+                  >
+                    {keeping === p.id ? (
+                      <Spinner />
+                    ) : (
+                      <Icon name={kept.has(p.id) ? 'check-circle' : 'check'} size={13} />
+                    )}
+                    {kept.has(p.id) ? 'In your library' : 'Keep'}
                   </button>
                 ) : null}
                 {/* The poster is the point of this row, so its actions come
@@ -775,7 +859,7 @@ function ProductsInner() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={`${poster.id}-${posterRatio}-${posterTemplate}`}
-              src={previewSrc(poster.id, posterRatio, posterTemplate)}
+              src={previewSrc(poster.id, posterRatio, posterTemplate, staged[poster.id]?.id)}
               alt={`Poster for ${poster.name}`}
               crossOrigin="use-credentials"
               style={{

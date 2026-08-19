@@ -97,3 +97,63 @@ describe('money never reaches the poster model', () => {
     expect(withoutMoney('9–19 August, 2 for 1')).toBe('9–19 August, 2 for 1')
   })
 })
+
+describe('the whole poster is written, not just a headline', () => {
+  it('lays out every piece the generator produced', () => {
+    // The reference poster had twelve lines on it and its author typed none of
+    // them. Designing around one typed headline reproduces the input.
+    const brief = buildPosterBrief({
+      headline: 'Celebrate Bonds Over Good Food',
+      copy: {
+        headline: 'Celebrate Bonds Over Good Food',
+        offer: '1+1',
+        offerNote: 'ON ALL ITEMS',
+        condition: 'WHEN YOU BRING YOUR SIBLING',
+        features: ['Bring Your Sibling', 'Enjoy Any 2 Items', 'Make Memories'],
+        dateLine: '9TH – 19TH AUGUST',
+        footnote: '*T&C Apply',
+      },
+      brand: BRAND,
+    })
+
+    expect(brief).toContain('"1+1"')
+    expect(brief).toMatch(/single largest element/i)
+    expect(brief).toContain('"ON ALL ITEMS"')
+    expect(brief).toContain('"WHEN YOU BRING YOUR SIBLING"')
+    expect(brief).toContain('"Bring Your Sibling"')
+    expect(brief).toContain('"9TH – 19TH AUGUST"')
+    expect(brief).toContain('"*T&C Apply"')
+  })
+
+  it('caps the icon row at four, because it is a row', () => {
+    const brief = buildPosterBrief({
+      headline: 'Weekend brunch',
+      copy: {
+        headline: 'Weekend brunch',
+        features: ['One', 'Two', 'Three', 'Four', 'Five', 'Six'],
+      },
+    })
+    expect([...brief.matchAll(/One icon caption/g)]).toHaveLength(4)
+    expect(brief).not.toContain('"Five"')
+  })
+
+  it('keeps money out of the generated lines too', () => {
+    // The generator is told not to, and told-not-to is not a guarantee.
+    const brief = buildPosterBrief({
+      headline: 'Weekend brunch',
+      copy: { headline: 'Weekend brunch', offer: 'Flat ₹200 off', offerNote: 'from Rs. 149' },
+    })
+    expect(brief).not.toContain('₹')
+    expect(brief).not.toMatch(/Rs\.\s?149/)
+  })
+
+  it('omits a piece the campaign does not have', () => {
+    const brief = buildPosterBrief({
+      headline: 'Weekend brunch',
+      copy: { headline: 'Weekend brunch' },
+    })
+    expect(brief).not.toMatch(/icon caption/i)
+    expect(brief).not.toMatch(/date badge/i)
+    expect(brief).not.toMatch(/small print/i)
+  })
+})

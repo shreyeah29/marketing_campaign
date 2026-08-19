@@ -34,7 +34,7 @@ import {
   generateRunwayVideo,
 } from '../ai/adapters/runway.js'
 import { generateImage } from '../ai/adapters/openai-media.js'
-import { buildPosterBrief } from '../ai/poster-brief.js'
+import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
@@ -174,13 +174,21 @@ export class ReviewQueueController {
       )
     }
 
-    const poster = readPosterText(asset.posterText)
-    if (!poster) {
-      // A poster with nothing to say is a photograph, and the photographic path
-      // is better at those. Refusing is clearer than silently drawing one.
-      throw new BadRequestException(
-        'This concept is marked as a poster but has no text on it. Add the poster text, or switch it to a photograph.',
-      )
+    /**
+     * The copy, written by the generator from the campaign's own facts.
+     *
+     * Nothing here requires a person to have typed anything. The reference
+     * poster had twelve lines on it and its author typed none of them — they
+     * described the campaign and the model wrote the headline, the offer, the
+     * condition, four captions and a date badge. Demanding a headline first
+     * would reproduce the input rather than the output.
+     *
+     * The fallback is the campaign's own name, not an invented line: a poster
+     * concept that somehow reached here with no copy still says something true
+     * about the campaign it belongs to.
+     */
+    const poster = readPosterText(asset.posterText) ?? {
+      headline: asset.title?.trim() || campaignRow?.name?.trim() || 'Special offer',
     }
 
     const { branding, products } = await withTenantTransaction(this.db, async (tx) => ({
@@ -196,6 +204,7 @@ export class ReviewQueueController {
     const prompt = buildPosterBrief({
       headline: poster.headline,
       ...(poster.subline ? { subline: poster.subline } : {}),
+      copy: poster,
       scene: asset.body,
       brand: {
         displayName: branding?.displayName ?? null,
@@ -1011,13 +1020,31 @@ export class ReviewQueueController {
  * that does not match is treated as absent, which produces a poster with no
  * message rather than a crash while compositing one.
  */
-function readPosterText(raw: unknown): { headline: string; subline?: string } | null {
+function readPosterText(raw: unknown): PosterCopy | null {
   if (typeof raw !== 'object' || raw === null) return null
-  const o = raw as { headline?: unknown; subline?: unknown }
-  const headline = typeof o.headline === 'string' ? o.headline.trim() : ''
+  const o = raw as Record<string, unknown>
+  const str = (key: string): string => {
+    const value = o[key]
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const headline = str('headline')
   if (headline.length === 0) return null
-  const subline = typeof o.subline === 'string' ? o.subline.trim() : ''
-  return subline ? { headline, subline } : { headline }
+
+  const features = Array.isArray(o['features'])
+    ? o['features'].filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+    : []
+
+  return {
+    headline,
+    ...(str('subline') ? { subline: str('subline') } : {}),
+    ...(str('offer') ? { offer: str('offer') } : {}),
+    ...(str('offerNote') ? { offerNote: str('offerNote') } : {}),
+    ...(str('condition') ? { condition: str('condition') } : {}),
+    ...(str('dateLine') ? { dateLine: str('dateLine') } : {}),
+    ...(str('footnote') ? { footnote: str('footnote') } : {}),
+    ...(features.length > 0 ? { features } : {}),
+  }
 }
 
 /**

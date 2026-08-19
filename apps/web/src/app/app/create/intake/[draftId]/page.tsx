@@ -494,7 +494,7 @@ export default function GuidedIntakePage() {
               photograph — so whatever goes here is typeset onto the finished
               artwork afterwards, at full size, spelled exactly as written. */}
           <div className="field-label" style={{ marginTop: 20 }}>
-            TEXT ON THE POSTER <span className="type-caption">— optional</span>
+            HEADLINE ON THE POSTER <span className="type-caption">— optional</span>
           </div>
           <input
             className="input"
@@ -505,8 +505,8 @@ export default function GuidedIntakePage() {
           />
           <p style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 8 }}>
             {draft.posterText?.trim()
-              ? `Printed on every poster in this run, exactly as written. ${String(70 - draft.posterText.trim().length)} characters left.`
-              : 'Leave empty for pictures with no words on them. Whatever you write here is typeset onto the artwork by us — the image model never draws text, because it cannot spell.'}
+              ? `Used as the headline on every poster in this run. ${String(70 - draft.posterText.trim().length)} characters left — the offer, the conditions and the small print are still written for you.`
+              : 'Leave this empty and the whole poster is written for you — headline, offer, conditions, dates and the small print — from the brief and your campaign. Fill it in only to fix the headline yourself.'}
           </p>
 
           <div className="field-label" style={{ marginTop: 16 }}>

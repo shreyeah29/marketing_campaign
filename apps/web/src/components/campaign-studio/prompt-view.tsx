@@ -189,7 +189,8 @@ export function PromptView({
             <span>
               <span className="picture-kind__title">Poster with text</span>
               <span className="picture-kind__hint">
-                A designed layout with your offer written on it.
+                A designed layout. The headline, offer and small print are written for you from this
+                brief.
               </span>
             </span>
           </button>

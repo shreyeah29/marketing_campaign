@@ -100,8 +100,8 @@ interface GeneratedPlan {
     caption?: string
     hashtags?: string[]
     cta?: string
-    /** Words to typeset ON the artwork. See the prompt's WORDS ON THE POSTER. */
-    posterText?: { headline?: string; subline?: string }
+    /** The whole poster's copy. See the prompt's WORDS ON THE POSTER. */
+    posterText?: Record<string, unknown>
     /** POSTER draws the words; PHOTO forbids them. See PICTURE TYPES. */
     visualStyle?: string
   }>
@@ -115,13 +115,43 @@ interface GeneratedPlan {
  * the artwork it was meant to sit on. Anything without a headline is dropped
  * whole — a subline with nothing above it is a caption in the wrong place.
  */
-function normalizePosterText(raw: unknown): { headline: string; subline?: string } | null {
+function normalizePosterText(raw: unknown): Record<string, unknown> | null {
   if (typeof raw !== 'object' || raw === null) return null
-  const o = raw as { headline?: unknown; subline?: unknown }
-  const headline = typeof o.headline === 'string' ? o.headline.trim().slice(0, 70) : ''
+  const o = raw as Record<string, unknown>
+
+  const line = (key: string, max: number): string => {
+    const value = o[key]
+    return typeof value === 'string' ? value.trim().slice(0, max) : ''
+  }
+
+  const headline = line('headline', 70)
   if (headline.length === 0) return null
-  const subline = typeof o.subline === 'string' ? o.subline.trim().slice(0, 110) : ''
-  return subline ? { headline, subline } : { headline }
+
+  // Length caps are layout constraints, not style preferences: the offer is set
+  // enormous and a long string there stops being a focal point, and an icon
+  // caption that wraps to three lines breaks the row it sits in.
+  const out: Record<string, unknown> = { headline }
+  for (const [key, max] of [
+    ['subline', 110],
+    ['offer', 24],
+    ['offerNote', 40],
+    ['condition', 60],
+    ['dateLine', 40],
+    ['footnote', 30],
+  ] as const) {
+    const value = line(key, max)
+    if (value) out[key] = value
+  }
+
+  const features = Array.isArray(o['features'])
+    ? o['features']
+        .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
+        .map((f) => f.trim().slice(0, 28))
+        .slice(0, 4)
+    : []
+  if (features.length > 0) out['features'] = features
+
+  return out
 }
 
 @Injectable()
@@ -534,7 +564,22 @@ ALSO produce 2-4 IMAGE_PROMPT assets (poster/visual concepts) and 1-2 VIDEO_PROM
 
 CRITICAL for every IMAGE_PROMPT: the artwork must contain NO text, NO lettering, NO numbers, NO logos, NO signage and NO watermarks of any kind. Image models cannot spell, and a poster with an invented phone number is unusable. Describe only the picture, and end every IMAGE_PROMPT body with: "No text, letters, numbers or logos anywhere in the image. Leave the lower quarter visually calm and uncluttered — a plain surface, sky, gradient or shadow — with no important subject matter there." The real name, phone numbers, email and logo are typeset onto that space afterwards by the system.
 
-WORDS ON THE POSTER: when the brief asks for a message to appear ON a picture — an offer, a date, a line like "1+1 this Rakshabandhan" — put the exact words in that IMAGE_PROMPT's "posterText" field, NOT in the picture description. Shape: "posterText": { "headline": "…", "subline": "…" }. The headline is at most 6 words and is the thing a person reads first; the subline is optional and at most 12 words. The system typesets these onto the finished artwork, spelled correctly, in the clear space the prompt reserved. Omit "posterText" entirely for a picture the brief did not ask to carry a message — most of them. Never repeat the poster text inside the image description, and never invent an offer that the brief did not state.
+WORDS ON THE POSTER — for every IMAGE_PROMPT whose "visualStyle" is "POSTER", you write the whole poster's copy. The person described what they want; they are not going to type the lines. Fill "posterText" with as much of this as the campaign supports:
+
+{
+  "headline":   "the line read first, 3-6 words, title case",
+  "subline":    "a warmer second phrase, 3-8 words — optional",
+  "offer":      "the focal element, very short: 1+1, 40% OFF, BUY 2 GET 1",
+  "offerNote":  "what it applies to: ON ALL ITEMS — optional",
+  "condition":  "the catch, if there is one: WHEN YOU BRING YOUR SIBLING — optional",
+  "features":   ["2-4 benefit captions, 2-3 words each, for a row of icons"],
+  "dateLine":   "when it runs, e.g. 9TH – 19TH AUGUST — only if the brief gives dates",
+  "footnote":   "*T&C Apply — only when there are real terms"
+}
+
+Write these from the campaign's own facts. Every one is typeset onto the artwork exactly as written, so they must be spelled correctly and must be true: never invent an offer, a date or a condition the brief did not state, and leave a field out rather than filling it with something plausible. NEVER put an amount of money in any of them — the offer may be "1+1" or "40% OFF", never "₹99" — because prices are typeset from the catalogue where they cannot drift. Do not repeat any of this inside the picture description; the description says what the picture shows, "posterText" says what it says.
+
+For a "PHOTO" concept omit "posterText" entirely: a photograph carries no words.
 
 Return valid JSON only.`
 

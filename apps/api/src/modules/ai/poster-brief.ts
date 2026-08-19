@@ -31,10 +31,45 @@ export interface PosterBrand {
   readonly locationLine?: string | null
 }
 
+/**
+ * Every line of copy the poster carries, written by the campaign generator.
+ *
+ * The reference poster that started this had twelve pieces of text on it and a
+ * person typed none of them — they said "a Rakshabandhan 1+1 poster" and the
+ * model wrote the headline, the script sub-line, the offer, the condition, four
+ * icon captions, a date badge and the small print. Asking someone to type a
+ * headline and then designing around that one line reproduces the input, not
+ * the output.
+ *
+ * So the copy is generated from the campaign's own facts — its offer, its
+ * dates, its occasion — and every field here is optional except the headline.
+ * A field the generator left empty is a piece the poster does without, rather
+ * than a placeholder for the design to fill with something invented.
+ */
+export interface PosterCopy {
+  readonly headline: string
+  /** The lighter phrase under the headline, often set as a script. */
+  readonly subline?: string | null
+  /** The focal element: "1+1", "40% OFF", "BUY 2 GET 1". */
+  readonly offer?: string | null
+  /** What the offer applies to: "ON ALL ITEMS". */
+  readonly offerNote?: string | null
+  /** The condition, usually on a ribbon: "WHEN YOU BRING YOUR SIBLING". */
+  readonly condition?: string | null
+  /** Two to four short captions for the icon row. */
+  readonly features?: readonly string[]
+  /** "9TH – 19TH AUGUST". */
+  readonly dateLine?: string | null
+  /** Small print: "*T&C Apply". */
+  readonly footnote?: string | null
+}
+
 export interface PosterBriefInput {
   /** The words the poster must carry, largest first. */
   readonly headline: string
   readonly subline?: string | null
+  /** The rest of the copy, when the generator wrote a full poster. */
+  readonly copy?: PosterCopy | null
   /** The concept's own description — what should be in the picture. */
   readonly scene?: string | null
   readonly brand?: PosterBrand
@@ -47,8 +82,16 @@ export interface PosterBriefInput {
   readonly direction?: string | null
 }
 
-/** Anything that reads as an amount of money, so it can be kept out. */
-const MONEY = /[₹$€£]\s?\d|\b\d[\d,.]*\s?(?:rupees?|rs\.?|inr|usd|dollars?)\b/gi
+/**
+ * Anything that reads as an amount of money, so it can be kept out.
+ *
+ * Three shapes, because an amount arrives in three orders and the third is easy
+ * to forget: symbol-then-digits (₹99), digits-then-word (99 rupees), and
+ * word-then-digits (Rs. 149). The last one was missing here and is the most
+ * common way an Indian price is written.
+ */
+const MONEY =
+  /[₹$€£]\s?\d[\d,.]*|\b\d[\d,.]*\s?(?:rupees?|rs\.?|inr|usd|dollars?)\b|\b(?:rupees?|rs\.?|inr|usd)\s?\d[\d,.]*/gi
 
 /**
  * Strip money from a line bound for the poster.
@@ -101,8 +144,34 @@ export function buildPosterBrief(input: PosterBriefInput): string {
   ]
 
   if (subline) lines.push(`- Supporting line beneath the headline: "${subline}"`)
+
+  const copy = input.copy
+  if (copy?.offer?.trim()) {
+    lines.push(
+      `- THE OFFER, the single largest element on the poster: "${withoutMoney(copy.offer).slice(0, 24)}"`,
+    )
+  }
+  if (copy?.offerNote?.trim()) {
+    lines.push(
+      `- Directly under the offer, smaller: "${withoutMoney(copy.offerNote).slice(0, 40)}"`,
+    )
+  }
+  if (copy?.condition?.trim()) {
+    lines.push(
+      `- On a ribbon or banner beneath that: "${withoutMoney(copy.condition).slice(0, 60)}"`,
+    )
+  }
+  for (const feature of (copy?.features ?? []).slice(0, 4)) {
+    const clean = withoutMoney(feature).slice(0, 28)
+    if (clean) lines.push(`- One icon caption: "${clean}"`)
+  }
+  if (copy?.footnote?.trim()) {
+    lines.push(`- Small print in a corner: "${withoutMoney(copy.footnote).slice(0, 30)}"`)
+  }
+
   if (brandName) lines.push(`- Brand name at the top left: "${brandName}"`)
-  if (input.dateLine?.trim()) lines.push(`- A small date badge: "${input.dateLine.trim()}"`)
+  const dateLine = copy?.dateLine?.trim() ?? input.dateLine?.trim()
+  if (dateLine) lines.push(`- A small date badge: "${dateLine}"`)
   if (input.cta?.trim()) lines.push(`- A call to action: "${withoutMoney(input.cta).slice(0, 40)}"`)
   if (input.brand?.instagramHandle?.trim()) {
     lines.push(`- In a footer bar: "${input.brand.instagramHandle.trim()}"`)

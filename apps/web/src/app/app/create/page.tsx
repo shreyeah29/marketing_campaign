@@ -51,6 +51,8 @@ function CreateInner() {
   /** Photography on, posters opt-in — see PromptView for why. */
   const [kinds, setKinds] = useState({ photography: true, posters: false })
   const [reference, setReference] = useState<string | null>(null)
+  /** The client's own product, kept faithful. See `productImageUrl`. */
+  const [productImage, setProductImage] = useState<string | null>(null)
   /**
    * The saved look this campaign is designed in, when one was chosen.
    *
@@ -118,6 +120,7 @@ function CreateInner() {
       wantPhotography: kinds.photography,
       wantPosterDesigns: kinds.posters,
       ...(reference ? { referenceImageUrl: reference } : {}),
+      ...(productImage ? { productImageUrl: productImage } : {}),
       postCount: 5,
       videoCount: 0,
       adPlatforms: [],
@@ -161,6 +164,8 @@ function CreateInner() {
       onPictureKinds={setKinds}
       reference={reference}
       onReference={setReference}
+      productImage={productImage}
+      onProductImage={setProductImage}
       styleTemplateId={styleTemplateId}
       onStyleTemplate={setStyleTemplateId}
       directionId={directionId}

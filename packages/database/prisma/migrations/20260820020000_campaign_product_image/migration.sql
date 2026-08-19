@@ -1,0 +1,19 @@
+-- A photograph of the thing being advertised.
+--
+-- Distinct from `reference_image_url`, and conflating the two would have been
+-- the easy mistake. They are opposite instructions:
+--
+--   reference_image_url  "make it LOOK like this"  — take the visual language,
+--                        take none of the content. A poster someone admires.
+--   product_image_url    "this IS the thing"       — take the object exactly,
+--                        put it somewhere new. Their own red shoe.
+--
+-- One is a style to borrow; the other is a subject to keep faithful. A single
+-- column would mean guessing which was meant, and guessing wrong in either
+-- direction produces the wrong picture confidently: either someone else's
+-- product staged as yours, or your product redrawn as an interpretation.
+--
+-- Runway matches a reference by tag, and a prompt that never names the tag
+-- silently ignores the photograph and invents a product instead — a failure that
+-- looks like success. See `PRODUCT_REFERENCE_TAG`.
+ALTER TABLE "campaign" ADD COLUMN IF NOT EXISTS "product_image_url" TEXT;

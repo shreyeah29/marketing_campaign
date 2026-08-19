@@ -57,6 +57,8 @@ export function PromptView({
   onPictureKinds,
   reference,
   onReference,
+  productImage,
+  onProductImage,
   styleTemplateId,
   onStyleTemplate,
   directionId,
@@ -79,6 +81,15 @@ export function PromptView({
   /** A stored URL for the poster whose look this campaign should follow. */
   reference?: string | null
   onReference?: ((url: string | null) => void) | undefined
+  /**
+   * A photograph of the thing being advertised.
+   *
+   * The opposite of `reference`: that one's look is borrowed and its content
+   * discarded, this one's content is the point — their own product, kept
+   * faithful and put somewhere new.
+   */
+  productImage?: string | null
+  onProductImage?: ((url: string | null) => void) | undefined
   /** A saved look from the gallery, when one is chosen. */
   styleTemplateId?: string | null
   onStyleTemplate?: ((id: string | null) => void) | undefined
@@ -126,6 +137,23 @@ export function PromptView({
       toast.push('error', e instanceof ApiError ? e.message : 'That image could not be uploaded')
     } finally {
       setUploading(false)
+    }
+  }
+  const productRef = useRef<HTMLInputElement>(null)
+  const [uploadingProduct, setUploadingProduct] = useState(false)
+
+  /** Same route as the style reference, and the same reason: see above. */
+  async function uploadProduct(file: File) {
+    setUploadingProduct(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await apiUpload<{ url: string }>('/uploads', form)
+      onProductImage?.(res.url)
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'That image could not be uploaded')
+    } finally {
+      setUploadingProduct(false)
     }
   }
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
@@ -270,6 +298,69 @@ export function PromptView({
             </span>
           </button>
         </div>
+
+        {/* ── Your product ────────────────────────────────────────────
+            Offered whenever photography is being made, which is the case this
+            was missing entirely: someone typed "red shoe" and got a red shoe,
+            correctly and generically, with no way to say *my* red shoe. The
+            poster path had a reference slot; this one had none. */}
+        {wantPhotos ? (
+          <div className="reference">
+            {productImage ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={productImage} alt="Your product" className="reference__thumb" />
+                <div className="reference__body">
+                  <p className="reference__title">Photographing this product</p>
+                  <p className="reference__hint">
+                    Its shape, colour and materials are kept faithful. Only the setting and the
+                    light change — so every picture is genuinely yours.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => onProductImage?.(null)}
+                  disabled={uploadingProduct}
+                >
+                  Remove
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="reference__box">
+                  <Icon name="image" size={18} />
+                </span>
+                <div className="reference__body">
+                  <p className="reference__title">Your product photo — optional</p>
+                  <p className="reference__hint">
+                    Upload the actual thing you are advertising and every photograph features it,
+                    staged in a different setting each time.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={uploadingProduct}
+                  onClick={() => productRef.current?.click()}
+                >
+                  {uploadingProduct ? <Spinner /> : <Icon name="upload" size={13} />} Upload
+                </button>
+              </>
+            )}
+            <input
+              ref={productRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                if (file) void uploadProduct(file)
+              }}
+            />
+          </div>
+        ) : null}
 
         {/* ── Reference poster ─────────────────────────────────────────
             Only offered when posters are being made: a photograph does not

@@ -304,6 +304,8 @@ export class CampaignGenerationService {
       readonly posterText?: string | undefined
       /** A poster whose look this campaign should follow. Our own storage URL. */
       readonly referenceImageUrl?: string | undefined
+      /** A photograph of the thing being advertised. Kept faithful, not copied for style. */
+      readonly productImageUrl?: string | undefined
       /** A saved look from the workspace's gallery. See `StyleTemplate`. */
       readonly styleTemplateId?: string | undefined
       /** A built-in creative direction. See `creative-directions.ts`. */
@@ -322,8 +324,15 @@ export class CampaignGenerationService {
         { readonly posters: boolean; readonly photography: boolean } | undefined
     },
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId, pictureKinds } =
-      input
+    const {
+      brief,
+      posterText,
+      referenceImageUrl,
+      productImageUrl,
+      styleTemplateId,
+      directionId,
+      pictureKinds,
+    } = input
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
@@ -399,6 +408,7 @@ export class CampaignGenerationService {
           targetAudience: { description: plan.audience ?? null } as never,
           budgetTotal: Number.isFinite(plan.suggestedBudget) ? plan.suggestedBudget : null,
           ...(referenceImageUrl ? { referenceImageUrl } : {}),
+          ...(productImageUrl ? { productImageUrl } : {}),
           ...(styleTemplateId ? { styleTemplateId } : {}),
           ...(directionId ? { directionId } : {}),
         },

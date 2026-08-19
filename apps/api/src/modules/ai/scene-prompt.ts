@@ -106,6 +106,31 @@ export interface ProductShotPromptInput {
  * price on it, and every figure on the finished creative has to come from the
  * catalogue rather than from a model's idea of what a price looks like.
  */
+/**
+ * Weave a concept description around the client's own product photograph.
+ *
+ * Different from `buildProductShotPrompt`, which composes a hero shot from
+ * scratch. Here the concept already describes a scene — the generator wrote it —
+ * and all that is missing is that the object in it should be *theirs*.
+ *
+ * `@product` must appear literally. Runway matches a reference by its tag, and a
+ * prompt that never names it ignores the photograph and invents a product
+ * instead. That failure looks exactly like success: a good picture of the wrong
+ * shoe.
+ *
+ * The fidelity clause leads rather than trails. A description ending in "and
+ * keep it faithful" is a description a model has already finished imagining by
+ * the time it reads the constraint.
+ */
+export function withProductReference(scene: string, productName?: string | null): string {
+  const name = productName?.trim()
+  return [
+    `Featuring the @${PRODUCT_REFERENCE_TAG}${name ? ` (${name})` : ''}, exactly as shown in the reference image.`,
+    'Keep its shape, colour, materials, proportions and every detail faithful to the reference — this is a real product, not an interpretation of one.',
+    scene.trim(),
+  ].join(' ')
+}
+
 export function buildProductShotPrompt(input: ProductShotPromptInput = {}): string {
   const name = input.productName?.trim()
   const direction = input.direction?.trim()

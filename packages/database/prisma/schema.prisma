@@ -1298,6 +1298,21 @@ model Campaign {
   referenceImageUrl String? @map("reference_image_url")
 
   /**
+   * A photograph of the thing being advertised.
+   *
+   * The opposite instruction to `referenceImageUrl`, which is why it is a second
+   * column rather than a reuse. That one says "make it look like this" and its
+   * content is deliberately discarded; this one says "this *is* the thing" and
+   * its content is the whole point — the client's own product, kept faithful and
+   * placed somewhere new.
+   *
+   * Guessing which was meant produces the wrong picture confidently in either
+   * direction: someone else's product staged as yours, or yours redrawn as an
+   * interpretation of itself.
+   */
+  productImageUrl String? @map("product_image_url")
+
+  /**
    * The saved house style this campaign is designed in.
    * Alongside `referenceImageUrl` rather than replacing it, because the two are
    * different requests: a one-off "follow this picture" and a durable "use our

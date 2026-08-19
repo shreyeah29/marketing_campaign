@@ -43,7 +43,12 @@ import {
 import { directionLook } from '../ai/creative-directions.js'
 import { readDirectionSample } from '../ai/direction-samples.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
-import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
+import {
+  PRODUCT_REFERENCE_TAG,
+  buildImageDirection,
+  clampImagePrompt,
+  withProductReference,
+} from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
@@ -78,6 +83,14 @@ const generateSchema = z
      * this endpoint a request forwarder.
      */
     referenceImageUrl: z.string().url().max(2000).optional(),
+    /**
+     * A photograph of the thing being advertised.
+     *
+     * The opposite instruction to `referenceImageUrl`: that one's content is
+     * discarded and only its look survives, this one's content is the entire
+     * point. Same provenance check — the adapter fetches it server-side.
+     */
+    productImageUrl: z.string().url().max(2000).optional(),
     /**
      * A saved look from the workspace's gallery.
      *
@@ -611,8 +624,18 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId, pictureKinds } =
-      zodBody(generateSchema, body)
+    const {
+      brief,
+      posterText,
+      referenceImageUrl,
+      productImageUrl,
+      styleTemplateId,
+      directionId,
+      pictureKinds,
+    } = zodBody(generateSchema, body)
+    if (productImageUrl !== undefined && !isOwnStorageUrl(productImageUrl)) {
+      throw new BadRequestException('The product photo must be one you uploaded here.')
+    }
     if (referenceImageUrl !== undefined && !isOwnStorageUrl(referenceImageUrl)) {
       // The adapter fetches this URL from the server, so accepting any address
       // would turn this endpoint into a request forwarder — one that reaches
@@ -626,6 +649,7 @@ export class ReviewQueueController {
       brief,
       posterText,
       referenceImageUrl,
+      productImageUrl,
       styleTemplateId,
       directionId,
       pictureKinds,
@@ -838,6 +862,7 @@ export class ReviewQueueController {
               theme: true,
               targetAudience: true,
               referenceImageUrl: true,
+              productImageUrl: true,
               directionId: true,
               // Only the paragraph. The picture the look was read from is never
               // needed again — that is the whole point of reading it once.
@@ -923,6 +948,7 @@ export class ReviewQueueController {
       theme: string | null
       targetAudience: unknown
       referenceImageUrl?: string | null
+      productImageUrl?: string | null
       styleTemplate?: { look: string } | null
       directionId?: string | null
     } | null,
@@ -974,9 +1000,24 @@ export class ReviewQueueController {
     const fullDirection = [direction, styleLook ? `Visual style: ${styleLook}` : null]
       .filter((part): part is string => Boolean(part))
       .join(' ')
+    /**
+     * The client's own product, when they gave us one.
+     *
+     * Photography had no way to receive a subject reference at all: someone
+     * typed "red shoe" and got a red shoe, correctly and generically, with no
+     * way to say "*my* red shoe". The poster path had a reference slot and this
+     * one did not.
+     *
+     * The tag has to reach the prompt or Runway ignores the photograph and
+     * invents a product — a good picture of the wrong shoe, which looks like
+     * success.
+     */
+    const productImage =
+      typeof campaignRow?.productImageUrl === 'string' ? campaignRow.productImageUrl : null
+    const scene = fullDirection ? `${asset.body} ${fullDirection}` : asset.body
     const prompt = clampImagePrompt(
       asset.title,
-      fullDirection ? `${asset.body} ${fullDirection}` : asset.body,
+      productImage ? withProductReference(scene, asset.title) : scene,
       MAX_PROMPT_CHARS,
     )
     let urls: string[]
@@ -1031,6 +1072,9 @@ export class ReviewQueueController {
             apiKey: runway.apiKey,
             prompt,
             ...(runway.imageModel ? { model: runway.imageModel } : {}),
+            ...(productImage
+              ? { referenceImages: [{ uri: productImage, tag: PRODUCT_REFERENCE_TAG }] }
+              : {}),
             ...keep(i),
           }),
         ),

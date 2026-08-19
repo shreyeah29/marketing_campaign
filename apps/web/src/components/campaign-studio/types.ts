@@ -121,6 +121,14 @@ export interface CreateDraft {
   /** A stored URL for the poster whose look this campaign follows. */
   referenceImageUrl?: string | undefined
   /**
+   * A stored URL for a photograph of the thing being advertised.
+   *
+   * The opposite of `referenceImageUrl`: that one's look is borrowed and its
+   * content discarded; this one's content is the point — the client's own
+   * product, kept faithful and staged somewhere new.
+   */
+  productImageUrl?: string | undefined
+  /**
    * A saved look from the workspace's gallery.
    *
    * The durable counterpart to `referenceImageUrl`. That one attaches a picture

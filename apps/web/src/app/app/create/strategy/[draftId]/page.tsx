@@ -340,6 +340,9 @@ export default function PlanApprovalPage() {
           brief,
           ...(draft.posterText?.trim() ? { posterText: draft.posterText.trim() } : {}),
           ...(draft.referenceImageUrl ? { referenceImageUrl: draft.referenceImageUrl } : {}),
+          // The subject, not a style. Passed to Runway as a tagged reference so
+          // every photograph features the client's own product.
+          ...(draft.productImageUrl ? { productImageUrl: draft.productImageUrl } : {}),
           // The saved look, by id. Its description is read server-side and
           // folded into every image prompt in the run, so the whole set gets
           // identical direction rather than five readings of one picture.

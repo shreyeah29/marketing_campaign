@@ -41,14 +41,39 @@ async function readError(res: Response): Promise<AdapterError> {
  */
 export const IMAGE_MODEL_CANDIDATES = ['gpt-image-2', 'gpt-image-1', 'dall-e-3'] as const
 
-/** Whether an error is "this account may not use that model", not a real fault. */
+/**
+ * Whether an error is "this account may not use that model", not a real fault.
+ *
+ * The message matters as much as the status. OpenAI says "does not have access
+ * to model X" with a 403 when an organisation is unverified, and "The model 'X'
+ * does not exist." for a name the project cannot see — and the second arrives
+ * with a 400, not the 404 the wording suggests. Matching on status alone let
+ * that one through as a genuine fault, which stopped the walk one model early
+ * and reported the wrong reason.
+ */
 export function isModelUnavailable(err: unknown): boolean {
   if (!(err instanceof AdapterError)) return false
-  return (
-    err.status === 403 ||
-    err.status === 404 ||
-    /does not have access to model|model_not_found|unknown model|invalid model/i.test(err.message)
+  if (err.status === 403 || err.status === 404) return true
+  return /does not have access to model|does not exist|model_not_found|unknown model|invalid model|unsupported model/i.test(
+    err.message,
   )
+}
+
+/**
+ * The models to try, in order, overridable without a deploy.
+ *
+ * `OPENAI_IMAGE_MODEL` accepts one name or a comma-separated list and replaces
+ * the default entirely. Which models an account can call changes with
+ * verification and with tier, and neither is something this repository can know
+ * — so the list is configuration, and pinning it takes an environment variable
+ * rather than a pull request.
+ */
+export function imageModelCandidates(configured?: string | null): readonly string[] {
+  const pinned = (configured ?? '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean)
+  return pinned.length > 0 ? pinned : IMAGE_MODEL_CANDIDATES
 }
 
 export interface GenerateImageInput {

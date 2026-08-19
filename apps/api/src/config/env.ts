@@ -78,6 +78,15 @@ export const envSchema = z.object({
    * database, never the user.
    */
   OPENAI_API_KEY: z.string().optional(),
+  /**
+   * Which image model draws designed posters, overriding the built-in order.
+   *
+   * One name or a comma-separated list. Which models an account may call
+   * depends on organisation verification and tier — neither of which this
+   * repository can know — so pinning one is configuration rather than a code
+   * change and a deploy.
+   */
+  OPENAI_IMAGE_MODEL: z.string().optional(),
   OPENAI_MODEL: z.string().optional(),
 
   /**

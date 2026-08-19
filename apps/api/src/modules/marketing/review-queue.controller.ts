@@ -36,7 +36,7 @@ import {
 } from '../ai/adapters/runway.js'
 import {
   generateImage,
-  IMAGE_MODEL_CANDIDATES,
+  imageModelCandidates,
   isModelUnavailable,
 } from '../ai/adapters/openai-media.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
@@ -278,9 +278,10 @@ export class ReviewQueueController {
      * retrying them against a weaker model would turn one clear failure into
      * three and end with the wrong explanation.
      */
+    const candidates = imageModelCandidates(loadEnv().OPENAI_IMAGE_MODEL)
     let result: Awaited<ReturnType<typeof generateImage>> | null = null
-    let refusals: string[] = []
-    for (const model of IMAGE_MODEL_CANDIDATES) {
+    const refusals: { model: string; detail: string }[] = []
+    for (const model of candidates) {
       try {
         result = await generateImage({
           apiKey: openai.apiKey,
@@ -291,7 +292,7 @@ export class ReviewQueueController {
           // and sending one would 400 rather than being ignored.
           ...(reference && model !== 'dall-e-3' ? { referenceImageUrl: reference } : {}),
         })
-        if (model !== IMAGE_MODEL_CANDIDATES[0]) {
+        if (model !== candidates[0]) {
           this.logger.warn(
             { assetId: id, model, refusals },
             'poster drawn with a fallback image model',
@@ -308,7 +309,18 @@ export class ReviewQueueController {
             'The poster could not be drawn just now — try again, or switch this concept to a photograph.',
           )
         }
-        refusals.push(model)
+        /**
+         * Logged as it happens, not only at the end.
+         *
+         * These were collected and then thrown away unless every candidate
+         * refused — so when the walk stopped early on a different kind of error,
+         * the log named that last model and said nothing about why the first two
+         * were skipped. The reason the preferred model was refused is the single
+         * most useful line in this whole path.
+         */
+        const detail = err instanceof AdapterError ? err.message : String(err)
+        this.logger.warn({ assetId: id, model, detail }, 'image model unavailable, trying the next')
+        refusals.push({ model, detail })
       }
     }
 
@@ -316,10 +328,10 @@ export class ReviewQueueController {
       // Every candidate refused: the project cannot call an image model at all.
       this.logger.error({ assetId: id, refusals }, 'no image model available to this project')
       throw new ServiceUnavailableException(
-        'Designed posters need an OpenAI image model and this project cannot use any of them yet. Verify the organisation in the OpenAI dashboard and enable an image model for the project. Photography still works in the meantime.',
+        `Designed posters need an OpenAI image model and this project cannot use any of ${candidates.join(', ')}. Enable one for the project, or set OPENAI_IMAGE_MODEL to a model it can use. Photography still works in the meantime.`,
       )
     }
-    const usedFallback = result.model !== IMAGE_MODEL_CANDIDATES[0]
+    const usedFallback = result.model !== candidates[0]
 
     /**
      * Two shapes, because two models.

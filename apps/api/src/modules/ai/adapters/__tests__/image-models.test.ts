@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { AdapterError } from '../llm.js'
-import { IMAGE_MODEL_CANDIDATES, isModelUnavailable } from '../openai-media.js'
+import {
+  IMAGE_MODEL_CANDIDATES,
+  imageModelCandidates,
+  isModelUnavailable,
+} from '../openai-media.js'
 
 /**
  * Which model a project may call is an account setting, not a code decision.
@@ -61,5 +65,36 @@ describe('isModelUnavailable', () => {
   it('is false for anything that is not an adapter error', () => {
     expect(isModelUnavailable(new Error('socket hang up'))).toBe(false)
     expect(isModelUnavailable(null)).toBe(false)
+  })
+})
+
+describe('the message matters as much as the status', () => {
+  it('recognises "does not exist", which arrives as a 400', () => {
+    // The exact line from production: the walk stopped here and reported it as
+    // a genuine fault, so nothing said why the preferred model had been skipped.
+    const real = new AdapterError("The model 'dall-e-3' does not exist.", 'openai', 400)
+    expect(isModelUnavailable(real)).toBe(true)
+  })
+
+  it('still refuses to fall through on a real fault carrying a 400', () => {
+    expect(isModelUnavailable(new AdapterError('Invalid prompt', 'openai', 400))).toBe(false)
+  })
+})
+
+describe('imageModelCandidates', () => {
+  it('uses the built-in order when nothing is configured', () => {
+    expect(imageModelCandidates()).toEqual(IMAGE_MODEL_CANDIDATES)
+    expect(imageModelCandidates('')).toEqual(IMAGE_MODEL_CANDIDATES)
+    expect(imageModelCandidates('   ')).toEqual(IMAGE_MODEL_CANDIDATES)
+  })
+
+  it('lets one model be pinned without a deploy', () => {
+    // Which models an account may call depends on verification and tier, and
+    // neither is knowable from here — so it is configuration.
+    expect(imageModelCandidates('gpt-image-2')).toEqual(['gpt-image-2'])
+  })
+
+  it('accepts an ordered list', () => {
+    expect(imageModelCandidates('gpt-image-2, dall-e-3')).toEqual(['gpt-image-2', 'dall-e-3'])
   })
 })

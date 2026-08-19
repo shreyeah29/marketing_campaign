@@ -84,6 +84,11 @@ export const NAV_GROUPS: NavGroupDef[] = [
     icon: 'images',
     children: [
       { label: 'Images & video', href: '/app/ai/images' },
+      // Its own shelf, not a folder inside Images & video. That library holds
+      // pictures — finished work, made for a campaign. A style is an
+      // instruction, read once and applied to everything made afterwards, and
+      // filing a handful of those among hundreds of their outputs buries them.
+      { label: 'Your styles', href: '/app/library/styles' },
       { label: 'Copy & captions', href: '/app/content' },
       { label: 'Templates', href: '/app/templates' },
       { label: 'Uploads', href: '/app/documents/files' },

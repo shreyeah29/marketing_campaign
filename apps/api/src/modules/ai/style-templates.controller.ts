@@ -138,8 +138,22 @@ export class StyleTemplatesController {
         },
         'could not read the style from the reference picture',
       )
+      /**
+       * Three different problems wearing one sentence.
+       *
+       * "That picture could not be read" was true of a project with no vision
+       * model enabled, an unreachable upload and a genuinely odd image — and it
+       * pointed at the picture in all three, which is wrong in two of them.
+       * Someone reading it tries three more photographs and gets nowhere,
+       * because nothing was ever wrong with the photograph.
+       */
+      const detail = err instanceof AdapterError ? err.message : ''
       throw new ServiceUnavailableException(
-        'That picture could not be read just now. Try again, or try a different one — a clear, well-lit design reads best.',
+        /^Could not read the uploaded picture|too large/i.test(detail)
+          ? detail
+          : err instanceof AdapterError && (err.status === 403 || err.status === 404)
+            ? 'This OpenAI project cannot use a vision model, so a picture cannot be read into a style. Enable gpt-4o-mini for the project, then try again.'
+            : 'That picture could not be read just now. Try again, or try a different one — a clear, well-lit design reads best.',
       )
     }
 

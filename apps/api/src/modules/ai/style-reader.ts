@@ -86,6 +86,44 @@ function clamp(value: unknown, max: number): string {
  * controller checks provenance before calling.
  */
 export async function readVisualStyle(apiKey: string, imageUrl: string): Promise<StyleReading> {
+  /**
+   * The bytes, fetched here rather than handed over as a link.
+   *
+   * This was passing `imageUrl` straight to OpenAI, which means *their* servers
+   * have to reach our bucket. That works only if the bucket is publicly
+   * readable, and when it is not the call fails with something unhelpful about
+   * the image — which reads as "your picture is bad" when nothing is wrong with
+   * the picture at all.
+   *
+   * The poster path never had this problem because it posts the bytes as
+   * multipart. Doing the same here removes the dependency on our storage being
+   * reachable from outside, on a signed URL not having expired, and on the
+   * bucket's visibility setting — none of which is the caller's problem.
+   */
+  let dataUrl: string
+  try {
+    const source = await fetch(imageUrl, { signal: AbortSignal.timeout(20_000) })
+    if (!source.ok) throw new Error(`storage responded ${String(source.status)}`)
+    const contentType = source.headers.get('content-type')?.split(';')[0]?.trim() ?? 'image/png'
+    const bytes = Buffer.from(await source.arrayBuffer())
+    // Guarded because the whole thing is inlined into a JSON request body. A
+    // 20MB upload becomes ~27MB of base64 and is refused for length rather than
+    // for anything to do with its content.
+    if (bytes.byteLength > 8 * 1024 * 1024) {
+      throw new AdapterError(
+        'That picture is too large to read. Under 8MB works best.',
+        PROVIDER_ID,
+      )
+    }
+    dataUrl = `data:${contentType};base64,${bytes.toString('base64')}`
+  } catch (err) {
+    if (err instanceof AdapterError) throw err
+    throw new AdapterError(
+      `Could not read the uploaded picture: ${err instanceof Error ? err.message : String(err)}`,
+      PROVIDER_ID,
+    )
+  }
+
   let lastError: unknown = null
 
   for (const model of VISION_MODELS) {
@@ -109,7 +147,7 @@ export async function readVisualStyle(apiKey: string, imageUrl: string): Promise
                 // "low" detail is deliberate: palette, light and texture survive
                 // downsampling, and the things high detail would recover — small
                 // text, fine logo work — are exactly what must not be read.
-                { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } },
+                { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
               ],
             },
           ],

@@ -1331,6 +1331,7 @@ model Campaign {
 
   @@index([organizationId, deletedAt])
   @@index([organizationId, status, startsAt])
+  @@index([styleTemplateId])
   @@map("campaign")
 }
 

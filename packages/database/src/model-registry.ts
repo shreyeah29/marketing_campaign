@@ -37,6 +37,7 @@ export const TENANT_SCOPED_MODELS = [
   'AdSpendLedger',
   'AdAllowanceAlert',
   'BrandKit',
+  'StyleTemplate',
   'EmailCampaign',
   'EmailSequence',
   'EmailSend',

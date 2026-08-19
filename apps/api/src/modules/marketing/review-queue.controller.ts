@@ -340,10 +340,22 @@ export class ReviewQueueController {
         { assetId: id, refusals, available },
         'no image model available to this project',
       )
+      /**
+       * Three different problems, three different fixes.
+       *
+       * "No image models" was one message covering all of them, which still
+       * left a person guessing. The count of *all* models separates them: a key
+       * that lists chat models but no image ones is a permissions problem on a
+       * working key; a key that lists nothing is not a working key.
+       */
       throw new ServiceUnavailableException(
-        available.length > 0
-          ? `None of ${candidates.join(', ')} can be used by this OpenAI project. It can use: ${available.join(', ')}. Set OPENAI_IMAGE_MODEL to one of those.`
-          : `This OpenAI key cannot see any image model at all, so ${candidates.join(', ')} were all refused. Check that the key belongs to an OpenAI project with image models enabled — a project-scoped key with a model allow-list, or a key for an OpenAI-compatible service that is not OpenAI, both look exactly like this. Photography still works in the meantime.`,
+        available.image.length > 0
+          ? `None of ${candidates.join(', ')} can be used by this OpenAI project. It can use: ${available.image.join(', ')}. Set OPENAI_IMAGE_MODEL to one of those.`
+          : available.unreadable
+            ? 'This OpenAI key was rejected when asked what it can do, so it is probably invalid, revoked or not an OpenAI key at all. Replace OPENAI_API_KEY. Photography still works in the meantime.'
+            : available.total > 0
+              ? `This OpenAI key can use ${String(available.total)} models but no image model among them, so ${candidates.join(', ')} were all refused. The key works — the project is not allowed to draw. In the OpenAI dashboard: verify the organisation under Settings → Organization, then allow image models for this project under Settings → Project → Limits. Photography still works in the meantime.`
+              : 'This OpenAI key can see no models at all, which means it has no access rather than the wrong access. Check that billing is set up on the OpenAI account and that the key belongs to a project with models enabled. Photography still works in the meantime.',
       )
     }
     const usedFallback = result.model !== candidates[0]

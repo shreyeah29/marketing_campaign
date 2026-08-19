@@ -121,34 +121,45 @@ describe('listAvailableImageModels', () => {
     )
   }
 
-  it('keeps only the models that draw', async () => {
+  it('keeps only the models that draw, and counts the rest', async () => {
     respond({
-      data: [
-        { id: 'gpt-4o' },
-        { id: 'gpt-image-1' },
-        { id: 'dall-e-3' },
-        { id: 'whisper-1' },
-        { id: 'text-embedding-3-small' },
-      ],
+      data: [{ id: 'gpt-4o' }, { id: 'gpt-image-1' }, { id: 'dall-e-3' }, { id: 'whisper-1' }],
     })
-    expect(await listAvailableImageModels('k')).toEqual(['dall-e-3', 'gpt-image-1'])
+    const report = await listAvailableImageModels('k')
+    expect(report.image).toEqual(['dall-e-3', 'gpt-image-1'])
+    expect(report.total).toBe(4)
+    expect(report.unreadable).toBe(false)
   })
 
-  it('returns nothing when the key can see no image model', async () => {
-    // The case that matters: it means the key is not what we think it is, and
-    // the message says so instead of suggesting another model name.
-    respond({ data: [{ id: 'gpt-4o' }] })
-    expect(await listAvailableImageModels('k')).toEqual([])
+  it('separates "works but cannot draw" from "has no access"', async () => {
+    // The distinction that decides the fix: a key listing chat models but no
+    // image ones is a permissions problem on a working key. A key listing
+    // nothing is not a working key, and verifying the organisation will not
+    // help it.
+    respond({ data: [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }] })
+    const canChat = await listAvailableImageModels('k')
+    expect(canChat.image).toEqual([])
+    expect(canChat.total).toBe(2)
+
+    respond({ data: [] })
+    const canNothing = await listAvailableImageModels('k')
+    expect(canNothing.total).toBe(0)
+    expect(canNothing.unreadable).toBe(false)
+  })
+
+  it('flags a rejected listing as unreadable rather than as an empty account', async () => {
+    // A 401 means the key is wrong, not that the project lacks models — and
+    // telling someone to verify their organisation would waste their afternoon.
+    respond({ error: 'invalid api key' }, 401)
+    const report = await listAvailableImageModels('k')
+    expect(report.unreadable).toBe(true)
   })
 
   it('never throws — a failed diagnosis must not replace the real error', async () => {
-    respond({ error: 'nope' }, 401)
-    expect(await listAvailableImageModels('k')).toEqual([])
-
     vi.stubGlobal(
       'fetch',
       vi.fn(() => Promise.reject(new Error('socket hang up'))),
     )
-    expect(await listAvailableImageModels('k')).toEqual([])
+    expect((await listAvailableImageModels('k')).unreadable).toBe(true)
   })
 })

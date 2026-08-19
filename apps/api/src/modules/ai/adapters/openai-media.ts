@@ -93,22 +93,33 @@ export function imageModelCandidates(configured?: string | null): readonly strin
  * Model ids are not secrets — they name a product, not an account — so the list
  * is safe to put in the error a person reads.
  */
-export async function listAvailableImageModels(apiKey: string): Promise<string[]> {
+export interface KeyModelReport {
+  /** Image-capable model ids this key may use. */
+  readonly image: readonly string[]
+  /** How many models of any kind it can see. Zero is a different problem. */
+  readonly total: number
+  /** True when the listing itself failed — the key may be invalid entirely. */
+  readonly unreadable: boolean
+}
+
+export async function listAvailableImageModels(apiKey: string): Promise<KeyModelReport> {
   try {
     const res = await fetch('https://api.openai.com/v1/models', {
       headers: { authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(15_000),
     })
-    if (!res.ok) return []
+    if (!res.ok) return { image: [], total: 0, unreadable: true }
     const body = (await res.json()) as { data?: { id?: unknown }[] }
-    return (body.data ?? [])
-      .map((m) => (typeof m.id === 'string' ? m.id : ''))
-      .filter((id) => /image|dall-e/i.test(id))
-      .sort()
+    const ids = (body.data ?? []).map((m) => (typeof m.id === 'string' ? m.id : '')).filter(Boolean)
+    return {
+      image: ids.filter((id) => /image|dall-e/i.test(id)).sort(),
+      total: ids.length,
+      unreadable: false,
+    }
   } catch {
     // The diagnosis is best-effort. Failing here must not replace the real
     // error with a second one about the diagnosis.
-    return []
+    return { image: [], total: 0, unreadable: true }
   }
 }
 

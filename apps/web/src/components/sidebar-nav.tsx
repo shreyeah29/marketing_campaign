@@ -50,6 +50,10 @@ export const NAV_GROUPS: NavGroupDef[] = [
     rail: 'Work',
     children: [
       { label: 'New brief', href: '/app/create' },
+      // Its own door because it needs no campaign: you have a photograph and you
+      // want it in another style. Reaching it only through the brief screen
+      // would mean starting a campaign to use it.
+      { label: 'Transform a photo', href: '/app/transform' },
       { label: 'Brand kit', href: '/app/settings/branding' },
     ],
   },

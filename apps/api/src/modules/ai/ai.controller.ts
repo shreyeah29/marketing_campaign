@@ -29,6 +29,12 @@ import {
   type CoachGrounding,
   type CoachResult,
 } from './brief-coach.prompt.js'
+import {
+  buildRecommendPrompt,
+  fallbackRecommendations,
+  parseRecommendations,
+  type Recommendation,
+} from './direction-recommender.js'
 
 const messageSchema = z.object({
   role: z.enum(['system', 'user', 'assistant', 'tool']),
@@ -52,6 +58,8 @@ const coachSchema = z.object({
   /** Set once a visual direction exists elsewhere. Not a coverage dimension. */
   lookChosen: z.boolean().optional(),
 })
+
+const recommendSchema = z.object({ brief: z.string().min(4).max(4000) })
 
 const coachAskSchema = z.object({
   brief: z.string().max(8000).optional(),
@@ -362,6 +370,57 @@ export class AiController {
       throw new ServiceUnavailableException('The coach could not read that brief.')
     }
     return scrubCoachResult(parsed)
+  }
+
+  /**
+   * Which three directions suit this brief.
+   *
+   * Thirty-eight cards is a better problem than the one before it, but a person
+   * who typed "Raksha Bandhan campaign for my café, 1+1 offer" should not then
+   * have to learn what thirty-eight things mean. They described the campaign and
+   * the system knows its own catalogue; matching them is the system's job.
+   *
+   * Never fails. The recommendation is a convenience and the whole shelf is on
+   * screen underneath it, so no model, a failed call and an unreadable reply all
+   * fall back to a keyword pass rather than an error — something sensible at the
+   * top beats an empty row and an apology.
+   */
+  // Ungated for the same reason as the coach: this is part of writing a brief.
+  @Post('recommend-directions')
+  @RequirePermissions(PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Rank the creative directions against a brief' })
+  async recommendDirections(
+    @Body() body: unknown,
+    @CurrentPrincipal() principal: Principal,
+  ): Promise<{ picks: Recommendation[]; source: 'model' | 'keywords' }> {
+    const input = zodBody(recommendSchema, body)
+    const brief = input.brief.trim()
+
+    try {
+      const content = await this.complete(
+        principal,
+        [
+          { role: 'system', content: buildRecommendPrompt(brief) },
+          { role: 'user', content: 'Return the JSON described. Nothing else.' },
+        ],
+        undefined,
+        'recommend-directions',
+      )
+      const picks = parseRecommendations(content)
+      // A reply that survived parsing but named nothing real is the same
+      // outcome as no reply, and the keyword pass is better than one card.
+      if (picks.length > 0) return { picks, source: 'model' }
+      this.logger.warn({ operation: 'recommend-directions' }, 'no usable direction ids in reply')
+    } catch (err) {
+      this.logger.warn(
+        {
+          operation: 'recommend-directions',
+          detail: err instanceof Error ? err.message : String(err),
+        },
+        'direction recommendation fell back to keywords',
+      )
+    }
+    return { picks: fallbackRecommendations(brief), source: 'keywords' }
   }
 
   /**

@@ -73,11 +73,24 @@ describe('the direction catalogue', () => {
 
   it('describes light and colour rather than adjectives', () => {
     // "Beautiful" and "premium" change nothing about a generated picture. A
-    // palette, a light and a density change all of it, so every look must name
-    // them — this is what separates eight directions from one in eight tints.
+    // palette, a light and a surface change all of it, so every look must name
+    // concrete visual properties — this is what separates real directions from
+    // one look in thirty tints.
     for (const d of CREATIVE_DIRECTIONS.filter((x) => x.kind === 'ai')) {
-      expect(d.look, d.id).toMatch(/light|lit|lighting/i)
-      expect(d.look, d.id).toMatch(/composition/i)
+      expect(d.look, d.id).toMatch(/light|lit|lighting|shadow|illuminat/i)
+    }
+  })
+
+  it('lets a poster or transform direct the composition, and a product not', () => {
+    // The split is deliberate. A poster look composes the whole picture, and a
+    // transform re-renders one — both decide the arrangement. A product shot's
+    // arrangement belongs to `buildProductShotPrompt`, which asks for a hero
+    // composition and a faithful likeness; a direction that also set the
+    // composition would argue with it. Product looks describe the *world* the
+    // product sits in and nothing about the product itself.
+    for (const d of CREATIVE_DIRECTIONS.filter((x) => x.kind === 'ai')) {
+      if (d.group === 'product') continue
+      expect(d.look, d.id).toMatch(/composition|composed/i)
     }
   })
 })

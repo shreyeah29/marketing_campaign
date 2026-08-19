@@ -178,6 +178,22 @@ function CreateInner() {
           router.push(`/app/products?template=${encodeURIComponent(direction.previewTemplateSlug)}`)
           return
         }
+        /**
+         * The other two that need something this screen has not got.
+         *
+         * A product direction stages a product photograph and a transform
+         * re-renders one you already have. Neither can run from a brief alone,
+         * so the card goes to the screen that holds the picture rather than
+         * setting a look on a campaign that would never use it.
+         */
+        if (direction.needs === 'product') {
+          router.push(`/app/products?direction=${encodeURIComponent(direction.id)}`)
+          return
+        }
+        if (direction.needs === 'photo') {
+          router.push(`/app/transform?direction=${encodeURIComponent(direction.id)}`)
+          return
+        }
         setDirectionId(direction.id)
         // The picture kinds live in their own state because the checkboxes on
         // this screen read from it; the rest rides along to `start`.

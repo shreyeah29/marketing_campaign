@@ -161,6 +161,38 @@ export function PromptView({
       .catch(() => setTemplates([]))
   }, [])
 
+  /**
+   * Which three directions the AI put first for this brief.
+   *
+   * Asked for once the brief is long enough to say anything, and re-asked only
+   * when it settles — a request per keystroke would bill for a model call on
+   * every letter. The endpoint never fails: with no LLM it answers from
+   * keywords, so this state is either empty or useful, never an error.
+   */
+  const [recommended, setRecommended] = useState<string[]>([])
+  const briefForRecs = prompt.trim()
+  useEffect(() => {
+    if (briefForRecs.length < 12) {
+      setRecommended([])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      api
+        .post<{ picks: { id: string; reason: string }[] }>('/ai/recommend-directions', {
+          brief: briefForRecs,
+        })
+        .then((r) => {
+          if (!cancelled) setRecommended((r.picks ?? []).map((p) => p.id))
+        })
+        .catch(() => undefined)
+    }, 900)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [briefForRecs])
+
   function applySentence(sentence: string) {
     setPrompt(sentence)
     requestAnimationFrame(() => taRef.current?.focus())
@@ -349,6 +381,7 @@ export function PromptView({
             answers all of them, and shows on the card what it produces. */}
         <DirectionShelf
           selectedId={directionId ?? null}
+          recommended={recommended}
           onPick={(direction) => onDirection?.(direction)}
         />
 

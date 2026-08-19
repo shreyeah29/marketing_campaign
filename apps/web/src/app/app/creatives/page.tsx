@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { ApiError, api } from '@/lib/api'
 import { EmptyState, ErrorState, PageHeader, useToast } from '@/components/kit'
@@ -57,7 +58,19 @@ interface Product {
   imageUrl: string | null
 }
 
+/**
+ * Wrapped because a product direction chosen on the brief screen arrives here as
+ * `?direction=product-luxury`, and `useSearchParams` needs a Suspense boundary.
+ */
 export default function CreativesPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreativesInner />
+    </Suspense>
+  )
+}
+
+function CreativesInner() {
   const toast = useToast()
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
   const [campaignId, setCampaignId] = useState<string>('')
@@ -75,6 +88,27 @@ export default function CreativesPage() {
    * per product.
    */
   const [prompt, setPrompt] = useState('')
+  const search = useSearchParams()
+  const [directions, setDirections] = useState<{ id: string; name: string; blurb: string }[]>([])
+
+  /**
+   * The product direction a card on the brief screen sent us here with.
+   *
+   * Passed to `/scenes/shot` as an id and resolved to art direction server-side,
+   * so the catalogue stays one list. A typed prompt still wins there: someone
+   * who wrote a sentence meant it more than the card they clicked on the way in.
+   */
+  const directionId = search.get('direction')
+  const chosen = directions.find((d) => d.id === directionId) ?? null
+
+  useEffect(() => {
+    api
+      .get<{ data: { id: string; name: string; blurb: string; group: string }[] }>(
+        '/creative-directions',
+      )
+      .then((r) => setDirections((r.data ?? []).filter((d) => d.group === 'product')))
+      .catch(() => setDirections([]))
+  }, [])
   const [posting, setPosting] = useState<Creative | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   /** Which product is being photographed, while the shots run before the batch. */
@@ -247,7 +281,10 @@ export default function CreativesPage() {
        */
       const shots: Record<string, string> = {}
       const direction = prompt.trim()
-      if (direction) {
+      // Either is enough to stage a shot now: a typed sentence, or a direction
+      // chosen from the shelf. Before this, picking a card and typing nothing
+      // silently skipped the staging entirely.
+      if (direction || directionId) {
         const ids = [...attached]
         for (const [i, productId] of ids.entries()) {
           setShotProgress({ done: i, total: ids.length })
@@ -256,7 +293,8 @@ export default function CreativesPage() {
               productId,
               campaignId,
               ratio: '1:1',
-              direction,
+              ...(direction ? { direction } : {}),
+              ...(directionId ? { directionId } : {}),
             })
             shots[productId] = shot.mediaId
           } catch (e) {
@@ -408,6 +446,18 @@ export default function CreativesPage() {
             the whole batch. It sits above the products because it applies to all
             of them. */}
         <div style={{ marginTop: 16 }}>
+          {/* Named rather than assumed. A direction chosen two screens ago that
+              silently changes what is generated here is the kind of hidden state
+              that makes a result impossible to explain. */}
+          {chosen ? (
+            <div className="banner" style={{ marginBottom: 10 }}>
+              <Icon name="sparkles" size={14} />
+              <span>
+                Staging every product as <strong>{chosen.name}</strong> — {chosen.blurb} Type a
+                prompt below to override it.
+              </span>
+            </div>
+          ) : null}
           <label className="type-label" style={{ display: 'block', marginBottom: 4 }}>
             Background prompt <span className="type-caption">— optional</span>
           </label>

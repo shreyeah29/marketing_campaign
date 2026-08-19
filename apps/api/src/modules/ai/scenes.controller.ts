@@ -25,6 +25,10 @@ import { StorageService } from '../../infrastructure/storage.js'
 
 import { generateRunwayImage } from './adapters/runway.js'
 import { AiService } from './ai.service.js'
+import { directionLook, findDirection } from './creative-directions.js'
+import { generateImage, imageModelCandidates, isModelUnavailable } from './adapters/openai-media.js'
+import { isOwnStorageUrl } from '../../infrastructure/storage.js'
+import { loadEnv } from '../../config/env.js'
 import {
   buildProductShotPrompt,
   buildScenePrompt,
@@ -68,6 +72,30 @@ const shotSchema = z
     ratio: z.enum(ASPECT_RATIOS).default('1:1'),
     /** The operator's own art direction, verbatim. */
     direction: z.string().max(600).optional(),
+    /**
+     * A product direction from the shelf, by id.
+     *
+     * Resolved to its art direction here rather than sent as text, so the
+     * catalogue stays one list on the server. Typed direction wins when both
+     * arrive: someone who wrote a sentence meant it more than the card they
+     * clicked on the way in.
+     */
+    directionId: z.string().max(64).optional(),
+  })
+  .strict()
+
+const transformSchema = z
+  .object({
+    /**
+     * The picture to re-render, from `/uploads`.
+     *
+     * Checked against our own storage host before anything fetches it: the
+     * bytes are pulled server-side and posted to OpenAI, so an arbitrary
+     * address would make this a request forwarder.
+     */
+    imageUrl: z.string().url().max(2000),
+    /** A transform direction from the shelf. */
+    directionId: z.string().max(64),
   })
   .strict()
 
@@ -260,9 +288,13 @@ export class ScenesController {
       )
     }
 
+    // Typed art direction beats a chosen card; a card beats nothing. Product
+    // looks describe the world around the product and never the product itself,
+    // which is what keeps the likeness faithful to the uploaded photograph.
+    const artDirection = input.direction?.trim() || directionLook(input.directionId) || null
     const prompt = buildProductShotPrompt({
       productName: product.name,
-      ...(input.direction ? { direction: input.direction } : {}),
+      ...(artDirection ? { direction: artDirection } : {}),
       mood: settings?.brandVoice ?? null,
     })
     const ratio = RUNWAY_RATIO[input.ratio] ?? RUNWAY_RATIO['1:1']
@@ -306,5 +338,127 @@ export class ScenesController {
       }),
     )
     return { mediaId: asset.id, url: generated.url }
+  }
+
+  /**
+   * Re-render a photograph someone already has, in a chosen style.
+   *
+   * The third thing this controller does, and the one with no product in it. A
+   * scene is an empty set; a shot is a product photographed faithfully; a
+   * transform is neither — the subject may be reinterpreted freely, because the
+   * whole request is "the same café, as a magazine page".
+   *
+   * That freedom is exactly why it must not be used for a product. A packaged
+   * item whose label a customer recognises has to stay faithful, and nothing
+   * here asks for that.
+   *
+   * OpenAI rather than Runway: `/images/edits` takes the picture alongside the
+   * prompt and re-renders it, which is the operation being asked for. Runway's
+   * reference is a likeness hint for a new photograph, which is a different job.
+   */
+  @Post('transform')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE, PERMISSIONS.AGENTS_RUN)
+  @ApiOperation({ summary: 'Re-render an uploaded photograph in a chosen style' })
+  async transform(
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<{ mediaId: string; url: string }> {
+    const parsed = transformSchema.safeParse(body)
+    if (!parsed.success) throw new BadRequestException(parsed.error.issues)
+    const { imageUrl, directionId } = parsed.data
+
+    if (!isOwnStorageUrl(imageUrl)) {
+      throw new BadRequestException('Upload the photograph here first, then transform it.')
+    }
+    const direction = findDirection(directionId)
+    if (!direction || direction.group !== 'transform' || !direction.look) {
+      throw new BadRequestException('That is not a transform style.')
+    }
+
+    const openai = this.ai.platformImageKey()
+    if (!openai) {
+      throw new ServiceUnavailableException(
+        'Transforming a picture needs an OpenAI key, which is not set on this deployment yet.',
+      )
+    }
+
+    /**
+     * Text is forbidden, as everywhere else on the image path.
+     *
+     * A model asked to make something look like a magazine will happily add a
+     * masthead and a cover line, and those words reach a customer as though the
+     * business wrote them. Any words this picture carries are typeset later,
+     * from data.
+     */
+    const prompt = [
+      'Re-render this photograph in a different visual style, keeping the same subject and scene.',
+      direction.look,
+      'Do not add any text, words, letters, numbers, logos or watermarks anywhere in the image.',
+    ].join(' ')
+
+    // Same model walk as the poster path, and for the same reason: which models
+    // a project may call is an account setting, so a hard-coded choice means a
+    // deploy every time the guess is wrong.
+    const candidates = imageModelCandidates(loadEnv().OPENAI_IMAGE_MODEL)
+    let result: Awaited<ReturnType<typeof generateImage>> | null = null
+    let lastError: unknown = null
+    for (const model of candidates) {
+      // dall-e-3 has no edits endpoint, so a reference would 400 rather than be
+      // ignored — and a transform without the picture is not a transform.
+      if (model === 'dall-e-3') continue
+      try {
+        result = await generateImage({
+          apiKey: openai.apiKey,
+          prompt,
+          size: '1024x1024',
+          model,
+          referenceImageUrl: imageUrl,
+        })
+        break
+      } catch (err) {
+        lastError = err
+        if (!isModelUnavailable(err)) break
+      }
+    }
+    if (!result) {
+      throw new ServiceUnavailableException(
+        lastError instanceof Error && /rate|429/i.test(lastError.message)
+          ? 'The image service is rate-limiting this account. Wait a minute and try again.'
+          : 'That picture could not be transformed just now. Try again, or try another style.',
+      )
+    }
+
+    const bytes = result.b64 ? Buffer.from(result.b64, 'base64') : null
+    if (!bytes)
+      throw new ServiceUnavailableException('The picture came back in an unexpected shape.')
+
+    // Keyed by direction, so re-running the same style replaces its own file
+    // rather than filling the bucket with near-identical pictures.
+    const storageKey = `${p.organizationId}/transforms/${directionId}/${Date.now().toString(36)}`
+    const stored = await this.storage.persistBytes(bytes, 'image/png', storageKey)
+    if (!stored.persisted || !stored.url) {
+      throw new ServiceUnavailableException(
+        'The picture could not be stored — set SUPABASE_URL and SUPABASE_SERVICE_KEY.',
+      )
+    }
+
+    const asset = await withTenantTransaction(this.db, (tx) =>
+      tx.mediaAsset.create({
+        data: {
+          organizationId: p.organizationId,
+          type: 'IMAGE',
+          storageKey: stored.storageKey,
+          url: stored.url,
+          prompt,
+          generatorProvider: 'OPENAI',
+          generatorModel: result.model,
+          // Neither 'scene' nor 'shot': this has a subject in it and is not a
+          // background, so the scene picker must never offer it as one.
+          generationParams: { kind: 'transform', directionId, sourceUrl: imageUrl },
+        },
+        select: { id: true, url: true },
+      }),
+    )
+    return { mediaId: asset.id, url: stored.url }
   }
 }

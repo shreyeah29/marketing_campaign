@@ -314,7 +314,258 @@ const PROMOTIONAL: readonly CreativeDirection[] = [
   },
 ]
 
-export const CREATIVE_DIRECTIONS: readonly CreativeDirection[] = [...AI_POSTERS, ...PROMOTIONAL]
+/**
+ * Ten worlds to put a real product in.
+ *
+ * The product photograph is the hero and stays faithful to what was uploaded —
+ * `buildProductShotPrompt` demands the shape, colour and proportions of the
+ * reference — so these describe the *environment*, never the product. A look
+ * here that said "sleek matte bottle" would be inventing a client's packaging.
+ *
+ * Each is one line of art direction, which is exactly what `POST /scenes/shot`
+ * takes. No new generation path: the direction is the box that screen already
+ * has, filled in by a card instead of typed.
+ */
+const PRODUCT: readonly CreativeDirection[] = [
+  {
+    id: 'product-studio',
+    name: 'Clean studio',
+    blurb: 'Seamless white, even light. The product and nothing else.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'A seamless white studio sweep with soft even light from a large source, a faint contact shadow directly beneath, and no props or background detail whatsoever.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'product-luxury',
+    name: 'Luxury marble',
+    blurb: 'Polished stone and dramatic side light.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Standing on polished cream marble with grey veining, lit hard from one side so the stone catches a highlight and the far side falls into deep shadow, with a soft reflection beneath.',
+    industries: ['Beauty', 'Fashion', 'Healthcare'],
+    settings: {},
+  },
+  {
+    id: 'product-nature',
+    name: 'Natural',
+    blurb: 'Leaves, water and daylight.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Surrounded by fresh green foliage and small water droplets on a damp stone surface, lit by dappled morning daylight coming through leaves, with a shallow depth of field.',
+    industries: ['Beauty', 'Healthcare', 'Food & beverage'],
+    settings: {},
+  },
+  {
+    id: 'product-splash',
+    name: 'Splash',
+    blurb: 'Caught mid-motion in liquid.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Frozen at the centre of a clear liquid splash, droplets suspended around it, lit by a hard rim light against a dark gradient so the water reads bright and sculptural.',
+    industries: ['Beauty', 'Food & beverage', 'Fitness'],
+    settings: {},
+  },
+  {
+    id: 'product-ingredient',
+    name: 'Ingredient story',
+    blurb: 'Surrounded by what it is made of.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Arranged with raw botanical ingredients — leaves, seeds, petals and powders — laid out on a matte neutral surface under soft diffused daylight, composed as a flat editorial still life.',
+    industries: ['Beauty', 'Healthcare', 'Food & beverage'],
+    settings: {},
+  },
+  {
+    id: 'product-floating',
+    name: 'Floating',
+    blurb: 'Weightless, with a shadow far below.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Suspended in mid-air against a smooth colour gradient, with a soft blurred shadow cast well below it and gentle rim lighting along one edge, weightless and clean.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'product-dramatic',
+    name: 'Dramatic light',
+    blurb: 'One hard light in near darkness.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Lit by a single hard source in an otherwise dark set, producing a sharp bright edge and a long defined shadow, with deep blacks and visible atmospheric haze.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'product-lifestyle',
+    name: 'In use',
+    blurb: 'On a real surface, in a real room.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Resting on a lived-in surface — a wooden counter or linen cloth — in a softly lit domestic interior with an out-of-focus window behind, natural and unstaged.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'product-3d',
+    name: '3D set',
+    blurb: 'Geometric shapes and rendered light.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'Placed among smooth matte 3D geometric forms — cylinders, arches and steps — in a limited two-colour palette with soft global illumination and clean rendered shadows.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'product-festive',
+    name: 'Festive set',
+    blurb: 'Warm lamps, gold and celebration.',
+    group: 'product',
+    kind: 'ai',
+    needs: 'product',
+    look: 'On a rich fabric surface with warm out-of-focus festive lights behind, small gold and marigold accents nearby, lit low and warm as though by lamps rather than daylight.',
+    industries: ['Food & beverage', 'Retail', 'Fashion', 'Beauty'],
+    settings: {},
+  },
+]
+
+/**
+ * Ten ways to re-render a photograph someone already has.
+ *
+ * The distinction from `product`: nothing here is asked to stay faithful. The
+ * point is the art direction — the same café, as a magazine page or a newspaper
+ * cutting — so the subject may be reinterpreted freely, which is exactly what
+ * would be wrong for a product whose packaging a customer will recognise.
+ */
+const TRANSFORM: readonly CreativeDirection[] = [
+  {
+    id: 'tf-editorial',
+    name: 'Editorial print',
+    blurb: 'Muted, asymmetric, unhurried.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered with a muted natural palette of bone, clay and ink, available window light with honest falloff, an asymmetric composition holding deliberate empty space, and uncoated paper texture.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-magazine',
+    name: 'Magazine',
+    blurb: 'A glossy printed spread.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as a glossy printed magazine page: saturated but controlled colour, crisp studio-quality lighting, a tightly cropped confident composition, and the faint sheen of coated stock.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-cinematic',
+    name: 'Film still',
+    blurb: 'A frame from a film.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as a film still: teal shadows against warm amber highlights, crushed blacks, one strong motivated light with visible haze, a wide layered composition, and fine grain with soft halation.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-vintage',
+    name: 'Vintage',
+    blurb: 'Faded, warm, forty years old.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as an aged colour photograph: faded warm cast with shifted greens, lifted blacks, soft low-contrast light, a slightly centred snapshot composition, and visible emulsion grain and dust.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-polaroid',
+    name: 'Instant photo',
+    blurb: 'Soft, square, slightly overexposed.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as an instant film print: pastel washed colour, slightly blown highlights and a soft focus falloff, flat frontal flash light, a square casual composition, and a faint chemical bloom at the edges.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-newspaper',
+    name: 'Newsprint',
+    blurb: 'Coarse black and white, printed rough.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as a newspaper photograph: black and white with a coarse visible halftone dot pattern, high contrast and blown highlights, hard documentary lighting, a tightly cropped reportage composition, and the grey absorbency of cheap newsprint.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-collage',
+    name: 'Collage',
+    blurb: 'Cut, torn and layered by hand.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as a paper collage: elements cut out with visible torn edges and layered over blocks of flat colour, flat even lighting with drop shadows between layers, a busy off-grid composition, and matte paper texture throughout.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-handdrawn',
+    name: 'Hand drawn',
+    blurb: 'Ink lines and washed colour.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as an ink and watercolour illustration: confident dark line work with loose washed colour bleeding past the lines, flat illustrative light with no photographic shadow, an open airy composition, and cold-pressed paper grain.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-3d',
+    name: '3D render',
+    blurb: 'Smooth surfaces and soft global light.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered as a clean 3D scene: smooth matte surfaces in a limited palette, soft global illumination with gentle ambient occlusion, a simplified geometric composition, and no photographic grain at all.',
+    industries: [],
+    settings: {},
+  },
+  {
+    id: 'tf-monochrome',
+    name: 'Monochrome',
+    blurb: 'Black and white, high contrast, quiet.',
+    group: 'transform',
+    kind: 'ai',
+    needs: 'photo',
+    look: 'Re-rendered in black and white: deep blacks and clean whites with a full tonal range between, hard directional light producing defined shadow shapes, a spare graphic composition, and fine silver grain.',
+    industries: [],
+    settings: {},
+  },
+]
+
+export const CREATIVE_DIRECTIONS: readonly CreativeDirection[] = [
+  ...AI_POSTERS,
+  ...PROMOTIONAL,
+  ...PRODUCT,
+  ...TRANSFORM,
+]
 
 const BY_ID = new Map(CREATIVE_DIRECTIONS.map((d) => [d.id, d]))
 

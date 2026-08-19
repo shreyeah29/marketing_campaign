@@ -19,24 +19,30 @@ import { CampaignProvider, SaveTemplateButton, useCampaign } from '@/components/
 function CampaignHeader() {
   const { campaign, loading } = useCampaign()
 
+  /**
+   * One line: the way back, the name, the status.
+   *
+   * Was three stacked rows — a back button, a 26px heading and the objective —
+   * above a section bar that is itself navigation. On the media section that put
+   * roughly a third of the viewport above the first creative, on a screen whose
+   * whole purpose is looking at creatives.
+   *
+   * The objective moves to Overview, where it is already shown. It is a
+   * paragraph about strategy, and reprinting it above every section meant
+   * reading it while judging a poster.
+   */
   return (
-    <div className="spread" style={{ marginBottom: 18, flexWrap: 'wrap', gap: 12 }}>
-      <div>
-        <Link className="btn ghost sm" href="/app/campaigns" style={{ marginBottom: 8 }}>
-          <Icon name="arrow-left" size={14} /> All campaigns
-        </Link>
-        <h1 style={{ fontSize: 26, letterSpacing: '-0.02em' }}>
-          {loading && !campaign ? '…' : (campaign?.name ?? 'Campaign')}
-        </h1>
-        {campaign?.objective ? (
-          <p className="muted" style={{ fontSize: 14, marginTop: 4 }}>
-            {campaign.objective}
-          </p>
-        ) : null}
-      </div>
-      <div className="row" style={{ gap: 8 }}>
+    <div className="camp-head">
+      <Link className="btn ghost sm" href="/app/campaigns">
+        <Icon name="arrow-left" size={14} /> All campaigns
+      </Link>
+      <span className="camp-head__sep" aria-hidden="true" />
+      <h1 className="camp-head__title">
+        {loading && !campaign ? '…' : (campaign?.name ?? 'Campaign')}
+      </h1>
+      {campaign?.status ? <StatusPill status={toStatus(campaign.status)} /> : null}
+      <div className="camp-head__end">
         {campaign ? <SaveTemplateButton campaign={campaign} /> : null}
-        {campaign?.status ? <StatusPill status={toStatus(campaign.status)} /> : null}
       </div>
     </div>
   )

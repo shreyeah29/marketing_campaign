@@ -1238,6 +1238,11 @@ function Tile({
         <span className="cstudio__tile-status">
           <StatusPill status={toStatus(pieceStatus(piece))} />
         </span>
+
+        {/* No duration: the API does not store one, and a plausible "0:09"
+            under a video nobody has timed is a number invented to fill a
+            corner. The shape is known. */}
+        {isVideo ? <span className="cstudio__tile-ratio">9:16</span> : null}
       </div>
 
       <p className="cstudio__tile-label">{piece.label}</p>

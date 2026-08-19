@@ -5384,6 +5384,19 @@ a.card:hover {
   top: var(--space-2);
   right: var(--space-2);
 }
+/* The shape, on the picture rather than in the meta line — a 9:16 tile is
+   already visibly taller, and the number confirms what the eye read. */
+.cstudio__tile-ratio {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-sunken) 82%, transparent);
+  font: var(--type-caption);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
 
 .cstudio__tile-label {
   margin: 0;
@@ -7360,6 +7373,34 @@ a:hover {
   margin-bottom: 12px;
 }
 /* ── Campaign detail ──────────────────────────────────────────────────────── */
+
+/* Campaign header: one line, not three stacked rows.
+   A back button, a 26px heading and the objective above a section bar that is
+   itself navigation put roughly a third of the viewport above the first
+   creative — on a screen whose whole purpose is looking at creatives. */
+.camp-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.camp-head__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-default);
+}
+.camp-head__title {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.01em;
+  min-width: 0;
+}
+.camp-head__end {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
 
 /* Section tabs across the top, not a column beside the content.
    Twelve labels do fit across the top — what did not fit was twelve labels plus

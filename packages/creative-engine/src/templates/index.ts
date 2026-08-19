@@ -1,11 +1,13 @@
 import type { TemplateDocument } from '../template/schema.js'
 
+import { COUNTDOWN } from './countdown.js'
 import { EDITORIAL } from './editorial.js'
 import { FESTIVE } from './festive.js'
 import { FLASH } from './flash.js'
 import { LUXURY } from './luxury.js'
 import { MENU_BOARD } from './menu-board.js'
 import { MINIMAL } from './minimal.js'
+import { PAIR } from './pair.js'
 import { STORY_STRIP } from './story-strip.js'
 import { TRICOLOUR } from './tricolour.js'
 
@@ -69,6 +71,17 @@ export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
       'Dish left, name and price right. States a price calmly instead of shouting a discount.',
   },
   {
+    slug: 'pair',
+    document: PAIR,
+    description:
+      'Two frames of equal weight with the offer between them. The layout a 1+1 actually needs.',
+  },
+  {
+    slug: 'countdown',
+    document: COUNTDOWN,
+    description: 'The deadline runs above the offer, because that is what makes it interesting.',
+  },
+  {
     slug: 'story-strip',
     document: STORY_STRIP,
     description:
@@ -86,4 +99,4 @@ export function findTemplate(slug: string): BuiltInTemplate | null {
 /** The template used when none is chosen. */
 export const DEFAULT_TEMPLATE_SLUG = 'tricolour'
 
-export { FESTIVE, FLASH, LUXURY, MINIMAL, TRICOLOUR }
+export { COUNTDOWN, FESTIVE, FLASH, LUXURY, MINIMAL, PAIR, TRICOLOUR }

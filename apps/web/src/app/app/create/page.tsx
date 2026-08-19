@@ -60,14 +60,15 @@ function CreateInner() {
    */
   const [styleTemplateId, setStyleTemplateId] = useState<string | null>(null)
   /**
-   * The recipe's decisions, held until the draft is created.
+   * The direction's decisions, held until the draft is created.
    *
-   * A recipe sets counts and picture kinds as well as the brief text, and those
+   * A direction sets counts and picture kinds as well as the look, and those
    * only become real when `start` writes the draft. Keeping them here rather
-   * than writing a draft on pick means someone can try three recipes, read their
-   * briefs, and leave without three abandoned drafts in the rail.
+   * than writing a draft on pick means someone can try three directions, read
+   * what each produces, and leave without three abandoned drafts in the rail.
    */
-  const [recipeSettings, setRecipeSettings] = useState<Partial<CreateDraft>>({})
+  const [directionId, setDirectionId] = useState<string | null>(null)
+  const [directionSettings, setDirectionSettings] = useState<Partial<CreateDraft>>({})
   const restored = useRef(false)
 
   const refreshLists = useCallback(() => {
@@ -123,14 +124,15 @@ function CreateInner() {
       wantEmails: false,
       wantLanding: false,
       /**
-       * Last, so a recipe's decisions beat the defaults above.
+       * Last, so a direction's decisions beat the defaults above.
        *
-       * The defaults are what an untouched brief falls back to; a recipe is
-       * someone choosing. Spreading it earlier would mean picking "Menu
-       * showcase" and still generating five concepts instead of ten.
+       * The defaults are what an untouched brief falls back to; a direction is
+       * someone choosing. Spreading it earlier would mean picking one that wants
+       * ten concepts and still generating five.
        */
-      ...recipeSettings,
+      ...directionSettings,
       ...(styleTemplateId ? { styleTemplateId } : {}),
+      ...(directionId ? { directionId } : {}),
       updatedAt: new Date().toISOString(),
     })
     router.push(`/app/create/intake/${draftId}`)
@@ -161,15 +163,29 @@ function CreateInner() {
       onReference={setReference}
       styleTemplateId={styleTemplateId}
       onStyleTemplate={setStyleTemplateId}
-      onRecipe={(recipe) => {
-        setPrompt(recipe.brief)
+      directionId={directionId}
+      onDirection={(direction) => {
+        /**
+         * A promotional card promises "typeset — text always correct", and only
+         * the render path keeps that promise. Sending it down the AI path would
+         * produce a drawn picture under a label saying the words cannot be
+         * wrong, which is the exact confusion this shelf exists to end.
+         *
+         * So a template direction leaves the brief flow for the catalogue, with
+         * its own layout already selected.
+         */
+        if (direction.kind === 'template' && direction.previewTemplateSlug) {
+          router.push(`/app/products?template=${encodeURIComponent(direction.previewTemplateSlug)}`)
+          return
+        }
+        setDirectionId(direction.id)
         // The picture kinds live in their own state because the checkboxes on
         // this screen read from it; the rest rides along to `start`.
         setKinds({
-          photography: recipe.settings.wantPhotography !== false,
-          posters: recipe.settings.wantPosterDesigns === true,
+          photography: direction.settings.wantPhotography !== false,
+          posters: direction.settings.wantPosterDesigns === true,
         })
-        setRecipeSettings(recipe.settings)
+        setDirectionSettings(direction.settings)
       }}
       onGuidedIntake={() => {
         // Skipping the brief is allowed: intake asks the structured questions,

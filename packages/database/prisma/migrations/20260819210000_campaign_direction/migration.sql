@@ -1,0 +1,19 @@
+-- Which creative direction a campaign was made with.
+--
+-- The third and least specific way a look reaches a picture. There are now
+-- three, and they differ by who they belong to:
+--
+--   direction_id        ours, shared by every workspace, ships as code
+--   style_template_id   this workspace's own, read once from an upload
+--   reference_image_url this one campaign's, attached deliberately
+--
+-- They resolve in that order of increasing specificity, so attaching a picture
+-- to a campaign always beats the house style, which always beats the built-in
+-- direction. See `generatePoster`.
+--
+-- A plain TEXT column with no foreign key, because directions are code rather
+-- than rows: a campaign generated with a direction that a later release renames
+-- or retires keeps its artwork and simply resolves no look on a regenerate. A
+-- constraint here would either block the release or orphan the campaign, and
+-- neither is better than a null lookup.
+ALTER TABLE "campaign" ADD COLUMN IF NOT EXISTS "direction_id" TEXT;

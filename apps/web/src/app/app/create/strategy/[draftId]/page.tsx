@@ -344,6 +344,9 @@ export default function PlanApprovalPage() {
           // folded into every image prompt in the run, so the whole set gets
           // identical direction rather than five readings of one picture.
           ...(draft.styleTemplateId ? { styleTemplateId: draft.styleTemplateId } : {}),
+          // The built-in direction. Resolved server-side into the same look slot
+          // a saved style uses, so the two cannot behave differently.
+          ...(draft.directionId ? { directionId: draft.directionId } : {}),
         },
       )
       upsertDraft(draftId, { generatedCampaignId: res.campaignId, planApproved: true })

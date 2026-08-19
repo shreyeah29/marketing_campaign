@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 import { ApiError, api, apiUpload } from '@/lib/api'
 import { downloadUrl, safeFilename } from '@/lib/download'
@@ -79,7 +80,20 @@ const RATIOS: readonly (readonly [string, string])[] = [
   ['16:9', 'Wide'],
 ]
 
+/**
+ * Wrapped because the layout below reads the query string, and a direction card
+ * on the brief screen arrives here as `?template=pair` — the slug it promised.
+ * `useSearchParams` needs a Suspense boundary in the App Router.
+ */
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductsInner />
+    </Suspense>
+  )
+}
+
+function ProductsInner() {
   const toast = useToast()
   const [products, setProducts] = useState<Product[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -92,6 +106,27 @@ export default function ProductsPage() {
   // answering it per row would make the rows incomparable.
   const [templates, setTemplates] = useState<DesignTemplate[]>([])
   const [template, setTemplate] = useState('tricolour')
+  const search = useSearchParams()
+
+  /**
+   * The layout a creative direction sent us here to use.
+   *
+   * A promotional direction on the brief screen promises "typeset — text always
+   * correct", and that promise is only kept by the render path, which lives
+   * here. Landing on the catalogue with a different layout selected than the one
+   * on the card someone just clicked would quietly break it.
+   *
+   * Applied once, from the URL, so choosing another template on this page is not
+   * undone by a re-render.
+   */
+  const applied = useRef(false)
+  useEffect(() => {
+    if (applied.current) return
+    const wanted = search.get('template')
+    if (!wanted) return
+    applied.current = true
+    setTemplate(wanted)
+  }, [search])
   const fileRef = useRef<HTMLInputElement>(null)
 
   // The poster drawer: one product, viewed large, at a ratio of its own. The

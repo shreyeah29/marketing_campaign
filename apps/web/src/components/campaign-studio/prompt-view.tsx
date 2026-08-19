@@ -9,9 +9,8 @@ import { Spinner } from '@/components/ui'
 import { useToast } from '@/components/kit'
 
 import { BriefCoach, parseStoredCoach, type CoachResult } from './brief-coach'
-import { RecipeGallery } from './recipe-gallery'
+import { DirectionShelf, type Direction } from './direction-shelf'
 import { StyleGallery } from './style-gallery'
-import type { Recipe } from './recipes'
 import type { Campaign, CreateDraft } from './types'
 
 /**
@@ -60,7 +59,8 @@ export function PromptView({
   onReference,
   styleTemplateId,
   onStyleTemplate,
-  onRecipe,
+  directionId,
+  onDirection,
 }: {
   prompt: string
   setPrompt: (v: string) => void
@@ -82,8 +82,9 @@ export function PromptView({
   /** A saved look from the gallery, when one is chosen. */
   styleTemplateId?: string | null
   onStyleTemplate?: ((id: string | null) => void) | undefined
-  /** Picking a recipe fills the brief and decides the counts. */
-  onRecipe?: ((recipe: Recipe) => void) | undefined
+  /** The chosen creative direction, and picking one. */
+  directionId?: string | null
+  onDirection?: ((direction: Direction) => void) | undefined
 }) {
   const taRef = useRef<HTMLTextAreaElement>(null)
 
@@ -343,19 +344,19 @@ export function PromptView({
 
         {/* Launch / Grow / Channel / Analyse used to sit here. Each was a
             sentence and nothing more, so every campaign still began by guessing
-            how many pictures to make and whether they should be posters or
-            photographs — the decisions that actually change the output. A recipe
-            answers all of them, and says on the card what it will produce. */}
+            how many pictures to make and whether they should be drawn or
+            typeset — the decisions that actually change the output. A direction
+            answers all of them, and shows on the card what it produces. */}
+        <DirectionShelf
+          selectedId={directionId ?? null}
+          onPick={(direction) => onDirection?.(direction)}
+        />
+
+        {/* Under the shelf, because a saved look is a refinement of a chosen
+            direction rather than an alternative to one. */}
         <StyleGallery
           selectedId={styleTemplateId ?? null}
           onSelect={(id) => onStyleTemplate?.(id)}
-        />
-
-        <RecipeGallery
-          onPick={(recipe) => {
-            onRecipe?.(recipe)
-            requestAnimationFrame(() => taRef.current?.focus())
-          }}
         />
       </div>
 

@@ -306,9 +306,11 @@ export class CampaignGenerationService {
       readonly referenceImageUrl?: string | undefined
       /** A saved look from the workspace's gallery. See `StyleTemplate`. */
       readonly styleTemplateId?: string | undefined
+      /** A built-in creative direction. See `creative-directions.ts`. */
+      readonly directionId?: string | undefined
     },
   ): Promise<{ campaignId: string; assetCount: number; strategy: unknown }> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId } = input
+    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId } = input
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
     if (!resolved || !adapter) throw new ServiceUnavailableException(AI_UNAVAILABLE)
@@ -385,6 +387,7 @@ export class CampaignGenerationService {
           budgetTotal: Number.isFinite(plan.suggestedBudget) ? plan.suggestedBudget : null,
           ...(referenceImageUrl ? { referenceImageUrl } : {}),
           ...(styleTemplateId ? { styleTemplateId } : {}),
+          ...(directionId ? { directionId } : {}),
         },
       })
 

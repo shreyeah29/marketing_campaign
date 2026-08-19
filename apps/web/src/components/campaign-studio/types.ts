@@ -129,6 +129,14 @@ export interface CreateDraft {
    * direction and the set actually looks like a set.
    */
   styleTemplateId?: string | undefined
+  /**
+   * The built-in creative direction this campaign is made with.
+   *
+   * The least specific of the three looks. A saved style beats it, and a
+   * reference picture attached to this campaign beats both — see `resolveLook`
+   * on the API side.
+   */
+  directionId?: string | undefined
   /** Number of unique video concepts (0–3). */
   videoCount?: 0 | 1 | 2 | 3 | undefined
   /** Ad platforms to generate for. */

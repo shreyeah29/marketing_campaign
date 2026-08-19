@@ -1306,6 +1306,16 @@ model Campaign {
    */
   styleTemplateId String? @map("style_template_id")
 
+  /**
+   * The built-in creative direction this campaign was made with.
+   *
+   * No foreign key: directions ship as code, so a campaign made with one that a
+   * later release retires keeps its artwork and simply resolves no look on a
+   * regenerate. A constraint would either block the release or orphan the
+   * campaign, and a null lookup is better than both.
+   */
+  directionId String? @map("direction_id")
+
   primaryOffer   String? @map("primary_offer")
   secondaryOffer String? @map("secondary_offer")
   couponCode     String? @map("coupon_code")

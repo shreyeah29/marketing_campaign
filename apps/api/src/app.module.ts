@@ -45,6 +45,7 @@ import {
   WorkflowRunsController,
 } from './modules/automation/workflow-engine.controller.js'
 import { AiController } from './modules/ai/ai.controller.js'
+import { CreativeDirectionsController } from './modules/ai/creative-directions.controller.js'
 import { ScenesController } from './modules/ai/scenes.controller.js'
 import { StyleTemplatesController } from './modules/ai/style-templates.controller.js'
 import { AiService } from './modules/ai/ai.service.js'
@@ -136,6 +137,7 @@ import { AdAllowanceService } from './modules/meta/ad-allowance.service.js'
     WorkflowEngineController,
     WorkflowRunsController,
     AiController,
+    CreativeDirectionsController,
     ScenesController,
     StyleTemplatesController,
     PromptsController,

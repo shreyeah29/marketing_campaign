@@ -40,6 +40,7 @@ import {
   isModelUnavailable,
   listAvailableImageModels,
 } from '../ai/adapters/openai-media.js'
+import { directionLook } from '../ai/creative-directions.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
@@ -84,6 +85,15 @@ const generateSchema = z
      * this particular campaign meant it.
      */
     styleTemplateId: z.string().uuid().optional(),
+    /**
+     * A built-in creative direction, by id.
+     *
+     * The third way a look can arrive, and the least specific: a direction is
+     * ours and shared by every workspace, a saved style is this workspace's own,
+     * and a reference picture belongs to this one campaign. They resolve in that
+     * order of increasing specificity — see `generatePoster`.
+     */
+    directionId: z.string().max(64).optional(),
   })
   .strict()
 const editSchema = z
@@ -241,6 +251,7 @@ export class ReviewQueueController {
       targetAudience: unknown
       referenceImageUrl?: string | null
       styleTemplate?: { look: string } | null
+      directionId?: string | null
     } | null,
     p: Principal,
     id: string,
@@ -307,7 +318,7 @@ export class ReviewQueueController {
         locations: audienceLocations(campaignRow?.targetAudience),
         theme: campaignRow?.theme ?? campaignRow?.name ?? null,
       }),
-      styleLook: campaignRow?.styleTemplate?.look ?? null,
+      styleLook: resolveLook(campaignRow),
     })
 
     /**
@@ -543,7 +554,10 @@ export class ReviewQueueController {
   @RequirePermissions(PERMISSIONS.CAMPAIGNS_WRITE, PERMISSIONS.AGENTS_RUN)
   @ApiOperation({ summary: 'Generate a campaign and its assets from a brief' })
   async generate(@Body() body: unknown, @CurrentPrincipal() p: Principal): Promise<unknown> {
-    const { brief, posterText, referenceImageUrl, styleTemplateId } = zodBody(generateSchema, body)
+    const { brief, posterText, referenceImageUrl, styleTemplateId, directionId } = zodBody(
+      generateSchema,
+      body,
+    )
     if (referenceImageUrl !== undefined && !isOwnStorageUrl(referenceImageUrl)) {
       // The adapter fetches this URL from the server, so accepting any address
       // would turn this endpoint into a request forwarder — one that reaches
@@ -558,6 +572,7 @@ export class ReviewQueueController {
       posterText,
       referenceImageUrl,
       styleTemplateId,
+      directionId,
     })
   }
 
@@ -767,6 +782,7 @@ export class ReviewQueueController {
               theme: true,
               targetAudience: true,
               referenceImageUrl: true,
+              directionId: true,
               // Only the paragraph. The picture the look was read from is never
               // needed again — that is the whole point of reading it once.
               styleTemplate: { select: { look: true } },
@@ -852,6 +868,7 @@ export class ReviewQueueController {
       targetAudience: unknown
       referenceImageUrl?: string | null
       styleTemplate?: { look: string } | null
+      directionId?: string | null
     } | null,
     p: Principal,
     id: string,
@@ -897,7 +914,7 @@ export class ReviewQueueController {
      * them into one direction string lets the clamp treat both as the same kind
      * of supporting material.
      */
-    const styleLook = campaignRow?.styleTemplate?.look?.trim()
+    const styleLook = resolveLook(campaignRow)?.trim()
     const fullDirection = [direction, styleLook ? `Visual style: ${styleLook}` : null]
       .filter((part): part is string => Boolean(part))
       .join(' ')
@@ -1454,6 +1471,33 @@ async function fetchImageBytes(url: string | undefined): Promise<Buffer | null> 
   } catch {
     return null
   }
+}
+
+/**
+ * Which look this campaign's pictures are made in.
+ *
+ * Three can arrive and they differ by who they belong to: a built-in direction
+ * is ours and shared by every workspace, a saved style is this workspace's own,
+ * and a reference picture was attached to this one campaign. Specificity
+ * increases along that line, so the more specific one wins — someone who
+ * uploaded a picture for *this* campaign meant it more than they meant the house
+ * style they set in March.
+ *
+ * The reference picture is not resolved here at all: it travels as an image, not
+ * as words, and `buildPosterBrief` gives it its own block at the very end of the
+ * prompt. This decides only which paragraph of *text* to send, and returning the
+ * saved style ahead of the direction is what makes "our usual look" beat "the
+ * festive direction" when both are set.
+ */
+function resolveLook(
+  campaign: {
+    styleTemplate?: { look: string } | null
+    directionId?: string | null
+  } | null,
+): string | null {
+  // Null campaign is a real case: an asset can exist without one, and it simply
+  // has no look rather than being an error.
+  return campaign?.styleTemplate?.look ?? directionLook(campaign?.directionId)
 }
 
 /**

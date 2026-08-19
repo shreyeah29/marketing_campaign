@@ -100,6 +100,15 @@ export interface KeyModelReport {
   readonly total: number
   /** True when the listing itself failed — the key may be invalid entirely. */
   readonly unreadable: boolean
+  /**
+   * A sample of what the key *can* see, for the log only.
+   *
+   * The decisive comparison is between this and the organisation's rate-limit
+   * page. An organisation can be entitled to a model while the project the key
+   * belongs to is restricted to an allow-list that excludes it — and from the
+   * API side those look identical until you can see both lists side by side.
+   */
+  readonly sample: readonly string[]
 }
 
 export async function listAvailableImageModels(apiKey: string): Promise<KeyModelReport> {
@@ -108,18 +117,19 @@ export async function listAvailableImageModels(apiKey: string): Promise<KeyModel
       headers: { authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(15_000),
     })
-    if (!res.ok) return { image: [], total: 0, unreadable: true }
+    if (!res.ok) return { image: [], total: 0, unreadable: true, sample: [] }
     const body = (await res.json()) as { data?: { id?: unknown }[] }
     const ids = (body.data ?? []).map((m) => (typeof m.id === 'string' ? m.id : '')).filter(Boolean)
     return {
       image: ids.filter((id) => /image|dall-e/i.test(id)).sort(),
       total: ids.length,
       unreadable: false,
+      sample: ids.slice(0, 25).sort(),
     }
   } catch {
     // The diagnosis is best-effort. Failing here must not replace the real
     // error with a second one about the diagnosis.
-    return { image: [], total: 0, unreadable: true }
+    return { image: [], total: 0, unreadable: true, sample: [] }
   }
 }
 

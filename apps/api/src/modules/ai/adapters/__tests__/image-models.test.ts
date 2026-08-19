@@ -129,6 +129,7 @@ describe('listAvailableImageModels', () => {
     expect(report.image).toEqual(['dall-e-3', 'gpt-image-1'])
     expect(report.total).toBe(4)
     expect(report.unreadable).toBe(false)
+    expect(report.sample).toContain('gpt-4o')
   })
 
   it('separates "works but cannot draw" from "has no access"', async () => {

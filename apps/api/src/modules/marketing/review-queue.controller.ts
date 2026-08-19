@@ -337,7 +337,17 @@ export class ReviewQueueController {
        */
       const available = await listAvailableImageModels(openai.apiKey)
       this.logger.error(
-        { assetId: id, refusals, available },
+        {
+          assetId: id,
+          refusals,
+          imageModels: available.image,
+          totalModels: available.total,
+          // Compare this against the organisation's rate-limit page. A model
+          // listed there and absent here is a project allow-list, not an
+          // organisation entitlement — the two are set in different places and
+          // only this comparison tells them apart.
+          sampleModels: available.sample,
+        },
         'no image model available to this project',
       )
       /**

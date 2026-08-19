@@ -38,6 +38,7 @@ import {
   generateImage,
   imageModelCandidates,
   isModelUnavailable,
+  listAvailableImageModels,
 } from '../ai/adapters/openai-media.js'
 import { buildPosterBrief, type PosterCopy } from '../ai/poster-brief.js'
 import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
@@ -325,10 +326,24 @@ export class ReviewQueueController {
     }
 
     if (!result) {
-      // Every candidate refused: the project cannot call an image model at all.
-      this.logger.error({ assetId: id, refusals }, 'no image model available to this project')
+      /**
+       * Every candidate refused. Ask the key what it *can* use, and say so.
+       *
+       * Without this the log reads "none of these worked" and the next step is
+       * another guess at a model name, another deploy and another failure — I
+       * have done two of those. One free request settles it: either the key can
+       * see image models and the names were wrong, or it can see none, and that
+       * is a different problem with a different fix.
+       */
+      const available = await listAvailableImageModels(openai.apiKey)
+      this.logger.error(
+        { assetId: id, refusals, available },
+        'no image model available to this project',
+      )
       throw new ServiceUnavailableException(
-        `Designed posters need an OpenAI image model and this project cannot use any of ${candidates.join(', ')}. Enable one for the project, or set OPENAI_IMAGE_MODEL to a model it can use. Photography still works in the meantime.`,
+        available.length > 0
+          ? `None of ${candidates.join(', ')} can be used by this OpenAI project. It can use: ${available.join(', ')}. Set OPENAI_IMAGE_MODEL to one of those.`
+          : `This OpenAI key cannot see any image model at all, so ${candidates.join(', ')} were all refused. Check that the key belongs to an OpenAI project with image models enabled — a project-scoped key with a model allow-list, or a key for an OpenAI-compatible service that is not OpenAI, both look exactly like this. Photography still works in the meantime.`,
       )
     }
     const usedFallback = result.model !== candidates[0]

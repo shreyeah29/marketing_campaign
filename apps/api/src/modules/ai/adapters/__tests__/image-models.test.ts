@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { AdapterError } from '../llm.js'
+import { afterEach, vi } from 'vitest'
+
 import {
   IMAGE_MODEL_CANDIDATES,
   imageModelCandidates,
   isModelUnavailable,
+  listAvailableImageModels,
 } from '../openai-media.js'
 
 /**
@@ -96,5 +99,56 @@ describe('imageModelCandidates', () => {
 
   it('accepts an ordered list', () => {
     expect(imageModelCandidates('gpt-image-2, dall-e-3')).toEqual(['gpt-image-2', 'dall-e-3'])
+  })
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('listAvailableImageModels', () => {
+  function respond(body: unknown, status = 200): void {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(JSON.stringify(body), {
+            status,
+            headers: { 'content-type': 'application/json' },
+          }),
+        ),
+      ),
+    )
+  }
+
+  it('keeps only the models that draw', async () => {
+    respond({
+      data: [
+        { id: 'gpt-4o' },
+        { id: 'gpt-image-1' },
+        { id: 'dall-e-3' },
+        { id: 'whisper-1' },
+        { id: 'text-embedding-3-small' },
+      ],
+    })
+    expect(await listAvailableImageModels('k')).toEqual(['dall-e-3', 'gpt-image-1'])
+  })
+
+  it('returns nothing when the key can see no image model', async () => {
+    // The case that matters: it means the key is not what we think it is, and
+    // the message says so instead of suggesting another model name.
+    respond({ data: [{ id: 'gpt-4o' }] })
+    expect(await listAvailableImageModels('k')).toEqual([])
+  })
+
+  it('never throws — a failed diagnosis must not replace the real error', async () => {
+    respond({ error: 'nope' }, 401)
+    expect(await listAvailableImageModels('k')).toEqual([])
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new Error('socket hang up'))),
+    )
+    expect(await listAvailableImageModels('k')).toEqual([])
   })
 })

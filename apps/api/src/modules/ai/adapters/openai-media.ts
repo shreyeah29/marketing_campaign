@@ -76,6 +76,42 @@ export function imageModelCandidates(configured?: string | null): readonly strin
   return pinned.length > 0 ? pinned : IMAGE_MODEL_CANDIDATES
 }
 
+/**
+ * Ask the key what it can actually draw with.
+ *
+ * Reached only when every candidate has been refused, and it exists because of
+ * what the refusals were: `dall-e-3` came back as "does not exist", and that
+ * model is available to essentially every OpenAI account. A key that cannot see
+ * it is not a key missing one permission — it is a key whose model list is
+ * nothing like the default, which happens with a project-scoped allow-list or
+ * with an OpenAI-compatible endpoint that is not OpenAI.
+ *
+ * Guessing further is a waste of round trips. `GET /v1/models` returns what this
+ * key may use, costs nothing, generates nothing, and turns the next failure log
+ * from "none of these worked" into the actual answer.
+ *
+ * Model ids are not secrets — they name a product, not an account — so the list
+ * is safe to put in the error a person reads.
+ */
+export async function listAvailableImageModels(apiKey: string): Promise<string[]> {
+  try {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      headers: { authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!res.ok) return []
+    const body = (await res.json()) as { data?: { id?: unknown }[] }
+    return (body.data ?? [])
+      .map((m) => (typeof m.id === 'string' ? m.id : ''))
+      .filter((id) => /image|dall-e/i.test(id))
+      .sort()
+  } catch {
+    // The diagnosis is best-effort. Failing here must not replace the real
+    // error with a second one about the diagnosis.
+    return []
+  }
+}
+
 export interface GenerateImageInput {
   readonly apiKey: string
   readonly prompt: string

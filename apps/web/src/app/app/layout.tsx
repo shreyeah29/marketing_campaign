@@ -531,14 +531,33 @@ export default function TenantLayout({ children }: { children: ReactNode }) {
   )
 }
 
+/**
+ * A path segment that is an identifier rather than a name.
+ *
+ * uuid v7 ids and the odd hex key both reach here as the last segment, and
+ * title-casing one produced "01A01B57 23E1 7C41 864B 23F67Ca860C9" sitting
+ * above the campaign's actual name — the raw id, spaced out and capitalised, as
+ * though it were a heading.
+ */
+function looksLikeId(segment: string): boolean {
+  return (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) ||
+    /^[0-9a-f]{16,}$/i.test(segment) ||
+    /^\d+$/.test(segment)
+  )
+}
+
 function pageContextLabel(pathname: string): string {
   const parts = pathname
     .replace(/^\/app\/?/, '')
     .split('/')
     .filter(Boolean)
   if (parts.length === 0) return 'Home'
-  const last = parts[parts.length - 1] ?? 'Home'
-  return last.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  // Walk back past ids to the last segment that names something. A campaign
+  // detail page reads "Campaigns", and the campaign's own name is printed once,
+  // by the page, where it belongs.
+  const named = [...parts].reverse().find((part) => !looksLikeId(part)) ?? 'Home'
+  return named.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 /**

@@ -31,11 +31,25 @@ const MEDIUMS: readonly (readonly [PieceMedium, string])[] = [
   ['copy', 'Copy'],
 ]
 
+/**
+ * The sheet can show one medium or all of them.
+ *
+ * `all` exists because the split was a consequence of the rail, not of the work:
+ * a column 280px wide could only hold one list, so posters and videos became
+ * tabs. A grid has room for both, and most campaigns are small enough that
+ * splitting six creatives across three tabs hides more than it organises.
+ */
+type MediumTab = PieceMedium | 'all'
+
+/** Statuses that mean a piece has already been decided on. */
+const TERMINAL = new Set(['APPROVED', 'PUBLISHED', 'SCHEDULED', 'PUBLISHING'])
+
 /** Lower-case for use mid-sentence in the empty states. */
-const MEDIUM_NOUN: Record<PieceMedium, string> = {
+const MEDIUM_NOUN: Record<MediumTab, string> = {
   poster: 'posters',
   video: 'videos',
   copy: 'copy',
+  all: 'creatives',
 }
 
 /**
@@ -54,7 +68,21 @@ export function CreativeStudio({
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [filter, setFilter] = useState<'all' | 'review' | 'approved'>('review')
-  const [medium, setMedium] = useState<PieceMedium>('poster')
+  const [medium, setMedium] = useState<MediumTab>('poster')
+  /**
+   * Which pieces a batch action will run on, by piece id.
+   *
+   * Cleared whenever the medium or filter changes. A selection that outlives the
+   * filter it was made under is a way to approve something nobody looked at —
+   * the tiles leave the screen, the count stays, and Approve 5 acts on two
+   * things you can no longer see.
+   */
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  /** Anchor for shift-click, over the filtered order rather than the full set. */
+  const anchorRef = useRef<string | null>(null)
+  /** Progress while a batch runs, so the button can count rather than spin. */
+  const [batch, setBatch] = useState<{ verb: string; done: number; total: number } | null>(null)
+  const [batchNote, setBatchNote] = useState(false)
   const [platformTab, setPlatformTab] = useState<string | null>(null)
   const [panel, setPanel] = useState<'copy' | 'comments' | 'versions'>('copy')
   /**
@@ -78,13 +106,19 @@ export function CreativeStudio({
   }, [pieces])
 
   // Land on a tab that has something in it. A campaign of videos only should
-  // not open on an empty Posters tab and read as "nothing was generated".
+  // not open on an empty Posters tab and read as "nothing was generated" — and a
+  // campaign with posters *and* videos opens on All, because with a grid there
+  // is no longer a reason to see half of it at a time.
   const settledRef = useRef(false)
   useEffect(() => {
     if (settledRef.current || pieces.length === 0) return
     settledRef.current = true
-    if (byMedium.poster.length > 0) return
-    setMedium(byMedium.video.length > 0 ? 'video' : 'copy')
+    const occupied = MEDIUMS.filter(([id]) => byMedium[id].length > 0)
+    if (occupied.length > 1) {
+      setMedium('all')
+      return
+    }
+    setMedium(occupied[0]?.[0] ?? 'poster')
   }, [pieces, byMedium])
 
   // Following a link straight to one asset must show it, even when it lives
@@ -103,8 +137,13 @@ export function CreativeStudio({
     setMedium(pieceMedium(owner))
   }, [selectedAssetId, pieces])
 
+  /** Everything in the chosen medium, before the status filter. */
+  const scoped = useMemo(
+    () => (medium === 'all' ? pieces : byMedium[medium]),
+    [medium, pieces, byMedium],
+  )
+
   const filtered = useMemo(() => {
-    const scoped = byMedium[medium]
     if (filter === 'all') return scoped
     if (filter === 'approved') {
       return scoped.filter((p) =>
@@ -117,18 +156,34 @@ export function CreativeStudio({
       const s = pieceStatus(p)
       return ['GENERATED', 'NEEDS_REVIEW', 'DRAFT', 'REJECTED'].includes(s)
     })
-  }, [byMedium, medium, filter])
+  }, [scoped, filter])
 
+  /** Counts for the filter chips, so a chip says what it will show. */
+  const filterCounts = useMemo(() => {
+    const approved = scoped.filter((p) =>
+      p.assets.every(
+        (a) => a.status === 'APPROVED' || a.status === 'PUBLISHED' || a.status === 'SCHEDULED',
+      ),
+    ).length
+    const review = scoped.filter((p) =>
+      ['GENERATED', 'NEEDS_REVIEW', 'DRAFT', 'REJECTED'].includes(pieceStatus(p)),
+    ).length
+    return { all: scoped.length, approved, review }
+  }, [scoped])
+
+  /**
+   * The piece being looked at, or null for the sheet.
+   *
+   * No longer falls back to the first filtered piece. With a rail, something had
+   * to be in the stage or the right-hand two thirds of the screen were blank; a
+   * sheet *is* the content, so opening one is a deliberate act and the default is
+   * to show all of them. The fallback also had a bug in it: the stage would open
+   * on whatever happened to sort first, which changes as pieces are approved.
+   */
   const selectedPiece = useMemo(() => {
-    if (!filtered.length) return null
-    if (selectedAssetId) {
-      const hit =
-        filtered.find((p) => p.assets.some((a) => a.id === selectedAssetId)) ??
-        pieces.find((p) => p.assets.some((a) => a.id === selectedAssetId))
-      if (hit) return hit
-    }
-    return filtered[0] ?? null
-  }, [filtered, pieces, selectedAssetId])
+    if (!selectedAssetId) return null
+    return pieces.find((p) => p.assets.some((a) => a.id === selectedAssetId)) ?? null
+  }, [pieces, selectedAssetId])
 
   useEffect(() => {
     if (!selectedPiece) return
@@ -235,6 +290,42 @@ export function CreativeStudio({
     return () => window.clearInterval(t)
   }, [pending, blocked, reload])
 
+  /**
+   * A selection belongs to the view it was made in.
+   *
+   * Changing medium or filter takes tiles off the screen, and a count that
+   * survives that is a batch acting on things nobody can see — the exact way
+   * something gets approved without being looked at.
+   */
+  useEffect(() => {
+    setSelected(new Set())
+    anchorRef.current = null
+  }, [medium, filter])
+
+  /**
+   * Select all in view, or clear.
+   *
+   * Scoped to `filtered` for the same reason the shift-range is: "all" means
+   * what is on the screen, not what exists.
+   */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setSelected(new Set())
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+        // Not while typing: ⌘A in the redraw note means select the text.
+        const el = e.target as HTMLElement | null
+        if (el && /^(INPUT|TEXTAREA)$/.test(el.tagName)) return
+        e.preventDefault()
+        setSelected(new Set(filtered.map((p) => p.id)))
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [filtered])
+
   // ── Advertising rules ────────────────────────────────────────────────────
   // Fetched once. An organisation that has set no rules gets no banner, and a
   // failed fetch must never block reviewing — compliance context is additive.
@@ -265,71 +356,183 @@ export function CreativeStudio({
     router.push(`/app/campaigns/${campaignId}/assets/${id}`)
   }
 
-  async function actOnPiece(
-    piece: ContentPiece,
-    action: 'approve' | 'reject' | 'regenerate' | 'duplicate' | 'generate',
-  ) {
+  type PieceAction = 'approve' | 'reject' | 'regenerate' | 'duplicate' | 'generate'
+
+  /**
+   * The work itself: no toast, no reload, throws on failure.
+   *
+   * Split out so a batch can run the identical code path per piece without a
+   * toast and a refetch after each one. Ten approvals used to mean ten toasts
+   * and ten reloads of the whole campaign — the reload racing the next request,
+   * and the toasts stacking into a column nobody reads. The batch collects, then
+   * reports once.
+   *
+   * Returns the sentence to show when this runs on its own.
+   */
+  async function performAction(piece: ContentPiece, action: PieceAction): Promise<string | null> {
+    if (action === 'generate') {
+      // Render the creative so it can be judged on sight. Deliberately does
+      // not approve anything — the reviewer decides after seeing it.
+      const target = piece.master
+      if (!target) return null
+      // `force` because this is a deliberate click asking for something
+      // different. The automatic path below never sends it, which is what
+      // makes a remount cost nothing instead of a new generation.
+      await api.post(`/campaign-assets/${target.id}/generate-media`, {
+        variants: 1,
+        force: true,
+      })
+      return target.kind === 'VIDEO_PROMPT'
+        ? 'Rendering the video — this takes a few minutes'
+        : 'Generating the creative — this takes a moment'
+    }
+    if (action === 'approve') {
+      // Poster first (may chain Runway), then adaptations
+      const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
+      let generated = 0
+      for (const a of ordered) {
+        if (TERMINAL.has(a.status)) continue
+        const result = await approveCampaignAsset(a)
+        if (result === 'generated') generated++
+      }
+      return generated > 0 ? 'Poster generating — adaptations approved' : 'Piece approved'
+    }
+    if (action === 'reject') {
+      for (const a of piece.assets) {
+        if (a.status === 'REJECTED') continue
+        await api.post(`/campaign-assets/${a.id}/reject`, {})
+      }
+      return 'Piece rejected'
+    }
+    if (action === 'regenerate') {
+      const target = piece.master ?? activeAdaptation
+      if (!target) return null
+      const instruction = regenNote.trim()
+      await api.post(`/campaign-assets/${target.id}/regenerate`, instruction ? { instruction } : {})
+      return instruction ? 'Redrawing with your change' : 'Regenerating…'
+    }
+    const target = piece.master ?? activeAdaptation
+    if (!target) return null
+    await api.post(`/campaign-assets/${target.id}/duplicate`, {})
+    return 'Duplicated'
+  }
+
+  /** One piece, one toast, one reload. */
+  async function actOnPiece(piece: ContentPiece, action: PieceAction) {
     setBusy(true)
     try {
-      if (action === 'generate') {
-        // Render the creative so it can be judged on sight. Deliberately does
-        // not approve anything — the reviewer decides after seeing it.
-        const target = piece.master
-        if (!target) return
-        // `force` because this is a deliberate click asking for something
-        // different. The automatic path below never sends it, which is what
-        // makes a remount cost nothing instead of a new generation.
-        await api.post(`/campaign-assets/${target.id}/generate-media`, {
-          variants: 1,
-          force: true,
-        })
-        toast.push(
-          'success',
-          target.kind === 'VIDEO_PROMPT'
-            ? 'Rendering the video — this takes a few minutes'
-            : 'Generating the creative — this takes a moment',
-        )
-      } else if (action === 'approve') {
-        // Poster first (may chain Runway), then adaptations
-        const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
-        let generated = 0
-        for (const a of ordered) {
-          if (['APPROVED', 'PUBLISHED', 'SCHEDULED', 'PUBLISHING'].includes(a.status)) continue
-          const result = await approveCampaignAsset(a)
-          if (result === 'generated') generated++
-        }
-        toast.push(
-          'success',
-          generated > 0 ? 'Poster generating — adaptations approved' : 'Piece approved',
-        )
-      } else if (action === 'reject') {
-        for (const a of piece.assets) {
-          if (a.status === 'REJECTED') continue
-          await api.post(`/campaign-assets/${a.id}/reject`, {})
-        }
-        toast.push('success', 'Piece rejected')
-      } else if (action === 'regenerate') {
-        const target = piece.master ?? activeAdaptation
-        if (!target) return
-        const instruction = regenNote.trim()
-        await api.post(
-          `/campaign-assets/${target.id}/regenerate`,
-          instruction ? { instruction } : {},
-        )
-        setRegenNote('')
-        toast.push('success', instruction ? 'Redrawing with your change' : 'Regenerating…')
-      } else {
-        const target = piece.master ?? activeAdaptation
-        if (!target) return
-        await api.post(`/campaign-assets/${target.id}/duplicate`, {})
-        toast.push('success', 'Duplicated')
-      }
+      const note = await performAction(piece, action)
+      if (action === 'regenerate') setRegenNote('')
+      if (note) toast.push('success', note)
       reload()
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : `${action} failed`)
     } finally {
       setBusy(false)
     }
+  }
+
+  /**
+   * Whether a batch action would do anything to this piece.
+   *
+   * Used for the button's count, so "Approve 3" means three things will change.
+   * Counting five when two are already approved makes the number a lie about
+   * the work, and the two are skipped inside `performAction` anyway.
+   */
+  function wouldAct(piece: ContentPiece, action: PieceAction): boolean {
+    if (action === 'approve') return piece.assets.some((a) => !TERMINAL.has(a.status))
+    if (action === 'reject') return piece.assets.some((a) => a.status !== 'REJECTED')
+    // Redrawing needs artwork to redraw. In a batch there is no open piece to
+    // fall back to, so a copy-only tile would be counted and then do nothing.
+    if (action === 'regenerate' || action === 'generate') return piece.master != null
+    return true
+  }
+
+  const chosen = useMemo(() => filtered.filter((p) => selected.has(p.id)), [filtered, selected])
+  /**
+   * How many the button will actually change.
+   *
+   * "Approve 5" over a selection where two are already approved is a number
+   * that misdescribes the work — the two are skipped inside `performAction`
+   * either way, so the label should not have counted them.
+   */
+  const approvable = chosen.filter((p) => wouldAct(p, 'approve')).length
+  const rejectable = chosen.filter((p) => wouldAct(p, 'reject')).length
+
+  /**
+   * Run one action across the selection, one piece at a time.
+   *
+   * Sequential, and not as a matter of taste: approving a poster chains a Runway
+   * generation, and firing five at once hits the provider's rate limit and fails
+   * most of them on a limit that means "wait" rather than "no".
+   *
+   * One failure does not abort the rest — the other four had nothing wrong with
+   * them, and stopping at the first would leave the batch half-applied with no
+   * record of where it stopped. Failures are collected and reported once.
+   */
+  async function runBatch(action: PieceAction, verb: string) {
+    const targets = chosen.filter((p) => wouldAct(p, action))
+    if (targets.length === 0 || batch) return
+
+    const failures: string[] = []
+    setBatch({ verb, done: 0, total: targets.length })
+    for (const [i, piece] of targets.entries()) {
+      setBatch({ verb, done: i + 1, total: targets.length })
+      try {
+        await performAction(piece, action)
+      } catch (e) {
+        failures.push(e instanceof ApiError ? e.message : `${piece.label} failed`)
+      }
+    }
+    setBatch(null)
+    if (action === 'regenerate') {
+      setRegenNote('')
+      setBatchNote(false)
+    }
+
+    const done = targets.length - failures.length
+    if (failures.length === 0) {
+      toast.push(
+        'success',
+        `${String(done)} ${done === 1 ? 'piece' : 'pieces'} ${verb.toLowerCase()}d`,
+      )
+    } else {
+      // The first reason rather than a bare count: five identical rate-limit
+      // failures and five different ones need different responses, and a number
+      // alone cannot tell them apart.
+      toast.push(
+        'error',
+        `${String(failures.length)} of ${String(targets.length)} failed — ${failures[0] ?? ''}`,
+      )
+    }
+    setSelected(new Set())
+    reload()
+  }
+
+  /**
+   * Toggle one tile, or extend from the last one when shift is held.
+   *
+   * The range runs over `filtered`, which is what is on screen — a range over
+   * the full set would select tiles behind the current filter.
+   */
+  function toggleSelection(piece: ContentPiece, shift: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      const anchor = anchorRef.current
+      if (shift && anchor && anchor !== piece.id) {
+        const from = filtered.findIndex((p) => p.id === anchor)
+        const to = filtered.findIndex((p) => p.id === piece.id)
+        if (from !== -1 && to !== -1) {
+          const [lo, hi] = from < to ? [from, to] : [to, from]
+          for (const p of filtered.slice(lo, hi + 1)) next.add(p.id)
+          return next
+        }
+      }
+      if (next.has(piece.id)) next.delete(piece.id)
+      else next.add(piece.id)
+      return next
+    })
+    anchorRef.current = piece.id
   }
 
   function downloadMedia(url: string) {
@@ -396,49 +599,43 @@ export function CreativeStudio({
 
   return (
     <div className={`cstudio${drawer ? ' has-drawer' : ''}`}>
-      <aside className="cstudio__rail" aria-label="Creatives">
-        {/* Posters and videos are separate tabs, not one mixed list: a poster is
-            already rendered and waiting to be judged, a video has not been made
-            yet and costs minutes to make. Showing them together meant the two
-            most different actions on this screen sat side by side. */}
+      {/* ── Toolbar ──────────────────────────────────────────────────────
+          One line instead of three stacked rows in a column. The medium split
+          and the status filter were a consequence of the rail's width, not of
+          the work — a grid has room for both kinds at once, which is why All
+          exists and is the default whenever more than one has content. */}
+      <div className="cstudio__toolbar">
         <div className="cstudio__mediums" role="tablist" aria-label="Creative type">
-          {MEDIUMS.filter(([id]) => byMedium[id].length > 0 || id === 'poster').map(
-            ([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                className={`cstudio__medium${medium === id ? ' is-on' : ''}`}
-                aria-selected={medium === id}
-                onClick={() => setMedium(id)}
-              >
-                <Icon
-                  name={id === 'video' ? 'video' : id === 'copy' ? 'file-text' : 'image'}
-                  size={14}
-                />
-                {label}
-                <span className="cstudio__medium-count">{byMedium[id].length}</span>
-              </button>
-            ),
-          )}
-        </div>
-        <div className="cstudio__rail-head">
-          <p className="type-caption" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
-            {medium === 'video'
-              ? `${String(byMedium.video.length)} video concept${byMedium.video.length === 1 ? '' : 's'} — ready to render`
-              : medium === 'copy'
-                ? `${String(byMedium.copy.length)} caption-only piece${byMedium.copy.length === 1 ? '' : 's'}`
-                : `${String(byMedium.poster.length)} poster${byMedium.poster.length === 1 ? '' : 's'}${pending > 0 ? ` · ${String(pending)} rendering` : ''}`}
-          </p>
-        </div>
-        <div className="cstudio__filters" role="tablist">
           {(
             [
-              ['review', 'Needs review'],
-              ['approved', 'Approved'],
-              ['all', 'All'],
+              ['all', 'All', pieces.length],
+              ...MEDIUMS.filter(([id]) => byMedium[id].length > 0).map(
+                ([id, label]) => [id, label, byMedium[id].length] as const,
+              ),
+            ] as readonly (readonly [MediumTab, string, number])[]
+          ).map(([id, label, count]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              className={`cstudio__medium${medium === id ? ' is-on' : ''}`}
+              aria-selected={medium === id}
+              onClick={() => setMedium(id)}
+            >
+              {label}
+              <span className="cstudio__medium-count">{count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="cstudio__filters" role="tablist" aria-label="Status">
+          {(
+            [
+              ['review', 'Needs review', filterCounts.review],
+              ['approved', 'Approved', filterCounts.approved],
+              ['all', 'All', filterCounts.all],
             ] as const
-          ).map(([id, label]) => (
+          ).map(([id, label, count]) => (
             <button
               key={id}
               type="button"
@@ -448,59 +645,50 @@ export function CreativeStudio({
               onClick={() => setFilter(id)}
             >
               {label}
+              <span className="cstudio__filter-count">{count}</span>
             </button>
           ))}
         </div>
-        <ul className="cstudio__list">
-          {filtered.map((p) => {
-            const thumb = piecePreviewUrl(p)
-            const active = p.id === selectedPiece?.id
-            return (
-              <li key={p.id}>
-                <button
-                  type="button"
-                  className={`cstudio__thumb${active ? ' is-on' : ''}`}
-                  onClick={() => selectPiece(p)}
-                >
-                  <div className="cstudio__thumb-media">
-                    {thumb ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={thumb} alt="" />
-                    ) : (
-                      <div className="cstudio__thumb-ph">
-                        <Icon
-                          name={p.master?.kind === 'VIDEO_PROMPT' ? 'video' : 'image'}
-                          size={18}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="cstudio__thumb-meta">
-                    <span className="cstudio__thumb-title">{p.label}</span>
-                    <span className="type-caption">
-                      {piecePlatforms(p).length === 1
-                        ? platformLabel(piecePlatforms(p)[0] ?? '')
-                        : piecePlatforms(p).length > 1
-                          ? `${String(piecePlatforms(p).length)} platforms`
-                          : kindLabel(p.master?.kind ?? p.assets[0]?.kind ?? '')}
-                    </span>
-                    <StatusPill status={toStatus(pieceStatus(p))} />
-                  </div>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </aside>
 
-      <main className="cstudio__stage">
-        {/* Nothing selected has three causes, and "Pick a piece from the left"
-            was only true for one of them. With the list empty that hint asks for
-            something impossible, and the most common way to get here is the good
-            outcome: everything in this tab is approved, so the default "Needs
-            review" filter matches nothing. Say which, and offer the way out. */}
-        {!selectedPiece ? (
-          byMedium[medium].length === 0 ? (
+        <div className="cstudio__toolbar-end">
+          {pending > 0 ? (
+            <span className="cstudio__rendering">
+              <Spinner />
+              {pending} rendering
+            </span>
+          ) : null}
+          {/* Grid is the only view built. Rendered rather than hidden so the
+              control does not appear later as though it were new, and disabled
+              rather than inert so nobody presses it expecting a list. */}
+          <div className="cstudio__views" role="group" aria-label="Layout">
+            <button
+              type="button"
+              className="cstudio__view is-on"
+              aria-pressed
+              aria-label="Grid view"
+              title="Grid"
+            >
+              <Icon name="grid" size={14} />
+            </button>
+            <button
+              type="button"
+              className="cstudio__view"
+              disabled
+              aria-label="List view"
+              title="List view — not built yet"
+            >
+              <Icon name="menu" size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Contact sheet ────────────────────────────────────────────────
+          The creatives are the content now. A campaign with one poster wastes
+          no column on it, and one with twelve shows twelve. */}
+      {filtered.length === 0 ? (
+        <div className="cstudio__sheet-empty">
+          {scoped.length === 0 ? (
             <EmptyState
               icon={medium === 'video' ? 'video' : medium === 'copy' ? 'file-text' : 'image'}
               title={`No ${MEDIUM_NOUN[medium]} in this campaign`}
@@ -521,12 +709,130 @@ export function CreativeStudio({
               }
               action={
                 <button type="button" className="btn" onClick={() => setFilter('all')}>
-                  Show all {byMedium[medium].length}
+                  Show all {scoped.length}
                 </button>
               }
             />
-          )
-        ) : (
+          )}
+        </div>
+      ) : (
+        <ul className="cstudio__sheet">
+          {filtered.map((piece) => (
+            <Tile
+              key={piece.id}
+              piece={piece}
+              selected={selected.has(piece.id)}
+              blocked={blocked}
+              busy={busy || batch !== null}
+              onToggle={(shift) => toggleSelection(piece, shift)}
+              onOpen={() => selectPiece(piece)}
+              onGenerate={() => void actOnPiece(piece, 'generate')}
+            />
+          ))}
+        </ul>
+      )}
+
+      {/* ── Batch bar ────────────────────────────────────────────────────
+          Only when something is selected. A permanent bar holding disabled
+          buttons is a row of things that never work. */}
+      {chosen.length > 0 ? (
+        <div className="cstudio__batch" role="region" aria-label="Batch actions">
+          <div className="cstudio__batch-count">
+            <strong>{chosen.length}</strong> selected
+            <span className="type-caption">
+              Shift-click for a range · ⌘A selects this view · Esc clears
+            </span>
+          </div>
+
+          {batchNote ? (
+            <input
+              className="input cstudio__batch-note"
+              value={regenNote}
+              autoFocus
+              onChange={(e) => setRegenNote(e.target.value)}
+              placeholder="What should change on all of them? e.g. warmer light, bigger offer"
+              aria-label="What to change when redrawing the selection"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !batch) void runBatch('regenerate', 'Redraw')
+              }}
+            />
+          ) : null}
+
+          <div className="cstudio__batch-actions">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={batch !== null || approvable === 0}
+              onClick={() => void runBatch('approve', 'Approve')}
+            >
+              {batch?.verb === 'Approve' ? (
+                <>
+                  <Spinner /> Approving {batch.done} of {batch.total}…
+                </>
+              ) : (
+                <>
+                  <Icon name="check" size={14} /> Approve {approvable}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={batch !== null || rejectable === 0}
+              onClick={() => void runBatch('reject', 'Reject')}
+            >
+              {batch?.verb === 'Reject' ? (
+                <>
+                  <Spinner /> Rejecting {batch.done} of {batch.total}…
+                </>
+              ) : (
+                <>
+                  <Icon name="x" size={14} /> Reject {rejectable}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={batch !== null}
+              onClick={() => {
+                if (!batchNote) setBatchNote(true)
+                else void runBatch('regenerate', 'Redraw')
+              }}
+            >
+              {batch?.verb === 'Redraw' ? (
+                <>
+                  <Spinner /> Redrawing {batch.done} of {batch.total}…
+                </>
+              ) : (
+                <>
+                  <Icon name="refresh" size={14} />
+                  {batchNote ? `Redraw ${String(chosen.length)}` : 'Redraw with a note'}
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="btn ghost"
+              disabled={batch !== null}
+              onClick={() => {
+                const first = chosen[0]
+                if (first) selectPiece(first)
+              }}
+            >
+              <Icon name="external-link" size={14} /> Open first
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── The one piece, opened ────────────────────────────────────────
+          Unchanged: the same canvas, platform tabs, caption panel and
+          compliance note. This task removed the list rail, not the detail
+          view. It renders only for an explicitly opened asset — the sheet is
+          what you get otherwise, and the empty states live there. */}
+      {selectedPiece ? (
+        <main className="cstudio__stage">
           <StatusRail status={toStatus(status)} className="cstudio__canvas">
             <header className="cstudio__stage-head">
               <div>
@@ -824,11 +1130,153 @@ export function CreativeStudio({
               ) : null}
             </div>
           </StatusRail>
-        )}
-      </main>
+        </main>
+      ) : null}
 
       {drawer}
     </div>
+  )
+}
+
+/**
+ * One creative in the contact sheet.
+ *
+ * Three states have to be tellable apart without clicking, because the whole
+ * point of a sheet is surveying twelve at once: still rendering, failed, and —
+ * for video — never started. Each carries its own reason on the tile rather than
+ * behind it, so nothing requires opening a piece to find out why it is blank.
+ *
+ * The failure reason prefers `failureReason` over the session's `blocked`. One
+ * is written on the asset and survives a reload; the other disappears with the
+ * tab, and a poster that failed last night should still say so this morning
+ * instead of reverting to "Rendering…" and looking like it is still working.
+ */
+function Tile({
+  piece,
+  selected,
+  blocked,
+  busy,
+  onToggle,
+  onOpen,
+  onGenerate,
+}: {
+  piece: ContentPiece
+  selected: boolean
+  blocked: string | null
+  busy: boolean
+  onToggle: (shift: boolean) => void
+  onOpen: () => void
+  onGenerate: () => void
+}) {
+  const medium = pieceMedium(piece)
+  const preview = piecePreviewUrl(piece)
+  const master = piece.master
+  const isVideo = medium === 'video'
+  const failure = master?.failureReason ?? (master?.status === 'FAILED' ? blocked : null)
+  // A video is not "rendering" while it waits — nothing was started. Saying so
+  // is the difference between a tile you should wait on and one you must press.
+  const waiting = !preview && !failure && master != null && !isVideo
+  const platforms = piecePlatforms(piece)
+
+  return (
+    <li className="cstudio__tile" data-selected={selected ? 'true' : undefined}>
+      <div className="cstudio__tile-media" data-medium={medium}>
+        <button
+          type="button"
+          className="cstudio__tile-hit"
+          onClick={isVideo && !preview && !failure ? onGenerate : onOpen}
+          aria-label={
+            isVideo && !preview && !failure ? `Render ${piece.label}` : `Open ${piece.label}`
+          }
+        >
+          {preview ? (
+            isVideo ? (
+              // Muted and preloaded to a frame: a poster image for a video the
+              // API does not store one for, without autoplaying twelve at once.
+              <video src={preview} muted playsInline preload="metadata" />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="" loading="lazy" />
+            )
+          ) : (
+            <span className="cstudio__tile-state">
+              {failure ? (
+                <Icon name="alert-triangle" size={20} />
+              ) : waiting ? (
+                <Spinner />
+              ) : isVideo ? (
+                <Icon name="play" size={22} />
+              ) : (
+                <Icon name="file-text" size={20} />
+              )}
+              <span className="type-caption">
+                {failure
+                  ? 'Could not render'
+                  : waiting
+                    ? 'Rendering…'
+                    : isVideo
+                      ? 'Ready to render'
+                      : 'Copy only'}
+              </span>
+            </span>
+          )}
+        </button>
+
+        {/* Outside the hit target rather than inside it: a button within a
+            button is invalid, and the checkbox must not open the piece. */}
+        <button
+          type="button"
+          className="cstudio__tile-check"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`Select ${piece.label}`}
+          onClick={(e) => onToggle(e.shiftKey)}
+        >
+          {selected ? <Icon name="check" size={12} /> : null}
+        </button>
+
+        <span className="cstudio__tile-status">
+          <StatusPill status={toStatus(pieceStatus(piece))} />
+        </span>
+      </div>
+
+      <p className="cstudio__tile-label">{piece.label}</p>
+
+      {failure ? (
+        /* The reason, and the way out, in the line that would otherwise hold
+           the platform. A failed tile has nothing useful to say about aspect
+           ratios. */
+        <button
+          type="button"
+          className="cstudio__tile-meta is-failed"
+          disabled={busy}
+          onClick={onGenerate}
+          title={failure}
+        >
+          <Icon name="refresh" size={12} />
+          Provider refused · try again
+        </button>
+      ) : (
+        <p className="cstudio__tile-meta">
+          {isVideo ? (
+            <>
+              <Icon name="video" size={12} />
+              Reels · costs minutes
+            </>
+          ) : (
+            <>
+              {platforms[0] ? <PlatformIcon platform={platforms[0]} size={12} /> : null}
+              {platforms.length > 1
+                ? `${String(platforms.length)} platforms`
+                : platforms[0]
+                  ? platformLabel(platforms[0])
+                  : kindLabel(master?.kind ?? piece.assets[0]?.kind ?? '')}
+              {medium === 'poster' ? ' · 4:5' : ''}
+            </>
+          )}
+        </p>
+      )}
+    </li>
   )
 }
 

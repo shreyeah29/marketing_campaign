@@ -5169,115 +5169,292 @@ a.card:hover {
 }
 
 /* ── Creative Studio (campaign assets) ─────────────────────────────────────── */
+/* One column. The 280px rail is gone: it listed what the content area could
+   show directly, so on a campaign with one poster it was a whole column
+   describing a single tile, and on a campaign with twelve it was a scrolling
+   list beside a stage showing one of them. The creatives are the content now. */
 .cstudio {
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: var(--space-5);
+  display: block;
   min-height: calc(100vh - 220px);
+}
+/* The drawer keeps its column; the sheet narrows into what is left. */
+.cstudio.has-drawer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: var(--space-5);
   align-items: start;
 }
-.cstudio.has-drawer {
-  grid-template-columns: 240px minmax(0, 1fr) minmax(320px, 420px);
-}
-.cstudio__rail {
-  position: sticky;
-  top: 12px;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--surface-raised);
-  max-height: calc(100vh - 160px);
-  overflow: auto;
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+/* One wrapping line holding what used to be three stacked rows in the rail:
+   which medium, which status, and what is happening. */
+.cstudio__toolbar {
   display: flex;
-  flex-direction: column;
-}
-.cstudio__rail-head {
-  padding: var(--space-5) var(--space-4) var(--space-3);
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-5);
 }
+.cstudio__toolbar-end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+.cstudio__rendering {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--type-caption);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.cstudio__views {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.cstudio__view {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.cstudio__view.is-on {
+  background: var(--surface-selected);
+  color: var(--text-primary);
+}
+.cstudio__view:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Status filters: pills, so they read as a different question from the
+   underlined medium tabs beside them (which kind → which status). */
 .cstudio__filters {
   display: flex;
   gap: 4px;
-  padding: var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
 }
 .cstudio__filter {
-  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   border: 0;
   background: transparent;
-  padding: 8px 6px;
+  padding: 6px 10px;
   border-radius: var(--radius-md);
   font: var(--type-caption);
   color: var(--text-secondary);
   cursor: pointer;
+}
+.cstudio__filter:hover {
+  background: var(--surface-hover);
 }
 .cstudio__filter.is-on {
   background: var(--surface-selected);
   color: var(--cobalt-800);
   font-weight: 600;
 }
-.cstudio__list {
+.cstudio__filter-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+.cstudio__filter.is-on .cstudio__filter-count {
+  color: inherit;
+}
+
+/* ── The sheet ────────────────────────────────────────────────────────────── */
+.cstudio__sheet {
   list-style: none;
   margin: 0;
-  padding: var(--space-2);
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+  /* Room for the batch bar, which is sticky and would otherwise sit on top of
+     the last row of tiles. */
+  padding-bottom: 96px;
+}
+.cstudio__sheet-empty {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+}
+
+.cstudio__tile {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2);
+  min-width: 0;
 }
-.cstudio__thumb {
-  width: 100%;
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  text-align: left;
-  padding: 8px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  cursor: pointer;
-  color: inherit;
-  font: inherit;
-}
-.cstudio__thumb:hover {
-  background: var(--surface-hover);
-}
-.cstudio__thumb.is-on {
-  background: var(--surface-selected);
-  border-color: var(--border-default);
-}
-.cstudio__thumb-media {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
+.cstudio__tile-media {
+  position: relative;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--surface-sunken);
 }
-.cstudio__thumb-media img {
+/* A poster and a video are different shapes, and cropping either into the
+   other's frame is how a story loses its subject. */
+.cstudio__tile-media[data-medium='poster'],
+.cstudio__tile-media[data-medium='copy'] {
+  aspect-ratio: 4 / 5;
+}
+.cstudio__tile-media[data-medium='video'] {
+  aspect-ratio: 9 / 16;
+}
+.cstudio__tile[data-selected] .cstudio__tile-media {
+  border-color: var(--cobalt-600);
+  box-shadow: 0 0 0 1px var(--cobalt-600);
+}
+.cstudio__tile-hit {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.cstudio__tile-hit img,
+.cstudio__tile-hit video {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.cstudio__thumb-ph {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  place-items: center;
-  color: var(--text-tertiary);
-}
-.cstudio__thumb-meta {
+/* Rendering, failed, ready and copy-only all land here, each with its own glyph
+   and its own word — the point of the sheet is that none of them needs a click
+   to tell apart. */
+.cstudio__tile-state {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--space-4);
+}
+
+/* Hidden until it is useful: a checkbox on every tile at rest turns a sheet of
+   creatives into a form. It appears on hover, on focus, and stays while
+   selected — because a selection you cannot see is a batch waiting to surprise
+   someone. */
+.cstudio__tile-check {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-raised) 88%, transparent);
+  color: var(--cobalt-800);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+.cstudio__tile:hover .cstudio__tile-check,
+.cstudio__tile-check:focus-visible,
+.cstudio__tile[data-selected] .cstudio__tile-check {
+  opacity: 1;
+}
+.cstudio__tile[data-selected] .cstudio__tile-check {
+  background: var(--cobalt-600);
+  border-color: var(--cobalt-600);
+  color: var(--text-inverse);
+}
+.cstudio__tile-status {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+.cstudio__tile-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.cstudio__tile-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--type-caption);
+  color: var(--text-tertiary);
+  text-align: left;
+}
+/* The failure reason takes the place of the platform line, because a tile that
+   could not render has nothing useful to say about aspect ratios. */
+.cstudio__tile-meta.is-failed {
+  color: var(--crimson-800);
+  cursor: pointer;
+}
+.cstudio__tile-meta.is-failed:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ── Batch bar ────────────────────────────────────────────────────────────── */
+/* Only rendered with a selection, so it is never a row of disabled buttons. */
+.cstudio__batch {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-signal);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--elev-2);
+}
+.cstudio__batch-count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.cstudio__batch-count .type-caption {
+  color: var(--text-muted);
+}
+.cstudio__batch-note {
+  flex: 1 1 260px;
   min-width: 0;
 }
-.cstudio__thumb-title {
-  font-size: 13px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.cstudio__batch-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-left: auto;
 }
+
 .cstudio__stage {
   min-width: 0;
 }
@@ -5384,13 +5561,10 @@ a.card:hover {
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
 }
 @media (max-width: 1100px) {
-  .cstudio,
+  /* The drawer stops being a column and stacks. `.cstudio` itself is already a
+     single column, so only the drawer variant needs saying. */
   .cstudio.has-drawer {
-    grid-template-columns: 1fr;
-  }
-  .cstudio__rail {
-    position: static;
-    max-height: none;
+    display: block;
   }
   .cstudio__preview {
     max-height: 420px;
@@ -5461,15 +5635,17 @@ a.card:hover {
   white-space: nowrap;
 }
 
-/* Creative type — the rail's top-level split between posters and videos.
-   Underlined tabs rather than the pill treatment used by the status filters
-   below them, so the two rows read as a hierarchy (which kind → which status)
-   instead of two equal rows of buttons. */
+/* Creative type — the split between posters, videos and everything.
+   Underlined rather than the pill treatment used by the status filters beside
+   them, so the two read as a hierarchy (which kind → which status) instead of
+   two equal rows of buttons.
+
+   The bottom border moved to the toolbar when the rail went: these tabs now sit
+   in a row that already has a rule under it, and a second one an inch above the
+   first is a box nobody asked for. */
 .cstudio__mediums {
   display: flex;
   gap: 2px;
-  padding: 0 var(--space-3);
-  border-bottom: 1px solid var(--border-subtle);
 }
 .cstudio__medium {
   display: flex;
@@ -5477,8 +5653,10 @@ a.card:hover {
   gap: 6px;
   border: 0;
   background: transparent;
-  padding: var(--space-3) var(--space-2);
-  margin-bottom: -1px;
+  padding: var(--space-2) var(--space-2);
+  /* Aligns the underline with the toolbar's own border. */
+  margin-bottom: calc(var(--space-3) * -1 - 1px);
+  padding-bottom: calc(var(--space-3) + var(--space-2));
   border-bottom: 2px solid transparent;
   font: var(--type-caption);
   font-weight: 500;
@@ -5490,7 +5668,7 @@ a.card:hover {
 }
 .cstudio__medium.is-on {
   color: var(--text-primary);
-  border-bottom-color: var(--text-primary);
+  border-bottom-color: var(--cobalt-600);
   font-weight: 600;
 }
 .cstudio__medium-count {
@@ -7183,72 +7361,57 @@ a:hover {
 }
 /* ── Campaign detail ──────────────────────────────────────────────────────── */
 
-/* Rail beside content, wrapping to a row of chips on a narrow viewport. Twelve
-   sections do not fit across the top, and a select element would hide eleven of
-   them behind a click. */
+/* Section tabs across the top, not a column beside the content.
+   Twelve labels do fit across the top — what did not fit was twelve labels plus
+   an icon each plus 208px of gutter, on a screen that already spends a column on
+   the app sidebar. Horizontally scrollable rather than wrapped: a tab bar that
+   reflows to two rows moves every tab when the window changes width. */
 .camp-detail {
   display: flex;
-  flex-wrap: wrap;
-  gap: clamp(16px, 2vw, 24px);
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--space-5);
+  align-items: stretch;
 }
 .camp-rail {
-  flex: 0 0 208px;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  position: sticky;
-  top: 70px;
+  gap: var(--space-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-subtle);
+  /* The active underline sits on the same line as this border, so the row needs
+     no bottom padding to make space for it. */
+  padding: 0;
+  scrollbar-width: thin;
 }
 .camp-body {
-  flex: 1 1 520px;
   min-width: 0;
-}
-@media (max-width: 900px) {
-  .camp-rail {
-    flex: 1 1 100%;
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
 }
 
 .camp-rail__item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 7px 10px;
+  gap: var(--space-2);
+  flex: none;
+  padding: var(--space-3) var(--space-3);
   border: 0;
-  border-radius: var(--radius-md);
   background: transparent;
   color: var(--text-secondary);
   font: inherit;
   font-size: 13px;
+  white-space: nowrap;
   cursor: pointer;
-  text-align: left;
 }
 .camp-rail__item:hover {
-  background: var(--surface-hover);
+  color: var(--text-primary);
 }
+/* Inset shadow rather than a border: a border-bottom would shift the label by a
+   pixel as it toggles, and twelve tabs jittering on hover is worse than none. */
 .camp-rail__item.is-active {
-  background: var(--surface-selected);
-  color: var(--cobalt-600);
-}
-.camp-rail__item .ico {
-  color: var(--text-tertiary);
-  flex: none;
-}
-.camp-rail__item.is-active .ico {
-  color: var(--cobalt-600);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--cobalt-600);
 }
 .camp-rail__label {
-  flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 /* Absent rather than zero when the count is unknown — a wrong zero reads as
    "nothing here" and the tab never gets opened again. */
@@ -7260,16 +7423,7 @@ a:hover {
   font-variant-numeric: tabular-nums;
 }
 .camp-rail__item.is-active .camp-rail__count {
-  color: var(--slate-500);
-}
-@media (max-width: 900px) {
-  .camp-rail__item {
-    width: auto;
-    border: 1px solid var(--border-default);
-  }
-  .camp-rail__item.is-active {
-    border-color: var(--border-signal);
-  }
+  color: var(--text-secondary);
 }
 
 /* ── Campaign pace ────────────────────────────────────────────────────────── */

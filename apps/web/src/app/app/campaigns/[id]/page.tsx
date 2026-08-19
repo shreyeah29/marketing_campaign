@@ -3,7 +3,6 @@
 import { Suspense, useCallback, useMemo } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 
-import { Icon } from '@/components/icon'
 import { EmptyState } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
 import { ContentCalendar } from '@/components/content-calendar'
@@ -112,7 +111,15 @@ function CampaignDetailInner() {
 
   return (
     <FadeIn className="camp-detail">
-      {/* ── Section rail ─────────────────────────────────────────────────── */}
+      {/* ── Section tabs ─────────────────────────────────────────────────
+          A horizontal bar rather than a 208px column. Two of the four columns
+          on this screen were navigation, and the section rail was the one that
+          bought the least with its width: twelve labels that fit across the top
+          were occupying a fifth of the viewport beside content that needed it.
+
+          Icons are dropped at this size. Label and count identify a tab in a
+          row; a glyph beside each only competes with the one piece of
+          information that varies. */}
       <nav className="camp-rail" aria-label="Campaign sections">
         {SECTIONS.map((s) => {
           const count = counts.get(s.id) ?? null
@@ -124,7 +131,6 @@ function CampaignDetailInner() {
               aria-current={s.id === active ? 'page' : undefined}
               onClick={() => go(s.id)}
             >
-              <Icon name={s.icon} size={15} className="ico" />
               <span className="camp-rail__label">{s.label}</span>
               {/* No badge when the count is unknown — see sectionCount. */}
               {count !== null ? <span className="camp-rail__count">{count}</span> : null}

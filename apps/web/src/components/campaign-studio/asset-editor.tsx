@@ -73,13 +73,36 @@ export function AssetEditor({
   }
 
   async function regenerate() {
+    const instruction = regenNote.trim()
     setBusy('Regenerate')
     try {
-      snapshot(regenNote.trim() || 'Before regenerate')
-      const res = await api.post<{ body?: string }>(`/campaign-assets/${asset.id}/regenerate`, {})
+      snapshot(instruction || 'Before regenerate')
+      /**
+       * The note is sent, which it was not.
+       *
+       * It was read into state, used to label a history entry, and then a bare
+       * `{}` was posted — so "make it warmer, mention the terrace" produced a
+       * rewrite that had never heard of the terrace. Asking for a change and
+       * getting an unrelated one is worse than nothing happening, because the
+       * unrelated change reads as the answer.
+       */
+      const res = await api.post<{ body?: string; mediaUrl?: string }>(
+        `/campaign-assets/${asset.id}/regenerate`,
+        instruction ? { instruction } : {},
+      )
       if (res.body) setBody(res.body)
       setRegenNote('')
-      toast.push('success', 'Regenerated — previous copy is in History')
+      // Artwork comes back with a new picture rather than new copy, and the
+      // drawer holds a stale one until the parent reloads.
+      onChanged?.()
+      toast.push(
+        'success',
+        isConcept
+          ? instruction
+            ? 'Redrawing with your change'
+            : 'Redrawing'
+          : 'Regenerated — previous copy is in History',
+      )
     } catch (e) {
       toast.push('error', e instanceof ApiError ? e.message : 'Regenerate failed')
     } finally {
@@ -159,7 +182,11 @@ export function AssetEditor({
           className="input"
           value={regenNote}
           onChange={(e) => setRegenNote(e.target.value)}
-          placeholder="Optional regenerate note"
+          placeholder={
+            isConcept
+              ? 'What should change? e.g. warmer light, add the terrace'
+              : 'What should change?'
+          }
           aria-label="Regenerate instruction"
         />
         <button className="btn" disabled={busy !== null} onClick={() => void regenerate()}>

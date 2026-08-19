@@ -57,6 +57,15 @@ export function CreativeStudio({
   const [medium, setMedium] = useState<PieceMedium>('poster')
   const [platformTab, setPlatformTab] = useState<string | null>(null)
   const [panel, setPanel] = useState<'copy' | 'comments' | 'versions'>('copy')
+  /**
+   * What to change on the next regenerate.
+   *
+   * Optional, and the difference between "give me another one" and "give me
+   * this one, warmer". Without it the button could only reroll, which is a
+   * worse answer than it looks: a person who asked for one change and received
+   * an unrelated one has to work out which of the differences was the point.
+   */
+  const [regenNote, setRegenNote] = useState('')
 
   const pieces = useMemo(() => groupIntoContentPieces(assets ?? []), [assets])
 
@@ -289,8 +298,13 @@ export function CreativeStudio({
       } else if (action === 'regenerate') {
         const target = piece.master ?? activeAdaptation
         if (!target) return
-        await api.post(`/campaign-assets/${target.id}/regenerate`, {})
-        toast.push('success', 'Regenerating…')
+        const instruction = regenNote.trim()
+        await api.post(
+          `/campaign-assets/${target.id}/regenerate`,
+          instruction ? { instruction } : {},
+        )
+        setRegenNote('')
+        toast.push('success', instruction ? 'Redrawing with your change' : 'Regenerating…')
       } else {
         const target = piece.master ?? activeAdaptation
         if (!target) return
@@ -748,6 +762,11 @@ export function CreativeStudio({
                 className="btn"
                 disabled={busy}
                 onClick={() => void actOnPiece(selectedPiece, 'regenerate')}
+                title={
+                  regenNote.trim()
+                    ? `Redraw with: ${regenNote.trim()}`
+                    : 'Redraw. Say what to change in the box first to steer it.'
+                }
               >
                 <Icon name="refresh" size={14} /> Regenerate
               </button>
@@ -759,6 +778,18 @@ export function CreativeStudio({
               >
                 <Icon name="copy" size={14} /> Duplicate
               </button>
+              {/* Full width under the buttons: an instruction is a sentence, and
+                  a sentence in a 120px box beside four buttons goes unread. */}
+              <input
+                className="input cstudio__regen-note"
+                value={regenNote}
+                onChange={(e) => setRegenNote(e.target.value)}
+                placeholder="What should change? e.g. warmer light, add the terrace, make the offer bigger"
+                aria-label="What to change when regenerating"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !busy) void actOnPiece(selectedPiece, 'regenerate')
+                }}
+              />
               {previewUrl ? (
                 <button
                   type="button"

@@ -453,9 +453,24 @@ export class CampaignGenerationService {
    * Regenerates the copy for a single asset. Returns the new body text; the caller
    * keeps the previous version for comparison. Throws the same 409 when no provider.
    */
+  /**
+   * Rewrite one asset, following an instruction when one is given.
+   *
+   * The instruction is the whole point and it used to be discarded: the screen
+   * collected "make it warmer, mention the terrace" and posted an empty body, so
+   * every regenerate produced a different rewrite rather than the requested one.
+   * Asking for a change and getting an unrelated change is worse than the button
+   * doing nothing, because the unrelated change looks like an answer.
+   */
   async regenerateAsset(
     principal: Principal,
-    asset: { platform: string; kind: string; body: string; title?: string | null },
+    asset: {
+      platform: string
+      kind: string
+      body: string
+      title?: string | null
+      instruction?: string | null
+    },
   ): Promise<string> {
     const resolved = await this.ai.resolve('LLM')
     const adapter = resolved ? getLlmAdapter(resolved.providerId) : undefined
@@ -470,9 +485,16 @@ export class CampaignGenerationService {
         messages: [
           {
             role: 'system',
-            content: `You are a marketing copywriter. Rewrite the given ${asset.platform} ${asset.kind} to be fresh, on-brand and high-converting. Return ONLY the new copy, no preamble.`,
+            content: asset.instruction?.trim()
+              ? `You are a marketing copywriter. Revise the given ${asset.platform} ${asset.kind} to do exactly what the instruction asks and nothing else — keep every other choice, including length, tone and structure, as it is. Return ONLY the new copy, no preamble.`
+              : `You are a marketing copywriter. Rewrite the given ${asset.platform} ${asset.kind} to be fresh, on-brand and high-converting. Return ONLY the new copy, no preamble.`,
           },
-          { role: 'user', content: `Current copy:\n${asset.body}\n\nRewrite it.` },
+          {
+            role: 'user',
+            content: asset.instruction?.trim()
+              ? `Current copy:\n${asset.body}\n\nChange this: ${asset.instruction.trim()}`
+              : `Current copy:\n${asset.body}\n\nRewrite it.`,
+          },
         ],
       })
       await this.ai.recordUsage(principal, {

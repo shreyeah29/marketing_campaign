@@ -7125,6 +7125,13 @@ a:hover {
   color: var(--text-tertiary);
 }
 
+/* The regenerate instruction sits on its own row: an instruction is a sentence,
+   and a sentence in a narrow box beside four buttons goes unread. */
+.cstudio__regen-note {
+  flex-basis: 100%;
+  margin-top: 4px;
+}
+
 /* ── Picture kinds ────────────────────────────────────────────────────────── */
 
 /* Two choices, made before the brief is written because they change what the

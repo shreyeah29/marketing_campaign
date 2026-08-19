@@ -46,6 +46,13 @@ import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
 
+const regenerateSchema = z
+  .object({
+    /** What to change. Empty means "something different", which is a weaker ask. */
+    instruction: z.string().trim().max(600).optional(),
+  })
+  .strict()
+
 const generateSchema = z
   .object({
     brief: z.string().min(4).max(4000),
@@ -594,17 +601,50 @@ export class ReviewQueueController {
   @Post(':id/regenerate')
   @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
   @ApiOperation({ summary: 'Regenerate this asset with AI, keeping the prior version' })
-  async regenerate(@Param('id') id: string, @CurrentPrincipal() p: Principal): Promise<unknown> {
+  async regenerate(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentPrincipal() p: Principal,
+  ): Promise<unknown> {
+    const { instruction } = zodBody(regenerateSchema, body ?? {})
     const asset = await withTenantTransaction(this.db, (tx) =>
       tx.campaignAsset.findFirst({ where: { id, deletedAt: null } }),
     )
     if (!asset) throw new NotFoundException('Asset not found')
+
+    /**
+     * On artwork, regenerate means *redraw*.
+     *
+     * This rewrote the body and returned — and on a poster the body is the
+     * prompt, which nothing on the screen shows. So the picture stayed exactly
+     * as it was and the button looked broken. It was doing something; just not
+     * the only thing anyone presses it for.
+     *
+     * The instruction is folded into the stored prompt before the redraw, so it
+     * survives into the next regenerate too: asking for "warmer light" and then
+     * "add the terrace" gives a poster with both, rather than one that forgot
+     * the first request.
+     */
+    if (asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT') {
+      if (instruction?.trim()) {
+        await withTenantTransaction(this.db, (tx) =>
+          tx.campaignAsset.update({
+            where: { id },
+            data: { body: `${asset.body.trim()} ${instruction.trim()}`.slice(0, 6000) },
+          }),
+        )
+      }
+      // `force` because this is a deliberate click asking for something
+      // different — the same reason the retry button sends it.
+      return this.generateMedia(id, { force: true }, p)
+    }
 
     const newBody = await this.generation.regenerateAsset(p, {
       platform: asset.platform,
       kind: asset.kind,
       body: asset.body,
       title: asset.title,
+      ...(instruction ? { instruction } : {}),
     })
 
     return withTenantTransaction(this.db, async (tx) => {
@@ -617,7 +657,13 @@ export class ReviewQueueController {
           status: 'GENERATED',
         },
       })
-      await this.comment(tx, p, id, 'Regenerated with AI', 'regenerated')
+      await this.comment(
+        tx,
+        p,
+        id,
+        instruction?.trim() ? `Regenerated: ${instruction.trim()}` : 'Regenerated with AI',
+        'regenerated',
+      )
       return updated
     })
   }

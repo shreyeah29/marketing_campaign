@@ -21,7 +21,7 @@ bucket that varies per environment.
 ## Why every one shows the same subject
 
 A coffee cup on a plain surface, in all of them. The gallery exists so someone
-can compare *styles*; a row where the subject changes as well tells you nothing
+can compare _styles_; a row where the subject changes as well tells you nothing
 about either. Same subject, different treatment — the only variable is the one
 being chosen.
 

@@ -72,6 +72,7 @@ import { UploadsController } from './modules/uploads/uploads.controller.js'
 import { RealtimeGateway } from './modules/realtime/realtime.gateway.js'
 import { PlatformController } from './modules/platform/platform.controller.js'
 import { PlatformAuthService } from './modules/platform/platform-auth.service.js'
+import { GenerationSelfTestService } from './modules/platform/generation-selftest.service.js'
 import { ProvisioningService } from './modules/platform/provisioning.service.js'
 import { PlatformAdminGuard } from './modules/platform/platform-admin.guard.js'
 import { ViewAsService } from './modules/platform/view-as.service.js'
@@ -178,6 +179,7 @@ import { AdAllowanceService } from './modules/meta/ad-allowance.service.js'
     AdAllowanceService,
     WorkflowEngineService,
     PlatformAuthService,
+    GenerationSelfTestService,
     ProvisioningService,
     PlatformAdminGuard,
     ViewAsService,

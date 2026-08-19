@@ -29,6 +29,7 @@ import { EntitlementService } from '../../common/entitlements/entitlement.servic
 import { zodBody } from '../../common/http/validate.js'
 import { loadEnv } from '../../config/env.js'
 
+import { GenerationSelfTestService } from './generation-selftest.service.js'
 import { PlatformActor } from './platform-actor.decorator.js'
 import { PlatformAdminGuard } from './platform-admin.guard.js'
 import { PlatformAuthService, type PlatformPrincipal } from './platform-auth.service.js'
@@ -42,6 +43,12 @@ import {
 } from './provision.contracts.js'
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(1) })
+
+/**
+ * `draw` opts into the expensive half of the self-test: one real image, billed,
+ * and one real upload. Everything before it is free, so it stays off by default.
+ */
+const generationTestSchema = z.object({ draw: z.boolean().optional() }).strict()
 
 /**
  * Categories the operator can no longer assign. The feature code stays (existing
@@ -72,6 +79,7 @@ export class PlatformController {
     @Inject(ProvisioningService) private readonly provisioning: ProvisioningService,
     @Inject(EntitlementService) private readonly entitlements: EntitlementService,
     @Inject(ViewAsService) private readonly viewAs: ViewAsService,
+    @Inject(GenerationSelfTestService) private readonly selfTest: GenerationSelfTestService,
   ) {
     this.owner = createAdminClient(loadEnv().DIRECT_DATABASE_URL ?? loadEnv().DATABASE_URL)
   }
@@ -170,6 +178,28 @@ export class PlatformController {
         connectedAdAccounts: adAccounts,
       },
     }
+  }
+
+  /**
+   * Walk the real generation path and report every step.
+   *
+   * The endpoint next door answers "is the key set". This answers "does making a
+   * picture work", which is the question that actually gets asked, and it has
+   * only ever been answerable by building a whole campaign, watching it fail and
+   * reading the deployment logs.
+   *
+   * POST rather than GET because it does real work — it calls two providers, and
+   * with `draw` it bills the account for one image and writes one object. That is
+   * also why `draw` defaults to false: most failures are found before it, and a
+   * rejected key would only fail again more slowly.
+   */
+  @Public()
+  @UseGuards(PlatformAdminGuard)
+  @Post('diagnostics/generation-test')
+  @ApiOperation({ summary: 'Run the generation path end to end and report each step' })
+  async generationTest(@Body() body: unknown): Promise<unknown> {
+    const { draw } = zodBody(generationTestSchema, body ?? {})
+    return this.selfTest.run(draw ?? false)
   }
 
   // ── Registry browsing (the wizard's source data) ─────────────────────────────

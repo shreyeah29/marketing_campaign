@@ -11,6 +11,7 @@ import { Banner, LoadingScreen, Stat } from '@/components/ui'
 import { FadeIn, Stagger, StaggerItem } from '@/components/motion'
 import { StatusPill, toStatus } from '@/components/status'
 import { Icon } from '@/components/icon'
+import { GenerationSelfTest } from '@/components/generation-self-test'
 import { PlatformDiagnostics } from '@/components/platform-diagnostics'
 
 export default function OrganizationsPage() {
@@ -68,6 +69,12 @@ export default function OrganizationsPage() {
       {/* Above the org table on purpose: when something is wrong with the
           deployment, that fact outranks the tenant list. */}
       <PlatformDiagnostics />
+
+      {/* Directly beneath, because the two answer different halves of the same
+          question: diagnostics says whether a key is set, this says whether it
+          works. Reading the first and assuming the second is what cost the most
+          time. */}
+      <GenerationSelfTest />
 
       <FadeIn delay={0.12} className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {orgs.length === 0 ? (

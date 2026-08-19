@@ -114,6 +114,37 @@ function headers(apiKey: string): Record<string, string> {
   }
 }
 
+/**
+ * Ask Runway whether this key works, without generating anything.
+ *
+ * The cheapest authenticated call the API has. Every other way of finding out
+ * whether the key is good involved starting a real generation, which costs money
+ * and takes a minute — so in practice nobody checked, and a rejected key was
+ * discovered by a client's poster failing.
+ *
+ * Returns the category rather than throwing: the caller is a self-test that
+ * wants to report every step, not abandon the run at the first bad one.
+ */
+export async function checkRunwayKey(
+  apiKey: string,
+): Promise<{ ok: boolean; status?: number; detail: string }> {
+  try {
+    const res = await fetch(`${BASE_URL}/organization`, {
+      method: 'GET',
+      headers: headers(apiKey),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (res.ok) return { ok: true, detail: 'The key was accepted.' }
+    const err = await readError(res)
+    return { ok: false, status: res.status, detail: err.message }
+  } catch (err) {
+    return {
+      ok: false,
+      detail: err instanceof Error ? err.message : 'Runway could not be reached.',
+    }
+  }
+}
+
 /** Parse a Runway error body into an `AdapterError`, mirroring `openai-media.ts`. */
 async function readError(res: Response): Promise<AdapterError> {
   let detail = `${PROVIDER_ID} request failed (${String(res.status)})`

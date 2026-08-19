@@ -38,6 +38,21 @@ export const platform = {
 
   diagnostics: () => api.get<Diagnostics>('/platform/diagnostics', { platformAuth: true }),
 
+  /**
+   * Walk the generation path and report each step.
+   *
+   * `draw` bills the account for one image and writes one object, so it is the
+   * caller's explicit choice rather than a default.
+   */
+  generationTest: (draw: boolean) =>
+    api.post<GenerationTest>(
+      '/platform/diagnostics/generation-test',
+      { draw },
+      {
+        platformAuth: true,
+      },
+    ),
+
   organizationDetail: (id: string) =>
     api.get<OrgDetail>(`/platform/organizations/${id}`, { platformAuth: true }),
 
@@ -106,4 +121,25 @@ export interface Diagnostics {
     insightRows: number
     connectedAdAccounts: number
   }
+}
+
+/**
+ * One step of the generation self-test.
+ *
+ * `detail` is written by the API to be the last thing anyone needs to read —
+ * when a step fails it names the setting to change, not the symptom.
+ */
+export interface GenerationTestStep {
+  id: string
+  label: string
+  status: 'pass' | 'fail' | 'skip'
+  detail: string
+}
+
+export interface GenerationTest {
+  ok: boolean
+  ranAt: string
+  /** Whether a real picture was drawn — the part that costs money. */
+  drew: boolean
+  steps: GenerationTestStep[]
 }

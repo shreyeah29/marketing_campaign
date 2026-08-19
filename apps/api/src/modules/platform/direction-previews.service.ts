@@ -75,6 +75,28 @@ export class DirectionPreviewsService {
   }
 
   /**
+   * One stored picture's URL, or null.
+   *
+   * A single-row lookup rather than `all()`, because this runs inside poster
+   * generation: reading the whole table to find one row would be a needless
+   * query on every picture a client makes.
+   */
+  async urlFor(directionId: string): Promise<string | null> {
+    if (!directionId) return null
+    try {
+      const row = await this.owner.directionPreview.findUnique({
+        where: { directionId },
+        select: { url: true },
+      })
+      return row?.url ?? null
+    } catch {
+      // A missing reference costs the picture its style guidance and nothing
+      // more — the text look still applies. Not worth failing a generation for.
+      return null
+    }
+  }
+
+  /**
    * Draw a batch of the missing ones.
    *
    * @param force Redraw directions that already have a picture.

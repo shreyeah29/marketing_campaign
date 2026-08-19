@@ -47,6 +47,7 @@ import { buildImageDirection, clampImagePrompt } from '../ai/scene-prompt.js'
 import { AiService } from '../ai/ai.service.js'
 import { CampaignGenerationService } from '../ai/campaign-generation.service.js'
 import { WorkflowEngineService } from '../automation/workflow-engine.service.js'
+import { DirectionPreviewsService } from '../platform/direction-previews.service.js'
 import { describeProviderFailure, failureSentence } from './generation-failure.js'
 
 const regenerateSchema = z
@@ -180,6 +181,7 @@ export class ReviewQueueController {
     @Inject(StorageService) private readonly storage: StorageService,
     @Inject(OverlayService) private readonly overlay: OverlayService,
     @Inject(LOGGER) private readonly logger: AppLogger,
+    @Inject(DirectionPreviewsService) private readonly previews: DirectionPreviewsService,
   ) {}
 
   /**
@@ -301,7 +303,21 @@ export class ReviewQueueController {
      * the way in, and the same precedence governs the text look in
      * `resolveLook`.
      */
-    const sample = reference ? null : await readDirectionSample(campaignRow?.directionId ?? '')
+    const directionId = campaignRow?.directionId ?? ''
+    const sample = reference ? null : await readDirectionSample(directionId)
+    /**
+     * The generated picture, when no file has been committed for this direction.
+     *
+     * Same fallback the shelf uses to display them, and for the same reason: the
+     * set exists as soon as an operator draws it, and making generation wait on a
+     * repository commit would mean the *stronger* half of choosing a direction —
+     * "make it look like this" rather than a paragraph of adjectives — silently
+     * did nothing until someone remembered to commit files.
+     *
+     * Committed bytes are preferred: no network, nothing to be unavailable at
+     * the moment somebody generates.
+     */
+    const sampleUrl = reference || sample ? null : await this.previews.urlFor(directionId)
 
     const { branding, products } = await withTenantTransaction(this.db, async (tx) => ({
       branding: await tx.branding.findFirst(),
@@ -333,7 +349,7 @@ export class ReviewQueueController {
       products: products.map((product) => product.name),
       // True for either kind, because the brief's reference block says the same
       // thing to both: take the visual language, take none of the content.
-      hasReference: Boolean(reference) || sample !== null,
+      hasReference: Boolean(reference) || sample !== null || sampleUrl !== null,
       direction: buildImageDirection({
         locations: audienceLocations(campaignRow?.targetAudience),
         theme: campaignRow?.theme ?? campaignRow?.name ?? null,
@@ -393,7 +409,9 @@ export class ReviewQueueController {
                         contentType: sample.contentType,
                       },
                     }
-                  : {}),
+                  : sampleUrl
+                    ? { referenceImageUrl: sampleUrl }
+                    : {}),
           }),
         )
         if (model !== candidates[0]) {

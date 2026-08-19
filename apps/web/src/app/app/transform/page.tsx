@@ -8,6 +8,7 @@ import { EmptyState, PageHeader, useToast } from '@/components/kit'
 import { FadeIn } from '@/components/motion'
 import { Icon } from '@/components/icon'
 import { Spinner } from '@/components/ui'
+import { DirectionArt, hasDirectionArt } from '@/components/campaign-studio/direction-art'
 
 /**
  * Transform — a photograph you already have, in another style.
@@ -32,6 +33,10 @@ interface Direction {
   blurb: string
   group: string
   needs: string
+  /** A committed example file exists for this style. */
+  hasSample?: boolean
+  /** A generated example, when no file is committed yet. */
+  previewUrl?: string | null
 }
 
 interface Made {
@@ -192,18 +197,37 @@ function TransformInner() {
                   <button
                     type="button"
                     className="direction-card__art"
-                    style={{ border: 0, padding: 0, cursor: result ? 'zoom-in' : 'pointer' }}
+                    style={{
+                      border: 0,
+                      padding: 0,
+                      position: 'relative',
+                      cursor: result ? 'zoom-in' : 'pointer',
+                    }}
                     disabled={busy !== null && !running}
                     onClick={() => (result ? setOpen(result.url) : void run(style.id))}
                   >
+                    {/* Your picture once it exists, the style's own example
+                        until then. Showing a placeholder while a real example of
+                        every one of these styles sits in storage is what this
+                        screen was doing, and it made a gallery of grey boxes out
+                        of a gallery of styles. */}
                     {result ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={result.url} alt={style.name} loading="lazy" />
                     ) : (
-                      <span className="direction-card__pending">
-                        {running ? <Spinner /> : <Icon name="sparkles" size={17} />}
-                      </span>
+                      <DirectionArt direction={style} />
                     )}
+                    {/* Which picture this is. Without it an example and a result
+                        are indistinguishable, and someone would download the
+                        coffee cup thinking it was their own photo restyled. */}
+                    {!running && (result || hasDirectionArt(style)) ? (
+                      <span className="direction-card__badge">{result ? 'Yours' : 'Example'}</span>
+                    ) : null}
+                    {running ? (
+                      <span className="direction-card__working">
+                        <Spinner />
+                      </span>
+                    ) : null}
                   </button>
                   <span className="direction-card__body">
                     <span className="direction-card__name">{style.name}</span>

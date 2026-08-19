@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api'
 import { Icon, type IconName } from '@/components/icon'
 import { Spinner } from '@/components/ui'
+import { DirectionArt } from './direction-art'
 
 /**
  * The creative-direction shelf — every way this system can make a picture.
@@ -249,44 +250,7 @@ function Grid({
           onClick={() => onPick(d)}
         >
           <span className="direction-card__art">
-            {d.hasSample ? (
-              /* A committed file, served from the API. `use-credentials` for the
-                 same reason as the template render below: both sit behind
-                 CONTENT_READ on the API origin, and a bare <img> sends no
-                 cookies cross-origin. A bucket URL would need the opposite. */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`${api.base}/creative-directions/${d.id}/sample`}
-                alt={`${d.name} example`}
-                crossOrigin="use-credentials"
-                loading="lazy"
-              />
-            ) : d.previewUrl ? (
-              /* Generated, in our own bucket, not yet committed. No
-                 `crossOrigin` here and it matters: the bucket answers with a
-                 wildcard origin and refuses a credentialed request, which is the
-                 exact opposite of the two API-origin cases either side of it.
-                 They look identical and behave oppositely. */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={d.previewUrl} alt={`${d.name} example`} loading="lazy" />
-            ) : d.previewTemplateSlug ? (
-              /* An API render behind CONTENT_READ. A bare <img> sends no cookies
-                 cross-origin and every tile came back 401 — `use-credentials` is
-                 required here, and forbidden on bucket URLs, which answer with a
-                 wildcard origin. The two look identical and behave oppositely. */
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`${api.base}/design-templates/${d.previewTemplateSlug}/preview?ratio=1%3A1`}
-                alt={`${d.name} sample`}
-                crossOrigin="use-credentials"
-                loading="lazy"
-              />
-            ) : (
-              // No real example yet. Deliberately blank rather than stock art.
-              <span className="direction-card__pending">
-                <Icon name="sparkles" size={17} />
-              </span>
-            )}
+            <DirectionArt direction={d} />
           </span>
 
           <span className="direction-card__body">

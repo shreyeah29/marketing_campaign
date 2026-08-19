@@ -6665,6 +6665,34 @@ a:hover {
   line-height: 1.45;
   color: var(--text-tertiary);
 }
+/* Which picture you are looking at — the style's own example, or your result.
+   Without it the two are indistinguishable, and someone downloads the sample
+   thinking it is their own photograph restyled. */
+.direction-card__badge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--surface-card, #fff) 82%, transparent);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(6px);
+}
+/* Covers the example while its replacement renders, so the tile does not look
+   finished while it is still working. */
+.direction-card__working {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface-raised) 72%, transparent);
+}
+
 /* The honest label: which of these draws its own letters, and which typesets. */
 .direction-card__tag {
   margin-top: 3px;

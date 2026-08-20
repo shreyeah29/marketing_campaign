@@ -1,4 +1,5 @@
 import { AdapterError } from './adapters/llm.js'
+import { listAvailableImageModels } from './adapters/openai-media.js'
 
 /**
  * Read a picture once, in words, so it never has to be re-read.
@@ -43,7 +44,24 @@ import { AdapterError } from './adapters/llm.js'
  * project may call is an account setting, and a hard-coded choice means a deploy
  * every time the guess is wrong.
  */
-const VISION_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'] as const
+const VISION_MODELS = ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1'] as const
+
+/**
+ * The models to try, configured one first.
+ *
+ * This list used to be hard-coded alone, and it failed on a project whose chat
+ * model was none of those three — while the brief coach, using the *configured*
+ * model, worked perfectly on the same key. The reader was refusing to use the
+ * one model already known to answer.
+ *
+ * So whatever `OPENAI_MODEL` is set to leads. It is demonstrably callable —
+ * every campaign brief in the system goes through it — and current OpenAI chat
+ * models accept images. The hard-coded names follow as fallbacks.
+ */
+export function visionModelCandidates(configured?: string | null): readonly string[] {
+  const preferred = configured?.trim()
+  return [...new Set([...(preferred ? [preferred] : []), ...VISION_MODELS])]
+}
 
 const PROVIDER_ID = 'openai'
 
@@ -85,7 +103,11 @@ function clamp(value: unknown, max: number): string {
  * arbitrary caller-supplied address would make this a request forwarder — the
  * controller checks provenance before calling.
  */
-export async function readVisualStyle(apiKey: string, imageUrl: string): Promise<StyleReading> {
+export async function readVisualStyle(
+  apiKey: string,
+  imageUrl: string,
+  configuredModel?: string | null,
+): Promise<StyleReading> {
   /**
    * The bytes, fetched here rather than handed over as a link.
    *
@@ -125,8 +147,9 @@ export async function readVisualStyle(apiKey: string, imageUrl: string): Promise
   }
 
   let lastError: unknown = null
+  const candidates = visionModelCandidates(configuredModel)
 
-  for (const model of VISION_MODELS) {
+  for (const model of candidates) {
     try {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -186,9 +209,24 @@ export async function readVisualStyle(apiKey: string, imageUrl: string): Promise
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new AdapterError('No vision model was available to read the picture.', PROVIDER_ID)
+  /**
+   * Every candidate refused. Ask the key what it *can* use, and say so.
+   *
+   * The same move that ended the image-model guessing loop: without it the error
+   * is "none of these worked", and the next step is another guess at a model
+   * name, another deploy and another failure. One free request settles whether
+   * the key is bad or the names were.
+   */
+  const available = await listAvailableImageModels(apiKey)
+  throw new AdapterError(
+    available.unreadable
+      ? 'This OpenAI key was rejected when asked what it can do, so it is probably invalid or revoked.'
+      : `None of ${candidates.join(', ')} can be read by this OpenAI project. It can see ${String(available.total)} models${available.sample.length > 0 ? `, including: ${available.sample.slice(0, 8).join(', ')}` : ''}. Set OPENAI_MODEL to one of those that accepts images.`,
+    PROVIDER_ID,
+    // Not 403: this is the exhausted-walk case, and the controller maps 403 to
+    // "no vision model enabled" — which would hide the list just gathered.
+    502,
+  )
 }
 
 /**

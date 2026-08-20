@@ -21,6 +21,7 @@ import type { Principal } from '../../common/auth/principal.js'
 import { CurrentPrincipal } from '../../common/decorators/current-principal.decorator.js'
 import { RequirePermissions } from '../../common/guards/permissions.guard.js'
 import { PERMISSIONS } from '../../common/rbac/permissions.js'
+import { loadEnv } from '../../config/env.js'
 import { DATABASE, LOGGER } from '../../infrastructure/database.module.js'
 import { isOwnStorageUrl } from '../../infrastructure/storage.js'
 import { AdapterError } from './adapters/llm.js'
@@ -128,7 +129,9 @@ export class StyleTemplatesController {
 
     let reading
     try {
-      reading = await readVisualStyle(openai.apiKey, referenceUrl)
+      // The configured chat model leads: it is demonstrably callable — every
+      // brief in the system goes through it — where a hard-coded name is a guess.
+      reading = await readVisualStyle(openai.apiKey, referenceUrl, loadEnv().OPENAI_MODEL)
     } catch (err) {
       this.logger.error(
         {
@@ -149,10 +152,16 @@ export class StyleTemplatesController {
        */
       const detail = err instanceof AdapterError ? err.message : ''
       throw new ServiceUnavailableException(
-        /^Could not read the uploaded picture|too large/i.test(detail)
+        // The reader's own words when it has something specific to say: it
+        // either could not fetch the picture, or it walked every candidate
+        // model and came back with the list the key can actually see. Both are
+        // more use than anything this layer could invent.
+        /^Could not read the uploaded picture|too large|None of |was rejected when asked/i.test(
+          detail,
+        )
           ? detail
           : err instanceof AdapterError && (err.status === 403 || err.status === 404)
-            ? 'This OpenAI project cannot use a vision model, so a picture cannot be read into a style. Enable gpt-4o-mini for the project, then try again.'
+            ? 'This OpenAI project cannot use a vision model, so a picture cannot be read into a style. Enable a chat model that accepts images, then try again.'
             : 'That picture could not be read just now. Try again, or try a different one — a clear, well-lit design reads best.',
       )
     }

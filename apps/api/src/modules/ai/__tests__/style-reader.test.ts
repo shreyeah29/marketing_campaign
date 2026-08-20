@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseReading } from '../style-reader.js'
+import { parseReading, visionModelCandidates } from '../style-reader.js'
 import { buildPosterBrief } from '../poster-brief.js'
 
 describe('parseReading', () => {
@@ -46,6 +46,31 @@ describe('parseReading', () => {
     expect(reading?.name.length).toBe(40)
     expect(reading?.summary.length).toBe(160)
     expect(reading?.look.length).toBe(900)
+  })
+})
+
+describe('which model reads the picture', () => {
+  it('tries the configured chat model first', () => {
+    // The bug this fixes: the reader hard-coded three model names and refused
+    // on a project whose chat model was none of them — while the brief coach,
+    // using the configured model, worked perfectly on the same key. It was
+    // declining to use the one model already known to answer.
+    expect(visionModelCandidates('gpt-5-mini')[0]).toBe('gpt-5-mini')
+  })
+
+  it('keeps the fallbacks behind it, without repeating one', () => {
+    const withDefault = visionModelCandidates('gpt-4o')
+    expect(withDefault[0]).toBe('gpt-4o')
+    expect(withDefault.filter((m) => m === 'gpt-4o')).toHaveLength(1)
+    expect(withDefault.length).toBeGreaterThan(1)
+  })
+
+  it('still has candidates when nothing is configured', () => {
+    // An unset OPENAI_MODEL must not produce an empty walk, which would fail
+    // with no attempt made and no reason to report.
+    for (const value of [undefined, null, '', '   ']) {
+      expect(visionModelCandidates(value).length, String(value)).toBeGreaterThan(0)
+    }
   })
 })
 

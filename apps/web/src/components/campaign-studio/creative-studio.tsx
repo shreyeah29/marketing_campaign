@@ -390,12 +390,29 @@ export function CreativeStudio({
       // Poster first (may chain Runway), then adaptations
       const ordered = piece.master ? [piece.master, ...piece.adaptations] : piece.adaptations
       let generated = 0
+      let waiting = 0
       for (const a of ordered) {
         if (TERMINAL.has(a.status)) continue
+        /**
+         * A concept with no picture cannot be approved, and must not take the
+         * rest of the piece down with it.
+         *
+         * This loop threw on the first asset the API refused, so one variant
+         * that never rendered blocked approval of the poster and every caption
+         * beside it — all of them fine, and visible on screen.
+         */
+        const isArtwork = a.kind === 'IMAGE_PROMPT' || a.kind === 'VIDEO_PROMPT'
+        if (isArtwork && !a.mediaUrl) {
+          waiting++
+          continue
+        }
         const result = await approveCampaignAsset(a)
         if (result === 'generated') generated++
       }
-      return generated > 0 ? 'Poster generating — adaptations approved' : 'Piece approved'
+      if (generated > 0) return 'Poster generating — adaptations approved'
+      return waiting > 0
+        ? `Approved — ${String(waiting)} still waiting on a picture`
+        : 'Piece approved'
     }
     if (action === 'reject') {
       for (const a of piece.assets) {

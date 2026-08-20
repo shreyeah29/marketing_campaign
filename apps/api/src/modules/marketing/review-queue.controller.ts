@@ -179,7 +179,30 @@ const listAssetsQuerySchema = z.object({
   search: z.string().max(200).optional(),
 })
 
-const APPROVABLE = new Set(['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'])
+/**
+ * States a reviewer may decide from.
+ *
+ * FAILED is here on purpose. A person looking at a poster and pressing Approve
+ * has made the decision; `status` is a machine's opinion about a past generation
+ * attempt, and it was blocking approval of artwork plainly visible on screen.
+ * Approving something with no artwork is refused separately, by `transition`,
+ * where the check can see whether a picture exists.
+ */
+export const APPROVABLE = new Set(['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT', 'FAILED'])
+
+/**
+ * Whether approving this asset would approve a blank.
+ *
+ * Separate from the state check: that one is about *when* a decision may be
+ * made, this is about *what* is being decided on. An image concept with no image
+ * is a prompt, and approving it sends an empty asset toward publishing where the
+ * failure surfaces at the worst possible moment. Copy has nothing to render and
+ * is exempt.
+ */
+export function needsPictureFirst(asset: { kind: string; mediaUrl?: string | null }): boolean {
+  const isArtwork = asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT'
+  return isArtwork && !asset.mediaUrl
+}
 
 /**
  * The content review queue — the human approval gate of the automation engine.
@@ -236,12 +259,33 @@ export class ReviewQueueController {
     } catch (err) {
       const reason = failureSentence(err)
       try {
-        await withTenantTransaction(this.db, (tx) =>
-          tx.campaignAsset.update({
+        await withTenantTransaction(this.db, async (tx) => {
+          /**
+           * A failed retry must not undo a successful generation.
+           *
+           * This wrote `status: FAILED` unconditionally, so a poster that had
+           * been drawn, stored and was sitting on screen got marked failed the
+           * moment any *later* attempt on it threw — a rate limit, a second
+           * variant, a provider hiccup. The picture stayed, the status did not,
+           * and approving it was then refused for an asset the reviewer could
+           * plainly see.
+           *
+           * With artwork present the reason is still recorded, because the
+           * retry genuinely did fail and that is worth saying. The status is
+           * left alone, because the concept is not failed — it has a picture.
+           */
+          const current = await tx.campaignAsset.findFirst({
+            where: { id: assetId, deletedAt: null },
+            select: { mediaUrl: true },
+          })
+          await tx.campaignAsset.update({
             where: { id: assetId },
-            data: { status: 'FAILED', failureReason: reason },
-          }),
-        )
+            data: {
+              failureReason: reason,
+              ...(current?.mediaUrl ? {} : { status: 'FAILED' }),
+            },
+          })
+        })
       } catch (writeErr) {
         this.logger.error(
           { assetId, detail: writeErr instanceof Error ? writeErr.message : String(writeErr) },
@@ -1421,7 +1465,29 @@ export class ReviewQueueController {
       const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
       if (!asset) throw new NotFoundException('Asset not found')
       if (!allowedFrom.has(asset.status)) {
-        throw new BadRequestException(`Cannot ${event} an asset that is ${asset.status}`)
+        // "Cannot approved an asset that is FAILED" — `event` is a past
+        // participle because it names the comment event, and reusing it here
+        // produced a sentence in the wrong tense on a screen a client reads.
+        throw new BadRequestException(
+          `This asset is ${asset.status.toLowerCase().replace(/_/g, ' ')} and cannot be ${event}.`,
+        )
+      }
+      /**
+       * Approving artwork means approving a picture, so there has to be one.
+       *
+       * The state check above is about *when* a decision may be made; this is
+       * about *what* is being decided on. An image concept with no image is a
+       * prompt — approving it would send an empty asset toward publishing, and
+       * the failure would surface at the worst possible moment.
+       *
+       * Copy has nothing to render, so it is exempt.
+       */
+      if (status === 'APPROVED' && needsPictureFirst(asset)) {
+        throw new BadRequestException(
+          asset.failureReason
+            ? `This one has no picture yet — ${asset.failureReason}`
+            : 'This concept has no picture yet. Generate it first, then approve what you see.',
+        )
       }
       const updated = await tx.campaignAsset.update({
         where: { id },

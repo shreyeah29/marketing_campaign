@@ -67,10 +67,13 @@ describe('the brief asks for a design, not a photograph', () => {
 describe('money never reaches the poster model', () => {
   it('strips an amount a person typed into the headline', () => {
     // "Everything at ₹99" is a natural thing to type. The offer survives, the
-    // figure does not — a wrong price on artwork reaches a customer.
+    // Reversed deliberately. A salon asked for "package ₹5000 worth ₹6500,
+    // hydrafacial ₹12000 down to ₹8000" and received a poster with no figure on
+    // it anywhere, because every one was stripped on the way through. The cost
+    // boundary is about *our* money — credits, ad spend, margin. A client's own
+    // price list is the entire content of their advertisement.
     const brief = buildPosterBrief({ headline: 'Everything at ₹99 this weekend', brand: BRAND })
-    expect(brief).not.toContain('₹')
-    expect(brief).not.toContain('99')
+    expect(brief).toContain('₹99')
     expect(brief).toContain('this weekend')
   })
 
@@ -88,9 +91,12 @@ describe('money never reaches the poster model', () => {
     }
   })
 
-  it('forbids the model adding money of its own', () => {
+  it('still forbids the model inventing a price it was not given', () => {
+    // Carrying the client's figures and inventing figures are different things.
+    // A number nobody supplied is worse than none: a reader acts on it.
     const brief = buildPosterBrief({ headline: 'Weekend brunch', brand: BRAND })
-    expect(brief).toMatch(/invented offers, prices, amounts of money/i)
+    expect(brief).toMatch(/invented offers, prices/i)
+    expect(brief).toMatch(/must not be rounded, altered or dropped/i)
   })
 
   it('leaves dates and counts alone', () => {
@@ -137,14 +143,49 @@ describe('the whole poster is written, not just a headline', () => {
     expect(brief).not.toContain('"Five"')
   })
 
-  it('keeps money out of the generated lines too', () => {
-    // The generator is told not to, and told-not-to is not a guarantee.
+  it('carries the price through to the artwork', () => {
     const brief = buildPosterBrief({
       headline: 'Weekend brunch',
       copy: { headline: 'Weekend brunch', offer: 'Flat ₹200 off', offerNote: 'from Rs. 149' },
     })
-    expect(brief).not.toContain('₹')
-    expect(brief).not.toMatch(/Rs\.\s?149/)
+    expect(brief).toContain('₹200')
+    expect(brief).toContain('Rs. 149')
+  })
+
+  it('gives every deal its own panel when a brief lists several', () => {
+    // The failure this fixes: four offers forced through one slot came back as
+    // "1+1+1" — a figure matching none of them. Four deals need four cards.
+    const brief = buildPosterBrief({
+      headline: 'Rakshabandhan Glow Up',
+      copy: {
+        headline: 'Rakshabandhan Glow Up',
+        offers: [
+          { title: 'PAY ₹5000', label: 'Gift your sister a makeover', detail: 'worth ₹6500' },
+          { title: '1+1', label: 'Spa or anti-tan manicure' },
+          { title: '₹8000 ONLY', label: 'Hydrafacial combo', detail: 'was ₹12000' },
+          { title: '₹1000', label: 'Haircuts', detail: 'for both' },
+        ],
+      },
+    })
+
+    for (const figure of ['₹5000', '₹6500', '1+1', '₹8000', '₹12000', '₹1000']) {
+      expect(brief, figure).toContain(figure)
+    }
+    expect(brief).toContain('THE 4 OFFERS')
+    // The layout has to change with them: one enormous focal number cannot
+    // express four deals, and asking for one is what caused the merge.
+    expect(brief).toMatch(/an offer sheet/i)
+    expect(brief).toMatch(/equally weighted/i)
+    expect(brief).not.toMatch(/the single largest element/i)
+  })
+
+  it('keeps the single-offer layout when there is only one', () => {
+    const brief = buildPosterBrief({
+      headline: 'Weekend brunch',
+      copy: { headline: 'Weekend brunch', offers: [{ title: '1+1', detail: 'ON ALL ITEMS' }] },
+    })
+    expect(brief).toMatch(/the single largest element/i)
+    expect(brief).not.toMatch(/an offer sheet/i)
   })
 
   it('omits a piece the campaign does not have', () => {

@@ -1492,9 +1492,27 @@ function readPosterText(raw: unknown): PosterCopy | null {
     ? o['features'].filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
     : []
 
+  /** Read back defensively: `posterText` is JSON written by a model. */
+  const offers = Array.isArray(o['offers'])
+    ? o['offers']
+        .map((entry) => {
+          if (typeof entry !== 'object' || entry === null) return null
+          const e = entry as Record<string, unknown>
+          const take = (key: string): string =>
+            typeof e[key] === 'string' ? (e[key] as string).trim() : ''
+          const title = take('title')
+          if (!title) return null
+          const label = take('label')
+          const detail = take('detail')
+          return { title, ...(label ? { label } : {}), ...(detail ? { detail } : {}) }
+        })
+        .filter((entry): entry is { title: string } => entry !== null)
+    : []
+
   return {
     headline,
     ...(str('subline') ? { subline: str('subline') } : {}),
+    ...(offers.length > 0 ? { offers } : {}),
     ...(str('offer') ? { offer: str('offer') } : {}),
     ...(str('offerNote') ? { offerNote: str('offerNote') } : {}),
     ...(str('condition') ? { condition: str('condition') } : {}),

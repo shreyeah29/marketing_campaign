@@ -46,11 +46,36 @@ export interface PosterBrand {
  * A field the generator left empty is a piece the poster does without, rather
  * than a placeholder for the design to fill with something invented.
  */
+/**
+ * One deal on the poster.
+ *
+ * A list rather than a single field, because a real offer poster is usually
+ * several: a salon's Rakshabandhan sheet had four — a gift package, a 1+1 on
+ * manicures, a facial combo and a haircut price. Forced through one `offer`
+ * slot, the generator produced "1+1+1", which is not any of them and not
+ * anything at all. It had four true things and one box.
+ */
+export interface PosterOffer {
+  /** The deal, as large type: "PAY ₹5000", "1+1", "₹8000 ONLY". */
+  readonly title: string
+  /** What it is: "Gift your sister a makeover", "Hydrafacial combo". */
+  readonly label?: string | null
+  /** The qualifier: "worth ₹6500", "was ₹12000", "for both". */
+  readonly detail?: string | null
+}
+
 export interface PosterCopy {
   readonly headline: string
   /** The lighter phrase under the headline, often set as a script. */
   readonly subline?: string | null
-  /** The focal element: "1+1", "40% OFF", "BUY 2 GET 1". */
+  /**
+   * Every deal the poster carries, in reading order.
+   *
+   * Preferred over `offer`. When two or more are present the layout changes to
+   * a grid, because one enormous focal number cannot express four deals.
+   */
+  readonly offers?: readonly PosterOffer[]
+  /** The focal element when there is exactly one: "1+1", "40% OFF". */
   readonly offer?: string | null
   /** What the offer applies to: "ON ALL ITEMS". */
   readonly offerNote?: string | null
@@ -105,23 +130,39 @@ export interface PosterBriefInput {
 }
 
 /**
- * Anything that reads as an amount of money, so it can be kept out.
+ * Anything that reads as an amount of money.
  *
  * Three shapes, because an amount arrives in three orders and the third is easy
  * to forget: symbol-then-digits (₹99), digits-then-word (99 rupees), and
- * word-then-digits (Rs. 149). The last one was missing here and is the most
- * common way an Indian price is written.
+ * word-then-digits (Rs. 149). The last one is the most common way an Indian
+ * price is written.
  */
 const MONEY =
   /[₹$€£]\s?\d[\d,.]*|\b\d[\d,.]*\s?(?:rupees?|rs\.?|inr|usd|dollars?)\b|\b(?:rupees?|rs\.?|inr|usd)\s?\d[\d,.]*/gi
 
 /**
- * Strip money from a line bound for the poster.
+ * Strip money from a line.
  *
- * Applied to the headline and subline rather than trusted, because those come
- * from a person typing freely and "Everything at ₹99" is a natural thing to
- * type. The offer survives; the figure does not, and the template path remains
- * the way to put a real price on artwork.
+ * **No longer applied to poster copy**, and removing it was the fix to a poster
+ * that came back useless. A salon asked for "gift package ₹5000 worth ₹6500,
+ * hydrafacial ₹12000 down to ₹8000, haircuts ₹1000 for both" and received a
+ * poster with no figure on it anywhere — because every one was stripped here on
+ * the way through.
+ *
+ * The reasoning had been sound for a different question. The cost boundary in
+ * this system is about *our* money: credits, ad spend, margin, the figures a
+ * client must never be shown. A salon's own price list is not that. It is the
+ * entire content of their advertisement, and a discount poster that cannot say
+ * a price is not a discount poster.
+ *
+ * The other argument — that image models mis-draw digits — has also aged. It is
+ * still true that a template typesets more reliably, and that path is still
+ * there for a catalogue. But refusing to draw a price at all does not protect
+ * anyone from a wrong price; it guarantees a poster with no price, which is
+ * worse than one that needs checking.
+ *
+ * Kept and exported because the distinction still matters wherever it is *our*
+ * figures in question.
  */
 export function withoutMoney(value: string): string {
   return value
@@ -149,8 +190,10 @@ function paletteLine(brand: PosterBrand | undefined): string | null {
  * is what separates a designed poster from a photograph with a caption.
  */
 export function buildPosterBrief(input: PosterBriefInput): string {
-  const headline = withoutMoney(input.headline).slice(0, 70)
-  const subline = input.subline ? withoutMoney(input.subline).slice(0, 110) : ''
+  // Prices are kept. See `withoutMoney` — a discount poster that cannot say a
+  // price is not a discount poster, and these are the client's own figures.
+  const headline = input.headline.trim().slice(0, 70)
+  const subline = input.subline ? input.subline.trim().slice(0, 110) : ''
   const brandName = input.brand?.displayName?.trim()
   const products = (input.products ?? [])
     .map((p) => p.trim())
@@ -168,33 +211,48 @@ export function buildPosterBrief(input: PosterBriefInput): string {
   if (subline) lines.push(`- Supporting line beneath the headline: "${subline}"`)
 
   const copy = input.copy
-  if (copy?.offer?.trim()) {
-    lines.push(
-      `- THE OFFER, the single largest element on the poster: "${withoutMoney(copy.offer).slice(0, 24)}"`,
-    )
+  /**
+   * Every deal, in reading order.
+   *
+   * Two or more changes the whole poster: the layout below becomes a grid of
+   * cards rather than one enormous number, because four deals cannot be a
+   * single focal element. Squeezing them through one slot is what produced
+   * "1+1+1" — a figure that matched none of the four offers underneath it.
+   */
+  const offers = (copy?.offers ?? []).filter((o) => o.title.trim().length > 0).slice(0, 6)
+
+  if (offers.length > 1) {
+    lines.push('', `THE ${String(offers.length)} OFFERS, each in its own panel:`)
+    for (const [i, offer] of offers.entries()) {
+      const parts = [
+        `  ${String(i + 1)}. Large: "${offer.title.trim().slice(0, 28)}"`,
+        offer.label?.trim() ? `above it, smaller: "${offer.label.trim().slice(0, 48)}"` : null,
+        offer.detail?.trim() ? `beneath it, smallest: "${offer.detail.trim().slice(0, 48)}"` : null,
+      ].filter((part): part is string => part !== null)
+      lines.push(parts.join(' · '))
+    }
+  } else if (offers[0] || copy?.offer?.trim()) {
+    const single = offers[0]?.title.trim() ?? copy?.offer?.trim() ?? ''
+    lines.push(`- THE OFFER, the single largest element on the poster: "${single.slice(0, 28)}"`)
+    const note = offers[0]?.detail?.trim() ?? copy?.offerNote?.trim()
+    if (note) lines.push(`- Directly under the offer, smaller: "${note.slice(0, 48)}"`)
   }
-  if (copy?.offerNote?.trim()) {
-    lines.push(
-      `- Directly under the offer, smaller: "${withoutMoney(copy.offerNote).slice(0, 40)}"`,
-    )
-  }
+
   if (copy?.condition?.trim()) {
-    lines.push(
-      `- On a ribbon or banner beneath that: "${withoutMoney(copy.condition).slice(0, 60)}"`,
-    )
+    lines.push(`- On a ribbon or banner beneath that: "${copy.condition.trim().slice(0, 60)}"`)
   }
   for (const feature of (copy?.features ?? []).slice(0, 4)) {
-    const clean = withoutMoney(feature).slice(0, 28)
+    const clean = feature.trim().slice(0, 28)
     if (clean) lines.push(`- One icon caption: "${clean}"`)
   }
   if (copy?.footnote?.trim()) {
-    lines.push(`- Small print in a corner: "${withoutMoney(copy.footnote).slice(0, 30)}"`)
+    lines.push(`- Small print in a corner: "${copy.footnote.trim().slice(0, 30)}"`)
   }
 
   if (brandName) lines.push(`- Brand name at the top left: "${brandName}"`)
   const dateLine = copy?.dateLine?.trim() ?? input.dateLine?.trim()
   if (dateLine) lines.push(`- A small date badge: "${dateLine}"`)
-  if (input.cta?.trim()) lines.push(`- A call to action: "${withoutMoney(input.cta).slice(0, 40)}"`)
+  if (input.cta?.trim()) lines.push(`- A call to action: "${input.cta.trim().slice(0, 40)}"`)
   if (input.brand?.instagramHandle?.trim()) {
     lines.push(`- In a footer bar: "${input.brand.instagramHandle.trim()}"`)
   }
@@ -204,17 +262,42 @@ export function buildPosterBrief(input: PosterBriefInput): string {
 
   lines.push(
     '',
-    'Spell every one of those exactly. Do not add any other words, invented offers, prices, amounts of money, phone numbers or web addresses — nothing beyond the lines listed above.',
+    'Spell every one of those exactly, including every number and currency symbol. Do not add any other words, invented offers, prices, phone numbers or web addresses — nothing beyond the lines listed above. Every figure above is a real price this business is charging, so it must appear exactly as written and must not be rounded, altered or dropped.',
     '',
-    'LAYOUT:',
-    '1. Brand name or mark in the top-left corner, small and calm.',
-    '2. The headline in the upper-left third, set in two weights — a bold serif or heavy sans for the main words, a lighter script or italic for the secondary phrase.',
-    '3. The offer itself as the visual focus: very large, centred in the left column, far bigger than any other text.',
-    '4. The product photography on the right, overlapping the lower half, well lit on a clean surface.',
-    '5. A thin row of three or four simple line icons with one- or two-word captions near the bottom left.',
-    '6. A solid footer bar across the very bottom holding the handle and location.',
-    '7. Generous margins. Nothing important within 4% of any edge.',
   )
+
+  /**
+   * Two layouts, because one enormous number cannot express four deals.
+   *
+   * The single-offer arrangement — a huge focal figure with photography beside
+   * it — is right for "1+1 this weekend" and actively wrong for a price list.
+   * Given four offers it has one box to put them in, which is how a poster
+   * asking for a ₹5000 package, a 1+1, a ₹8000 combo and a ₹1000 haircut came
+   * back reading "1+1+1".
+   */
+  if (offers.length > 1) {
+    lines.push(
+      'LAYOUT — an offer sheet:',
+      '1. Brand name or mark at the top, centred or top-left, small and calm.',
+      '2. The headline directly beneath it, set in two weights — a bold display face for the main words and a lighter script for the secondary phrase.',
+      `3. Below the headline, a panel divided into ${offers.length === 2 || offers.length === 4 ? 'a clean two-column grid' : 'evenly sized cards'} — one card per offer, all the same size, separated by thin rules or gentle gaps. Each card holds its small label above and its large figure below, exactly as listed.`,
+      '4. Every card is equally weighted. No single offer is enlarged at the expense of the others; a reader should be able to compare them at a glance.',
+      '5. The photography occupies one side or the upper corner, behind or beside the panel — never over the figures.',
+      '6. A solid footer bar across the very bottom holding the phone number and location.',
+      '7. Generous margins. Nothing important within 4% of any edge, and no figure closer than 6% to another.',
+    )
+  } else {
+    lines.push(
+      'LAYOUT:',
+      '1. Brand name or mark in the top-left corner, small and calm.',
+      '2. The headline in the upper-left third, set in two weights — a bold serif or heavy sans for the main words, a lighter script or italic for the secondary phrase.',
+      '3. The offer itself as the visual focus: very large, centred in the left column, far bigger than any other text.',
+      '4. The product photography on the right, overlapping the lower half, well lit on a clean surface.',
+      '5. A thin row of three or four simple line icons with one- or two-word captions near the bottom left.',
+      '6. A solid footer bar across the very bottom holding the handle and location.',
+      '7. Generous margins. Nothing important within 4% of any edge.',
+    )
+  }
 
   if (products.length > 0) {
     lines.push(

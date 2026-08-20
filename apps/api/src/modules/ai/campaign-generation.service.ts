@@ -143,6 +143,38 @@ function normalizePosterText(raw: unknown): Record<string, unknown> | null {
     if (value) out[key] = value
   }
 
+  /**
+   * Every deal, kept as a list.
+   *
+   * Dropped silently before this existed, because the normaliser only copied
+   * known string keys — so a generator that correctly listed four offers had
+   * them thrown away one function later, and the poster fell back to the single
+   * `offer` slot it could not fit them in.
+   */
+  const offers = Array.isArray(o['offers'])
+    ? o['offers']
+        .map((entry) => {
+          if (typeof entry !== 'object' || entry === null) return null
+          const e = entry as Record<string, unknown>
+          const take = (key: string, max: number): string =>
+            typeof e[key] === 'string' ? (e[key] as string).trim().slice(0, max) : ''
+          const title = take('title', 28)
+          // The figure is the point. An entry without one is a label with
+          // nothing to label, and a card on the poster with an empty box in it.
+          if (!title) return null
+          const label = take('label', 48)
+          const detail = take('detail', 48)
+          return {
+            title,
+            ...(label ? { label } : {}),
+            ...(detail ? { detail } : {}),
+          }
+        })
+        .filter((entry): entry is { title: string } => entry !== null)
+        .slice(0, 6)
+    : []
+  if (offers.length > 0) out['offers'] = offers
+
   const features = Array.isArray(o['features'])
     ? o['features']
         .filter((f): f is string => typeof f === 'string' && f.trim().length > 0)
@@ -685,8 +717,9 @@ WORDS ON THE POSTER — for every IMAGE_PROMPT whose "visualStyle" is "POSTER", 
 {
   "headline":   "the line read first, 3-6 words, title case",
   "subline":    "a warmer second phrase, 3-8 words — optional",
-  "offer":      "the focal element, very short: 1+1, 40% OFF, BUY 2 GET 1",
-  "offerNote":  "what it applies to: ON ALL ITEMS — optional",
+  "offers":     [{"title":"the figure, large: PAY ₹5000 / 1+1 / ₹8000 ONLY","label":"what it is: Gift your sister a makeover","detail":"the qualifier: worth ₹6500 / was ₹12000 / for both"}],
+  "offer":      "use ONLY when there is exactly one deal and it needs no label: 1+1, 40% OFF",
+  "offerNote":  "what that single offer applies to: ON ALL ITEMS — optional",
   "condition":  "the catch, if there is one: WHEN YOU BRING YOUR SIBLING — optional",
   "features":   ["2-4 benefit captions, 2-3 words each, for a row of icons"],
   "dateLine":   "when it runs — a date range (9TH – 19TH AUGUST) or a time window (12 PM – 6 PM ONLY). Include it whenever the brief states either.",
@@ -695,12 +728,16 @@ WORDS ON THE POSTER — for every IMAGE_PROMPT whose "visualStyle" is "POSTER", 
 
 THE POSTER MUST CARRY THE OFFER. A poster whose words do not tell a reader what is being given, what they must do to get it, and when, has failed — however good the picture is. So, from the brief:
 
-- If something is being given away or discounted, that IS the "offer". "Free foot massage" → offer: "FREE FOOT MASSAGE". Not a mood, not a greeting.
+- **List EVERY deal separately in "offers".** A brief naming four things — a gift package, a 1+1, a combo price, a haircut price — produces four entries, not one. Do not merge them, do not pick a favourite, and never invent a combined figure: four offers compressed into one slot produced "1+1+1", which was none of them.
+- **PRICES BELONG ON THE POSTER.** Write them exactly as the brief states them, with the currency symbol: "PAY ₹5000", "worth ₹6500", "was ₹12000", "₹1000 for both". These are the client's own prices for their own services and they are the entire content of an offer poster. Never round them, never drop the symbol, never replace a figure with a vague phrase like "special price".
+- If something is being given away or discounted, that IS an offer. "Free foot massage" → title: "FREE FOOT MASSAGE". Not a mood, not a greeting.
 - If getting it depends on something, that IS the "condition". "With any service" → condition: "WITH ANY SERVICE". "When you bring your sibling" → condition on the ribbon.
 - If the brief states hours or dates, they go in "dateLine" — a window like "12 PM – 6 PM" is exactly as load-bearing as a date range, and a reader who arrives at 7pm because the poster did not say has been failed by it.
 - The "headline" is the occasion or the hook, never the place for the offer. "Republic Day Refresh" is a headline; "Free Foot Massage" is the offer.
 
-Write these from the campaign's own facts. Every one is typeset onto the artwork exactly as written, so they must be spelled correctly and must be true: never invent an offer, a date or a condition the brief did not state, and leave a field out rather than filling it with something plausible. NEVER put an amount of money in any of them — the offer may be "1+1" or "40% OFF", never "₹99" — because prices are typeset from the catalogue where they cannot drift. Do not repeat any of this inside the picture description; the description says what the picture shows, "posterText" says what it says.
+Write these from the campaign's own facts. Every one is drawn onto the artwork exactly as written, so they must be spelled correctly and must be true: never invent an offer, a price, a date or a condition the brief did not state, and leave a field out rather than filling it with something plausible. A figure you were not given is worse than no figure — a reader acts on it.
+
+Do not repeat any of this inside the picture description; the description says what the picture shows, "posterText" says what it says.
 
 For a "PHOTO" concept omit "posterText" entirely: a photograph carries no words.
 

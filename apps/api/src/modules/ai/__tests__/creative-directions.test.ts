@@ -126,11 +126,11 @@ describe('a direction inside a poster brief', () => {
     expect(brief).toMatch(/not let it change the layout/i)
   })
 
-  it('still refuses to print money when a direction is applied', () => {
+  it('carries the client’s own price through, whatever direction is applied', () => {
     const brief = buildPosterBrief({
       headline: 'Everything at ₹99',
       styleLook: directionLook('ai-bold-sale') ?? '',
     })
-    expect(brief).not.toContain('₹99')
+    expect(brief).toContain('₹99')
   })
 })

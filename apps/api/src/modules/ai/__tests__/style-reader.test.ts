@@ -85,12 +85,14 @@ describe('the saved look inside a poster brief', () => {
     expect(brief.indexOf('HOUSE STYLE')).toBeLessThan(brief.indexOf('USING THE ATTACHED REFERENCE'))
   })
 
-  it('still refuses to print money when a style is applied', () => {
-    // The cost boundary is not weakened by any new input path.
+  it('carries the client’s own price through, whatever style is applied', () => {
+    // The cost boundary governs *our* money — credits, ad spend, margin. A
+    // client's own price is the content of their advertisement, and no styling
+    // path may quietly remove it.
     const brief = buildPosterBrief({
       headline: 'Everything at ₹99 this week',
       styleLook: 'Warm and bright.',
     })
-    expect(brief).not.toContain('₹99')
+    expect(brief).toContain('₹99')
   })
 })

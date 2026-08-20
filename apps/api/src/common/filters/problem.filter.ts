@@ -158,12 +158,7 @@ export class ProblemExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus()
       const response = exception.getResponse()
-      const detail =
-        typeof response === 'string'
-          ? response
-          : typeof response === 'object' && response !== null && 'message' in response
-            ? String((response as { message: unknown }).message)
-            : exception.message
+      const detail = detailOf(response, exception.message)
 
       return {
         status,
@@ -226,4 +221,44 @@ export class ProblemExceptionFilter implements ExceptionFilter {
         return status >= 500 ? 'Internal error' : 'Request failed'
     }
   }
+}
+
+/**
+ * The readable half of an `HttpException`'s response body.
+ *
+ * `String()` used to do this job and produced `[object Object]` for every
+ * validation failure in the application — because a Nest validation response
+ * carries `message` as an *array* of issues, and stringifying an array of
+ * objects yields exactly that. A 400 that names the offending field became a
+ * toast reading "[object Object]", which is worse than no message: it looks
+ * like a crash rather than a rejected field, and it sent us reading deployment
+ * logs for something the response already said.
+ *
+ * Zod's own issues carry a `path`, so a nested field is reported as
+ * `audience.locations: Required` rather than an unattached "Required".
+ */
+export function detailOf(response: unknown, fallback: string): string {
+  if (typeof response === 'string') return response
+  if (typeof response !== 'object' || response === null) return fallback
+
+  const message: unknown = (response as { message?: unknown }).message
+  if (typeof message === 'string' && message.length > 0) return message
+
+  if (Array.isArray(message)) {
+    const parts = message
+      .map((issue) => {
+        if (typeof issue === 'string') return issue
+        if (typeof issue !== 'object' || issue === null) return null
+        const i = issue as { path?: unknown; message?: unknown }
+        if (typeof i.message !== 'string') return null
+        const path = Array.isArray(i.path) && i.path.length > 0 ? `${i.path.join('.')}: ` : ''
+        return `${path}${i.message}`
+      })
+      .filter((part): part is string => part !== null)
+    // Bounded: a body with thirty bad fields should not become a paragraph in a
+    // toast, and the first few are enough to find the mistake.
+    if (parts.length > 0) return parts.slice(0, 4).join(' · ')
+  }
+
+  return fallback
 }

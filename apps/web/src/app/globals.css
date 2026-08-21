@@ -3761,9 +3761,6 @@ a.card:hover {
   border: 1px solid var(--border-subtle);
   box-shadow: var(--elev-2);
 }
-.drawer.rq-drawer {
-  width: min(480px, 100vw);
-}
 .rq-drawer__tabs {
   display: flex;
   gap: 4px;
@@ -3794,6 +3791,22 @@ a.card:hover {
 .rq-drawer__footer > .btn.primary {
   width: 100%;
 }
+/* In the lightbox the footer is one row across the modal, with the regenerate
+   field taking whatever is left. Stacked, it was three full-width buttons and a
+   field — a column of decisions below a column of fields. */
+.rq-lightbox__foot .rq-drawer__footer {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.rq-lightbox__foot .rq-drawer__footer > .btn.primary {
+  width: auto;
+}
+.rq-lightbox__foot .rq-drawer__regen {
+  flex: 1 1 280px;
+  min-width: 0;
+}
 .rq-drawer__regen {
   display: flex;
   gap: var(--space-2);
@@ -3803,14 +3816,167 @@ a.card:hover {
   flex: 1;
   min-width: 0;
 }
-.rq-drawer__concept {
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
+/* ── Asset lightbox ───────────────────────────────────────────────────────────
+   Replaced a 480px drawer that capped the creative at 320px tall and put every
+   decision below two empty fields, while two thirds of the screen sat behind a
+   dimmed overlay doing nothing. The artwork is what is being judged; it gets the
+   room, and the buttons stay where they can be reached. */
+.rq-lightbox {
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(1240px, 94vw);
+  /* Bounded on purpose: a modal that grows with content pushes the footer off a
+     900px laptop, which is the fault this replaced. */
+  height: min(880px, 92vh);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  box-shadow: var(--elev-3);
+  overflow: hidden;
+}
+.rq-lightbox__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.rq-lightbox__title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-weight: 650;
+  font-size: 14px;
+}
+.rq-lightbox__title .type-caption {
+  font-weight: 400;
   color: var(--text-secondary);
-  margin-bottom: var(--space-4);
+}
+.rq-lightbox__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+/* The two columns scroll independently, so reading a caption never moves the
+   picture you are judging it against. */
+.rq-lightbox__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.rq-lightbox__canvas {
+  flex: 1.55;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   background: var(--surface-sunken);
+}
+.rq-lightbox__panel {
+  flex: 0 0 412px;
+  min-width: 0;
+  overflow: auto;
+  padding: var(--space-4);
+  border-left: 1px solid var(--border-subtle);
+}
+.rq-lightbox__foot {
+  flex: none;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-raised);
+}
+
+/* No height cap. The creative fills the column and keeps its own proportions. */
+.rq-lightbox__art {
+  flex: 1;
+  min-height: 440px;
+  display: grid;
+  place-items: center;
+}
+.rq-lightbox__art img,
+.rq-lightbox__art video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-inverse);
+}
+.rq-lightbox__pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+  max-width: 42ch;
+  color: var(--text-secondary);
+}
+
+/* Beside the artwork rather than at the bottom of a scrolling panel: picking
+   the winner is the one decision that needs the picture in view. */
+.rq-lightbox__variants {
+  flex: none;
+}
+.rq-lightbox__variants > .type-caption {
+  margin: 0 0 var(--space-2);
+}
+.rq-variant {
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+.rq-variant.is-on {
+  border: 3px solid var(--cobalt-600);
+}
+.rq-variant img {
+  width: 132px;
+  height: 92px;
+  object-fit: cover;
+  display: block;
+}
+.rq-variant__tag {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--cobalt-600);
+  color: var(--text-inverse);
+  font: var(--type-label);
+  line-height: 1.5;
+}
+
+/* Below this the columns stack, artwork first, and the footer stays pinned. */
+@media (max-width: 1100px) {
+  .rq-lightbox {
+    width: 96vw;
+  }
+  .rq-lightbox__body {
+    flex-direction: column;
+  }
+  .rq-lightbox__panel {
+    flex: none;
+    border-left: 0;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .rq-lightbox__art {
+    min-height: 280px;
+  }
 }
 .rq-history {
   list-style: none;

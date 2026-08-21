@@ -96,6 +96,28 @@ function CampaignDetailInner() {
     [assets, selectedAssetId],
   )
 
+  /**
+   * Where this asset sits, and how to reach its neighbours.
+   *
+   * Walking the set is the common motion when reviewing — approve, look at the
+   * next, approve — and closing the lightbox to click another tile puts a full
+   * open-and-close between two decisions. Ordered over the artwork only, since
+   * that is what the sheet shows and what a person is stepping through.
+   */
+  const walk = useMemo(() => {
+    const artwork = (assets ?? []).filter(
+      (a) => a.kind === 'IMAGE_PROMPT' || a.kind === 'VIDEO_PROMPT',
+    )
+    const index = artwork.findIndex((a) => a.id === selectedAssetId)
+    if (index === -1) return null
+    return {
+      index,
+      total: artwork.length,
+      prev: artwork[index - 1]?.id ?? null,
+      next: artwork[index + 1]?.id ?? null,
+    }
+  }, [assets, selectedAssetId])
+
   const counts = useMemo(
     () => new Map(SECTIONS.map((def) => [def.id, sectionCount(def, assets)])),
     [assets],
@@ -169,9 +191,23 @@ function CampaignDetailInner() {
               selectedAsset ? (
                 <AssetEditor
                   asset={selectedAsset}
-                  variant="drawer"
+                  variant="lightbox"
                   onBack={() => go(active)}
                   onChanged={reload}
+                  {...(walk
+                    ? {
+                        step: {
+                          index: walk.index,
+                          total: walk.total,
+                          ...(walk.prev
+                            ? { onPrev: () => go(active, walk.prev ?? undefined) }
+                            : {}),
+                          ...(walk.next
+                            ? { onNext: () => go(active, walk.next ?? undefined) }
+                            : {}),
+                        },
+                      }
+                    : {})}
                 />
               ) : null
             }

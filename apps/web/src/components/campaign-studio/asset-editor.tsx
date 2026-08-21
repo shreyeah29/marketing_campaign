@@ -10,26 +10,43 @@ import { PlatformIcon } from '@/components/platform-icon'
 import { Chip, kindLabel, StatusPill, toStatus } from '@/components/status'
 
 import { pushAssetVersion, readAssetVersions, type AssetVersion } from './asset-versions'
-import { approveCampaignAsset } from './approve-asset'
 import type { Asset } from './types'
 
-type DrawerTab = 'content' | 'targeting' | 'comments' | 'history'
+/**
+ * Two tabs, not four.
+ *
+ * Targeting and Comments rendered an EmptyState in every reachable state —
+ * neither is in the frozen contract, so they could only ever say "not
+ * available". Two tabs that cost a click to learn nothing make a panel look
+ * broken. The feedback they implied is already collected by Request changes and
+ * Reject, whose reason chips are where the learning signal actually goes.
+ */
+type EditorTab = 'content' | 'history'
 
 /**
- * Asset editor — page or 480px drawer (brief Part 3 §9).
- * Preserves two-gate approval, A/B variants, reject chips, and publish.
- * History is browser-local so regenerate is not lossy in the UI.
+ * Asset editor — a page, or a lightbox over the contact sheet.
+ *
+ * The lightbox replaced a 480px drawer that capped the creative at 320px tall
+ * and pushed the decision buttons below two empty fields, while two thirds of
+ * the screen sat behind a dimmed overlay doing nothing. The artwork is the thing
+ * being judged; it gets the room.
+ *
+ * Preserves A/B variants, reject chips, publish, and browser-local history so
+ * regenerate is not lossy in the UI.
  */
 export function AssetEditor({
   asset,
   onBack,
   onChanged,
   variant = 'page',
+  step,
 }: {
   asset: Asset
   onBack: () => void
   onChanged: () => void
-  variant?: 'page' | 'drawer'
+  variant?: 'page' | 'lightbox'
+  /** Position in the sheet, with the way to walk it without closing. */
+  step?: { index: number; total: number; onPrev?: () => void; onNext?: () => void }
 }) {
   const toast = useToast()
   const [body, setBody] = useState(asset.body)
@@ -37,7 +54,7 @@ export function AssetEditor({
   const [cta, setCta] = useState(asset.cta ?? '')
   const [busy, setBusy] = useState<string | null>(null)
   const [confirmDel, setConfirmDel] = useState(false)
-  const [tab, setTab] = useState<DrawerTab>('content')
+  const [tab, setTab] = useState<EditorTab>('content')
   const [versions, setVersions] = useState<AssetVersion[]>(() => readAssetVersions(asset.id))
   const [regenNote, setRegenNote] = useState('')
   const status = asset.status
@@ -111,32 +128,51 @@ export function AssetEditor({
   }
 
   const isConcept = asset.kind === 'IMAGE_PROMPT' || asset.kind === 'VIDEO_PROMPT'
-  const canApprove = ['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT'].includes(status)
+  /**
+   * Approving artwork means approving a picture, so there has to be one.
+   *
+   * FAILED is decidable — a person looking at a poster has made the decision,
+   * and the status is a machine's opinion about a past attempt. What is not
+   * decidable is a concept with nothing to look at.
+   */
+  const awaitingPicture = isConcept && !asset.mediaUrl
+  const canApprove =
+    ['GENERATED', 'NEEDS_REVIEW', 'REJECTED', 'DRAFT', 'FAILED'].includes(status) &&
+    !awaitingPicture
   const canPublish = status === 'APPROVED'
   const [publishOpen, setPublishOpen] = useState(false)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [changesOpen, setChangesOpen] = useState(false)
 
   /**
-   * Gate 1 for concepts: approving an image/video *concept* immediately turns it
-   * into a real creative (Runway), which comes back as NEEDS_REVIEW — Gate 2.
-   * For everything else, approve is the final approval.
+   * One gate, not two.
+   *
+   * Approving used to *start* the generation for a concept with no picture —
+   * "Approve & generate", asking permission to draw. That predates the contact
+   * sheet, which now fires every poster the moment a campaign is opened. So the
+   * button asked for permission to do something already done, on a screen
+   * showing the finished picture, which is why it read as confusing rather than
+   * careful.
+   *
+   * Approve now means one thing: this picture is good. Nothing here spends a
+   * generation.
    */
   async function approve() {
-    if (isConcept && !asset.mediaUrl) {
-      setBusy('Generate')
-      try {
-        await approveCampaignAsset(asset)
-        toast.push('success', 'Creative generated — give it a final look')
-        onChanged()
-      } catch (e) {
-        toast.push('error', e instanceof ApiError ? e.message : 'Generation failed')
-      } finally {
-        setBusy(null)
-      }
-      return
-    }
     await act('Approve', () => api.post(`/campaign-assets/${asset.id}/approve`, {}))
+  }
+
+  /** Draw it again — the retry after a provider failure. */
+  async function rerender() {
+    setBusy('Generate')
+    try {
+      await api.post(`/campaign-assets/${asset.id}/generate-media`, { variants: 1, force: true })
+      toast.push('success', 'Drawing it again — it appears here when it lands')
+      onChanged()
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'Could not start it')
+    } finally {
+      setBusy(null)
+    }
   }
 
   function restore(v: AssetVersion) {
@@ -160,8 +196,8 @@ export function AssetEditor({
             </>
           ) : (
             <>
-              <Icon name={isConcept && !asset.mediaUrl ? 'sparkles' : 'check'} size={14} />
-              {isConcept && !asset.mediaUrl ? 'Approve & generate' : 'Approve'}
+              <Icon name="check" size={14} />
+              Approve
             </>
           )}
         </button>
@@ -197,70 +233,131 @@ export function AssetEditor({
     </div>
   )
 
-  const tabs: { id: DrawerTab; label: string }[] = [
+  const tabs: { id: EditorTab; label: string }[] = [
     { id: 'content', label: 'Content' },
-    { id: 'targeting', label: 'Targeting' },
-    { id: 'comments', label: 'Comments' },
-    { id: 'history', label: 'History' },
+    {
+      id: 'history',
+      label: versions.length > 0 ? `History ${String(versions.length)}` : 'History',
+    },
   ]
+
+  /**
+   * The artwork column.
+   *
+   * No `maxHeight: 320`. The creative is the thing being judged and it was being
+   * shown in a sliver while two thirds of the screen sat behind a dimmed
+   * overlay. It now scales to the column.
+   */
+  const canvasContent = (
+    <>
+      <div className="rq-lightbox__art">
+        {asset.mediaUrl ? (
+          asset.kind === 'VIDEO_PROMPT' ? (
+            <video src={asset.mediaUrl} controls />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={asset.mediaUrl} alt={asset.title ?? 'Generated creative'} />
+          )
+        ) : isConcept ? (
+          /**
+           * What is actually happening, rather than an instruction.
+           *
+           * This said "Approve this concept to generate the creative", which
+           * stopped being true when the contact sheet began generating every
+           * poster on open. It now reports the state: drawing, or the reason it
+           * stopped, with the retry beside it.
+           */
+          <div className="rq-lightbox__pending">
+            {busy === 'Generate' || !asset.failureReason ? (
+              <>
+                <Spinner />
+                <p className="type-caption">Drawing this one…</p>
+                <p className="type-caption" style={{ color: 'var(--text-muted)' }}>
+                  It appears here the moment it lands — no need to wait on this screen.
+                </p>
+              </>
+            ) : (
+              <>
+                <Icon name="alert-triangle" size={22} />
+                <p className="type-caption">{asset.failureReason}</p>
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={busy !== null}
+                  onClick={() => void rerender()}
+                >
+                  <Icon name="refresh" size={13} /> Try again
+                </button>
+              </>
+            )}
+          </div>
+        ) : null}
+      </div>
+
+      {/* Beside the artwork, not at the bottom of a scrolling panel. Picking the
+          winner is the one decision that needs the picture in view, and it was
+          the furthest thing from it. */}
+      {asset.kind === 'IMAGE_PROMPT' &&
+      (asset.aiVersions?.variants?.length ?? 0) > 1 &&
+      status === 'NEEDS_REVIEW' ? (
+        <div className="rq-lightbox__variants">
+          <p className="type-caption">
+            Pick the winner — the selected variant becomes the final creative:
+          </p>
+          <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            {asset.aiVersions?.variants?.map((v) => {
+              const chosen = v === asset.mediaUrl
+              return (
+                <button
+                  key={v}
+                  type="button"
+                  className={`rq-variant${chosen ? ' is-on' : ''}`}
+                  onClick={() =>
+                    void act('Select variant', () =>
+                      api.post(`/campaign-assets/${asset.id}/choose-variant`, { url: v }),
+                    )
+                  }
+                  disabled={busy !== null}
+                  aria-pressed={chosen}
+                  aria-label={chosen ? 'Selected variant' : 'Choose this variant'}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={v} alt="Variant" />
+                  {/* Labelled, so the choice reads without hovering each one. */}
+                  {chosen ? <span className="rq-variant__tag">Selected</span> : null}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
 
   const bodyContent = (
     <>
-      <div className="spread" style={{ marginBottom: 16, alignItems: 'center' }}>
-        <div className="row" style={{ gap: 10 }}>
-          <PlatformIcon platform={asset.platform} size={22} />
-          <div>
-            <div style={{ fontWeight: 650, fontSize: 15 }}>{title}</div>
-            {asset.scheduledFor ? (
-              <div className="type-caption" style={{ color: 'var(--text-secondary)' }}>
-                Scheduled · {new Date(asset.scheduledFor).toLocaleString()}
-              </div>
-            ) : null}
+      {/* Printed once. The lightbox carries these in its own head, and having
+          both meant the title and the status pill appeared twice, eight pixels
+          apart. Still needed by the page variant, which has no head of its own. */}
+      {variant === 'page' ? (
+        <div className="spread" style={{ marginBottom: 16, alignItems: 'center' }}>
+          <div className="row" style={{ gap: 10 }}>
+            <PlatformIcon platform={asset.platform} size={22} />
+            <div>
+              <div style={{ fontWeight: 650, fontSize: 15 }}>{title}</div>
+              {asset.scheduledFor ? (
+                <div className="type-caption" style={{ color: 'var(--text-secondary)' }}>
+                  Scheduled · {new Date(asset.scheduledFor).toLocaleString()}
+                </div>
+              ) : null}
+            </div>
           </div>
-        </div>
-        <StatusPill status={toStatus(status)} />
-      </div>
-
-      {asset.mediaUrl ? (
-        <div style={{ marginBottom: 16 }}>
-          {asset.kind === 'VIDEO_PROMPT' ? (
-            <video
-              src={asset.mediaUrl}
-              controls
-              style={{
-                width: '100%',
-                maxHeight: 320,
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-inverse)',
-              }}
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={asset.mediaUrl}
-              alt={asset.title ?? 'Generated creative'}
-              style={{
-                width: '100%',
-                maxHeight: 320,
-                objectFit: 'contain',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-sunken)',
-              }}
-            />
-          )}
-        </div>
-      ) : isConcept ? (
-        <div className="rq-drawer__concept">
-          <Icon name={asset.kind === 'VIDEO_PROMPT' ? 'video' : 'image'} size={22} />
-          <p className="type-caption">
-            {busy === 'Generate'
-              ? 'Generating your creative…'
-              : 'Approve this concept to generate the creative.'}
-          </p>
+          <StatusPill status={toStatus(status)} />
         </div>
       ) : null}
+
+      {/* The page has one column, so the artwork stays in the flow here. */}
+      {variant === 'page' ? canvasContent : null}
 
       <div className="rq-drawer__tabs" role="tablist">
         {tabs.map((t) => (
@@ -296,10 +393,20 @@ export function AssetEditor({
             </Field>
           )}
           <Field label="Caption">
-            <input className="input" value={caption} onChange={(e) => setCaption(e.target.value)} />
+            <input
+              className="input"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Empty — generate from the brief or type it"
+            />
           </Field>
           <Field label="Call to action">
-            <input className="input" value={cta} onChange={(e) => setCta(e.target.value)} />
+            <input
+              className="input"
+              value={cta}
+              onChange={(e) => setCta(e.target.value)}
+              placeholder="e.g. Book a slot"
+            />
           </Field>
           {asset.hashtags && asset.hashtags.length > 0 ? (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -399,26 +506,6 @@ export function AssetEditor({
         </div>
       ) : null}
 
-      {tab === 'targeting' ? (
-        <EmptyState
-          icon="target"
-          title="No targeting on this asset"
-          hint={
-            asset.kind.startsWith('AD_')
-              ? 'Audience, placements and delivery are chosen at publish or on the connected ad account — they are not stored on the asset in this contract.'
-              : 'Targeting applies to ads. This asset is copy or organic content.'
-          }
-        />
-      ) : null}
-
-      {tab === 'comments' ? (
-        <EmptyState
-          icon="message-square"
-          title="Comments unavailable"
-          hint="Threaded comments are not part of the frozen campaign-assets contract. Use Request changes or Reject with a reason so the AI learns."
-        />
-      ) : null}
-
       {tab === 'history' ? (
         versions.length === 0 ? (
           <EmptyState
@@ -507,20 +594,70 @@ export function AssetEditor({
     </>
   )
 
-  if (variant === 'drawer') {
+  if (variant === 'lightbox') {
     return (
       <>
         <div className="overlay" onClick={onBack} />
-        <aside className="drawer rq-drawer" role="dialog" aria-label={title}>
-          <div className="head">
-            <h3>{title}</h3>
+        {/**
+         * Bounded height, deliberately.
+         *
+         * The footer holds every decision on this screen, and a modal that grows
+         * with its content pushes those below the fold on a 900px laptop — which
+         * is what the drawer did, so you scrolled past two empty fields to reach
+         * Approve. Head and foot are fixed; only the two columns scroll, and
+         * they scroll independently so reading the caption never moves the
+         * picture you are judging it against.
+         */}
+        <div className="rq-lightbox" role="dialog" aria-modal="true" aria-label={title}>
+          <div className="rq-lightbox__head">
+            <PlatformIcon platform={asset.platform} size={20} />
+            <div className="rq-lightbox__title">
+              <span>{title}</span>
+              {asset.scheduledFor ? (
+                <span className="type-caption">
+                  Scheduled · {new Date(asset.scheduledFor).toLocaleString()}
+                </span>
+              ) : null}
+            </div>
+            <StatusPill status={toStatus(status)} />
+            <div className="grow" />
+            {step && step.total > 1 ? (
+              <div className="rq-lightbox__step">
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Previous"
+                  disabled={!step.onPrev}
+                  onClick={step.onPrev}
+                >
+                  <Icon name="chevron-left" size={15} />
+                </button>
+                <span className="type-caption">
+                  {step.index + 1} of {step.total}
+                </span>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  aria-label="Next"
+                  disabled={!step.onNext}
+                  onClick={step.onNext}
+                >
+                  <Icon name="chevron-right" size={15} />
+                </button>
+              </div>
+            ) : null}
             <button className="icon-btn" onClick={onBack} aria-label="Close">
               <Icon name="x" size={16} />
             </button>
           </div>
-          <div className="body">{bodyContent}</div>
-          <div className="foot">{footer}</div>
-        </aside>
+
+          <div className="rq-lightbox__body">
+            <div className="rq-lightbox__canvas">{canvasContent}</div>
+            <div className="rq-lightbox__panel">{bodyContent}</div>
+          </div>
+
+          <div className="rq-lightbox__foot">{footer}</div>
+        </div>
         {dialogs}
       </>
     )

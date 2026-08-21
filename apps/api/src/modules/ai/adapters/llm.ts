@@ -18,9 +18,25 @@
 
 export type AdapterRole = 'system' | 'user' | 'assistant' | 'tool'
 
+/**
+ * A piece of a multi-part message.
+ *
+ * Exists so a vision call can go through the same `chat()` as everything else.
+ * The alternative — a hand-rolled request beside it — was tried and failed
+ * exactly as you would expect: it duplicated the body and skipped the parameter
+ * self-healing below, so it broke on the newer models the coach handles fine.
+ */
+export type AdapterContentPart =
+  | { readonly type: 'text'; readonly text: string }
+  | {
+      readonly type: 'image_url'
+      readonly image_url: { readonly url: string; readonly detail?: 'low' | 'high' | 'auto' }
+    }
+
 export interface AdapterMessage {
   readonly role: AdapterRole
-  readonly content: string
+  /** A string for ordinary chat; parts when an image travels with the text. */
+  readonly content: string | readonly AdapterContentPart[]
 }
 
 export interface AdapterChatInput {

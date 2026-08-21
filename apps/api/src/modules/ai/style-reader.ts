@@ -1,4 +1,4 @@
-import { AdapterError } from './adapters/llm.js'
+import { AdapterError, getLlmAdapter } from './adapters/llm.js'
 import { listAvailableImageModels } from './adapters/openai-media.js'
 
 /**
@@ -146,66 +146,58 @@ export async function readVisualStyle(
     )
   }
 
-  let lastError: unknown = null
+  /**
+   * Sent through the shared adapter, not a hand-rolled request.
+   *
+   * This posted its own body with `temperature` and `max_tokens` set, and broke
+   * on exactly the models the brief coach handles fine — because the adapter
+   * retries after renaming `max_tokens` to `max_completion_tokens` and dropping
+   * a `temperature` the newer models reject, and a second copy of the request
+   * inherited none of that.
+   *
+   * The failure was invisible from the outside: a 400 about an unsupported
+   * parameter arrived as "that picture could not be read", pointing at the
+   * picture, which was fine.
+   */
+  const adapter = getLlmAdapter('openai')
+  if (!adapter) {
+    throw new AdapterError('No OpenAI adapter is registered.', PROVIDER_ID)
+  }
+
   const candidates = visionModelCandidates(configuredModel)
 
   for (const model of candidates) {
     try {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(60_000),
-        body: JSON.stringify({
-          model,
-          // Low creativity: this is a description of something that exists, and
-          // an inventive reading of it is simply a wrong one.
-          temperature: 0.2,
-          max_tokens: 400,
-          messages: [
-            { role: 'system', content: SYSTEM },
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'Describe the visual language of this image.' },
-                // "low" detail is deliberate: palette, light and texture survive
-                // downsampling, and the things high detail would recover — small
-                // text, fine logo work — are exactly what must not be read.
-                { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
-              ],
-            },
-          ],
-        }),
+      const result = await adapter.chat({
+        apiKey,
+        model,
+        maxTokens: 400,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: 'Describe the visual language of this image.' },
+              // "low" detail is deliberate: palette, light and texture survive
+              // downsampling, and the things high detail would recover — small
+              // text, fine logo work — are exactly what must not be read.
+              { type: 'image_url', image_url: { url: dataUrl, detail: 'low' } },
+            ],
+          },
+        ],
       })
 
-      if (!res.ok) {
-        const detail = await res.text()
-        lastError = new AdapterError(detail.slice(0, 300), PROVIDER_ID, res.status)
-        // 401/403/404 mean this model is not available to the project; anything
-        // else is about the request and will fail the same way on the next one.
-        if (res.status === 401 || res.status === 403 || res.status === 404) continue
-        throw lastError
-      }
-
-      const body = (await res.json()) as {
-        choices?: { message?: { content?: unknown } }[]
-      }
-      const raw = body.choices?.[0]?.message?.content
-      if (typeof raw !== 'string') {
-        throw new AdapterError('The style reader returned no text.', PROVIDER_ID)
-      }
-
-      const reading = parseReading(raw)
+      const reading = parseReading(result.content)
       if (!reading) {
         throw new AdapterError('The style reader did not describe the picture.', PROVIDER_ID)
       }
       return reading
     } catch (err) {
-      lastError = err
-      // A thrown AdapterError from the non-availability branch above has already
-      // been rethrown; reaching here for any other reason means try the next.
-      if (err instanceof AdapterError && err.status !== undefined && err.status < 500) {
-        if (err.status !== 401 && err.status !== 403 && err.status !== 404) throw err
-      }
+      // 401/403/404 mean this model is not available to the project — try the
+      // next. Anything else says something about the request itself and will
+      // fail identically on every other model, so stop.
+      const status = err instanceof AdapterError ? err.status : undefined
+      if (status !== 401 && status !== 403 && status !== 404) throw err
     }
   }
 

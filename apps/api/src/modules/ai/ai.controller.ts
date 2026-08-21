@@ -148,13 +148,13 @@ export class AiController {
     messages: readonly AdapterMessage[],
   ): Promise<AdapterMessage[]> {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user')
-    if (!lastUser?.content) return [...messages]
+    // Retrieval searches on text. A multi-part message carries an image, and
+    // there is nothing in it to search a knowledge base with — so it is left
+    // alone rather than stringified into a query of "[object Object]".
+    const query = typeof lastUser?.content === 'string' ? lastUser.content : ''
+    if (!query) return [...messages]
 
-    const chunks = await this.knowledge.retrieveForOrg(
-      principal.organizationId,
-      lastUser.content,
-      6,
-    )
+    const chunks = await this.knowledge.retrieveForOrg(principal.organizationId, query, 6)
     if (chunks.length === 0) return [...messages]
 
     const context = chunks

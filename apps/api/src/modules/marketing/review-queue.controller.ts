@@ -1407,6 +1407,18 @@ export class ReviewQueueController {
     await withTenantTransaction(this.db, async (tx) => {
       const asset = await tx.campaignAsset.findFirst({ where: { id, deletedAt: null } })
       if (!asset) throw new NotFoundException('Asset not found')
+      /**
+       * A published asset is refused, matching the creatives path.
+       *
+       * The post is live on someone's feed, and deleting our record does not
+       * take it down — it removes the only thing that knows it is there, along
+       * with the external id the publisher would need to reach it.
+       */
+      if (asset.status === 'PUBLISHED') {
+        throw new BadRequestException(
+          'This one is already published. Deleting it here would not remove the post — it would only remove the record of it.',
+        )
+      }
       await tx.campaignAsset.update({ where: { id }, data: { deletedAt: new Date() } })
       await this.audit(tx, p, 'asset.deleted', id)
     })

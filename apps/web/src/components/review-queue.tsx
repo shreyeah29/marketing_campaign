@@ -120,6 +120,8 @@ export function ReviewQueue() {
   const [busy, setBusy] = useState(false)
   const [confirmAll, setConfirmAll] = useState(false)
   const [confirmRedo, setConfirmRedo] = useState<Item | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Item | null>(null)
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
 
   const load = useCallback(async () => {
     setError(null)
@@ -254,6 +256,18 @@ export function ReviewQueue() {
     return pending.filter((i) => selected.has(i.id))
   }
 
+  /**
+   * Only what was explicitly ticked.
+   *
+   * Deliberately not `targets()`, which falls back to the whole queue when
+   * nothing is selected. That is right for Approve — the button says "Approve
+   * 12" and means it — and would be catastrophic for Delete, where an empty
+   * selection would quietly mean "all of them".
+   */
+  function chosen(): Item[] {
+    return pending.filter((i) => selected.has(i.id))
+  }
+
   async function approveAll() {
     const list = targets()
     setConfirmAll(false)
@@ -295,6 +309,74 @@ export function ReviewQueue() {
       toast.push('error', e instanceof ApiError ? e.message : 'Could not start a redo')
     } finally {
       setBusy(false)
+    }
+  }
+
+  /**
+   * Remove it from the workspace, rather than judging it.
+   *
+   * Only reject existed, so clearing out a duplicate or a test run meant a queue
+   * full of rejections — each of which reads as a decision about the work, and
+   * each of which feeds what gets generated next. Deleting says nothing about
+   * quality; it says this should not be here.
+   */
+  async function removeItem(item: Item) {
+    const path = item.source === 'asset' ? '/campaign-assets' : '/creatives'
+    setBusy(true)
+    try {
+      await api.del(`${path}/${item.id}`)
+      setSelected((prev) => {
+        const next = new Set(prev)
+        next.delete(item.id)
+        return next
+      })
+      await load()
+      toast.push('success', 'Deleted')
+    } catch (e) {
+      toast.push('error', e instanceof ApiError ? e.message : 'Could not delete that')
+    } finally {
+      setBusy(false)
+      setConfirmDelete(null)
+    }
+  }
+
+  /**
+   * Delete everything selected, one at a time.
+   *
+   * Sequential for the same reason approving is: these fire audit writes and
+   * tenant transactions, and a burst of them against a shared pool is how one
+   * slow row stalls the rest. One failure does not stop the others — the
+   * remaining items had nothing wrong with them.
+   */
+  async function removeSelected() {
+    const list = chosen()
+    if (list.length === 0) return
+    setBusy(true)
+    let ok = 0
+    const failures: string[] = []
+    try {
+      for (const item of list) {
+        const path = item.source === 'asset' ? '/campaign-assets' : '/creatives'
+        try {
+          await api.del(`${path}/${item.id}`)
+          ok += 1
+        } catch (e) {
+          failures.push(e instanceof ApiError ? e.message : item.title)
+        }
+      }
+      setSelected(new Set())
+      await load()
+      if (failures.length === 0) {
+        toast.push('success', `${String(ok)} deleted`)
+      } else {
+        toast.push(
+          'error',
+          `${String(ok)} deleted · ${String(failures.length)} kept — ${failures[0] ?? ''}`,
+        )
+      }
+    } finally {
+      setBusy(false)
+      setConfirmDeleteAll(false)
     }
   }
 
@@ -383,6 +465,15 @@ export function ReviewQueue() {
             >
               {busy ? <Spinner /> : <Icon name="check" size={14} />}
               Approve {selected.size > 0 ? selected.size : pending.length}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={busy || selected.size === 0}
+              style={{ color: 'var(--crimson-600)' }}
+              onClick={() => setConfirmDeleteAll(true)}
+            >
+              <Icon name="trash" size={14} /> Delete {selected.size > 0 ? selected.size : ''}
             </button>
           </div>
         ) : null}
@@ -486,6 +577,16 @@ export function ReviewQueue() {
                       >
                         Drop
                       </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        disabled={busy}
+                        aria-label={`Delete ${item.title}`}
+                        title="Delete — removes it entirely"
+                        onClick={() => setConfirmDelete(item)}
+                      >
+                        <Icon name="trash" size={15} />
+                      </button>
                     </>
                   ) : (
                     <>
@@ -517,6 +618,19 @@ export function ReviewQueue() {
                           Redo
                         </button>
                       )}
+                      {/* Last, and an icon rather than a word. Delete is the one
+                          action here that cannot be undone from this screen, so
+                          it should not sit at the same weight as Approve. */}
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        disabled={busy}
+                        aria-label={`Delete ${item.title}`}
+                        title="Delete — removes it entirely"
+                        onClick={() => setConfirmDelete(item)}
+                      >
+                        <Icon name="trash" size={15} />
+                      </button>
                     </>
                   )}
                 </div>
@@ -525,6 +639,40 @@ export function ReviewQueue() {
           ))}
         </div>
       )}
+
+      {/* Destructive, and irreversible from this screen, so both routes confirm.
+          The message names what goes rather than counting rows: "3 items" tells
+          you nothing about whether you meant these three. */}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete this?"
+        message={
+          confirmDelete
+            ? `“${confirmDelete.title}” will be removed from ${confirmDelete.campaign}. This is not a rejection — nothing learns from it, and it does not appear anywhere again.`
+            : ''
+        }
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => {
+          if (confirmDelete) void removeItem(confirmDelete)
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteAll}
+        title={`Delete ${String(chosen().length)} ${chosen().length === 1 ? 'item' : 'items'}?`}
+        message={`${chosen()
+          .slice(0, 4)
+          .map((i) => i.title)
+          .join(
+            ', ',
+          )}${chosen().length > 4 ? ` and ${String(chosen().length - 4)} more` : ''} will be removed. Anything already published is kept — deleting the record would not take the post down.`}
+        confirmLabel={`Delete ${String(chosen().length)}`}
+        danger
+        onConfirm={() => void removeSelected()}
+        onCancel={() => setConfirmDeleteAll(false)}
+      />
 
       <ConfirmDialog
         open={confirmAll}

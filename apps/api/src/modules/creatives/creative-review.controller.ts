@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Inject,
   NotFoundException,
   Param,
@@ -86,6 +87,40 @@ export class CreativeReviewController {
         },
       })
     })
+  }
+
+  /**
+   * Remove a creative from the workspace.
+   *
+   * Distinct from reject, and the review queue needed both. Rejecting is a
+   * decision that stays on the record — the reason feeds what gets generated
+   * next, and a rejected creative can be reopened. Deleting is for the ones that
+   * should not be there at all: a duplicate, a test, a run nobody wanted. Only
+   * reject existed, so clearing those out meant a queue full of rejections that
+   * each looked like a judgement about the work.
+   *
+   * Soft, like every other delete here: the row keeps its history and leaves
+   * every list, because `deletedAt: null` is on every query that reads it.
+   *
+   * Published creatives are refused. The post is live on someone's feed and
+   * deleting our record of it does not remove it — it removes the only thing
+   * that knows it exists.
+   */
+  @Delete(':id')
+  @RequirePermissions(PERMISSIONS.CONTENT_WRITE)
+  @ApiOperation({ summary: 'Remove a creative' })
+  async remove(@Param('id') id: string): Promise<{ ok: true }> {
+    await withTenantTransaction(this.db, async (tx) => {
+      const row = await tx.creative.findFirst({ where: { id, deletedAt: null } })
+      if (!row) throw new NotFoundException('Creative not found')
+      if (row.status === 'PUBLISHED') {
+        throw new BadRequestException(
+          'This one is already published. Deleting it here would not remove the post — it would only remove the record of it.',
+        )
+      }
+      await tx.creative.update({ where: { id }, data: { deletedAt: new Date() } })
+    })
+    return { ok: true }
   }
 
   @Post(':id/reject')
